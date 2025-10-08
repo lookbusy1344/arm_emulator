@@ -155,9 +155,12 @@ func (vm *VM) Step() error {
 
 	// Execute instruction
 	if err := vm.Execute(decoded); err != nil {
-		vm.State = StateError
-		vm.LastError = fmt.Errorf("execute failed at PC=0x%08X: %w", decoded.Address, err)
-		return vm.LastError
+		// Don't overwrite terminal states (Halted, Breakpoint) set by syscalls
+		if vm.State != StateHalted && vm.State != StateBreakpoint {
+			vm.State = StateError
+			vm.LastError = fmt.Errorf("execute failed at PC=0x%08X: %w", decoded.Address, err)
+		}
+		return err
 	}
 
 	vm.CPU.IncrementCycles(1)

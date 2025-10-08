@@ -55,7 +55,8 @@ func TestMOV_Register(t *testing.T) {
 
 	// MOV R1, R0 (E1A01000)
 	opcode := uint32(0xE1A01000)
-	// 	setupCodeWrite(v); v.Memory.WriteWord(0x8000, opcode)
+	setupCodeWrite(v)
+	v.Memory.WriteWord(0x8000, opcode)
 	v.Step()
 
 	if v.CPU.R[1] != 100 {
@@ -71,7 +72,8 @@ func TestADD_Immediate(t *testing.T) {
 
 	// ADD R2, R1, #10 (E281200A)
 	opcode := uint32(0xE281200A)
-	// 	setupCodeWrite(v); v.Memory.WriteWord(0x8000, opcode)
+	setupCodeWrite(v)
+	v.Memory.WriteWord(0x8000, opcode)
 	v.Step()
 
 	if v.CPU.R[2] != 15 {
@@ -88,7 +90,8 @@ func TestADD_WithFlags(t *testing.T) {
 
 	// ADDS R0, R1, R2 (E0910002 with S bit)
 	opcode := uint32(0xE0B10002)
-	// 	setupCodeWrite(v); v.Memory.WriteWord(0x8000, opcode)
+	setupCodeWrite(v)
+	v.Memory.WriteWord(0x8000, opcode)
 	v.Step()
 
 	if v.CPU.R[0] != 15 {
@@ -112,7 +115,8 @@ func TestSUB_Immediate(t *testing.T) {
 
 	// SUB R0, R1, #5 (E2410005)
 	opcode := uint32(0xE2410005)
-	// 	setupCodeWrite(v); v.Memory.WriteWord(0x8000, opcode)
+	setupCodeWrite(v)
+	v.Memory.WriteWord(0x8000, opcode)
 	v.Step()
 
 	if v.CPU.R[0] != 15 {
@@ -129,7 +133,8 @@ func TestSUB_ZeroFlag(t *testing.T) {
 
 	// SUBS R0, R1, R2 (E0510002 with S bit)
 	opcode := uint32(0xE0510002)
-	// 	setupCodeWrite(v); v.Memory.WriteWord(0x8000, opcode)
+	setupCodeWrite(v)
+	v.Memory.WriteWord(0x8000, opcode)
 	v.Step()
 
 	if v.CPU.R[0] != 0 {
@@ -149,7 +154,8 @@ func TestAND_Immediate(t *testing.T) {
 
 	// AND R0, R1, #0xFF (E20100FF)
 	opcode := uint32(0xE20100FF)
-	// 	setupCodeWrite(v); v.Memory.WriteWord(0x8000, opcode)
+	setupCodeWrite(v)
+	v.Memory.WriteWord(0x8000, opcode)
 	v.Step()
 
 	if v.CPU.R[0] != 0x78 {
@@ -165,7 +171,8 @@ func TestORR_Immediate(t *testing.T) {
 
 	// ORR R0, R1, #0x0F (E381000F)
 	opcode := uint32(0xE381000F)
-	// 	setupCodeWrite(v); v.Memory.WriteWord(0x8000, opcode)
+	setupCodeWrite(v)
+	v.Memory.WriteWord(0x8000, opcode)
 	v.Step()
 
 	if v.CPU.R[0] != 0xFF {
@@ -181,7 +188,8 @@ func TestEOR_Immediate(t *testing.T) {
 
 	// EOR R0, R1, #0xFF (E22100FF)
 	opcode := uint32(0xE22100FF)
-	// 	setupCodeWrite(v); v.Memory.WriteWord(0x8000, opcode)
+	setupCodeWrite(v)
+	v.Memory.WriteWord(0x8000, opcode)
 	v.Step()
 
 	if v.CPU.R[0] != 0x55 {
@@ -196,7 +204,8 @@ func TestMVN_Immediate(t *testing.T) {
 
 	// MVN R0, #0 (E3E00000)
 	opcode := uint32(0xE3E00000)
-	// 	setupCodeWrite(v); v.Memory.WriteWord(0x8000, opcode)
+	setupCodeWrite(v)
+	v.Memory.WriteWord(0x8000, opcode)
 	v.Step()
 
 	if v.CPU.R[0] != 0xFFFFFFFF {
@@ -213,7 +222,8 @@ func TestCMP_Instruction(t *testing.T) {
 
 	// CMP R0, R1 (E1500001)
 	opcode := uint32(0xE1500001)
-	// 	setupCodeWrite(v); v.Memory.WriteWord(0x8000, opcode)
+	setupCodeWrite(v)
+	v.Memory.WriteWord(0x8000, opcode)
 	v.Step()
 
 	// R0 should be unchanged
@@ -238,7 +248,8 @@ func TestTST_Instruction(t *testing.T) {
 
 	// TST R0, #0xFF (E31000FF)
 	opcode := uint32(0xE31000FF)
-	// 	setupCodeWrite(v); v.Memory.WriteWord(0x8000, opcode)
+	setupCodeWrite(v)
+	v.Memory.WriteWord(0x8000, opcode)
 	v.Step()
 
 	// 0x100 & 0xFF = 0, so Z should be set
@@ -256,7 +267,8 @@ func TestADD_Overflow(t *testing.T) {
 
 	// ADDS R0, R1, R2 (E0B10002)
 	opcode := uint32(0xE0B10002)
-	// 	setupCodeWrite(v); v.Memory.WriteWord(0x8000, opcode)
+	setupCodeWrite(v)
+	v.Memory.WriteWord(0x8000, opcode)
 	v.Step()
 
 	if v.CPU.R[0] != 0x80000000 {
@@ -283,7 +295,8 @@ func TestADD_Carry(t *testing.T) {
 
 	// ADDS R0, R1, R2 (E0B10002)
 	opcode := uint32(0xE0B10002)
-	// 	setupCodeWrite(v); v.Memory.WriteWord(0x8000, opcode)
+	setupCodeWrite(v)
+	v.Memory.WriteWord(0x8000, opcode)
 	v.Step()
 
 	if v.CPU.R[0] != 0 {
@@ -309,7 +322,8 @@ func TestConditionalExecution_EQ(t *testing.T) {
 
 	// MOVEQ R0, #1 (03A00001) - condition code 0000 (EQ)
 	opcode := uint32(0x03A00001)
-	// 	setupCodeWrite(v); v.Memory.WriteWord(0x8000, opcode)
+	setupCodeWrite(v)
+	v.Memory.WriteWord(0x8000, opcode)
 	v.Step()
 
 	if v.CPU.R[0] != 1 {
@@ -325,7 +339,8 @@ func TestConditionalExecution_NE(t *testing.T) {
 
 	// MOVNE R0, #1 (13A00001) - condition code 0001 (NE)
 	opcode := uint32(0x13A00001)
-	// 	setupCodeWrite(v); v.Memory.WriteWord(0x8000, opcode)
+	setupCodeWrite(v)
+	v.Memory.WriteWord(0x8000, opcode)
 	v.Step()
 
 	if v.CPU.R[0] != 0 {
@@ -341,7 +356,8 @@ func TestShift_LSL(t *testing.T) {
 
 	// MOV R0, R1, LSL #2 (E1A00101)
 	opcode := uint32(0xE1A00101)
-	// 	setupCodeWrite(v); v.Memory.WriteWord(0x8000, opcode)
+	setupCodeWrite(v)
+	v.Memory.WriteWord(0x8000, opcode)
 	v.Step()
 
 	if v.CPU.R[0] != 20 {
@@ -357,7 +373,8 @@ func TestShift_LSR(t *testing.T) {
 
 	// MOV R0, R1, LSR #2 (E1A00121)
 	opcode := uint32(0xE1A00121)
-	// 	setupCodeWrite(v); v.Memory.WriteWord(0x8000, opcode)
+	setupCodeWrite(v)
+	v.Memory.WriteWord(0x8000, opcode)
 	v.Step()
 
 	if v.CPU.R[0] != 5 {
