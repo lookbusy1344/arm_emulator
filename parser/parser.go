@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
+	"math"
 )
 
 // Instruction represents a parsed ARM instruction
@@ -541,6 +542,9 @@ func parseNumber(s string) (uint32, error) {
 
 	result := uint32(value)
 	if negative {
+		if result > uint32(math.MaxInt32) {
+			return 0, fmt.Errorf("negative value %d is out of range for int32", result)
+		}
 		result = uint32(-int32(result))
 	}
 
