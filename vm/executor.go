@@ -223,58 +223,29 @@ func (vm *VM) Decode(opcode uint32) (*Instruction, error) {
 func (vm *VM) Execute(inst *Instruction) error {
 	switch inst.Type {
 	case InstDataProcessing:
-		return vm.ExecuteDataProcessing(inst)
+		return ExecuteDataProcessing(vm, inst)
 	case InstMultiply:
-		return vm.ExecuteMultiply(inst)
+		return ExecuteMultiply(vm, inst)
 	case InstLoadStore:
-		return vm.ExecuteLoadStore(inst)
+		return ExecuteLoadStore(vm, inst)
 	case InstLoadStoreMultiple:
-		return vm.ExecuteLoadStoreMultiple(inst)
+		return ExecuteLoadStoreMultiple(vm, inst)
 	case InstBranch:
-		return vm.ExecuteBranch(inst)
+		return ExecuteBranch(vm, inst)
 	case InstSWI:
-		return vm.ExecuteSWI(inst)
+		return ExecuteSWI(vm, inst)
 	default:
 		return fmt.Errorf("unknown instruction type at 0x%08X: opcode=0x%08X", inst.Address, inst.Opcode)
 	}
 }
 
-// Placeholder execution methods - to be implemented in separate files
-func (vm *VM) ExecuteDataProcessing(inst *Instruction) error {
-	// To be implemented in instructions/data_processing.go
-	vm.CPU.IncrementPC()
-	return fmt.Errorf("data processing instruction not yet implemented")
-}
-
-func (vm *VM) ExecuteMultiply(inst *Instruction) error {
-	// To be implemented in instructions/multiply.go
-	vm.CPU.IncrementPC()
-	return fmt.Errorf("multiply instruction not yet implemented")
-}
-
-func (vm *VM) ExecuteLoadStore(inst *Instruction) error {
-	// To be implemented in instructions/memory.go
-	vm.CPU.IncrementPC()
-	return fmt.Errorf("load/store instruction not yet implemented")
-}
-
-func (vm *VM) ExecuteLoadStoreMultiple(inst *Instruction) error {
-	// To be implemented in instructions/memory_multi.go
-	vm.CPU.IncrementPC()
-	return fmt.Errorf("load/store multiple instruction not yet implemented")
-}
-
-func (vm *VM) ExecuteBranch(inst *Instruction) error {
-	// To be implemented in instructions/branch.go
-	vm.CPU.IncrementPC()
-	return fmt.Errorf("branch instruction not yet implemented")
-}
-
-func (vm *VM) ExecuteSWI(inst *Instruction) error {
-	// To be implemented in instructions/syscall.go
-	vm.CPU.IncrementPC()
-	return fmt.Errorf("SWI instruction not yet implemented")
-}
+// Instruction implementations are in separate files:
+// - data_processing.go
+// - multiply.go
+// - memory.go
+// - memory_multi.go
+// - branch.go
+// - syscall.go
 
 // Run executes instructions until halt, error, or breakpoint
 func (vm *VM) Run() error {

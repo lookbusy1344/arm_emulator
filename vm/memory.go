@@ -332,3 +332,73 @@ func (m *Memory) MakeCodeReadOnly() {
 		}
 	}
 }
+
+// Heap allocation tracking
+type HeapAllocation struct {
+	Address uint32
+	Size    uint32
+}
+
+var heapAllocations = make(map[uint32]*HeapAllocation)
+var nextHeapAddress uint32 = HeapSegmentStart
+
+// Allocate allocates memory from the heap
+func (m *Memory) Allocate(size uint32) (uint32, error) {
+	if size == 0 {
+		return 0, fmt.Errorf("cannot allocate 0 bytes")
+	}
+
+	// Align to 4-byte boundary
+	if size&0x3 != 0 {
+		size = (size + 3) & ^uint32(0x3)
+	}
+
+	// Check if we have space
+	if nextHeapAddress+size >= HeapSegmentStart+HeapSegmentSize {
+		return 0, fmt.Errorf("out of heap memory")
+	}
+
+	addr := nextHeapAddress
+	nextHeapAddress += size
+
+	// Track allocation
+	heapAllocations[addr] = &HeapAllocation{
+		Address: addr,
+		Size:    size,
+	}
+
+	// Zero the allocated memory
+	for i := uint32(0); i < size; i++ {
+		m.WriteByte(addr+i, 0)
+	}
+
+	return addr, nil
+}
+
+// Free frees previously allocated memory
+func (m *Memory) Free(address uint32) error {
+	if address == 0 {
+		return nil // Freeing NULL is a no-op
+	}
+
+	alloc, ok := heapAllocations[address]
+	if !ok {
+		return fmt.Errorf("invalid free: address 0x%08X was not allocated", address)
+	}
+
+	// Remove from tracking
+	delete(heapAllocations, address)
+
+	// Zero the freed memory (helps catch use-after-free)
+	for i := uint32(0); i < alloc.Size; i++ {
+		m.WriteByte(address+i, 0)
+	}
+
+	return nil
+}
+
+// ResetHeap resets the heap allocator
+func (m *Memory) ResetHeap() {
+	heapAllocations = make(map[uint32]*HeapAllocation)
+	nextHeapAddress = HeapSegmentStart
+}
