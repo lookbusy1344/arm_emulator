@@ -46,6 +46,19 @@ Run the emulator:
 ./arm-emulator
 ```
 
+### Example Programs
+
+The `examples/` directory contains sample ARM assembly programs that demonstrate various features:
+
+- **times_table.s** - Multiplication table generator
+- **factorial.s** - Recursive factorial calculator
+- **fibonacci.s** - Fibonacci sequence generator
+- **string_reverse.s** - String reversal program
+- **bubble_sort.s** - Bubble sort algorithm
+- **calculator.s** - Interactive calculator with basic operations
+
+See [examples/README.md](examples/README.md) for detailed descriptions and usage instructions.
+
 ## Development
 
 ### Building
