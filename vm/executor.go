@@ -1,0 +1,328 @@
+package vm
+
+import (
+	"fmt"
+)
+
+// ExecutionMode represents the execution mode of the VM
+type ExecutionMode int
+
+const (
+	ModeRun      ExecutionMode = iota // Run until halt or breakpoint
+	ModeStep                           // Execute single instruction
+	ModeStepOver                       // Execute until next instruction at same call level
+	ModeStepInto                       // Execute single instruction, following branches
+)
+
+// ExecutionState represents the current state of execution
+type ExecutionState int
+
+const (
+	StateRunning ExecutionState = iota
+	StateHalted
+	StateBreakpoint
+	StateError
+)
+
+// Instruction represents a decoded ARM instruction
+type Instruction struct {
+	Address   uint32
+	Opcode    uint32
+	Type      InstructionType
+	Condition ConditionCode
+	SetFlags  bool // S bit
+	// Operands will be added as we implement instructions
+}
+
+// InstructionType represents the type of instruction
+type InstructionType int
+
+const (
+	InstUnknown InstructionType = iota
+	InstDataProcessing
+	InstMultiply
+	InstLoadStore
+	InstLoadStoreMultiple
+	InstBranch
+	InstSWI
+)
+
+// VM represents the complete virtual machine
+type VM struct {
+	CPU    *CPU
+	Memory *Memory
+	State  ExecutionState
+	Mode   ExecutionMode
+
+	// Execution limits and statistics
+	MaxCycles      uint64
+	CycleLimit     uint64
+	InstructionLog []uint32 // History of executed instruction addresses
+
+	// Error handling
+	LastError error
+}
+
+// NewVM creates a new virtual machine instance
+func NewVM() *VM {
+	return &VM{
+		CPU:            NewCPU(),
+		Memory:         NewMemory(),
+		State:          StateHalted,
+		Mode:           ModeRun,
+		MaxCycles:      1000000, // Default 1M instruction limit
+		CycleLimit:     0,
+		InstructionLog: make([]uint32, 0, 1000),
+	}
+}
+
+// Reset resets the VM to initial state
+func (vm *VM) Reset() {
+	vm.CPU.Reset()
+	vm.Memory.Reset()
+	vm.State = StateHalted
+	vm.InstructionLog = vm.InstructionLog[:0]
+	vm.LastError = nil
+}
+
+// LoadProgram loads program bytes into code memory
+func (vm *VM) LoadProgram(data []byte, startAddress uint32) error {
+	if err := vm.Memory.LoadBytes(startAddress, data); err != nil {
+		return fmt.Errorf("failed to load program: %w", err)
+	}
+
+	vm.CPU.PC = startAddress
+	vm.State = StateHalted
+	return nil
+}
+
+// SetEntryPoint sets the program counter to the entry point
+func (vm *VM) SetEntryPoint(address uint32) {
+	vm.CPU.PC = address
+}
+
+// InitializeStack initializes the stack pointer
+func (vm *VM) InitializeStack(stackTop uint32) {
+	vm.CPU.SetSP(stackTop)
+}
+
+// Step executes a single instruction
+func (vm *VM) Step() error {
+	if vm.State == StateError {
+		return fmt.Errorf("VM is in error state: %w", vm.LastError)
+	}
+
+	// Check cycle limit
+	if vm.CycleLimit > 0 && vm.CPU.Cycles >= vm.CycleLimit {
+		vm.State = StateError
+		vm.LastError = fmt.Errorf("cycle limit exceeded (%d cycles)", vm.CycleLimit)
+		return vm.LastError
+	}
+
+	// Check execute permission for current PC
+	if err := vm.Memory.CheckExecutePermission(vm.CPU.PC); err != nil {
+		vm.State = StateError
+		vm.LastError = err
+		return err
+	}
+
+	// Log instruction address
+	vm.InstructionLog = append(vm.InstructionLog, vm.CPU.PC)
+
+	// Fetch instruction
+	instruction, err := vm.Fetch()
+	if err != nil {
+		vm.State = StateError
+		vm.LastError = fmt.Errorf("fetch failed at PC=0x%08X: %w", vm.CPU.PC, err)
+		return vm.LastError
+	}
+
+	// Decode instruction
+	decoded, err := vm.Decode(instruction)
+	if err != nil {
+		vm.State = StateError
+		vm.LastError = fmt.Errorf("decode failed at PC=0x%08X: %w", vm.CPU.PC, err)
+		return vm.LastError
+	}
+
+	// Check condition code
+	if !vm.CPU.CPSR.EvaluateCondition(decoded.Condition) {
+		// Condition not met, skip instruction
+		vm.CPU.IncrementPC()
+		vm.CPU.IncrementCycles(1)
+		return nil
+	}
+
+	// Execute instruction
+	if err := vm.Execute(decoded); err != nil {
+		vm.State = StateError
+		vm.LastError = fmt.Errorf("execute failed at PC=0x%08X: %w", decoded.Address, err)
+		return vm.LastError
+	}
+
+	vm.CPU.IncrementCycles(1)
+	return nil
+}
+
+// Fetch fetches the instruction at the current PC
+func (vm *VM) Fetch() (uint32, error) {
+	instruction, err := vm.Memory.ReadWord(vm.CPU.PC)
+	if err != nil {
+		return 0, fmt.Errorf("failed to fetch instruction: %w", err)
+	}
+	return instruction, nil
+}
+
+// Decode decodes a raw instruction word
+func (vm *VM) Decode(opcode uint32) (*Instruction, error) {
+	inst := &Instruction{
+		Address:   vm.CPU.PC,
+		Opcode:    opcode,
+		Condition: ConditionCode((opcode >> 28) & 0xF),
+		SetFlags:  (opcode & (1 << 20)) != 0, // S bit
+	}
+
+	// Determine instruction type based on bits 27-26
+	bits2726 := (opcode >> 26) & 0x3
+
+	switch bits2726 {
+	case 0: // 00 - Could be data processing, multiply, or load/store halfword
+		if (opcode&0x0FC000F0) == 0x00000090 {
+			// Multiply instruction pattern
+			inst.Type = InstMultiply
+		} else {
+			// Data processing
+			inst.Type = InstDataProcessing
+		}
+
+	case 1: // 01 - Load/Store
+		inst.Type = InstLoadStore
+
+	case 2: // 10 - Could be branch or load/store multiple
+		if (opcode & 0x02000000) != 0 {
+			// Branch
+			inst.Type = InstBranch
+		} else {
+			// Load/Store Multiple
+			inst.Type = InstLoadStoreMultiple
+		}
+
+	case 3: // 11 - Coprocessor or SWI
+		if (opcode & 0x0F000000) == 0x0F000000 {
+			// SWI
+			inst.Type = InstSWI
+		} else {
+			return nil, fmt.Errorf("coprocessor instructions not supported")
+		}
+	}
+
+	return inst, nil
+}
+
+// Execute executes a decoded instruction
+func (vm *VM) Execute(inst *Instruction) error {
+	switch inst.Type {
+	case InstDataProcessing:
+		return vm.ExecuteDataProcessing(inst)
+	case InstMultiply:
+		return vm.ExecuteMultiply(inst)
+	case InstLoadStore:
+		return vm.ExecuteLoadStore(inst)
+	case InstLoadStoreMultiple:
+		return vm.ExecuteLoadStoreMultiple(inst)
+	case InstBranch:
+		return vm.ExecuteBranch(inst)
+	case InstSWI:
+		return vm.ExecuteSWI(inst)
+	default:
+		return fmt.Errorf("unknown instruction type at 0x%08X: opcode=0x%08X", inst.Address, inst.Opcode)
+	}
+}
+
+// Placeholder execution methods - to be implemented in separate files
+func (vm *VM) ExecuteDataProcessing(inst *Instruction) error {
+	// To be implemented in instructions/data_processing.go
+	vm.CPU.IncrementPC()
+	return fmt.Errorf("data processing instruction not yet implemented")
+}
+
+func (vm *VM) ExecuteMultiply(inst *Instruction) error {
+	// To be implemented in instructions/multiply.go
+	vm.CPU.IncrementPC()
+	return fmt.Errorf("multiply instruction not yet implemented")
+}
+
+func (vm *VM) ExecuteLoadStore(inst *Instruction) error {
+	// To be implemented in instructions/memory.go
+	vm.CPU.IncrementPC()
+	return fmt.Errorf("load/store instruction not yet implemented")
+}
+
+func (vm *VM) ExecuteLoadStoreMultiple(inst *Instruction) error {
+	// To be implemented in instructions/memory_multi.go
+	vm.CPU.IncrementPC()
+	return fmt.Errorf("load/store multiple instruction not yet implemented")
+}
+
+func (vm *VM) ExecuteBranch(inst *Instruction) error {
+	// To be implemented in instructions/branch.go
+	vm.CPU.IncrementPC()
+	return fmt.Errorf("branch instruction not yet implemented")
+}
+
+func (vm *VM) ExecuteSWI(inst *Instruction) error {
+	// To be implemented in instructions/syscall.go
+	vm.CPU.IncrementPC()
+	return fmt.Errorf("SWI instruction not yet implemented")
+}
+
+// Run executes instructions until halt, error, or breakpoint
+func (vm *VM) Run() error {
+	vm.State = StateRunning
+
+	for vm.State == StateRunning {
+		if err := vm.Step(); err != nil {
+			return err
+		}
+
+		// Check for halt conditions
+		// This is a placeholder - will be enhanced with proper halt detection
+		if vm.CPU.Cycles > vm.MaxCycles {
+			vm.State = StateHalted
+			return fmt.Errorf("maximum cycles exceeded")
+		}
+	}
+
+	return nil
+}
+
+// GetState returns the current execution state
+func (vm *VM) GetState() ExecutionState {
+	return vm.State
+}
+
+// SetState sets the execution state
+func (vm *VM) SetState(state ExecutionState) {
+	vm.State = state
+}
+
+// GetInstructionHistory returns the history of executed instruction addresses
+func (vm *VM) GetInstructionHistory() []uint32 {
+	return vm.InstructionLog
+}
+
+// DumpState returns a string representation of the VM state for debugging
+func (vm *VM) DumpState() string {
+	return fmt.Sprintf(
+		"PC=0x%08X SP=0x%08X LR=0x%08X CPSR=[%s%s%s%s] Cycles=%d State=%v",
+		vm.CPU.PC,
+		vm.CPU.GetSP(),
+		vm.CPU.GetLR(),
+		map[bool]string{true: "N", false: "-"}[vm.CPU.CPSR.N],
+		map[bool]string{true: "Z", false: "-"}[vm.CPU.CPSR.Z],
+		map[bool]string{true: "C", false: "-"}[vm.CPU.CPSR.C],
+		map[bool]string{true: "V", false: "-"}[vm.CPU.CPSR.V],
+		vm.CPU.Cycles,
+		vm.State,
+	)
+}

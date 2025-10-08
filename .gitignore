@@ -1,0 +1,7 @@
+target/
+*.bak
+*.exe
+.DS_Store
+copilotDiffState.xml
+copilot.data.*.xml
+/arm-emulator

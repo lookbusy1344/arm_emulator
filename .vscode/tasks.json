@@ -1,0 +1,33 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"type": "go",
+			"label": "go: build current file",
+			"command": "build",
+			"args": [],
+			"problemMatcher": [
+				"$go"
+			],
+			"group": {
+				"kind": "build",
+				"isDefault": true
+			},
+			"detail": "go build ."
+		},
+		{
+			"type": "shell",
+			"label": "go: format project",
+			"command": "go",
+			"args": ["fmt", "./..."],
+			"group": "build",
+			"presentation": {
+				"echo": true,
+				"reveal": "always",
+				"focus": false,
+				"panel": "shared"
+			},
+			"detail": "Format all Go files in the project"
+		}
+	]
+}
