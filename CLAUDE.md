@@ -1,6 +1,6 @@
 # ARM Emulator Project
 
-This is an ARM emulator written in Go that implements a subset of the ARMv8 instruction set.
+This is an ARM emulator written in Go that implements a subset of the ARM2 instruction set.
 
 ## Build Command
 
