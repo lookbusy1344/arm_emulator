@@ -1,6 +1,6 @@
-# ARM Emulator - a vibe codeing project
+# ARM Emulator - a vibe coding project
 
-This is an example of using vibe codeing to re-create my first commercial project, from 1992, which implemented an ARM2 emulator. The original code was written in Turbo Pascal for MS-DOS and is completely lost.
+This is an example of using vibe coding to re-create my first commercial project, from 1992, which implemented an ARM2 emulator. The original code was written in Turbo Pascal for MS-DOS and is completely lost.
 
 Here I am attempting to use Claude Code to generate a Go implementation of an ARM2 emulator, with a simple TUI debugger.
 
