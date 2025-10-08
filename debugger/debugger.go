@@ -26,7 +26,7 @@ type Debugger struct {
 	// Execution control
 	Running           bool
 	StepMode          StepMode
-	StepOverCallDepth int  // Track call depth for step over
+	StepOverCallDepth int    // Track call depth for step over
 	StepOverPC        uint32 // PC to return to after step over
 
 	// Symbol table (for label/symbol resolution)

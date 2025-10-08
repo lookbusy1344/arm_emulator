@@ -10,7 +10,7 @@ type Breakpoint struct {
 	ID        int
 	Address   uint32
 	Enabled   bool
-	Temporary bool // Auto-delete after first hit
+	Temporary bool   // Auto-delete after first hit
 	Condition string // Optional condition expression
 	HitCount  int    // Number of times this breakpoint was hit
 }

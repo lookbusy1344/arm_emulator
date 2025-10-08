@@ -43,9 +43,9 @@ func TestLoadSymbols(t *testing.T) {
 	dbg := NewDebugger(machine)
 
 	symbols := map[string]uint32{
-		"main":  0x1000,
+		"main":   0x1000,
 		"_start": 0x2000,
-		"loop":  0x3000,
+		"loop":   0x3000,
 	}
 
 	dbg.LoadSymbols(symbols)

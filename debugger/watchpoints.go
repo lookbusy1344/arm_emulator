@@ -11,9 +11,9 @@ import (
 type WatchType int
 
 const (
-	WatchWrite      WatchType = iota // Trigger on write
-	WatchRead                        // Trigger on read
-	WatchReadWrite                   // Trigger on read or write
+	WatchWrite     WatchType = iota // Trigger on write
+	WatchRead                       // Trigger on read
+	WatchReadWrite                  // Trigger on read or write
 )
 
 // Watchpoint represents a watchpoint for monitoring memory or register changes
@@ -31,9 +31,9 @@ type Watchpoint struct {
 
 // WatchpointManager manages all watchpoints
 type WatchpointManager struct {
-	mu         sync.RWMutex
+	mu          sync.RWMutex
 	watchpoints map[int]*Watchpoint
-	nextID     int
+	nextID      int
 }
 
 // NewWatchpointManager creates a new watchpoint manager

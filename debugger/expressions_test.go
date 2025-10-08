@@ -12,9 +12,9 @@ func TestExpressionEvaluator_Numbers(t *testing.T) {
 	symbols := make(map[string]uint32)
 
 	tests := []struct {
-		name  string
-		expr  string
-		want  uint32
+		name string
+		expr string
+		want uint32
 	}{
 		{"Decimal", "42", 42},
 		{"Hex", "0x100", 0x100},
@@ -82,8 +82,8 @@ func TestExpressionEvaluator_Symbols(t *testing.T) {
 	eval := NewExpressionEvaluator()
 	machine := vm.NewVM()
 	symbols := map[string]uint32{
-		"main":  0x1000,
-		"loop":  0x2000,
+		"main":   0x1000,
+		"loop":   0x2000,
 		"_start": 0x3000,
 	}
 
@@ -125,9 +125,9 @@ func TestExpressionEvaluator_Memory(t *testing.T) {
 	machine.Memory.WriteWord(dataAddr+0x1000, 0xABCDEF00)
 
 	tests := []struct {
-		name  string
-		expr  string
-		want  uint32
+		name string
+		expr string
+		want uint32
 	}{
 		{"Bracket notation", "[0x00020000]", 0x12345678},
 		{"Star notation", "*0x00021000", 0xABCDEF00},
