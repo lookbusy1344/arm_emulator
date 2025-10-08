@@ -14,7 +14,8 @@ func TestSWI_Exit(t *testing.T) {
 
 	// SWI #0 (EF000000)
 	opcode := uint32(0xEF000000)
-	setupCodeWrite(v); v.Memory.WriteWord(0x8000, opcode)
+	setupCodeWrite(v)
+	v.Memory.WriteWord(0x8000, opcode)
 	err := v.Step()
 
 	// Should return error with exit code
@@ -36,7 +37,8 @@ func TestSWI_Allocate(t *testing.T) {
 
 	// SWI #0x20 (EF000020)
 	opcode := uint32(0xEF000020)
-	setupCodeWrite(v); v.Memory.WriteWord(0x8000, opcode)
+	setupCodeWrite(v)
+	v.Memory.WriteWord(0x8000, opcode)
 	err := v.Step()
 
 	if err != nil {
@@ -62,7 +64,8 @@ func TestSWI_AllocateAndFree(t *testing.T) {
 	v.CPU.PC = 0x8000
 
 	// SWI #0x20 (allocate)
-	setupCodeWrite(v); v.Memory.WriteWord(0x8000, 0xEF000020)
+	setupCodeWrite(v)
+	v.Memory.WriteWord(0x8000, 0xEF000020)
 	v.Step()
 
 	addr := v.CPU.R[0]
@@ -75,7 +78,8 @@ func TestSWI_AllocateAndFree(t *testing.T) {
 	v.CPU.PC = 0x8004
 
 	// SWI #0x21 (free)
-	setupCodeWrite(v); v.Memory.WriteWord(0x8004, 0xEF000021)
+	setupCodeWrite(v)
+	v.Memory.WriteWord(0x8004, 0xEF000021)
 	err := v.Step()
 
 	if err != nil {
@@ -95,7 +99,8 @@ func TestSWI_FreeInvalidAddress(t *testing.T) {
 	v.CPU.PC = 0x8000
 
 	// SWI #0x21 (free)
-	setupCodeWrite(v); v.Memory.WriteWord(0x8000, 0xEF000021)
+	setupCodeWrite(v)
+	v.Memory.WriteWord(0x8000, 0xEF000021)
 	v.Step()
 
 	// R0 should be 0xFFFFFFFF (error)
@@ -111,7 +116,8 @@ func TestSWI_GetTime(t *testing.T) {
 
 	// SWI #0x30 (EF000030)
 	opcode := uint32(0xEF000030)
-	setupCodeWrite(v); v.Memory.WriteWord(0x8000, opcode)
+	setupCodeWrite(v)
+	v.Memory.WriteWord(0x8000, opcode)
 	err := v.Step()
 
 	if err != nil {
@@ -131,7 +137,8 @@ func TestSWI_GetRandom(t *testing.T) {
 
 	// SWI #0x31 (EF000031)
 	opcode := uint32(0xEF000031)
-	setupCodeWrite(v); v.Memory.WriteWord(0x8000, opcode)
+	setupCodeWrite(v)
+	v.Memory.WriteWord(0x8000, opcode)
 	err := v.Step()
 
 	if err != nil {
@@ -143,7 +150,8 @@ func TestSWI_GetRandom(t *testing.T) {
 
 	// Call again
 	v.CPU.PC = 0x8004
-	setupCodeWrite(v); v.Memory.WriteWord(0x8004, opcode)
+	setupCodeWrite(v)
+	v.Memory.WriteWord(0x8004, opcode)
 	v.Step()
 
 	random2 := v.CPU.R[0]
@@ -161,7 +169,8 @@ func TestSWI_Breakpoint(t *testing.T) {
 
 	// SWI #0xF1 (EF0000F1)
 	opcode := uint32(0xEF0000F1)
-	setupCodeWrite(v); v.Memory.WriteWord(0x8000, opcode)
+	setupCodeWrite(v)
+	v.Memory.WriteWord(0x8000, opcode)
 	err := v.Step()
 
 	// Should return error for breakpoint
@@ -184,7 +193,8 @@ func TestSWI_MultipleAllocations(t *testing.T) {
 		v.CPU.R[0] = 32 // Allocate 32 bytes each
 		v.CPU.PC = 0x8000 + uint32(i*4)
 
-		setupCodeWrite(v); v.Memory.WriteWord(v.CPU.PC, 0xEF000020)
+		setupCodeWrite(v)
+		v.Memory.WriteWord(v.CPU.PC, 0xEF000020)
 		err := v.Step()
 
 		if err != nil {
@@ -218,7 +228,8 @@ func TestSWI_AllocateZero(t *testing.T) {
 	v.CPU.R[0] = 0
 	v.CPU.PC = 0x8000
 
-	setupCodeWrite(v); v.Memory.WriteWord(0x8000, 0xEF000020)
+	setupCodeWrite(v)
+	v.Memory.WriteWord(0x8000, 0xEF000020)
 	v.Step()
 
 	// Should return NULL (0) for invalid size
@@ -233,7 +244,8 @@ func TestSWI_UnimplementedSyscall(t *testing.T) {
 	v.CPU.PC = 0x8000
 
 	// SWI #0xFF (unimplemented)
-	setupCodeWrite(v); v.Memory.WriteWord(0x8000, 0xEF0000FF)
+	setupCodeWrite(v)
+	v.Memory.WriteWord(0x8000, 0xEF0000FF)
 	err := v.Step()
 
 	// Should return error

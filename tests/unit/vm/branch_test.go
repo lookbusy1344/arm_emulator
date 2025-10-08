@@ -13,7 +13,8 @@ func TestB_Forward(t *testing.T) {
 
 	// B +16 (EA000003) - offset of 3 words = 12 bytes, +8 for pipeline = 20
 	opcode := uint32(0xEA000003)
-	setupCodeWrite(v); v.Memory.WriteWord(0x8000, opcode)
+	setupCodeWrite(v)
+	v.Memory.WriteWord(0x8000, opcode)
 	v.Step()
 
 	// PC should be 0x8000 + 8 (pipeline) + 12 (offset*4) = 0x8014
@@ -30,7 +31,8 @@ func TestB_Backward(t *testing.T) {
 
 	// B -8 (EAFFFFFE) - offset of -2 words
 	opcode := uint32(0xEAFFFFFE)
-	setupCodeWrite(v); v.Memory.WriteWord(0x8010, opcode)
+	setupCodeWrite(v)
+	v.Memory.WriteWord(0x8010, opcode)
 	v.Step()
 
 	// PC should be 0x8010 + 8 (pipeline) - 8 (offset*4) = 0x8010
@@ -47,7 +49,8 @@ func TestBL_BranchWithLink(t *testing.T) {
 
 	// BL +8 (EB000001)
 	opcode := uint32(0xEB000001)
-	setupCodeWrite(v); v.Memory.WriteWord(0x8000, opcode)
+	setupCodeWrite(v)
+	v.Memory.WriteWord(0x8000, opcode)
 	v.Step()
 
 	// LR should contain return address (PC + 4)
@@ -71,7 +74,8 @@ func TestB_ConditionalEQ(t *testing.T) {
 
 	// BEQ +4 (0A000000)
 	opcode := uint32(0x0A000000)
-	setupCodeWrite(v); v.Memory.WriteWord(0x8000, opcode)
+	setupCodeWrite(v)
+	v.Memory.WriteWord(0x8000, opcode)
 	v.Step()
 
 	// Should branch because Z is set
@@ -89,7 +93,8 @@ func TestB_ConditionalNE_NotTaken(t *testing.T) {
 
 	// BNE +4 (1A000000)
 	opcode := uint32(0x1A000000)
-	setupCodeWrite(v); v.Memory.WriteWord(0x8000, opcode)
+	setupCodeWrite(v)
+	v.Memory.WriteWord(0x8000, opcode)
 	v.Step()
 
 	// Should NOT branch because Z is set (condition fails)
@@ -109,7 +114,8 @@ func TestB_ConditionalGT(t *testing.T) {
 
 	// BGT +8 (CA000001)
 	opcode := uint32(0xCA000001)
-	setupCodeWrite(v); v.Memory.WriteWord(0x8000, opcode)
+	setupCodeWrite(v)
+	v.Memory.WriteWord(0x8000, opcode)
 	v.Step()
 
 	// Should branch
@@ -127,7 +133,8 @@ func TestB_LongOffset(t *testing.T) {
 	// B with offset 0x7FFFFF (max positive 24-bit signed)
 	// This is (EA7FFFFF)
 	opcode := uint32(0xEA7FFFFF)
-	setupCodeWrite(v); v.Memory.WriteWord(0x8000, opcode)
+	setupCodeWrite(v)
+	v.Memory.WriteWord(0x8000, opcode)
 	v.Step()
 
 	// Offset is 0x7FFFFF << 2 = 0x1FFFFFC

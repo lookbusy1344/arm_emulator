@@ -16,7 +16,8 @@ func TestMUL_Basic(t *testing.T) {
 	// MUL R0, R1, R2 (E0000291)
 	// Bits: cond=1110, 000000, S=0, Rd=0000, Rs=0010, 1001, Rm=0001
 	opcode := uint32(0xE0000291)
-	setupCodeWrite(v); v.Memory.WriteWord(0x8000, opcode)
+	setupCodeWrite(v)
+	v.Memory.WriteWord(0x8000, opcode)
 	v.Step()
 
 	if v.CPU.R[0] != 30 {
@@ -33,7 +34,8 @@ func TestMUL_WithFlags(t *testing.T) {
 
 	// MULS R0, R1, R2 (E0100291) - with S bit
 	opcode := uint32(0xE0100291)
-	setupCodeWrite(v); v.Memory.WriteWord(0x8000, opcode)
+	setupCodeWrite(v)
+	v.Memory.WriteWord(0x8000, opcode)
 	v.Step()
 
 	if v.CPU.R[0] != 0 {
@@ -60,7 +62,8 @@ func TestMUL_Negative(t *testing.T) {
 
 	// MULS R0, R1, R2 (E0100291)
 	opcode := uint32(0xE0100291)
-	setupCodeWrite(v); v.Memory.WriteWord(0x8000, opcode)
+	setupCodeWrite(v)
+	v.Memory.WriteWord(0x8000, opcode)
 	v.Step()
 
 	// -1 * 5 = -5 = 0xFFFFFFFB
@@ -85,7 +88,8 @@ func TestMLA_Basic(t *testing.T) {
 	// MLA R0, R1, R2, R3 (E0203291)
 	// Bits: cond=1110, 000000, A=1, S=0, Rd=0000, Rn=0011, Rs=0010, 1001, Rm=0001
 	opcode := uint32(0xE0203291)
-	setupCodeWrite(v); v.Memory.WriteWord(0x8000, opcode)
+	setupCodeWrite(v)
+	v.Memory.WriteWord(0x8000, opcode)
 	v.Step()
 
 	// 3 * 4 + 10 = 22
@@ -104,7 +108,8 @@ func TestMLA_WithFlags(t *testing.T) {
 
 	// MLAS R0, R1, R2, R3 (E0303291) - with S bit
 	opcode := uint32(0xE0303291)
-	setupCodeWrite(v); v.Memory.WriteWord(0x8000, opcode)
+	setupCodeWrite(v)
+	v.Memory.WriteWord(0x8000, opcode)
 	v.Step()
 
 	// 2 * 3 + (-10) = 6 - 10 = -4 = 0xFFFFFFFC
@@ -127,7 +132,8 @@ func TestMUL_Overflow(t *testing.T) {
 
 	// MUL R0, R1, R2 (E0000291)
 	opcode := uint32(0xE0000291)
-	setupCodeWrite(v); v.Memory.WriteWord(0x8000, opcode)
+	setupCodeWrite(v)
+	v.Memory.WriteWord(0x8000, opcode)
 	v.Step()
 
 	// 0x10000 * 0x10000 = 0x100000000, lower 32 bits = 0
@@ -145,7 +151,8 @@ func TestMUL_InvalidRegisters(t *testing.T) {
 
 	// MUL R0, R0, R2 (E0000290) - Rd=Rm=R0
 	opcode := uint32(0xE0000290)
-	setupCodeWrite(v); v.Memory.WriteWord(0x8000, opcode)
+	setupCodeWrite(v)
+	v.Memory.WriteWord(0x8000, opcode)
 	err := v.Step()
 
 	// Should fail with error
@@ -163,7 +170,8 @@ func TestMUL_LargeNumbers(t *testing.T) {
 
 	// MUL R0, R1, R2 (E0000291)
 	opcode := uint32(0xE0000291)
-	setupCodeWrite(v); v.Memory.WriteWord(0x8000, opcode)
+	setupCodeWrite(v)
+	v.Memory.WriteWord(0x8000, opcode)
 	v.Step()
 
 	if v.CPU.R[0] != 2000000 {
@@ -181,7 +189,8 @@ func TestMLA_Zero(t *testing.T) {
 
 	// MLA R0, R1, R2, R3 (E0203291)
 	opcode := uint32(0xE0203291)
-	setupCodeWrite(v); v.Memory.WriteWord(0x8000, opcode)
+	setupCodeWrite(v)
+	v.Memory.WriteWord(0x8000, opcode)
 	v.Step()
 
 	// 0 * 100 + 50 = 50
