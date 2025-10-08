@@ -43,6 +43,9 @@ go test ./...
 - Mark the phase as completed
 - Document any implementation details or deviations from the original plan
 - Update the status of related tasks
+- 
 **IMPORTANT:** Always run `go fmt ./...` and `go test ./...` after making changes to ensure code quality and correctness.
+  
 **IMPORTANT:** Do not delete failing tests without explicit instructions
+
 **IMPORTANT:** Anything that cannot be implemented should be notes in `TODO.md` with explanations
