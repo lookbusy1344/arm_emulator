@@ -12,7 +12,7 @@ Here I am attempting to use Claude Code to generate a Go implementation of an AR
 
 ## Overview
 
-An ARM emulator written in Go that implements a subset of the ARMv8 instruction set.
+An ARM emulator written in Go that implements a subset of the ARM2 instruction set.
 
 ## Documentation
 
@@ -21,7 +21,7 @@ An ARM emulator written in Go that implements a subset of the ARMv8 instruction 
 
 ## Features
 
-- ARMv8 instruction set implementation
+- ARM2 instruction set implementation
 - Assembly parser for ARM assembly programs
 - Debugging utilities
 - Virtual machine execution environment
