@@ -26,7 +26,7 @@ An ARM emulator written in Go that implements a subset of the ARMv8 instruction 
 
 ## Prerequisites
 
-- Go 1.24 or higher
+- Go 1.25 or higher
 
 ## Installation
 

@@ -1040,7 +1040,7 @@ Metrics:
 ## Key Technical Decisions
 
 ### Language & Runtime
-- **Language**: Go 1.21+ for cross-platform support and strong standard library
+- **Language**: Go 1.25+ for cross-platform support and strong standard library
 - **Target Platforms**: macOS (Apple Silicon), Windows 10/11, Linux (Ubuntu, Fedora, Arch)
 - **Architecture Support**: x86_64 (AMD64), ARM64
 
