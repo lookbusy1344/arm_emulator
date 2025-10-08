@@ -2,6 +2,7 @@ package debugger
 
 import (
 	"fmt"
+	"math"
 	"strconv"
 	"strings"
 
@@ -295,7 +296,11 @@ func (d *Debugger) cmdPrint(args []string) error {
 		return err
 	}
 
-	d.Printf("$%d = 0x%08X (%d)\n", d.Evaluator.GetValueNumber(), result, int32(result))
+	if result > uint32(math.MaxInt32) {
+		d.Printf("$%d = 0x%08X (out of int32 range: %d)\n", d.Evaluator.GetValueNumber(), result, result)
+	} else {
+		d.Printf("$%d = 0x%08X (%d)\n", d.Evaluator.GetValueNumber(), result, int32(result))
+	}
 	return nil
 }
 
