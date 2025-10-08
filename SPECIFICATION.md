@@ -1,9 +1,5 @@
 # ARM2 Assembly Language Emulator Specification
 
-## Initial prompt to Claude
-
-Write a markdown file outline specification for a ARM2 assembly language emulator. Actually producing machine code is not initially important, the assembly language file should be interpreted and run by a simple virtual machine environment. We also need a debugger with a TUI, allowing single step, step over/into, and watching memory locations and registers and viewing the call stack.
-
 ## Overview
 
 This document specifies the design and implementation of an ARM2 assembly language emulator with an integrated debugger. The emulator interprets ARM2 assembly code directly without producing machine code, executing instructions in a virtual machine environment.
