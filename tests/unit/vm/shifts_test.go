@@ -168,8 +168,8 @@ func TestLSR_SignBit(t *testing.T) {
 	v.CPU.R[1] = 0x80000000
 	v.CPU.PC = 0x8000
 
-	// MOV R0, R1, LSR #1 (E1A00061)
-	opcode := uint32(0xE1A00061)
+	// MOV R0, R1, LSR #1 (E1A000A1) - bits[6:5]=01 for LSR, bits[11:7]=00001 for shift by 1
+	opcode := uint32(0xE1A000A1)
 	setupCodeWrite(v)
 	v.Memory.WriteWord(0x8000, opcode)
 	v.Step()
@@ -186,8 +186,8 @@ func TestLSR_CarryOut(t *testing.T) {
 	v.CPU.R[1] = 0x00000001
 	v.CPU.PC = 0x8000
 
-	// MOVS R0, R1, LSR #1 (E1B00061)
-	opcode := uint32(0xE1B00061)
+	// MOVS R0, R1, LSR #1 (E1B000A1) - S bit set, LSR #1
+	opcode := uint32(0xE1B000A1)
 	setupCodeWrite(v)
 	v.Memory.WriteWord(0x8000, opcode)
 	v.Step()
@@ -206,8 +206,8 @@ func TestLSR_FullShift(t *testing.T) {
 	v.CPU.R[1] = 0xFFFFFFFF
 	v.CPU.PC = 0x8000
 
-	// MOV R0, R1, LSR #32 requires encoding 0 in shift field
-	// LSR #32 is encoded as 0x020 in bits [11:4]
+	// MOV R0, R1, LSR #32 - LSR #32 is encoded as shift amount = 0
+	// bits[11:7]=00000, bits[6:5]=01 (LSR), bit[4]=0
 	opcode := uint32(0xE1A00021)
 	setupCodeWrite(v)
 	v.Memory.WriteWord(0x8000, opcode)

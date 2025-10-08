@@ -135,6 +135,10 @@ func PerformShift(value uint32, shiftAmount int, shiftType ShiftType, carry bool
 		return value << shiftAmount
 
 	case ShiftLSR:
+		// In ARM, LSR #0 is encoded to mean LSR #32
+		if shiftAmount == 0 {
+			return 0
+		}
 		if shiftAmount >= 32 {
 			return 0
 		}
