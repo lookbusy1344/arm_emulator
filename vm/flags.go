@@ -220,21 +220,21 @@ type ConditionCode int
 
 const (
 	CondEQ ConditionCode = iota // 0000 - Equal (Z == 1)
-	CondNE                       // 0001 - Not Equal (Z == 0)
-	CondCS                       // 0010 - Carry Set / HS (Unsigned Higher or Same)
-	CondCC                       // 0011 - Carry Clear / LO (Unsigned Lower)
-	CondMI                       // 0100 - Minus / Negative
-	CondPL                       // 0101 - Plus / Positive or Zero
-	CondVS                       // 0110 - Overflow Set
-	CondVC                       // 0111 - Overflow Clear
-	CondHI                       // 1000 - Unsigned Higher
-	CondLS                       // 1001 - Unsigned Lower or Same
-	CondGE                       // 1010 - Signed Greater or Equal
-	CondLT                       // 1011 - Signed Less Than
-	CondGT                       // 1100 - Signed Greater Than
-	CondLE                       // 1101 - Signed Less or Equal
-	CondAL                       // 1110 - Always (unconditional)
-	CondNV                       // 1111 - Never (deprecated)
+	CondNE                      // 0001 - Not Equal (Z == 0)
+	CondCS                      // 0010 - Carry Set / HS (Unsigned Higher or Same)
+	CondCC                      // 0011 - Carry Clear / LO (Unsigned Lower)
+	CondMI                      // 0100 - Minus / Negative
+	CondPL                      // 0101 - Plus / Positive or Zero
+	CondVS                      // 0110 - Overflow Set
+	CondVC                      // 0111 - Overflow Clear
+	CondHI                      // 1000 - Unsigned Higher
+	CondLS                      // 1001 - Unsigned Lower or Same
+	CondGE                      // 1010 - Signed Greater or Equal
+	CondLT                      // 1011 - Signed Less Than
+	CondGT                      // 1100 - Signed Greater Than
+	CondLE                      // 1101 - Signed Less or Equal
+	CondAL                      // 1110 - Always (unconditional)
+	CondNV                      // 1111 - Never (deprecated)
 )
 
 // String returns the string representation of a condition code

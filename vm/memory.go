@@ -37,12 +37,12 @@ type MemorySegment struct {
 
 // Memory represents the ARM2 virtual memory system
 type Memory struct {
-	Segments      []*MemorySegment
-	LittleEndian  bool
-	StrictAlign   bool
-	AccessCount   uint64
-	ReadCount     uint64
-	WriteCount    uint64
+	Segments     []*MemorySegment
+	LittleEndian bool
+	StrictAlign  bool
+	AccessCount  uint64
+	ReadCount    uint64
+	WriteCount   uint64
 }
 
 // NewMemory creates and initializes a new Memory instance

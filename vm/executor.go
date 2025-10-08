@@ -9,9 +9,9 @@ type ExecutionMode int
 
 const (
 	ModeRun      ExecutionMode = iota // Run until halt or breakpoint
-	ModeStep                           // Execute single instruction
-	ModeStepOver                       // Execute until next instruction at same call level
-	ModeStepInto                       // Execute single instruction, following branches
+	ModeStep                          // Execute single instruction
+	ModeStepOver                      // Execute until next instruction at same call level
+	ModeStepInto                      // Execute single instruction, following branches
 )
 
 // ExecutionState represents the current state of execution
@@ -187,7 +187,7 @@ func (vm *VM) Decode(opcode uint32) (*Instruction, error) {
 
 	switch bits2726 {
 	case 0: // 00 - Could be data processing, multiply, or load/store halfword
-		if (opcode&0x0FC000F0) == 0x00000090 {
+		if (opcode & 0x0FC000F0) == 0x00000090 {
 			// Multiply instruction pattern
 			inst.Type = InstMultiply
 		} else {
