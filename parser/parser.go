@@ -2,9 +2,9 @@ package parser
 
 import (
 	"fmt"
+	"math"
 	"strconv"
 	"strings"
-	"math"
 )
 
 // Instruction represents a parsed ARM instruction

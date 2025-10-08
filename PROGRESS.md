@@ -110,19 +110,20 @@
 ## Phase 4: System Integration (Week 8) ✅ COMPLETE
 
 ### 8. System Calls (SWI Mechanism) ✅
-- [x] **instructions/syscall.go**
-  - [x] Console I/O (0x00-0x07)
-  - [x] File Operations (0x10-0x16)
-  - [x] Memory Operations (0x20-0x22)
-  - [x] System Information (0x30-0x33)
-  - [x] Error Handling (0x40-0x42)
-  - [x] Debugging Support (0xF0-0xF4)
+- [x] **vm/syscall.go**
+  - [x] Console I/O (0x00-0x07) - All implemented including READ_STRING, READ_INT
+  - [x] File Operations (0x10-0x16) - All implemented (OPEN, CLOSE, READ, WRITE, SEEK, TELL, FILE_SIZE)
+  - [x] Memory Operations (0x20-0x22) - All implemented (ALLOCATE, FREE, REALLOCATE)
+  - [x] System Information (0x30-0x33) - All implemented (GET_TIME, GET_RANDOM, GET_ARGUMENTS, GET_ENVIRONMENT)
+  - [x] Error Handling (0x40-0x42) - All implemented (GET_ERROR, SET_ERROR, PRINT_ERROR)
+  - [x] Debugging Support (0xF0-0xF4) - All implemented including ASSERT
 
 ### 9. Runtime Environment ✅
-- [x] Bootstrap sequence
-- [x] Entry point detection (_start, main)
-- [x] Program termination
-- [x] Standard library macros (stdlib.inc)
+- [x] Bootstrap sequence with VM.Bootstrap() method
+- [x] Entry point detection (_start, main, __start, start) via VM.FindEntryPoint()
+- [x] Program termination with exit code storage
+- [x] Standard library macros (include/stdlib.inc) with complete syscall wrappers
+- [x] Command-line argument support via VM.ProgramArguments
 
 ---
 
@@ -330,22 +331,27 @@
 
 ## Current Status
 
-**Phase 3 Complete!** ✅
+**Phase 4 Complete!** ✅
 
-Complete instruction set and system integration implemented:
-- All data processing instructions (MOV, MVN, ADD, ADC, SUB, SBC, RSB, RSC, AND, ORR, EOR, BIC, CMP, CMN, TST, TEQ)
-- All memory instructions (LDR, STR, LDRB, STRB, LDRH, STRH, LDM, STM with all modes)
-- Branch instructions (B, BL, BX) with call stack tracking
-- Multiply instructions (MUL, MLA)
-- Complete syscall implementation (SWI) with console I/O, file ops, memory ops, system info
-- All 9 addressing modes supported
-- All 16 condition codes working
-- Flag updates (S bit) fully functional
-- 93 unit tests passing
+Complete system integration and runtime environment:
+- All 30+ syscalls fully implemented across 6 categories:
+  - Console I/O: EXIT, WRITE_CHAR, WRITE_STRING, WRITE_INT, READ_CHAR, READ_STRING, READ_INT, WRITE_NEWLINE
+  - File Operations: OPEN, CLOSE, READ, WRITE, SEEK, TELL, FILE_SIZE
+  - Memory Management: ALLOCATE, FREE, REALLOCATE
+  - System Information: GET_TIME, GET_RANDOM, GET_ARGUMENTS, GET_ENVIRONMENT
+  - Error Handling: GET_ERROR, SET_ERROR, PRINT_ERROR
+  - Debugging: DEBUG_PRINT, BREAKPOINT, DUMP_REGISTERS, DUMP_MEMORY, ASSERT
+- Bootstrap sequence with automatic stack initialization
+- Entry point detection (_start, main, __start, start)
+- Command-line argument support
+- Exit code handling
+- Standard library (include/stdlib.inc) with complete macro wrappers
+- 101 unit tests passing
 
 **Previous Phases:**
 - ✅ Phase 1: Core VM with CPU, memory, flags, and execution framework
 - ✅ Phase 2: Parser and assembler with lexer, symbols, preprocessor, macros
+- ✅ Phase 3: Complete instruction set (data processing, memory, branch, multiply)
 
 **Next Step:** Begin Phase 5 - Debugger Core Implementation
 
@@ -378,6 +384,13 @@ Total: 29 tests passing
 ✓ Syscalls: Console I/O, file ops, memory ops, system info (15 tests)
 ✓ Integration: Complete programs (14 tests)
 Total: 93 tests passing
+```
+
+### Phase 4 Tests (All Passing ✅)
+```
+✓ Syscalls: Extended syscall coverage (REALLOCATE, GET_ARGUMENTS, ASSERT) (6 tests)
+✓ Runtime: Bootstrap sequence and entry point detection (2 tests)
+Total: 101 tests passing across all phases
 ```
 
 ---

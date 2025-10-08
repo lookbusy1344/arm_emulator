@@ -10,3 +10,12 @@ func setupCodeWrite(v *vm.VM) {
 		}
 	}
 }
+
+// Helper function to enable write permissions on data segment
+func setupDataWrite(v *vm.VM) {
+	for _, seg := range v.Memory.Segments {
+		if seg.Name == "data" {
+			seg.Permissions = vm.PermRead | vm.PermWrite
+		}
+	}
+}

@@ -61,18 +61,26 @@ type VM struct {
 
 	// Error handling
 	LastError error
+
+	// Runtime environment
+	EntryPoint       uint32
+	ProgramArguments []string
+	ExitCode         int32
 }
 
 // NewVM creates a new virtual machine instance
 func NewVM() *VM {
 	return &VM{
-		CPU:            NewCPU(),
-		Memory:         NewMemory(),
-		State:          StateHalted,
-		Mode:           ModeRun,
-		MaxCycles:      1000000, // Default 1M instruction limit
-		CycleLimit:     0,
-		InstructionLog: make([]uint32, 0, 1000),
+		CPU:              NewCPU(),
+		Memory:           NewMemory(),
+		State:            StateHalted,
+		Mode:             ModeRun,
+		MaxCycles:        1000000, // Default 1M instruction limit
+		CycleLimit:       0,
+		InstructionLog:   make([]uint32, 0, 1000),
+		EntryPoint:       CodeSegmentStart,
+		ProgramArguments: make([]string, 0),
+		ExitCode:         0,
 	}
 }
 
@@ -299,4 +307,54 @@ func (vm *VM) DumpState() string {
 		vm.CPU.Cycles,
 		vm.State,
 	)
+}
+
+// Bootstrap initializes the VM runtime environment
+func (vm *VM) Bootstrap(args []string) error {
+	// Store program arguments
+	vm.ProgramArguments = args
+
+	// Initialize stack pointer to top of stack
+	stackTop := uint32(StackSegmentStart + StackSegmentSize)
+	vm.InitializeStack(stackTop)
+
+	// Set link register to a halt address (so returning from main halts)
+	vm.CPU.SetLR(0xFFFFFFFF)
+
+	// Set program counter to entry point
+	vm.CPU.PC = vm.EntryPoint
+
+	// Initialize state
+	vm.State = StateHalted
+	vm.ExitCode = 0
+
+	return nil
+}
+
+// FindEntryPoint searches for common entry point labels in symbol table
+// Common entry points: _start, main, __start
+func (vm *VM) FindEntryPoint(symbols map[string]uint32) (uint32, error) {
+	// Try common entry point names in order of preference
+	entryPoints := []string{"_start", "main", "__start", "start"}
+
+	for _, name := range entryPoints {
+		if addr, exists := symbols[name]; exists {
+			vm.EntryPoint = addr
+			return addr, nil
+		}
+	}
+
+	// If no entry point found, default to code segment start
+	vm.EntryPoint = CodeSegmentStart
+	return CodeSegmentStart, fmt.Errorf("no entry point found, using default 0x%08X", CodeSegmentStart)
+}
+
+// SetProgramArguments sets command-line arguments for the program
+func (vm *VM) SetProgramArguments(args []string) {
+	vm.ProgramArguments = args
+}
+
+// GetExitCode returns the program exit code
+func (vm *VM) GetExitCode() int32 {
+	return vm.ExitCode
 }

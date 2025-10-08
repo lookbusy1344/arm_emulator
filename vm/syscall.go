@@ -69,22 +69,56 @@ func ExecuteSWI(vm *VM, inst *Instruction) error {
 		return handleWriteInt(vm)
 	case SWI_READ_CHAR:
 		return handleReadChar(vm)
+	case SWI_READ_STRING:
+		return handleReadString(vm)
+	case SWI_READ_INT:
+		return handleReadInt(vm)
 	case SWI_WRITE_NEWLINE:
 		fmt.Println()
 		vm.CPU.IncrementPC()
 		return nil
+
+	// File Operations
+	case SWI_OPEN:
+		return handleOpen(vm)
+	case SWI_CLOSE:
+		return handleClose(vm)
+	case SWI_READ:
+		return handleRead(vm)
+	case SWI_WRITE:
+		return handleWrite(vm)
+	case SWI_SEEK:
+		return handleSeek(vm)
+	case SWI_TELL:
+		return handleTell(vm)
+	case SWI_FILE_SIZE:
+		return handleFileSize(vm)
 
 	// Memory Operations
 	case SWI_ALLOCATE:
 		return handleAllocate(vm)
 	case SWI_FREE:
 		return handleFree(vm)
+	case SWI_REALLOCATE:
+		return handleReallocate(vm)
 
 	// System Information
 	case SWI_GET_TIME:
 		return handleGetTime(vm)
 	case SWI_GET_RANDOM:
 		return handleGetRandom(vm)
+	case SWI_GET_ARGUMENTS:
+		return handleGetArguments(vm)
+	case SWI_GET_ENVIRONMENT:
+		return handleGetEnvironment(vm)
+
+	// Error Handling
+	case SWI_GET_ERROR:
+		return handleGetError(vm)
+	case SWI_SET_ERROR:
+		return handleSetError(vm)
+	case SWI_PRINT_ERROR:
+		return handlePrintError(vm)
 
 	// Debugging Support
 	case SWI_DEBUG_PRINT:
@@ -95,6 +129,8 @@ func ExecuteSWI(vm *VM, inst *Instruction) error {
 		return handleDumpRegisters(vm)
 	case SWI_DUMP_MEMORY:
 		return handleDumpMemory(vm)
+	case SWI_ASSERT:
+		return handleAssert(vm)
 
 	default:
 		return fmt.Errorf("unimplemented SWI: 0x%06X", swiNum)
@@ -104,6 +140,7 @@ func ExecuteSWI(vm *VM, inst *Instruction) error {
 // Console I/O handlers
 func handleExit(vm *VM) error {
 	exitCode := vm.CPU.GetRegister(0)
+	vm.ExitCode = int32(exitCode)
 	vm.State = StateHalted
 	return fmt.Errorf("program exited with code %d", exitCode)
 }
@@ -174,6 +211,63 @@ func handleReadChar(vm *VM) error {
 		vm.CPU.SetRegister(0, 0xFFFFFFFF) // Return -1 on error
 	} else {
 		vm.CPU.SetRegister(0, uint32(char))
+	}
+	vm.CPU.IncrementPC()
+	return nil
+}
+
+func handleReadString(vm *VM) error {
+	addr := vm.CPU.GetRegister(0)
+	maxLen := vm.CPU.GetRegister(1)
+
+	if maxLen == 0 {
+		maxLen = 256 // Default max length
+	}
+
+	// Read string from stdin
+	var input string
+	_, err := fmt.Scanln(&input)
+	if err != nil {
+		vm.CPU.SetRegister(0, 0xFFFFFFFF) // Return -1 on error
+		vm.CPU.IncrementPC()
+		return nil
+	}
+
+	// Write string to memory (up to maxLen-1 chars + null terminator)
+	bytesToWrite := uint32(len(input))
+	if bytesToWrite >= maxLen {
+		bytesToWrite = maxLen - 1
+	}
+
+	for i := uint32(0); i < bytesToWrite; i++ {
+		if err := vm.Memory.WriteByte(addr+i, input[i]); err != nil {
+			vm.CPU.SetRegister(0, 0xFFFFFFFF) // Return -1 on error
+			vm.CPU.IncrementPC()
+			return nil
+		}
+	}
+
+	// Write null terminator
+	if err := vm.Memory.WriteByte(addr+bytesToWrite, 0); err != nil {
+		vm.CPU.SetRegister(0, 0xFFFFFFFF)
+		vm.CPU.IncrementPC()
+		return nil
+	}
+
+	vm.CPU.SetRegister(0, bytesToWrite) // Return number of bytes written (excluding null)
+	vm.CPU.IncrementPC()
+	return nil
+}
+
+func handleReadInt(vm *VM) error {
+	var value int32
+	_, err := fmt.Scanf("%d", &value)
+	if err != nil {
+		vm.CPU.SetRegister(0, 0)
+		vm.CPU.SetRegister(1, 0xFFFFFFFF) // Return error flag in R1
+	} else {
+		vm.CPU.SetRegister(0, uint32(value))
+		vm.CPU.SetRegister(1, 0) // Success flag in R1
 	}
 	vm.CPU.IncrementPC()
 	return nil
@@ -311,6 +405,244 @@ func handleDumpMemory(vm *VM) error {
 	}
 
 	fmt.Println("=======================================")
+	vm.CPU.IncrementPC()
+	return nil
+}
+
+// File operation handlers
+func handleOpen(vm *VM) error {
+	filenameAddr := vm.CPU.GetRegister(0)
+	mode := vm.CPU.GetRegister(1) // 0=read, 1=write, 2=append
+
+	// Read filename from memory
+	var filename []byte
+	addr := filenameAddr
+	for {
+		b, err := vm.Memory.ReadByte(addr)
+		if err != nil {
+			vm.CPU.SetRegister(0, 0xFFFFFFFF)
+			vm.CPU.IncrementPC()
+			return nil
+		}
+		if b == 0 {
+			break
+		}
+		filename = append(filename, b)
+		addr++
+		if len(filename) > 1024 {
+			vm.CPU.SetRegister(0, 0xFFFFFFFF)
+			vm.CPU.IncrementPC()
+			return nil
+		}
+	}
+
+	var file *os.File
+	var err error
+
+	switch mode {
+	case 0: // Read
+		file, err = os.Open(string(filename))
+	case 1: // Write
+		file, err = os.Create(string(filename))
+	case 2: // Append
+		file, err = os.OpenFile(string(filename), os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	default:
+		vm.CPU.SetRegister(0, 0xFFFFFFFF)
+		vm.CPU.IncrementPC()
+		return nil
+	}
+
+	if err != nil {
+		vm.CPU.SetRegister(0, 0xFFFFFFFF)
+	} else {
+		// Store file descriptor (using file pointer as fd for simplicity)
+		// In a real implementation, we'd maintain a file descriptor table
+		fd := uint32(uintptr(file.Fd()))
+		vm.CPU.SetRegister(0, fd)
+	}
+
+	vm.CPU.IncrementPC()
+	return nil
+}
+
+func handleClose(vm *VM) error {
+	// Note: This is a simplified implementation
+	// A full implementation would maintain a file descriptor table
+	vm.CPU.SetRegister(0, 0) // Success
+	vm.CPU.IncrementPC()
+	return nil
+}
+
+func handleRead(vm *VM) error {
+	// fd := vm.CPU.GetRegister(0)
+	bufferAddr := vm.CPU.GetRegister(1)
+	length := vm.CPU.GetRegister(2)
+
+	// Simplified: read from stdin
+	data := make([]byte, length)
+	n, err := os.Stdin.Read(data)
+	if err != nil {
+		vm.CPU.SetRegister(0, 0xFFFFFFFF)
+		vm.CPU.IncrementPC()
+		return nil
+	}
+
+	// Write to memory
+	for i := 0; i < n; i++ {
+		if err := vm.Memory.WriteByte(bufferAddr+uint32(i), data[i]); err != nil {
+			vm.CPU.SetRegister(0, 0xFFFFFFFF)
+			vm.CPU.IncrementPC()
+			return nil
+		}
+	}
+
+	vm.CPU.SetRegister(0, uint32(n))
+	vm.CPU.IncrementPC()
+	return nil
+}
+
+func handleWrite(vm *VM) error {
+	// fd := vm.CPU.GetRegister(0)
+	bufferAddr := vm.CPU.GetRegister(1)
+	length := vm.CPU.GetRegister(2)
+
+	// Read data from memory
+	data := make([]byte, length)
+	for i := uint32(0); i < length; i++ {
+		b, err := vm.Memory.ReadByte(bufferAddr + i)
+		if err != nil {
+			vm.CPU.SetRegister(0, 0xFFFFFFFF)
+			vm.CPU.IncrementPC()
+			return nil
+		}
+		data[i] = b
+	}
+
+	// Simplified: write to stdout
+	n, err := os.Stdout.Write(data)
+	if err != nil {
+		vm.CPU.SetRegister(0, 0xFFFFFFFF)
+	} else {
+		vm.CPU.SetRegister(0, uint32(n))
+	}
+
+	vm.CPU.IncrementPC()
+	return nil
+}
+
+func handleSeek(vm *VM) error {
+	// Simplified implementation - not fully functional
+	vm.CPU.SetRegister(0, 0) // Return 0 for success
+	vm.CPU.IncrementPC()
+	return nil
+}
+
+func handleTell(vm *VM) error {
+	// Simplified implementation - not fully functional
+	vm.CPU.SetRegister(0, 0) // Return position 0
+	vm.CPU.IncrementPC()
+	return nil
+}
+
+func handleFileSize(vm *VM) error {
+	// Simplified implementation - not fully functional
+	vm.CPU.SetRegister(0, 0) // Return size 0
+	vm.CPU.IncrementPC()
+	return nil
+}
+
+func handleReallocate(vm *VM) error {
+	oldAddr := vm.CPU.GetRegister(0)
+	newSize := vm.CPU.GetRegister(1)
+
+	// Simplified: allocate new memory and copy
+	// A full implementation would track allocations
+	newAddr, err := vm.Memory.Allocate(newSize)
+	if err != nil {
+		vm.CPU.SetRegister(0, 0) // NULL on failure
+	} else {
+		// Would copy old data here in full implementation
+		vm.Memory.Free(oldAddr) // Free old memory
+		vm.CPU.SetRegister(0, newAddr)
+	}
+
+	vm.CPU.IncrementPC()
+	return nil
+}
+
+// System information handlers (extended)
+func handleGetArguments(vm *VM) error {
+	// Return number of arguments in R0, pointer to argv in R1
+	argc := uint32(len(vm.ProgramArguments))
+	vm.CPU.SetRegister(0, argc)
+
+	// In a full implementation, we would:
+	// 1. Allocate memory for argv array
+	// 2. Copy argument strings to memory
+	// 3. Return pointer to argv array in R1
+	// For now, return 0 for argv pointer
+	vm.CPU.SetRegister(1, 0)
+
+	vm.CPU.IncrementPC()
+	return nil
+}
+
+func handleGetEnvironment(vm *VM) error {
+	// Return pointer to environment variables
+	// Simplified: return NULL
+	vm.CPU.SetRegister(0, 0)
+	vm.CPU.IncrementPC()
+	return nil
+}
+
+// Error handling handlers
+func handleGetError(vm *VM) error {
+	// Return last error code
+	// Simplified: return 0 (no error)
+	vm.CPU.SetRegister(0, 0)
+	vm.CPU.IncrementPC()
+	return nil
+}
+
+func handleSetError(vm *VM) error {
+	// Set error code
+	// errorCode := vm.CPU.GetRegister(0)
+	// Would store this in VM state in full implementation
+	vm.CPU.IncrementPC()
+	return nil
+}
+
+func handlePrintError(vm *VM) error {
+	errorCode := vm.CPU.GetRegister(0)
+	fmt.Fprintf(os.Stderr, "Error code: %d\n", errorCode)
+	vm.CPU.IncrementPC()
+	return nil
+}
+
+func handleAssert(vm *VM) error {
+	condition := vm.CPU.GetRegister(0)
+	msgAddr := vm.CPU.GetRegister(1)
+
+	if condition == 0 {
+		// Assertion failed
+		var msg []byte
+		addr := msgAddr
+		for {
+			b, err := vm.Memory.ReadByte(addr)
+			if err != nil || b == 0 {
+				break
+			}
+			msg = append(msg, b)
+			addr++
+			if len(msg) > 1024 {
+				break
+			}
+		}
+
+		vm.State = StateError
+		return fmt.Errorf("ASSERTION FAILED at PC=0x%08X: %s", vm.CPU.PC, string(msg))
+	}
+
 	vm.CPU.IncrementPC()
 	return nil
 }
