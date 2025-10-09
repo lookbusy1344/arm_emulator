@@ -419,6 +419,30 @@ func (p *Parser) parseOperand() string {
 			}
 		}
 
+	case TokenLBrace:
+		// Register list: {R0, R1, R2} or {R0-R3}
+		parts = append(parts, "{")
+		p.nextToken()
+
+		for p.currentToken.Type != TokenRBrace && p.currentToken.Type != TokenNewline && p.currentToken.Type != TokenEOF {
+			if p.currentToken.Type == TokenComma {
+				parts = append(parts, ",")
+			} else if p.currentToken.Type == TokenMinus {
+				// Handle register range: R0-R3
+				parts = append(parts, "-")
+			} else {
+				parts = append(parts, p.currentToken.Literal)
+			}
+			p.nextToken()
+		}
+
+		if p.currentToken.Type == TokenRBrace {
+			parts = append(parts, "}")
+			p.nextToken()
+		}
+		// Return without joining with spaces for register lists
+		return strings.Join(parts, "")
+
 	case TokenEqual:
 		// Handle =label or =value for pseudo-instructions like LDR Rd, =label
 		parts = append(parts, "=")
@@ -442,22 +466,22 @@ func (p *Parser) parseOperand() string {
 			if p.peekToken.Type == TokenIdentifier {
 				shiftOp := strings.ToUpper(p.peekToken.Literal)
 				if shiftOp == "LSL" || shiftOp == "LSR" || shiftOp == "ASR" || shiftOp == "ROR" || shiftOp == "RRX" {
-					parts = append(parts, ",")
 					p.nextToken() // consume comma
-					parts = append(parts, p.currentToken.Literal)
-					p.nextToken() // consume shift op
+					// Build shift operand: R0,LSL #2
+					shiftPart := p.currentToken.Literal // shift op (LSL/LSR/etc)
+					p.nextToken()                       // consume shift op
 
 					// Parse shift amount
 					if p.currentToken.Type == TokenHash {
-						parts = append(parts, "#")
-						p.nextToken()
-						parts = append(parts, p.currentToken.Literal)
-						p.nextToken()
+						p.nextToken() // consume hash
+						shiftPart += " #" + p.currentToken.Literal
+						p.nextToken() // consume number
 					} else if p.currentToken.Type == TokenRegister {
-						parts = append(parts, p.currentToken.Literal)
+						shiftPart += " " + p.currentToken.Literal
 						p.nextToken()
 					}
-					return strings.Join(parts, " ")
+					// Return as "R0,LSL #2" format (register,shift)
+					return parts[0] + "," + shiftPart
 				}
 			}
 		}
