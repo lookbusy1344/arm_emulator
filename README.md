@@ -38,8 +38,16 @@ An ARM emulator written in Go that implements a subset of the ARM2 instruction s
 
 ## Documentation
 
+### Project Documentation
 - [SPECIFICATION.md](SPECIFICATION.md) - Detailed specification for the ARM2 emulator
 - [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md) - Implementation roadmap and plan
+- [PROGRESS.md](PROGRESS.md) - Development progress and completed phases
+
+### User Documentation
+- [docs/debugger_reference.md](docs/debugger_reference.md) - Complete debugger command reference and guide
+- [docs/assembly_reference.md](docs/assembly_reference.md) - ARM2 assembly language reference
+- [docs/architecture.md](docs/architecture.md) - System architecture and design
+- [examples/README.md](examples/README.md) - Example programs and usage instructions
 
 ## Features
 
@@ -64,11 +72,45 @@ go build -o arm-emulator
 
 ## Usage
 
-Run the emulator:
+### Running Assembly Programs
+
+Run an ARM assembly program directly:
 
 ```bash
-./arm-emulator
+./arm-emulator program.s
 ```
+
+The emulator will execute the program starting from `_start` (or `main` if `_start` is not found). The program runs until it encounters a `SWI #0x00` (exit) instruction or an error occurs.
+
+### Using the Debugger
+
+The emulator includes a powerful debugger with both command-line and TUI (Text User Interface) modes:
+
+```bash
+# Command-line debugger mode
+./arm-emulator --debug program.s
+
+# TUI mode with visual panels for source, registers, memory, etc.
+./arm-emulator --tui program.s
+```
+
+**Quick debugger commands:**
+- `run` (r) - Start/restart program execution
+- `step` (s) - Execute one instruction (step into)
+- `next` (n) - Execute one instruction (step over)
+- `continue` (c) - Continue until breakpoint or exit
+- `break <location>` (b) - Set breakpoint at label or address
+- `print <expr>` (p) - Evaluate expression (registers, memory, etc.)
+- `info registers` (i r) - Show all registers
+- `help` - Show all available commands
+
+**TUI keyboard shortcuts:**
+- `F5` - Continue execution
+- `F9` - Toggle breakpoint
+- `F10` - Step over
+- `F11` - Step into
+
+For complete debugger documentation including conditional breakpoints, watchpoints, memory examination, and expression syntax, see [docs/debugger_reference.md](docs/debugger_reference.md).
 
 ### Example Programs
 
