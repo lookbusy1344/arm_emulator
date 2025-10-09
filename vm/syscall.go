@@ -528,6 +528,7 @@ func handleWrite(vm *VM) error {
 	} else {
 		vm.CPU.SetRegister(0, uint32(n))
 	}
+	os.Stdout.Sync()
 
 	vm.CPU.IncrementPC()
 	return nil
