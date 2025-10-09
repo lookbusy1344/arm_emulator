@@ -2,8 +2,8 @@ package encoder
 
 import (
 	"fmt"
-	"strings"
 	"math"
+	"strings"
 
 	"github.com/lookbusy1344/arm-emulator/parser"
 )

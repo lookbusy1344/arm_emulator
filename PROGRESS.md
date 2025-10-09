@@ -5,6 +5,23 @@
 
 ---
 
+## Recent Updates
+
+### 2025-10-09: Debugger Run Command Fix ✅
+**Issue:** The debugger's `run` command was calling `VM.Reset()` which cleared all memory, erasing the pre-loaded program. This prevented the debugger from working with programs loaded from files.
+
+**Solution Implemented:**
+- Added `VM.ResetRegisters()` method in `vm/executor.go:99` that resets only CPU registers and state while preserving memory contents
+- Updated `debugger/commands.go:17` to use `ResetRegisters()` instead of `Reset()`
+- All tests passing
+
+**Files Modified:**
+- `vm/executor.go` - Added `ResetRegisters()` method
+- `debugger/commands.go` - Updated `cmdRun()` to use `ResetRegisters()`
+- `TODO.md` - Removed completed bug from critical priority section
+
+---
+
 ## Phase 1: Foundation (Weeks 1-2) ✅ COMPLETE
 
 ### 1. Project Setup ✅

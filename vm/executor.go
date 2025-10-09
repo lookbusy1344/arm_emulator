@@ -93,6 +93,16 @@ func (vm *VM) Reset() {
 	vm.LastError = nil
 }
 
+// ResetRegisters resets only CPU registers and state, preserving memory contents
+// This is useful for debugger operations that need to restart execution without
+// losing the loaded program
+func (vm *VM) ResetRegisters() {
+	vm.CPU.Reset()
+	vm.State = StateHalted
+	vm.InstructionLog = vm.InstructionLog[:0]
+	vm.LastError = nil
+}
+
 // LoadProgram loads program bytes into code memory
 func (vm *VM) LoadProgram(data []byte, startAddress uint32) error {
 	if err := vm.Memory.LoadBytes(startAddress, data); err != nil {

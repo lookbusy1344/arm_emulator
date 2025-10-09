@@ -13,8 +13,8 @@ import (
 
 // cmdRun starts or restarts program execution
 func (d *Debugger) cmdRun(args []string) error {
-	// Reset VM state
-	d.VM.Reset()
+	// Reset CPU registers and state, but preserve memory (loaded program)
+	d.VM.ResetRegisters()
 	d.VM.State = vm.StateRunning
 	d.Running = true
 	d.StepMode = StepNone
