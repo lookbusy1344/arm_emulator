@@ -1,0 +1,470 @@
+package debugger
+
+import (
+	"fmt"
+	"strings"
+	"testing"
+
+	"github.com/lookbusy1344/arm-emulator/vm"
+)
+
+// TestNewTUI tests TUI creation
+func TestNewTUI(t *testing.T) {
+	machine := vm.NewVM()
+	debugger := NewDebugger(machine)
+	tui := NewTUI(debugger)
+
+	if tui == nil {
+		t.Fatal("NewTUI returned nil")
+	}
+
+	if tui.Debugger != debugger {
+		t.Error("TUI debugger not set correctly")
+	}
+
+	if tui.App == nil {
+		t.Error("TUI app not initialized")
+	}
+
+	if tui.Pages == nil {
+		t.Error("TUI pages not initialized")
+	}
+}
+
+// TestTUIViewsInitialized tests that all views are initialized
+func TestTUIViewsInitialized(t *testing.T) {
+	machine := vm.NewVM()
+	debugger := NewDebugger(machine)
+	tui := NewTUI(debugger)
+
+	tests := []struct {
+		name string
+		view interface{}
+	}{
+		{"SourceView", tui.SourceView},
+		{"RegisterView", tui.RegisterView},
+		{"MemoryView", tui.MemoryView},
+		{"StackView", tui.StackView},
+		{"DisassemblyView", tui.DisassemblyView},
+		{"BreakpointsView", tui.BreakpointsView},
+		{"OutputView", tui.OutputView},
+		{"CommandInput", tui.CommandInput},
+	}
+
+	for _, tt := range tests {
+		if tt.view == nil {
+			t.Errorf("%s not initialized", tt.name)
+		}
+	}
+}
+
+// TestTUILayoutInitialized tests that layout is initialized
+func TestTUILayoutInitialized(t *testing.T) {
+	machine := vm.NewVM()
+	debugger := NewDebugger(machine)
+	tui := NewTUI(debugger)
+
+	if tui.MainLayout == nil {
+		t.Error("MainLayout not initialized")
+	}
+
+	if tui.LeftPanel == nil {
+		t.Error("LeftPanel not initialized")
+	}
+
+	if tui.RightPanel == nil {
+		t.Error("RightPanel not initialized")
+	}
+}
+
+// TestTUIWriteOutput tests output writing
+func TestTUIWriteOutput(t *testing.T) {
+	machine := vm.NewVM()
+	debugger := NewDebugger(machine)
+	tui := NewTUI(debugger)
+
+	// Write some output
+	tui.WriteOutput("Test output\n")
+
+	// Check that output was written
+	text := tui.OutputView.GetText(false)
+	if text != "Test output\n" {
+		t.Errorf("Expected 'Test output\\n', got '%s'", text)
+	}
+}
+
+// TestTUIExecuteCommand tests command execution
+func TestTUIExecuteCommand(t *testing.T) {
+	machine := vm.NewVM()
+	debugger := NewDebugger(machine)
+	tui := NewTUI(debugger)
+
+	// Execute a command
+	tui.executeCommand("help")
+
+	// Check that output was generated
+	text := tui.OutputView.GetText(false)
+	if text == "" {
+		t.Error("No output generated from help command")
+	}
+}
+
+// TestTUIUpdateRegisterView tests register view update
+func TestTUIUpdateRegisterView(t *testing.T) {
+	machine := vm.NewVM()
+	debugger := NewDebugger(machine)
+	tui := NewTUI(debugger)
+
+	// Set some register values
+	machine.CPU.R[0] = 0x12345678
+	machine.CPU.R[1] = 0xABCDEF00
+	machine.CPU.CPSR.N = true
+	machine.CPU.CPSR.Z = false
+
+	// Update view
+	tui.UpdateRegisterView()
+
+	// Check that view was updated
+	text := tui.RegisterView.GetText(false)
+	if text == "" {
+		t.Error("RegisterView not updated")
+	}
+
+	// Check for register values (note: can't check exact format due to color codes)
+	if !containsHex(text, 0x12345678) {
+		t.Error("R0 value not found in register view")
+	}
+
+	if !containsHex(text, 0xABCDEF00) {
+		t.Error("R1 value not found in register view")
+	}
+}
+
+// TestTUIUpdateMemoryView tests memory view update
+func TestTUIUpdateMemoryView(t *testing.T) {
+	machine := vm.NewVM()
+	debugger := NewDebugger(machine)
+	tui := NewTUI(debugger)
+
+	// Write some data to memory
+	addr := uint32(0x1000)
+	machine.Memory.WriteByte(addr, 0xAB)
+	machine.Memory.WriteByte(addr+1, 0xCD)
+	machine.Memory.WriteByte(addr+2, 0xEF)
+	machine.Memory.WriteByte(addr+3, 0x12)
+
+	// Set memory address
+	tui.MemoryAddress = addr
+
+	// Update view
+	tui.UpdateMemoryView()
+
+	// Check that view was updated
+	text := tui.MemoryView.GetText(false)
+	if text == "" {
+		t.Error("MemoryView not updated")
+	}
+}
+
+// TestTUIUpdateStackView tests stack view update
+func TestTUIUpdateStackView(t *testing.T) {
+	machine := vm.NewVM()
+	debugger := NewDebugger(machine)
+	tui := NewTUI(debugger)
+
+	// Set stack pointer
+	sp := uint32(0x10000)
+	machine.CPU.R[13] = sp
+
+	// Write some data to stack
+	machine.Memory.WriteWord(sp, 0x12345678)
+	machine.Memory.WriteWord(sp+4, 0xABCDEF00)
+
+	// Update view
+	tui.UpdateStackView()
+
+	// Check that view was updated
+	text := tui.StackView.GetText(false)
+	if text == "" {
+		t.Error("StackView not updated")
+	}
+
+	// Check for stack pointer
+	if !containsHex(text, sp) {
+		t.Error("Stack pointer not found in stack view")
+	}
+}
+
+// TestTUIUpdateDisassemblyView tests disassembly view update
+func TestTUIUpdateDisassemblyView(t *testing.T) {
+	machine := vm.NewVM()
+	debugger := NewDebugger(machine)
+	tui := NewTUI(debugger)
+
+	// Set PC
+	pc := uint32(0x8000)
+	machine.CPU.PC = pc
+
+	// Write some instructions to memory
+	machine.Memory.WriteWord(pc, 0xE3A00001)    // MOV R0, #1
+	machine.Memory.WriteWord(pc+4, 0xE3A01002)  // MOV R1, #2
+	machine.Memory.WriteWord(pc+8, 0xE0802001)  // ADD R2, R0, R1
+	machine.Memory.WriteWord(pc+12, 0xEF000001) // SWI 1
+
+	// Update view
+	tui.UpdateDisassemblyView()
+
+	// Check that view was updated
+	text := tui.DisassemblyView.GetText(false)
+	if text == "" {
+		t.Error("DisassemblyView not updated")
+	}
+
+	// Check for PC
+	if !containsHex(text, pc) {
+		t.Error("PC not found in disassembly view")
+	}
+}
+
+// TestTUIUpdateSourceView tests source view update
+func TestTUIUpdateSourceView(t *testing.T) {
+	machine := vm.NewVM()
+	debugger := NewDebugger(machine)
+	tui := NewTUI(debugger)
+
+	// Add source map entries
+	debugger.SourceMap[0x8000] = "main:"
+	debugger.SourceMap[0x8004] = "    MOV R0, #1"
+	debugger.SourceMap[0x8008] = "    MOV R1, #2"
+	debugger.SourceMap[0x800C] = "    ADD R2, R0, R1"
+
+	// Set PC
+	machine.CPU.PC = 0x8004
+
+	// Update view
+	tui.UpdateSourceView()
+
+	// Check that view was updated
+	text := tui.SourceView.GetText(false)
+	if text == "" {
+		t.Error("SourceView not updated")
+	}
+}
+
+// TestTUIUpdateSourceViewNoSource tests source view with no source map
+func TestTUIUpdateSourceViewNoSource(t *testing.T) {
+	machine := vm.NewVM()
+	debugger := NewDebugger(machine)
+	tui := NewTUI(debugger)
+
+	// Update view with empty source map
+	tui.UpdateSourceView()
+
+	// Check that view shows message
+	text := tui.SourceView.GetText(false)
+	if text == "" {
+		t.Error("SourceView should show 'no source' message")
+	}
+}
+
+// TestTUIUpdateBreakpointsView tests breakpoints view update
+func TestTUIUpdateBreakpointsView(t *testing.T) {
+	machine := vm.NewVM()
+	debugger := NewDebugger(machine)
+	tui := NewTUI(debugger)
+
+	// Add some breakpoints
+	debugger.Breakpoints.AddBreakpoint(0x8000, false, "")
+	debugger.Breakpoints.AddBreakpoint(0x8004, false, "r0 == 5")
+
+	// Add symbol
+	debugger.Symbols["main"] = 0x8000
+
+	// Update view
+	tui.UpdateBreakpointsView()
+
+	// Check that view was updated
+	text := tui.BreakpointsView.GetText(false)
+	if text == "" {
+		t.Error("BreakpointsView not updated")
+	}
+
+	// Check for breakpoint addresses
+	if !containsHex(text, 0x8000) {
+		t.Error("Breakpoint address 0x8000 not found")
+	}
+
+	if !containsHex(text, 0x8004) {
+		t.Error("Breakpoint address 0x8004 not found")
+	}
+}
+
+// TestTUIUpdateBreakpointsViewNoBreakpoints tests breakpoints view with no breakpoints
+func TestTUIUpdateBreakpointsViewNoBreakpoints(t *testing.T) {
+	machine := vm.NewVM()
+	debugger := NewDebugger(machine)
+	tui := NewTUI(debugger)
+
+	// Update view with no breakpoints
+	tui.UpdateBreakpointsView()
+
+	// Check that view shows message
+	text := tui.BreakpointsView.GetText(false)
+	if text == "" {
+		t.Error("BreakpointsView should show 'no breakpoints' message")
+	}
+}
+
+// TestTUIUpdateBreakpointsViewWithWatchpoints tests breakpoints view with watchpoints
+func TestTUIUpdateBreakpointsViewWithWatchpoints(t *testing.T) {
+	machine := vm.NewVM()
+	debugger := NewDebugger(machine)
+	tui := NewTUI(debugger)
+
+	// Add a watchpoint (expression, type, address, isRegister, register)
+	debugger.Watchpoints.AddWatchpoint(WatchWrite, "r0", 0, true, 0)
+
+	// Update view
+	tui.UpdateBreakpointsView()
+
+	// Check that view was updated
+	text := tui.BreakpointsView.GetText(false)
+	if text == "" {
+		t.Error("BreakpointsView not updated")
+	}
+}
+
+// TestTUIRefreshAll tests refreshing all views
+func TestTUIRefreshAll(t *testing.T) {
+	machine := vm.NewVM()
+	debugger := NewDebugger(machine)
+	tui := NewTUI(debugger)
+
+	// Set up some state
+	machine.CPU.R[0] = 0x12345678
+	machine.CPU.PC = 0x8000
+	debugger.Breakpoints.AddBreakpoint(0x8000, false, "")
+	debugger.SourceMap[0x8000] = "main:"
+
+	// Refresh all views (should not panic)
+	tui.RefreshAll()
+
+	// Check that views were updated
+	if tui.RegisterView.GetText(false) == "" {
+		t.Error("RegisterView not updated after RefreshAll")
+	}
+
+	if tui.BreakpointsView.GetText(false) == "" {
+		t.Error("BreakpointsView not updated after RefreshAll")
+	}
+}
+
+// TestTUIFindSymbolForAddress tests symbol resolution
+func TestTUIFindSymbolForAddress(t *testing.T) {
+	machine := vm.NewVM()
+	debugger := NewDebugger(machine)
+	tui := NewTUI(debugger)
+
+	// Add symbols
+	debugger.Symbols["main"] = 0x8000
+	debugger.Symbols["loop"] = 0x8010
+	debugger.Symbols["exit"] = 0x8020
+
+	tests := []struct {
+		name     string
+		address  uint32
+		expected string
+	}{
+		{"main symbol", 0x8000, "main"},
+		{"loop symbol", 0x8010, "loop"},
+		{"exit symbol", 0x8020, "exit"},
+		{"no symbol", 0x9000, ""},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := tui.findSymbolForAddress(tt.address)
+			if result != tt.expected {
+				t.Errorf("Expected '%s', got '%s'", tt.expected, result)
+			}
+		})
+	}
+}
+
+// TestTUILoadSource tests source code loading
+func TestTUILoadSource(t *testing.T) {
+	machine := vm.NewVM()
+	debugger := NewDebugger(machine)
+	tui := NewTUI(debugger)
+
+	// Load source code
+	sourceLines := []string{
+		"main:",
+		"    MOV R0, #1",
+		"    MOV R1, #2",
+		"    ADD R2, R0, R1",
+		"    SWI 1",
+	}
+
+	tui.LoadSource("test.s", sourceLines)
+
+	if tui.SourceFile != "test.s" {
+		t.Errorf("Expected source file 'test.s', got '%s'", tui.SourceFile)
+	}
+
+	if len(tui.SourceLines) != len(sourceLines) {
+		t.Errorf("Expected %d source lines, got %d", len(sourceLines), len(tui.SourceLines))
+	}
+
+	for i, line := range sourceLines {
+		if tui.SourceLines[i] != line {
+			t.Errorf("Source line %d mismatch: expected '%s', got '%s'", i, line, tui.SourceLines[i])
+		}
+	}
+}
+
+// Helper function to check if text contains a hex number
+func containsHex(text string, value uint32) bool {
+	// Remove color codes for easier checking
+	plainText := removeColorCodes(text)
+
+	// Try different hex formats
+	formats := []string{
+		"0x%08X",
+		"0x%08x",
+		"%08X",
+		"%08x",
+	}
+
+	for _, format := range formats {
+		if containsStr(plainText, format, value) {
+			return true
+		}
+	}
+
+	return false
+}
+
+// Helper function to remove color codes
+func removeColorCodes(text string) string {
+	// Simple removal of tview color codes [color]...[white]
+	result := ""
+	inCode := false
+
+	for _, ch := range text {
+		if ch == '[' {
+			inCode = true
+		} else if ch == ']' && inCode {
+			inCode = false
+		} else if !inCode {
+			result += string(ch)
+		}
+	}
+
+	return result
+}
+
+// Helper function to check if text contains formatted string
+func containsStr(text, format string, value uint32) bool {
+	return strings.Contains(text, fmt.Sprintf(format, value))
+}
