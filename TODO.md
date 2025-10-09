@@ -10,6 +10,18 @@ It should not contain completed items or notes about past work. Those belong in 
 
 ## Critical Priority
 
+### 0. Debugger bug, memory is reset
+
+Bug discovered: The run command calls VM.Reset() which clears all memory, erasing the
+  pre-loaded program. This prevents the debugger from working with programs loaded from files.
+  The debugger unit tests pass because they set up test data after creating the debugger.
+
+  Recommendation: This is a implementation bug (not a documentation issue) that should be noted
+  in TODO.md for later fixing. The debugger architecture and documentation are solid - it just
+  needs the run command to either:
+  - Not reset memory, only registers
+  - Or reload the program after reset
+
 ### 1. Instruction Encoder (REQUIRED FOR EXECUTION)
 
 **Status:** NOT IMPLEMENTED - This is a critical missing component that prevents the emulator from executing programs
