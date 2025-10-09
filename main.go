@@ -205,33 +205,14 @@ func loadProgramIntoVM(machine *vm.VM, program *parser.Program, entryPoint uint3
 		dataAddr += 4 // Each instruction is 4 bytes
 	}
 
-	// Find where data directives should go (after instructions)
-	for _, directive := range program.Directives {
-		if directive.Name == ".org" && len(directive.Args) > 0 {
-			var addr uint32
-			if _, err := fmt.Sscanf(directive.Args[0], "0x%x", &addr); err != nil {
-				if _, err := fmt.Sscanf(directive.Args[0], "%d", &addr); err != nil {
-					return fmt.Errorf("invalid .org address: %s", directive.Args[0])
-				}
-			}
-			dataAddr = addr
-		}
-	}
+	// Data directives go after instructions (dataAddr is now positioned after all instructions)
 
 	// Process data directives
 	for _, directive := range program.Directives {
 		switch directive.Name {
 		case ".org":
-			// Set current address
-			if len(directive.Args) > 0 {
-				var addr uint32
-				if _, err := fmt.Sscanf(directive.Args[0], "0x%x", &addr); err != nil {
-					if _, err := fmt.Sscanf(directive.Args[0], "%d", &addr); err != nil {
-						return fmt.Errorf("invalid .org address: %s", directive.Args[0])
-					}
-				}
-				dataAddr = addr
-			}
+			// .org directive is handled at parse time, skip it here
+			continue
 
 		case ".word":
 			// Write 32-bit words

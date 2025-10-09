@@ -148,6 +148,7 @@ func handleExit(vm *VM) error {
 func handleWriteChar(vm *VM) error {
 	char := vm.CPU.GetRegister(0)
 	fmt.Printf("%c", char)
+	os.Stdout.Sync()
 	vm.CPU.IncrementPC()
 	return nil
 }
@@ -175,6 +176,7 @@ func handleWriteString(vm *VM) error {
 	}
 
 	fmt.Print(string(str))
+	os.Stdout.Sync()
 	vm.CPU.IncrementPC()
 	return nil
 }
@@ -200,6 +202,7 @@ func handleWriteInt(vm *VM) error {
 		return fmt.Errorf("unsupported base: %d", base)
 	}
 
+	os.Stdout.Sync()
 	vm.CPU.IncrementPC()
 	return nil
 }
