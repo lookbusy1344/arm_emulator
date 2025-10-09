@@ -26,11 +26,17 @@ This document details the ARM assembly instructions implemented and planned for 
 ### Arithmetic Operations
 
 #### ADD - Add ✅
+
 **Status:** Implemented
+
 **Syntax:** `ADD{cond}{S} Rd, Rn, <operand2>`
+
 **Description:** Adds two values and stores the result
+
 **Operation:** `Rd = Rn + operand2`
+
 **Flags:** Updates N, Z, C, V when S bit is set
+
 **Example:**
 ```arm
 ADD R0, R1, R2        ; R0 = R1 + R2
@@ -39,11 +45,17 @@ ADDEQ R4, R5, R6, LSL #2  ; If equal, R4 = R5 + (R6 << 2)
 ```
 
 #### ADC - Add with Carry ✅
+
 **Status:** Implemented
+
 **Syntax:** `ADC{cond}{S} Rd, Rn, <operand2>`
+
 **Description:** Adds two values plus the carry flag
+
 **Operation:** `Rd = Rn + operand2 + C`
+
 **Flags:** Updates N, Z, C, V when S bit is set
+
 **Example:**
 ```arm
 ADC R0, R1, R2        ; R0 = R1 + R2 + C
@@ -51,11 +63,17 @@ ADCS R3, R3, #0       ; R3 = R3 + C, update flags (for multi-precision)
 ```
 
 #### SUB - Subtract ✅
+
 **Status:** Implemented
+
 **Syntax:** `SUB{cond}{S} Rd, Rn, <operand2>`
+
 **Description:** Subtracts operand2 from Rn
+
 **Operation:** `Rd = Rn - operand2`
+
 **Flags:** Updates N, Z, C, V when S bit is set
+
 **Example:**
 ```arm
 SUB R0, R1, R2        ; R0 = R1 - R2
@@ -63,11 +81,17 @@ SUBS R3, R3, #1       ; R3 = R3 - 1, update flags
 ```
 
 #### SBC - Subtract with Carry ✅
+
 **Status:** Implemented
+
 **Syntax:** `SBC{cond}{S} Rd, Rn, <operand2>`
+
 **Description:** Subtracts operand2 from Rn with borrow
+
 **Operation:** `Rd = Rn - operand2 - NOT(C)`
+
 **Flags:** Updates N, Z, C, V when S bit is set
+
 **Example:**
 ```arm
 SBC R0, R1, R2        ; R0 = R1 - R2 - NOT(C)
@@ -75,11 +99,17 @@ SBCS R3, R3, #0       ; For multi-precision subtraction
 ```
 
 #### RSB - Reverse Subtract ✅
+
 **Status:** Implemented
+
 **Syntax:** `RSB{cond}{S} Rd, Rn, <operand2>`
+
 **Description:** Subtracts Rn from operand2
+
 **Operation:** `Rd = operand2 - Rn`
+
 **Flags:** Updates N, Z, C, V when S bit is set
+
 **Example:**
 ```arm
 RSB R0, R1, #10       ; R0 = 10 - R1
@@ -87,11 +117,17 @@ RSBS R2, R2, #0       ; R2 = -R2 (negate)
 ```
 
 #### RSC - Reverse Subtract with Carry ✅
+
 **Status:** Implemented
+
 **Syntax:** `RSC{cond}{S} Rd, Rn, <operand2>`
+
 **Description:** Subtracts Rn from operand2 with borrow
+
 **Operation:** `Rd = operand2 - Rn - NOT(C)`
+
 **Flags:** Updates N, Z, C, V when S bit is set
+
 **Example:**
 ```arm
 RSC R0, R1, R2        ; R0 = R2 - R1 - NOT(C)
@@ -100,11 +136,17 @@ RSC R0, R1, R2        ; R0 = R2 - R1 - NOT(C)
 ### Logical Operations
 
 #### AND - Logical AND ✅
+
 **Status:** Implemented
+
 **Syntax:** `AND{cond}{S} Rd, Rn, <operand2>`
+
 **Description:** Performs bitwise AND
+
 **Operation:** `Rd = Rn AND operand2`
+
 **Flags:** Updates N, Z, C when S bit is set (V unaffected)
+
 **Example:**
 ```arm
 AND R0, R1, R2        ; R0 = R1 & R2
@@ -112,11 +154,17 @@ ANDS R3, R3, #0xFF    ; R3 = R3 & 0xFF, update flags
 ```
 
 #### ORR - Logical OR ✅
+
 **Status:** Implemented
+
 **Syntax:** `ORR{cond}{S} Rd, Rn, <operand2>`
+
 **Description:** Performs bitwise OR
+
 **Operation:** `Rd = Rn OR operand2`
+
 **Flags:** Updates N, Z, C when S bit is set (V unaffected)
+
 **Example:**
 ```arm
 ORR R0, R1, R2        ; R0 = R1 | R2
@@ -124,11 +172,17 @@ ORRS R3, R3, #0x80    ; Set bit 7, update flags
 ```
 
 #### EOR - Logical Exclusive OR ✅
+
 **Status:** Implemented
+
 **Syntax:** `EOR{cond}{S} Rd, Rn, <operand2>`
+
 **Description:** Performs bitwise exclusive OR
+
 **Operation:** `Rd = Rn EOR operand2`
+
 **Flags:** Updates N, Z, C when S bit is set (V unaffected)
+
 **Example:**
 ```arm
 EOR R0, R1, R2        ; R0 = R1 ^ R2
@@ -136,11 +190,17 @@ EORS R3, R3, R3       ; R3 = 0, update flags
 ```
 
 #### BIC - Bit Clear ✅
+
 **Status:** Implemented
+
 **Syntax:** `BIC{cond}{S} Rd, Rn, <operand2>`
+
 **Description:** Clears bits in Rn specified by operand2
+
 **Operation:** `Rd = Rn AND NOT(operand2)`
+
 **Flags:** Updates N, Z, C when S bit is set (V unaffected)
+
 **Example:**
 ```arm
 BIC R0, R1, R2        ; R0 = R1 & ~R2
@@ -150,11 +210,17 @@ BICS R3, R3, #0x0F    ; Clear lower 4 bits, update flags
 ### Move Operations
 
 #### MOV - Move ✅
+
 **Status:** Implemented
+
 **Syntax:** `MOV{cond}{S} Rd, <operand2>`
+
 **Description:** Moves a value into a register
+
 **Operation:** `Rd = operand2`
+
 **Flags:** Updates N, Z, C when S bit is set (V unaffected)
+
 **Example:**
 ```arm
 MOV R0, R1            ; R0 = R1
@@ -164,11 +230,17 @@ MOVS PC, LR           ; Return from subroutine with flag restore
 ```
 
 #### MVN - Move NOT ✅
+
 **Status:** Implemented
+
 **Syntax:** `MVN{cond}{S} Rd, <operand2>`
+
 **Description:** Moves the bitwise complement of a value
+
 **Operation:** `Rd = NOT(operand2)`
+
 **Flags:** Updates N, Z, C when S bit is set (V unaffected)
+
 **Example:**
 ```arm
 MVN R0, R1            ; R0 = ~R1
@@ -178,11 +250,17 @@ MVN R2, #0            ; R2 = 0xFFFFFFFF (-1)
 ### Comparison Operations
 
 #### CMP - Compare ✅
+
 **Status:** Implemented
+
 **Syntax:** `CMP{cond} Rn, <operand2>`
+
 **Description:** Compares two values by subtraction
+
 **Operation:** `Rn - operand2` (result discarded)
+
 **Flags:** Always updates N, Z, C, V
+
 **Example:**
 ```arm
 CMP R0, R1            ; Compare R0 with R1
@@ -191,11 +269,17 @@ CMP R3, R4, LSL #1    ; Compare R3 with R4 << 1
 ```
 
 #### CMN - Compare Negative ✅
+
 **Status:** Implemented
+
 **Syntax:** `CMN{cond} Rn, <operand2>`
+
 **Description:** Compares two values by addition
+
 **Operation:** `Rn + operand2` (result discarded)
+
 **Flags:** Always updates N, Z, C, V
+
 **Example:**
 ```arm
 CMN R0, R1            ; Compare R0 with -R1
@@ -203,11 +287,17 @@ CMN R2, #-5           ; Test if R2 is 5
 ```
 
 #### TST - Test Bits ✅
+
 **Status:** Implemented
+
 **Syntax:** `TST{cond} Rn, <operand2>`
+
 **Description:** Tests bits by AND operation
+
 **Operation:** `Rn AND operand2` (result discarded)
+
 **Flags:** Always updates N, Z, C (V unaffected)
+
 **Example:**
 ```arm
 TST R0, #0x01         ; Test if bit 0 is set
@@ -215,11 +305,17 @@ TST R1, R2            ; Test bits in common
 ```
 
 #### TEQ - Test Equivalence ✅
+
 **Status:** Implemented
+
 **Syntax:** `TEQ{cond} Rn, <operand2>`
+
 **Description:** Tests equality by EOR operation
+
 **Operation:** `Rn EOR operand2` (result discarded)
+
 **Flags:** Always updates N, Z, C (V unaffected)
+
 **Example:**
 ```arm
 TEQ R0, R1            ; Test if R0 equals R1
@@ -233,10 +329,15 @@ TEQ R2, #0            ; Test if R2 is zero
 ### Single Data Transfer
 
 #### LDR - Load Word ✅
+
 **Status:** Implemented
+
 **Syntax:** `LDR{cond} Rd, <addressing_mode>`
+
 **Description:** Loads a 32-bit word from memory
+
 **Operation:** `Rd = Memory[address]`
+
 **Example:**
 ```arm
 LDR R0, [R1]          ; R0 = [R1]
@@ -246,10 +347,15 @@ LDR R6, [R7, R8]      ; R6 = [R7 + R8]
 ```
 
 #### STR - Store Word ✅
+
 **Status:** Implemented
+
 **Syntax:** `STR{cond} Rd, <addressing_mode>`
+
 **Description:** Stores a 32-bit word to memory
+
 **Operation:** `Memory[address] = Rd`
+
 **Example:**
 ```arm
 STR R0, [R1]          ; [R1] = R0
@@ -258,10 +364,15 @@ STR R4, [R5, R6, LSL #2]!  ; [R5 + (R6 << 2)] = R4, writeback
 ```
 
 #### LDRB - Load Byte ✅
+
 **Status:** Implemented
+
 **Syntax:** `LDRB{cond} Rd, <addressing_mode>`
+
 **Description:** Loads an 8-bit byte from memory (zero-extended)
+
 **Operation:** `Rd = ZeroExtend(Memory[address])`
+
 **Example:**
 ```arm
 LDRB R0, [R1]         ; R0 = byte at [R1]
@@ -269,10 +380,15 @@ LDRB R2, [R3, #1]     ; R2 = byte at [R3 + 1]
 ```
 
 #### STRB - Store Byte ✅
+
 **Status:** Implemented
+
 **Syntax:** `STRB{cond} Rd, <addressing_mode>`
+
 **Description:** Stores an 8-bit byte to memory
+
 **Operation:** `Memory[address] = Rd[7:0]`
+
 **Example:**
 ```arm
 STRB R0, [R1]         ; [R1] = R0[7:0]
@@ -280,10 +396,15 @@ STRB R2, [R3, #10]    ; [R3 + 10] = R2[7:0]
 ```
 
 #### LDRH - Load Halfword ✅
+
 **Status:** Implemented (ARM2a extension)
+
 **Syntax:** `LDRH{cond} Rd, <addressing_mode>`
+
 **Description:** Loads a 16-bit halfword from memory (zero-extended)
+
 **Operation:** `Rd = ZeroExtend(Memory[address])`
+
 **Example:**
 ```arm
 LDRH R0, [R1]         ; R0 = halfword at [R1]
@@ -291,10 +412,15 @@ LDRH R2, [R3, #2]     ; R2 = halfword at [R3 + 2]
 ```
 
 #### STRH - Store Halfword ✅
+
 **Status:** Implemented (ARM2a extension)
+
 **Syntax:** `STRH{cond} Rd, <addressing_mode>`
+
 **Description:** Stores a 16-bit halfword to memory
+
 **Operation:** `Memory[address] = Rd[15:0]`
+
 **Example:**
 ```arm
 STRH R0, [R1]         ; [R1] = R0[15:0]
@@ -304,11 +430,17 @@ STRH R2, [R3, #6]     ; [R3 + 6] = R2[15:0]
 ### Multiple Data Transfer
 
 #### LDM - Load Multiple ✅
+
 **Status:** Implemented
+
 **Syntax:** `LDM{cond}{mode} Rn{!}, {register_list}`
+
 **Description:** Loads multiple registers from consecutive memory locations
+
 **Modes:** IA (Increment After), IB (Increment Before), DA (Decrement After), DB (Decrement Before)
+
 **Stack Modes:** FD (Full Descending), ED (Empty Descending), FA (Full Ascending), EA (Empty Ascending)
+
 **Example:**
 ```arm
 LDMIA R13!, {R0-R3}   ; Load R0-R3 from stack, increment R13
@@ -316,11 +448,17 @@ LDMFD SP!, {R4-R6, PC}  ; Pop R4-R6 and return
 ```
 
 #### STM - Store Multiple ✅
+
 **Status:** Implemented
+
 **Syntax:** `STM{cond}{mode} Rn{!}, {register_list}`
+
 **Description:** Stores multiple registers to consecutive memory locations
+
 **Modes:** IA (Increment After), IB (Increment Before), DA (Decrement After), DB (Decrement Before)
+
 **Stack Modes:** FD (Full Descending), ED (Empty Descending), FA (Full Ascending), EA (Empty Ascending)
+
 **Example:**
 ```arm
 STMDB SP!, {R0-R3, LR}  ; Push R0-R3 and LR to stack
@@ -332,11 +470,17 @@ STMFD SP!, {R4-R11}   ; Push R4-R11 to stack
 ## Branch Instructions
 
 #### B - Branch ✅
+
 **Status:** Implemented
+
 **Syntax:** `B{cond} label`
+
 **Description:** Branches to a label/address
+
 **Operation:** `PC = PC + offset`
+
 **Range:** ±32MB from current instruction
+
 **Example:**
 ```arm
 B loop                ; Branch to loop
@@ -345,11 +489,17 @@ BNE not_zero          ; Branch if not zero
 ```
 
 #### BL - Branch with Link ✅
+
 **Status:** Implemented
+
 **Syntax:** `BL{cond} label`
+
 **Description:** Branches to a subroutine and saves return address
+
 **Operation:** `LR = PC + 4, PC = PC + offset`
+
 **Range:** ±32MB from current instruction
+
 **Example:**
 ```arm
 BL function           ; Call function
@@ -357,10 +507,15 @@ BLEQ conditional_fn   ; Call if equal
 ```
 
 #### BX - Branch and Exchange ✅
+
 **Status:** Implemented
+
 **Syntax:** `BX{cond} Rm`
+
 **Description:** Branches to address in register (ARM/Thumb interworking)
+
 **Operation:** `PC = Rm & 0xFFFFFFFE` (bit 0 would indicate Thumb mode in later ARM)
+
 **Example:**
 ```arm
 BX LR                 ; Return from subroutine
@@ -372,13 +527,21 @@ BX R0                 ; Branch to address in R0
 ## Multiply Instructions
 
 #### MUL - Multiply ✅
+
 **Status:** Implemented
+
 **Syntax:** `MUL{cond}{S} Rd, Rm, Rs`
+
 **Description:** Multiplies two 32-bit values (lower 32 bits of result)
+
 **Operation:** `Rd = (Rm * Rs)[31:0]`
+
 **Flags:** Updates N, Z when S bit is set (C meaningless, V unaffected)
+
 **Restrictions:** Rd and Rm must be different registers, R15 (PC) cannot be used
+
 **Cycles:** 2-16 cycles depending on multiplier value
+
 **Example:**
 ```arm
 MUL R0, R1, R2        ; R0 = R1 * R2
@@ -386,13 +549,21 @@ MULS R3, R4, R5       ; R3 = R4 * R5, update flags
 ```
 
 #### MLA - Multiply-Accumulate ✅
+
 **Status:** Implemented
+
 **Syntax:** `MLA{cond}{S} Rd, Rm, Rs, Rn`
+
 **Description:** Multiplies and adds to accumulator
+
 **Operation:** `Rd = (Rm * Rs + Rn)[31:0]`
+
 **Flags:** Updates N, Z when S bit is set (C meaningless, V unaffected)
+
 **Restrictions:** Rd and Rm must be different registers, R15 (PC) cannot be used
+
 **Cycles:** 2-16 cycles depending on multiplier value
+
 **Example:**
 ```arm
 MLA R0, R1, R2, R3    ; R0 = R1 * R2 + R3
@@ -400,27 +571,43 @@ MLAS R4, R5, R6, R7   ; R4 = R5 * R6 + R7, update flags
 ```
 
 #### UMULL - Unsigned Multiply Long ⏸️
+
 **Status:** Planned
+
 **Syntax:** `UMULL{cond}{S} RdLo, RdHi, Rm, Rs`
+
 **Description:** Multiplies two 32-bit unsigned values producing 64-bit result
+
 **Operation:** `RdHi:RdLo = Rm * Rs`
 
 #### UMLAL - Unsigned Multiply-Accumulate Long ⏸️
+
 **Status:** Planned
+
 **Syntax:** `UMLAL{cond}{S} RdLo, RdHi, Rm, Rs`
+
 **Description:** Unsigned multiply and accumulate with 64-bit result
+
 **Operation:** `RdHi:RdLo = (Rm * Rs) + RdHi:RdLo`
 
 #### SMULL - Signed Multiply Long ⏸️
+
 **Status:** Planned
+
 **Syntax:** `SMULL{cond}{S} RdLo, RdHi, Rm, Rs`
+
 **Description:** Multiplies two 32-bit signed values producing 64-bit result
+
 **Operation:** `RdHi:RdLo = Rm * Rs (signed)`
 
 #### SMLAL - Signed Multiply-Accumulate Long ⏸️
+
 **Status:** Planned
+
 **Syntax:** `SMLAL{cond}{S} RdLo, RdHi, Rm, Rs`
+
 **Description:** Signed multiply and accumulate with 64-bit result
+
 **Operation:** `RdHi:RdLo = (Rm * Rs) + RdHi:RdLo (signed)`
 
 ---
@@ -428,10 +615,15 @@ MLAS R4, R5, R6, R7   ; R4 = R5 * R6 + R7, update flags
 ## System Instructions
 
 ### SWI - Software Interrupt ✅
+
 **Status:** Implemented
+
 **Syntax:** `SWI{cond} #immediate`
+
 **Description:** Generates a software interrupt (system call)
+
 **Operation:** Transfers control to system call handler
+
 **Example:**
 ```arm
 SWI #0x00             ; Exit program
@@ -484,18 +676,26 @@ SWI #0x11             ; Write character
 - `0xF4` - **ASSERT** - Assert condition (R0 = condition) ⏸️
 
 ### MRS - Move PSR to Register ⏸️
+
 **Status:** Planned
+
 **Syntax:** `MRS{cond} Rd, PSR`
+
 **Description:** Moves CPSR or SPSR to a register
+
 **Example:**
 ```arm
 MRS R0, CPSR          ; R0 = CPSR
 ```
 
 ### MSR - Move Register to PSR ⏸️
+
 **Status:** Planned
+
 **Syntax:** `MSR{cond} PSR, Rm`
+
 **Description:** Moves a register or immediate to CPSR or SPSR
+
 **Example:**
 ```arm
 MSR CPSR, R0          ; CPSR = R0
@@ -627,27 +827,64 @@ MOVGT R5, #1          ; Move if greater than
 All shift operations are available in data processing instructions. ✅
 
 ### LSL - Logical Shift Left ✅
+
 **Operation:** Shifts bits left, fills with zeros
+
+**Special Cases:**
+- LSL #0: No shift performed (identity operation)
+
 **Example:** `MOV R0, R1, LSL #4` shifts R1 left by 4 bits
 
 ### LSR - Logical Shift Right ✅
+
 **Operation:** Shifts bits right, fills with zeros
+
+**Special Cases:**
+- LSR #0: In ARM encoding, this means LSR #32 (all bits shifted out, result is 0)
+- LSR #32: All bits shifted out, result is 0, carry flag = bit 31 of original value
+
 **Example:** `ADD R0, R1, R2, LSR #8` adds R1 + (R2 >> 8)
 
 ### ASR - Arithmetic Shift Right ✅
-**Operation:** Shifts bits right, preserves sign bit
+
+**Operation:** Shifts bits right, preserves sign bit (fills with bit 31)
+
+**Special Cases:**
+- ASR #0: In ARM encoding, this means ASR #32 (sign bit extended across all positions)
+- ASR #32: Result is 0 if positive, -1 (0xFFFFFFFF) if negative
+
 **Example:** `MOV R0, R1, ASR #2` performs signed divide by 4
 
 ### ROR - Rotate Right ✅
+
 **Operation:** Rotates bits right, wraps around
+
+**Special Cases:**
+- ROR #0: In ARM encoding, this means RRX (rotate right extended through carry)
+
 **Example:** `ORR R0, R1, R2, ROR #16` rotates R2 by 16 bits
 
 ### RRX - Rotate Right Extended ✅
-**Operation:** Rotates right by 1 bit through carry flag
+
+**Operation:** Rotates right by 1 bit through carry flag (33-bit rotation with carry)
+
+**Details:**
+- Encoded as ROR #0 in ARM instruction format
+- Bit 0 goes to carry flag
+- Carry flag goes to bit 31
+- Useful for multi-precision shifts
+
 **Example:** `MOV R0, R1, RRX` rotates R1 right through carry
 
 ### Register-Specified Shifts ✅
-**Operation:** Shift amount specified in register
+
+**Operation:** Shift amount specified in register (bottom 8 bits used)
+
+**Details:**
+- Only the bottom 8 bits of the register are used for shift amount
+- If shift amount is 0, no shift is performed
+- If shift amount >= 32, result depends on shift type (LSL/LSR: 0, ASR: sign-extended)
+
 **Example:** `MOV R0, R1, LSL R2` shifts R1 left by amount in R2
 
 ---
@@ -703,9 +940,20 @@ Pseudo-instructions are assembler conveniences that map to real instructions. �
 ## Notes
 
 - **ARM2 Compatibility:** This emulator targets the ARM2 instruction set with select ARM2a extensions (halfword load/store)
-- **Implementation Status:** 93 unit tests passing covering all implemented instructions
+
+- **Implementation Status:** 338 unit tests passing covering all implemented instructions (60 debugger + 35 parser + 243 VM tests)
+
+- **Recent Fixes (2025-10-09):**
+  - PC Pipeline Handling: GetRegister() now returns PC+8 when reading R15 to simulate ARM pipeline effect
+  - ROR #0 to RRX Conversion: Fixed encoding where ROR with shift amount 0 means RRX (rotate right extended)
+  - LSR #0 Special Case: Now correctly treated as LSR #32 (shifts all bits out to 0)
+  - ASR #0 Special Case: Now correctly treated as ASR #32 (preserves sign bit across all positions)
+  - RRX Carry Calculation: Fixed carry flag handling for rotate right extended operations
+
 - **Future Extensions:** Long multiply instructions (UMULL, UMLAL, SMULL, SMLAL) and PSR transfer instructions (MRS, MSR) are planned
+
 - **Cycle Accuracy:** Multiply instructions use cycle-accurate timing (2-16 cycles based on multiplier)
+
 - **Memory Alignment:** Word accesses should be 4-byte aligned, halfword 2-byte aligned
 
 ---
