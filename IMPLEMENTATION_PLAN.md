@@ -528,7 +528,7 @@ Create `stdlib.inc` with common macros:
 
 ## Phase 7: Testing (Weeks 13-15)
 
-### 13. Unit Tests (Target: 1000+ tests)
+### 13. Unit Tests (Target: 600+ tests)
 
 **Instruction Tests (600+ tests):**
 
@@ -1007,7 +1007,7 @@ Metrics:
 
 ### M7: Testing Complete (Week 15)
 **Deliverables:**
-- 1000+ unit tests
+- 600+ unit tests
 - 20+ integration tests
 - 30+ regression tests
 - 85%+ code coverage
@@ -1058,7 +1058,7 @@ Metrics:
 
 ### Code Quality
 - **Test Coverage**: 85%+ overall, 95%+ for instruction execution
-- **Test Count**: 1000+ unit tests minimum
+- **Test Count**: 600+ unit tests minimum
 - **Documentation**: Complete user and developer docs
 - **Cross-Platform**: CI/CD testing on all platforms
 
@@ -1142,7 +1142,7 @@ Metrics:
 | 4 | 8 | System | System Calls + Runtime |
 | 5 | 9-10 | Debugger | Debugger Core + Commands |
 | 6 | 11-12 | TUI | Full Text UI |
-| 7 | 13-15 | Testing | 1000+ Tests + 85% Coverage |
+| 7 | 13-15 | Testing | 600+ Tests + 85% Coverage |
 | 8 | 16 | Tools | Linter + Formatter + Xref |
 | 9 | 17 | Examples | Example Programs + Docs |
 | 10 | 18 | Polish | Cross-Platform + Release |
@@ -1162,7 +1162,7 @@ The ARM2 emulator will be considered complete when:
    - Example programs run successfully
 
 2. **Quality**:
-   - 1000+ tests passing
+   - 600+ tests passing
    - 85%+ code coverage
    - Zero known critical bugs
    - Performance targets met

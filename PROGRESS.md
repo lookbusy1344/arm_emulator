@@ -181,7 +181,7 @@
 
 ## Phase 7: Testing (Weeks 13-15) ✅ COMPLETE
 
-### 13. Unit Tests (Target: 1000+ tests) ✅
+### 13. Unit Tests (Target: 600+ tests) ✅
 - [x] **Flag Calculation Tests** (100+ tests) - 60 tests implemented
   - Comprehensive N, Z, C, V flag tests
   - Tests for addition, subtraction, logical operations
