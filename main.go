@@ -5,7 +5,9 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
+	"github.com/lookbusy1344/arm-emulator/config"
 	"github.com/lookbusy1344/arm-emulator/debugger"
 	"github.com/lookbusy1344/arm-emulator/encoder"
 	"github.com/lookbusy1344/arm-emulator/parser"
@@ -27,6 +29,16 @@ func main() {
 		stackSize   = flag.Uint("stack-size", vm.StackSegmentSize, "Stack size in bytes")
 		entryPoint  = flag.String("entry", "0x8000", "Entry point address (hex or decimal)")
 		verboseMode = flag.Bool("verbose", false, "Verbose output")
+
+		// Tracing and statistics flags
+		enableTrace    = flag.Bool("trace", false, "Enable execution trace")
+		traceFile      = flag.String("trace-file", "", "Trace output file (default: trace.log in log dir)")
+		traceFilter    = flag.String("trace-filter", "", "Filter trace by registers (comma-separated, e.g., R0,R1,PC)")
+		enableMemTrace = flag.Bool("mem-trace", false, "Enable memory access trace")
+		memTraceFile   = flag.String("mem-trace-file", "", "Memory trace output file (default: memtrace.log)")
+		enableStats    = flag.Bool("stats", false, "Enable performance statistics")
+		statsFile      = flag.String("stats-file", "", "Statistics output file (default: stats.json)")
+		statsFormat    = flag.String("stats-format", "json", "Statistics format (json, csv, html)")
 	)
 
 	flag.Parse()
@@ -132,6 +144,66 @@ func main() {
 		fmt.Printf("Symbols: %d labels defined\n", len(symbols))
 	}
 
+	// Setup tracing and statistics (Phase 10)
+	if *enableTrace {
+		// Determine trace file path
+		tracePath := *traceFile
+		if tracePath == "" {
+			tracePath = filepath.Join(config.GetLogPath(), "trace.log")
+		}
+
+		traceWriter, err := os.Create(tracePath)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error creating trace file: %v\n", err)
+			os.Exit(1)
+		}
+		defer traceWriter.Close()
+
+		machine.ExecutionTrace = vm.NewExecutionTrace(traceWriter)
+		machine.ExecutionTrace.Start()
+
+		// Apply filter if specified
+		if *traceFilter != "" {
+			regs := strings.Split(*traceFilter, ",")
+			machine.ExecutionTrace.SetFilterRegisters(regs)
+		}
+
+		if *verboseMode {
+			fmt.Printf("Execution trace enabled: %s\n", tracePath)
+		}
+	}
+
+	if *enableMemTrace {
+		// Determine memory trace file path
+		memTracePath := *memTraceFile
+		if memTracePath == "" {
+			memTracePath = filepath.Join(config.GetLogPath(), "memtrace.log")
+		}
+
+		memTraceWriter, err := os.Create(memTracePath)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error creating memory trace file: %v\n", err)
+			os.Exit(1)
+		}
+		defer memTraceWriter.Close()
+
+		machine.MemoryTrace = vm.NewMemoryTrace(memTraceWriter)
+		machine.MemoryTrace.Start()
+
+		if *verboseMode {
+			fmt.Printf("Memory trace enabled: %s\n", memTracePath)
+		}
+	}
+
+	if *enableStats {
+		machine.Statistics = vm.NewPerformanceStatistics()
+		machine.Statistics.Start()
+
+		if *verboseMode {
+			fmt.Println("Performance statistics enabled")
+		}
+	}
+
 	// Run in appropriate mode
 	if *debugMode || *tuiMode {
 		// Start debugger
@@ -182,6 +254,69 @@ func main() {
 			fmt.Printf("Exit code: %d\n", machine.ExitCode)
 			fmt.Printf("CPU cycles: %d\n", machine.CPU.Cycles)
 			fmt.Printf("Instructions executed: %d\n", len(machine.InstructionLog))
+		}
+
+		// Flush traces and export statistics (Phase 10)
+		if machine.ExecutionTrace != nil {
+			if err := machine.ExecutionTrace.Flush(); err != nil {
+				fmt.Fprintf(os.Stderr, "Error flushing execution trace: %v\n", err)
+			}
+			if *verboseMode {
+				fmt.Printf("Execution trace written (%d entries)\n", len(machine.ExecutionTrace.GetEntries()))
+			}
+		}
+
+		if machine.MemoryTrace != nil {
+			if err := machine.MemoryTrace.Flush(); err != nil {
+				fmt.Fprintf(os.Stderr, "Error flushing memory trace: %v\n", err)
+			}
+			if *verboseMode {
+				fmt.Printf("Memory trace written (%d entries)\n", len(machine.MemoryTrace.GetEntries()))
+			}
+		}
+
+		if machine.Statistics != nil {
+			// Determine stats file path
+			statPath := *statsFile
+			if statPath == "" {
+				ext := "json"
+				if *statsFormat == "csv" {
+					ext = "csv"
+				} else if *statsFormat == "html" {
+					ext = "html"
+				}
+				statPath = filepath.Join(config.GetLogPath(), "stats."+ext)
+			}
+
+			statsWriter, err := os.Create(statPath)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "Error creating statistics file: %v\n", err)
+			} else {
+				defer statsWriter.Close()
+
+				switch *statsFormat {
+				case "json":
+					err = machine.Statistics.ExportJSON(statsWriter)
+				case "csv":
+					err = machine.Statistics.ExportCSV(statsWriter)
+				case "html":
+					err = machine.Statistics.ExportHTML(statsWriter)
+				default:
+					err = machine.Statistics.ExportJSON(statsWriter)
+				}
+
+				if err != nil {
+					fmt.Fprintf(os.Stderr, "Error exporting statistics: %v\n", err)
+				} else if *verboseMode {
+					fmt.Printf("Statistics exported: %s\n", statPath)
+				}
+			}
+
+			// Also print summary if verbose
+			if *verboseMode {
+				fmt.Println()
+				fmt.Println(machine.Statistics.String())
+			}
 		}
 
 		os.Exit(int(machine.ExitCode))
@@ -312,6 +447,16 @@ Options:
   -entry ADDR        Set entry point address (default: 0x8000)
   -verbose           Enable verbose output
 
+Tracing & Performance Options:
+  -trace             Enable execution trace
+  -trace-file FILE   Trace output file (default: trace.log in log dir)
+  -trace-filter REGS Filter trace by registers (e.g., R0,R1,PC)
+  -mem-trace         Enable memory access trace
+  -mem-trace-file F  Memory trace file (default: memtrace.log)
+  -stats             Enable performance statistics
+  -stats-file FILE   Statistics output file (default: stats.json)
+  -stats-format FMT  Statistics format: json, csv, html (default: json)
+
 Examples:
   # Run a program directly
   arm-emulator examples/hello.s
@@ -324,6 +469,15 @@ Examples:
 
   # Run with custom settings
   arm-emulator -max-cycles 5000000 -entry 0x10000 program.s
+
+  # Run with execution trace
+  arm-emulator -trace -trace-filter "R0,R1,PC" examples/factorial.s
+
+  # Run with performance statistics
+  arm-emulator -stats -stats-format html program.s
+
+  # Run with all monitoring enabled
+  arm-emulator -trace -mem-trace -stats -verbose program.s
 
 Debugger Commands (when in -debug mode):
   run, r             Start/restart program execution

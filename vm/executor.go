@@ -66,6 +66,11 @@ type VM struct {
 	EntryPoint       uint32
 	ProgramArguments []string
 	ExitCode         int32
+
+	// Tracing and statistics (Phase 10)
+	ExecutionTrace *ExecutionTrace
+	MemoryTrace    *MemoryTrace
+	Statistics     *PerformanceStatistics
 }
 
 // NewVM creates a new virtual machine instance
