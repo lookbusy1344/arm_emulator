@@ -1,6 +1,10 @@
 # ARM2 Emulator TODO List
 
-**Last Updated:** 2025-10-08
+**IMPORTANT:** This file tracks outstanding tasks and known issues that cannot be completed in the current phase. After completing any work, update this file to reflect the current status.
+
+It should not contain completed items or notes about past work. Those belong in `PROGRESS.md`.
+
+**Last Updated:** 2025-10-09
 
 ---
 
@@ -190,24 +194,6 @@ func (p *Parser) ParseExpression(minPrecedence int) (uint32, error)
 
 **Status:** Complete ✅
 
-**Completed Features:**
-- [x] Source code view with current line highlighting
-- [x] Register view with live updates
-- [x] Memory view with hex/ASCII display
-- [x] Stack view
-- [x] Disassembly view
-- [x] Command input panel
-- [x] Output/console panel
-- [x] Breakpoints panel
-- [x] Watchpoints panel
-- [x] Responsive layout with resize handling
-- [x] Keyboard shortcuts (F1=help, F5=continue, F9=break, F10=next, F11=step, Ctrl+L=refresh, Ctrl+C=quit)
-- [ ] Mouse support (deferred - not essential)
-
-**Files Created:**
-- `debugger/tui.go` - Complete TUI implementation (600+ lines)
-- `debugger/tui_manual_test.go.disabled` - TUI tests (disabled from auto-test due to terminal requirement)
-
 **Testing Note:**
 TUI tests require a terminal environment and hang when run with `go test`. The tests have been
 written but renamed to `.disabled` to exclude them from automated testing. They can be manually
@@ -218,78 +204,9 @@ verified by:
 
 This is a common limitation with terminal UI testing and doesn't affect the functionality.
 
-**Actual Effort:** 4 hours
-
-**Priority:** Complete
-
 ---
 
 ## Phase 7: Testing & Coverage ✅ COMPLETE
-
-### 3. Expand Test Coverage ✅
-
-**Current Status:** 391 total tests - **ALL PASSING** ✅
-
-**Target:** 600+ tests (Achieved 391 tests, which is substantial progress)
-
-**Completed Coverage:**
-- [x] Flag calculation tests: 60 tests implemented (**ALL PASSING** ✅)
-- [x] Memory system tests: 47 tests implemented (**ALL PASSING** ✅)
-- [x] Addressing mode tests: 31 tests implemented (**ALL PASSING** ✅)
-- [x] Existing tests maintained: 295 tests (data processing, memory, branch, multiply, parser, debugger, syscalls)
-
-**Test Breakdown:**
-- Debugger tests: 60 tests (all passing)
-- Parser tests: 35 tests (all passing)
-- VM/Instruction tests: 153 tests (all passing)
-- New Phase 7 tests: 138 tests (all passing)
-
-**Total Tests: 391 - ALL PASSING** ✅
-
-**Test Failures Fixed (21 total):**
-
-All 21 test failures were due to incorrect test code, not implementation bugs:
-
-1. **Flag Calculation Tests (18 fixed):**
-   - Incorrect ARM opcodes using wrong operation codes (e.g., ADC instead of ADD)
-   - Incorrect register field mappings (Rn, Rd, Rm in wrong bit positions)
-   - Fixed by correcting opcodes to match ARM instruction encoding specification
-   - Examples:
-     - ADDS R2, R0, R1 was 0xE0B20001 (ADC), corrected to 0xE0902001 (ADD)
-     - Register mappings corrected: Rn in bits 19-16, Rd in bits 15-12, Rm in bits 3-0
-
-2. **Memory System Tests (3 fixed):**
-   - Test used addresses outside memory segments (e.g., 0x7FFFFFFF, 0x80000000)
-   - Test tried to write to read-only code segment (0x8000)
-   - Fixed by using correct addresses within mapped segments:
-     - Stack: 0x00040000 - 0x00050000
-     - Data: 0x00020000 - 0x00030000
-     - Heap: 0x00030000 - 0x00040000
-
-3. **Addressing Mode Tests (2 fixed):**
-   - ASR and ROR immediate tests had shift amount = 0 (encoded in bits 11-7)
-   - Fixed by encoding shift amount = 1 correctly
-   - ASR #1: 0xE1A00041 → 0xE1A000C1
-   - ROR #1: 0xE1A00061 → 0xE1A000E1
-
-**Implementation Status:**
-- ✅ All ARM2 instructions working correctly
-- ✅ All flag calculations correct (N, Z, C, V)
-- ✅ All memory operations correct
-- ✅ All shift operations correct
-
-**Coverage Status:**
-- Coverage analysis not yet performed with `go test -cover`
-- Estimated coverage based on test count: ~40-50%
-- Target overall coverage: 85%
-
-**Effort Expended:** ~8 hours (including 2 hours fixing test failures)
-
-**Priority:** Complete ✅
-
-**Next Steps:**
-- Run coverage analysis with `go test -cover ./...`
-- Consider additional tests to reach 600+ target (optional for future phases)
 
 ---
 
@@ -517,19 +434,8 @@ All 21 test failures were due to incorrect test code, not implementation bugs:
 
 ---
 
-## Completed Items ✅
-
-- ✅ Phase 1: Core VM Implementation
-- ✅ Phase 2: Parser & Assembler
-- ✅ Phase 3: Instruction Set
-- ✅ Phase 4: System Integration
-- ✅ Phase 5: Debugger Core (with noted expression parser limitations)
-
----
-
 ## Notes
 
 - Priority levels: High (next phase), Medium (important), Low (nice to have)
-- Effort estimates are approximate and may vary
 - Some items may be dependencies for others
 - This list will be updated as development progresses
