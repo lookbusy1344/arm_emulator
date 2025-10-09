@@ -3,6 +3,7 @@ package encoder
 import (
 	"fmt"
 	"strings"
+	"math"
 
 	"github.com/lookbusy1344/arm-emulator/parser"
 )
@@ -40,6 +41,10 @@ func (e *Encoder) encodeBranch(inst *parser.Instruction, cond uint32) (uint32, e
 	// Calculate offset: (target - PC - 8) / 4
 	// PC is current instruction address + 8 (ARM pipeline)
 	pc := e.currentAddr + 8
+	// Ensure targetAddr is safely convertible to int32
+	if targetAddr > math.MaxInt32 {
+		return 0, fmt.Errorf("branch target address out of int32 range: 0x%X", targetAddr)
+	}
 	offset := int32(targetAddr) - int32(pc)
 
 	// Check if offset is word-aligned
