@@ -2,13 +2,50 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Launch Go Package",
+            "name": "Debug hello.s",
             "type": "go",
             "request": "launch",
             "mode": "auto",
             "program": "${workspaceFolder}",
             "env": {},
-            "args": []
+            "args": [
+                "-debug",
+                "examples/hello.s"
+            ]
+        },
+        {
+            "name": "Run hello.s",
+            "type": "go",
+            "request": "launch",
+            "mode": "auto",
+            "program": "${workspaceFolder}",
+            "env": {},
+            "args": [
+                "examples/hello.s"
+            ]
+        },
+        {
+            "name": "Debug fibonacci.s",
+            "type": "go",
+            "request": "launch",
+            "mode": "auto",
+            "program": "${workspaceFolder}",
+            "env": {},
+            "args": [
+                "-debug",
+                "examples/fibonacci.s"
+            ]
+        },
+        {
+            "name": "Run fibonacci.s",
+            "type": "go",
+            "request": "launch",
+            "mode": "auto",
+            "program": "${workspaceFolder}",
+            "env": {},
+            "args": [
+                "examples/fibonacci.s"
+            ]
         }
     ]
 }
