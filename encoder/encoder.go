@@ -12,9 +12,11 @@ import (
 
 // Encoder converts parsed instructions into ARM machine code
 type Encoder struct {
-	symbolTable *parser.SymbolTable
-	currentAddr uint32
-	LiteralPool map[uint32]uint32 // address -> value for literal pool (exported)
+	symbolTable      *parser.SymbolTable
+	currentAddr      uint32
+	LiteralPool      map[uint32]uint32 // address -> value for literal pool (exported)
+	literalCounter   uint32            // Counter for generating unique literal addresses
+	LiteralPoolStart uint32            // Start address for literal pool (set externally)
 }
 
 // NewEncoder creates a new encoder instance

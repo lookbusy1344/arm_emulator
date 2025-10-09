@@ -209,9 +209,10 @@ func (e *Encoder) encodeLDRPseudo(inst *parser.Instruction, cond, rd uint32) (ui
 	}
 
 	// Need to use literal pool - generate PC-relative LDR
-	// For now, place literal at current address + 8 (after this instruction and next)
-	// This is simplified; a real assembler would manage a literal pool
-	literalAddr := e.currentAddr + 8
+	// Place literals in a pool at a fixed offset to avoid overwriting instructions
+	// Use a large offset (4KB) to ensure it's after all code and data
+	literalOffset := uint32(0x1000 + (len(e.LiteralPool) * 4))
+	literalAddr := (e.currentAddr & 0xFFFFF000) + literalOffset
 
 	// Store value in literal pool
 	e.LiteralPool[literalAddr] = value
