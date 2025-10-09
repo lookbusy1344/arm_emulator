@@ -49,7 +49,7 @@ func TestNFlag_AfterSubtraction(t *testing.T) {
 	v.CPU.PC = 0x8000
 
 	// SUBS R2, R0, R1 (5 - 10 = -5)
-	opcode := uint32(0xE0520001)
+	opcode := uint32(0xE0502001) // Fixed: Rn=0, Rd=2, Rm=1
 	setupCodeWrite(v)
 	v.Memory.WriteWord(0x8000, opcode)
 	v.Step()
@@ -66,7 +66,7 @@ func TestNFlag_AfterAddition(t *testing.T) {
 	v.CPU.PC = 0x8000
 
 	// ADDS R2, R0, R1 (overflow to negative)
-	opcode := uint32(0xE0B20001)
+	opcode := uint32(0xE0902001) // Fixed: opcode 0x4 for ADD, not 0x5 (ADC)
 	setupCodeWrite(v)
 	v.Memory.WriteWord(0x8000, opcode)
 	v.Step()
@@ -83,7 +83,7 @@ func TestNFlag_AfterAND(t *testing.T) {
 	v.CPU.PC = 0x8000
 
 	// ANDS R2, R0, R1
-	opcode := uint32(0xE0120001)
+	opcode := uint32(0xE0102001) // Fixed: Rn=0, Rd=2, Rm=1
 	setupCodeWrite(v)
 	v.Memory.WriteWord(0x8000, opcode)
 	v.Step()
@@ -104,7 +104,7 @@ func TestZFlag_Set_WhenResultZero(t *testing.T) {
 	v.CPU.PC = 0x8000
 
 	// SUBS R2, R0, R1
-	opcode := uint32(0xE0520001)
+	opcode := uint32(0xE0502001) // Fixed: Rn=0, Rd=2, Rm=1
 	setupCodeWrite(v)
 	v.Memory.WriteWord(0x8000, opcode)
 	v.Step()
@@ -121,7 +121,7 @@ func TestZFlag_Clear_WhenResultNonZero(t *testing.T) {
 	v.CPU.PC = 0x8000
 
 	// SUBS R2, R0, R1
-	opcode := uint32(0xE0520001)
+	opcode := uint32(0xE0502001) // Fixed: Rn=0, Rd=2, Rm=1
 	setupCodeWrite(v)
 	v.Memory.WriteWord(0x8000, opcode)
 	v.Step()
@@ -155,7 +155,7 @@ func TestZFlag_AfterEOR_SameValue(t *testing.T) {
 	v.CPU.PC = 0x8000
 
 	// EORS R2, R0, R1 (same value XOR = 0)
-	opcode := uint32(0xE0320001)
+	opcode := uint32(0xE0302001) // Fixed: Rn=0, Rd=2, Rm=1
 	setupCodeWrite(v)
 	v.Memory.WriteWord(0x8000, opcode)
 	v.Step()
@@ -191,7 +191,7 @@ func TestCFlag_Set_OnUnsignedAdditionOverflow(t *testing.T) {
 	v.CPU.PC = 0x8000
 
 	// ADDS R2, R0, R1
-	opcode := uint32(0xE0B20001)
+	opcode := uint32(0xE0902001) // Fixed: opcode 0x4 for ADD
 	setupCodeWrite(v)
 	v.Memory.WriteWord(0x8000, opcode)
 	v.Step()
@@ -208,7 +208,7 @@ func TestCFlag_Clear_OnNoCarryAddition(t *testing.T) {
 	v.CPU.PC = 0x8000
 
 	// ADDS R2, R0, R1
-	opcode := uint32(0xE0B20001)
+	opcode := uint32(0xE0902001) // Fixed: opcode 0x4 for ADD
 	setupCodeWrite(v)
 	v.Memory.WriteWord(0x8000, opcode)
 	v.Step()
@@ -225,7 +225,7 @@ func TestCFlag_AdditionMaxValues(t *testing.T) {
 	v.CPU.PC = 0x8000
 
 	// ADDS R2, R0, R1
-	opcode := uint32(0xE0B20001)
+	opcode := uint32(0xE0902001) // Fixed: opcode 0x4 for ADD
 	setupCodeWrite(v)
 	v.Memory.WriteWord(0x8000, opcode)
 	v.Step()
@@ -243,7 +243,7 @@ func TestCFlag_ADC_WithCarryIn(t *testing.T) {
 	v.CPU.PC = 0x8000
 
 	// ADCS R2, R0, R1
-	opcode := uint32(0xE0B20001 | (1 << 21)) // ADC with S bit
+	opcode := uint32(0xE0B02001) // Fixed: opcode 0x5 for ADC, Rn=0, Rd=2, Rm=1
 	setupCodeWrite(v)
 	v.Memory.WriteWord(0x8000, opcode)
 	v.Step()
@@ -264,7 +264,7 @@ func TestCFlag_Subtraction_NoBorrow(t *testing.T) {
 	v.CPU.PC = 0x8000
 
 	// SUBS R2, R0, R1
-	opcode := uint32(0xE0520001)
+	opcode := uint32(0xE0502001) // Fixed: Rn=0, Rd=2, Rm=1
 	setupCodeWrite(v)
 	v.Memory.WriteWord(0x8000, opcode)
 	v.Step()
@@ -281,7 +281,7 @@ func TestCFlag_Subtraction_WithBorrow(t *testing.T) {
 	v.CPU.PC = 0x8000
 
 	// SUBS R2, R0, R1
-	opcode := uint32(0xE0520001)
+	opcode := uint32(0xE0502001) // Fixed: Rn=0, Rd=2, Rm=1
 	setupCodeWrite(v)
 	v.Memory.WriteWord(0x8000, opcode)
 	v.Step()
@@ -298,7 +298,7 @@ func TestCFlag_Subtraction_Equal(t *testing.T) {
 	v.CPU.PC = 0x8000
 
 	// SUBS R2, R0, R1
-	opcode := uint32(0xE0520001)
+	opcode := uint32(0xE0502001) // Fixed: Rn=0, Rd=2, Rm=1
 	setupCodeWrite(v)
 	v.Memory.WriteWord(0x8000, opcode)
 	v.Step()
@@ -315,7 +315,7 @@ func TestCFlag_RSB_ReverseSub(t *testing.T) {
 	v.CPU.PC = 0x8000
 
 	// RSBS R2, R0, R1 (50 - 100)
-	opcode := uint32(0xE0720001)
+	opcode := uint32(0xE0702001) // Fixed: opcode 0x3 for RSB, Rn=0, Rd=2, Rm=1
 	setupCodeWrite(v)
 	v.Memory.WriteWord(0x8000, opcode)
 	v.Step()
@@ -438,7 +438,7 @@ func TestVFlag_Set_PositivePlusPositiveToNegative(t *testing.T) {
 	v.CPU.PC = 0x8000
 
 	// ADDS R2, R0, R1
-	opcode := uint32(0xE0B20001)
+	opcode := uint32(0xE0902001) // Fixed: opcode 0x4 for ADD
 	setupCodeWrite(v)
 	v.Memory.WriteWord(0x8000, opcode)
 	v.Step()
@@ -455,7 +455,7 @@ func TestVFlag_Set_NegativePlusNegativeToPositive(t *testing.T) {
 	v.CPU.PC = 0x8000
 
 	// ADDS R2, R0, R1
-	opcode := uint32(0xE0B20001)
+	opcode := uint32(0xE0902001) // Fixed: opcode 0x4 for ADD
 	setupCodeWrite(v)
 	v.Memory.WriteWord(0x8000, opcode)
 	v.Step()
@@ -472,7 +472,7 @@ func TestVFlag_Clear_PositivePlusPositive(t *testing.T) {
 	v.CPU.PC = 0x8000
 
 	// ADDS R2, R0, R1
-	opcode := uint32(0xE0B20001)
+	opcode := uint32(0xE0902001) // Fixed: opcode 0x4 for ADD
 	setupCodeWrite(v)
 	v.Memory.WriteWord(0x8000, opcode)
 	v.Step()
@@ -489,7 +489,7 @@ func TestVFlag_Clear_PositivePlusNegative(t *testing.T) {
 	v.CPU.PC = 0x8000
 
 	// ADDS R2, R0, R1
-	opcode := uint32(0xE0B20001)
+	opcode := uint32(0xE0902001) // Fixed: opcode 0x4 for ADD
 	setupCodeWrite(v)
 	v.Memory.WriteWord(0x8000, opcode)
 	v.Step()
@@ -510,7 +510,7 @@ func TestVFlag_Subtraction_PositiveMinusNegativeToNegative(t *testing.T) {
 	v.CPU.PC = 0x8000
 
 	// SUBS R2, R0, R1
-	opcode := uint32(0xE0520001)
+	opcode := uint32(0xE0502001) // Fixed: Rn=0, Rd=2, Rm=1
 	setupCodeWrite(v)
 	v.Memory.WriteWord(0x8000, opcode)
 	v.Step()
@@ -527,7 +527,7 @@ func TestVFlag_Subtraction_NegativeMinusPositiveToPositive(t *testing.T) {
 	v.CPU.PC = 0x8000
 
 	// SUBS R2, R0, R1
-	opcode := uint32(0xE0520001)
+	opcode := uint32(0xE0502001) // Fixed: Rn=0, Rd=2, Rm=1
 	setupCodeWrite(v)
 	v.Memory.WriteWord(0x8000, opcode)
 	v.Step()
@@ -544,7 +544,7 @@ func TestVFlag_Subtraction_NoOverflow(t *testing.T) {
 	v.CPU.PC = 0x8000
 
 	// SUBS R2, R0, R1
-	opcode := uint32(0xE0520001)
+	opcode := uint32(0xE0502001) // Fixed: Rn=0, Rd=2, Rm=1
 	setupCodeWrite(v)
 	v.Memory.WriteWord(0x8000, opcode)
 	v.Step()
@@ -561,7 +561,7 @@ func TestVFlag_Subtraction_SameSign(t *testing.T) {
 	v.CPU.PC = 0x8000
 
 	// SUBS R2, R0, R1
-	opcode := uint32(0xE0520001)
+	opcode := uint32(0xE0502001) // Fixed: Rn=0, Rd=2, Rm=1
 	setupCodeWrite(v)
 	v.Memory.WriteWord(0x8000, opcode)
 	v.Step()
@@ -581,14 +581,14 @@ func TestFlags_AllSet(t *testing.T) {
 	v.CPU.R[1] = 0x80000000
 	v.CPU.PC = 0x8000
 
-	// ADDS R2, R0, R1 (should set N, Z=0, C=1, V=1)
-	opcode := uint32(0xE0B20001)
+	// ADDS R2, R0, R1 (0x80000000 + 0x80000000 = 0, so N=0, Z=1, C=1, V=1)
+	opcode := uint32(0xE0902001) // Fixed: opcode 0x4 for ADD
 	setupCodeWrite(v)
 	v.Memory.WriteWord(0x8000, opcode)
 	v.Step()
 
-	if !v.CPU.CPSR.N {
-		t.Error("N flag should be set")
+	if v.CPU.CPSR.N {
+		t.Error("N flag should be clear (result is 0)")
 	}
 	if !v.CPU.CPSR.Z {
 		t.Error("Z flag should be set")
@@ -608,7 +608,7 @@ func TestFlags_AllClear(t *testing.T) {
 	v.CPU.PC = 0x8000
 
 	// ADDS R2, R0, R1 (simple addition, all flags clear)
-	opcode := uint32(0xE0B20001)
+	opcode := uint32(0xE0902001) // Fixed: opcode 0x4 for ADD
 	setupCodeWrite(v)
 	v.Memory.WriteWord(0x8000, opcode)
 	v.Step()
@@ -659,7 +659,7 @@ func TestFlags_AND_NoCarryOrOverflow(t *testing.T) {
 	v.CPU.PC = 0x8000
 
 	// ANDS R2, R0, R1
-	opcode := uint32(0xE0120001)
+	opcode := uint32(0xE0102001) // Fixed: Rn=0, Rd=2, Rm=1
 	setupCodeWrite(v)
 	v.Memory.WriteWord(0x8000, opcode)
 	v.Step()
@@ -681,7 +681,7 @@ func TestFlags_ORR_SetN(t *testing.T) {
 	v.CPU.PC = 0x8000
 
 	// ORRS R2, R0, R1
-	opcode := uint32(0xE1920001)
+	opcode := uint32(0xE1902001) // Fixed: Rn=0, Rd=2, Rm=1
 	setupCodeWrite(v)
 	v.Memory.WriteWord(0x8000, opcode)
 	v.Step()

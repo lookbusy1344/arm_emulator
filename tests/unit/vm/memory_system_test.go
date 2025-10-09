@@ -139,7 +139,8 @@ func TestMemory_DataSegment_ReadWrite(t *testing.T) {
 func TestMemory_StackSegment_ReadWrite(t *testing.T) {
 	v := vm.NewVM()
 
-	stackAddr := uint32(0x7FFFFFFF)
+	// Stack starts at 0x00040000, use an aligned address within that segment
+	stackAddr := uint32(0x00040000)
 
 	// Should be able to write to stack
 	err := v.Memory.WriteWord(stackAddr, 0xCAFEBABE)
@@ -190,11 +191,11 @@ func TestMemory_OutOfBounds_High(t *testing.T) {
 func TestMemory_ValidBoundaries(t *testing.T) {
 	v := vm.NewVM()
 
-	// Test at start of valid segments
+	// Test at start of valid writable segments (code is read-only)
 	addresses := []uint32{
-		0x8000,  // Code segment start
 		0x20000, // Data segment start
 		0x30000, // Heap segment start
+		0x40000, // Stack segment start
 	}
 
 	for _, addr := range addresses {
@@ -396,8 +397,9 @@ func TestMemory_FillPattern(t *testing.T) {
 func TestMemory_StackGrowth_Down(t *testing.T) {
 	v := vm.NewVM()
 
-	// Stack grows downward
-	sp := uint32(0x80000000)
+	// Stack starts at 0x00040000 and grows upward in this implementation
+	// Use addresses within the stack segment (0x00040000 - 0x00050000)
+	sp := uint32(0x0004FFC0) // Near top of stack segment, leave room for growth
 
 	// Push values (stack grows down)
 	for i := uint32(0); i < 10; i++ {
@@ -406,7 +408,7 @@ func TestMemory_StackGrowth_Down(t *testing.T) {
 	}
 
 	// Pop values back
-	sp = uint32(0x80000000)
+	sp = uint32(0x0004FFC0)
 	for i := uint32(0); i < 10; i++ {
 		sp -= 4
 	}

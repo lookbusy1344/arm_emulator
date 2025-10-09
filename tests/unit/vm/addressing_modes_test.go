@@ -100,7 +100,7 @@ func TestAddressing_DataProcessing_ASR_Immediate(t *testing.T) {
 	v.CPU.PC = 0x8000
 
 	// MOV R0, R1, ASR #1 (-4 >> 1 = -2)
-	opcode := uint32(0xE1A00041)
+	opcode := uint32(0xE1A000C1) // Fixed: shift amount in bits 11-7 = 1
 	setupCodeWrite(v)
 	v.Memory.WriteWord(0x8000, opcode)
 	v.Step()
@@ -117,7 +117,7 @@ func TestAddressing_DataProcessing_ROR_Immediate(t *testing.T) {
 	v.CPU.PC = 0x8000
 
 	// MOV R0, R1, ROR #1
-	opcode := uint32(0xE1A00061)
+	opcode := uint32(0xE1A000E1) // Fixed: shift amount in bits 11-7 = 1
 	setupCodeWrite(v)
 	v.Memory.WriteWord(0x8000, opcode)
 	v.Step()
