@@ -22,6 +22,16 @@ https://en.wikichip.org/wiki/acorn/microarchitectures/arm1
 
 *"Write a markdown file outline specification for a ARM2 assembly language emulator. Actually producing machine code is not initially important, the assembly language file should be interpreted and run by a simple virtual machine environment. We also need a debugger with a TUI, allowing single step, step over/into, and watching memory locations and registers and viewing the call stack."*
 
+## Later prompts
+
+IMPLEMENTATION_PLAN.md
+
+PROGRESS.md
+
+TODO.md
+
+Prompt for each phase: *"Let’s implement phase X from IMPLEMENTATION_PLAN.md considering PROGRESS.md, and implement appropriate tests. Anything that you cannot fix, note in TODO.md"*
+
 ## Overview
 
 An ARM emulator written in Go that implements a subset of the ARM2 instruction set.
