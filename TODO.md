@@ -8,9 +8,167 @@ It should not contain completed items or notes about past work. Those belong in 
 
 ---
 
+## Critical Priority
+
+### 1. Instruction Encoder (REQUIRED FOR EXECUTION)
+
+**Status:** NOT IMPLEMENTED - This is a critical missing component that prevents the emulator from executing programs
+
+**Problem:** The emulator can parse assembly files into structured `Instruction` objects, but cannot convert them into ARM machine code (32-bit opcodes) that the VM can execute. The parser creates high-level instruction representations, but the VM expects raw binary opcodes.
+
+**Current Workflow:**
+1. ✅ Parser reads assembly file → creates `parser.Instruction` structs
+2. ❌ **MISSING**: Encoder converts `parser.Instruction` → ARM32 opcodes (uint32)
+3. ✅ VM executes ARM32 opcodes
+
+**Example of what's needed:**
+```go
+// Parser output (what we have):
+Instruction{
+    Mnemonic: "LDR",
+    Operands: ["R0", "=msg_hello"],
+    Condition: "AL",
+    SetFlags: false,
+    Address: 0x8000
+}
+
+// Encoder output (what we need):
+0xE59F0010  // LDR R0, [PC, #16]  (ARM machine code)
+```
+
+**Implementation Requirements:**
+
+#### Create `encoder/encoder.go`
+
+```go
+package encoder
+
+type Encoder struct {
+    symbolTable *parser.SymbolTable
+    currentAddr uint32
+}
+
+// EncodeInstruction converts a parsed instruction into ARM machine code
+func EncodeInstruction(inst *parser.Instruction, symbolTable *parser.SymbolTable, address uint32) (uint32, error)
+
+// EncodeProgram encodes all instructions and returns a map of address -> opcode
+func EncodeProgram(program *parser.Program, startAddr uint32) (map[uint32]uint32, error)
+```
+
+**Key Tasks:**
+
+1. **Data Processing Instructions** (MOV, ADD, SUB, AND, ORR, etc.)
+   - [ ] Parse operands (Rd, Rn, Operand2)
+   - [ ] Encode immediate values with rotation
+   - [ ] Encode register operands with optional shifts (LSL, LSR, ASR, ROR)
+   - [ ] Handle S bit and condition codes
+   - [ ] Format: `cccc 00I ooooo S nnnn dddd ssss ssss ssss`
+
+2. **Memory Instructions** (LDR, STR, LDRB, STRB, LDRH, STRH)
+   - [ ] Parse addressing modes: `[Rn]`, `[Rn, #offset]`, `[Rn, Rm]`, etc.
+   - [ ] Handle pre-indexed: `[Rn, #offset]!`
+   - [ ] Handle post-indexed: `[Rn], #offset`
+   - [ ] Calculate PC-relative offsets for `LDR Rd, =label`
+   - [ ] Format: `cccc 01I PUBWL nnnn dddd oooo oooo oooo`
+
+3. **Branch Instructions** (B, BL, BX)
+   - [ ] Calculate 24-bit signed branch offsets
+   - [ ] Handle forward and backward branches
+   - [ ] Resolve label addresses from symbol table
+   - [ ] Format: `cccc 101L oooo oooo oooo oooo oooo oooo`
+
+4. **Multiply Instructions** (MUL, MLA)
+   - [ ] Parse register operands (Rd, Rm, Rs, Rn)
+   - [ ] Format: `cccc 0000 00AS dddd nnnn ssss 1001 mmmm`
+
+5. **Load/Store Multiple** (LDM, STM, PUSH, POP)
+   - [ ] Parse register lists: `{R0, R1, R2-R5, LR}`
+   - [ ] Encode addressing modes: IA, IB, DA, DB, FD, ED, FA, EA
+   - [ ] Create 16-bit register mask
+   - [ ] Format: `cccc 100P USWL nnnn rrrr rrrr rrrr rrrr`
+
+6. **Software Interrupt** (SWI)
+   - [ ] Parse 24-bit immediate value
+   - [ ] Format: `cccc 1111 iiii iiii iiii iiii iiii iiii`
+
+7. **Pseudo-Instructions**
+   - [ ] `LDR Rd, =value` → Generate literal pool or MOV/MVN for small values
+   - [ ] `ADR Rd, label` → Calculate PC-relative address
+   - [ ] Handle literal pool generation and placement
+
+8. **Integration with main.go**
+   - [ ] Update `loadProgramIntoVM()` to call encoder
+   - [ ] Write encoded instructions to memory using `WriteWordUnsafe()`
+   - [ ] Set PC to entry point
+   - [ ] Remove "instruction encoding not implemented" warning
+
+**Recommended Approach:**
+
+1. Start with simple instructions (MOV with immediate, simple arithmetic)
+2. Add unit tests for each instruction type
+3. Gradually add more complex operand parsing
+4. Implement pseudo-instruction expansion
+5. Add symbol resolution and PC-relative calculations
+
+**Example Test Cases:**
+```go
+func TestEncodeDataProcessing(t *testing.T) {
+    // MOV R0, #42
+    inst := &parser.Instruction{
+        Mnemonic: "MOV",
+        Operands: []string{"R0", "#42"},
+        Condition: "AL",
+    }
+    opcode, err := EncodeInstruction(inst, nil, 0x8000)
+    // Expected: 0xE3A0002A (MOV R0, #42 with condition AL)
+    assert.Equal(t, uint32(0xE3A0002A), opcode)
+}
+
+func TestEncodeBranch(t *testing.T) {
+    // B label  (branch forward 8 bytes)
+    symbols := map[string]uint32{"label": 0x8010}
+    inst := &parser.Instruction{
+        Mnemonic: "B",
+        Operands: []string{"label"},
+        Condition: "AL",
+    }
+    opcode, err := EncodeInstruction(inst, symbols, 0x8000)
+    // Expected: branch offset = (0x8010 - 0x8000 - 8) / 4 = 2
+    // 0xEA000002 (B with offset 2)
+}
+```
+
+**Effort Estimate:** 20-30 hours
+- Data processing: 6-8 hours
+- Memory instructions: 6-8 hours
+- Branches: 3-4 hours
+- Other instructions: 4-5 hours
+- Testing & integration: 4-5 hours
+
+**Priority:** CRITICAL - Without this, the emulator cannot execute any programs
+
+**Dependencies:** None (parser is already complete)
+
+**Assigned To:** Unassigned
+
+**Related Files:**
+- `encoder/encoder.go` (new file to create)
+- `encoder/encoder_test.go` (new file to create)
+- `main.go` (update `loadProgramIntoVM()` function at line 190)
+- `parser/parser.go` (reference for instruction structure)
+- `vm/executor.go` (reference for expected opcode formats)
+
+**Testing Strategy:**
+1. Unit tests for each instruction encoding
+2. Test with simple programs (hello.s, arithmetic.s)
+3. Compare encoded output with known ARM assemblers (as, armasm)
+4. Verify execution produces correct results
+
+---
+
 ## High Priority
 
-### 1. Expression Parser Improvements (Phase 5 Enhancement)
+### 2. Expression Parser Improvements (Phase 5 Enhancement)
 
 **Status:** Partially Complete - Basic expressions work, complex expressions need proper tokenization
 
@@ -190,7 +348,7 @@ func (p *Parser) ParseExpression(minPrecedence int) (uint32, error)
 
 ## Phase 6: TUI Interface ✅ COMPLETE (with notes)
 
-### 2. Implement Text User Interface
+### 3. Implement Text User Interface
 
 **Status:** Complete ✅
 

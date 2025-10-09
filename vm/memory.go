@@ -286,6 +286,53 @@ func (m *Memory) LoadBytes(address uint32, data []byte) error {
 	return nil
 }
 
+// WriteByteUnsafe writes a byte to memory bypassing permission checks (for program loading)
+func (m *Memory) WriteByteUnsafe(address uint32, value byte) error {
+	seg, offset, err := m.findSegment(address)
+	if err != nil {
+		return err
+	}
+
+	if offset >= uint32(len(seg.Data)) {
+		return fmt.Errorf("write beyond segment bounds at 0x%08X", address)
+	}
+
+	seg.Data[offset] = value
+	return nil
+}
+
+// WriteWordUnsafe writes a 32-bit word to memory bypassing permission checks (for program loading)
+func (m *Memory) WriteWordUnsafe(address uint32, value uint32) error {
+	if err := m.checkAlignment(address, 4); err != nil {
+		return err
+	}
+
+	seg, offset, err := m.findSegment(address)
+	if err != nil {
+		return err
+	}
+
+	if offset+3 >= uint32(len(seg.Data)) {
+		return fmt.Errorf("write beyond segment bounds at 0x%08X", address)
+	}
+
+	m.WriteCount++
+
+	// Write word in appropriate endianness
+	if m.LittleEndian {
+		seg.Data[offset] = byte(value)
+		seg.Data[offset+1] = byte(value >> 8)
+		seg.Data[offset+2] = byte(value >> 16)
+		seg.Data[offset+3] = byte(value >> 24)
+	} else {
+		seg.Data[offset] = byte(value >> 24)
+		seg.Data[offset+1] = byte(value >> 16)
+		seg.Data[offset+2] = byte(value >> 8)
+		seg.Data[offset+3] = byte(value)
+	}
+	return nil
+}
+
 // GetBytes retrieves a byte array from memory
 func (m *Memory) GetBytes(address uint32, length uint32) ([]byte, error) {
 	result := make([]byte, length)
