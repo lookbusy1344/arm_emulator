@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 
 	"github.com/lookbusy1344/arm-emulator/debugger"
+	"github.com/lookbusy1344/arm-emulator/encoder"
 	"github.com/lookbusy1344/arm-emulator/parser"
 	"github.com/lookbusy1344/arm-emulator/vm"
 )
@@ -191,7 +192,33 @@ func main() {
 func loadProgramIntoVM(machine *vm.VM, program *parser.Program, entryPoint uint32) error {
 	currentAddr := entryPoint
 
-	// First, process directives that allocate data
+	// Create encoder
+	enc := encoder.NewEncoder(program.SymbolTable)
+
+	// Build address map for instructions and directives
+	// First pass: calculate addresses
+	addressMap := make(map[*parser.Instruction]uint32)
+	dataAddr := currentAddr
+
+	for _, inst := range program.Instructions {
+		addressMap[inst] = dataAddr
+		dataAddr += 4 // Each instruction is 4 bytes
+	}
+
+	// Find where data directives should go (after instructions)
+	for _, directive := range program.Directives {
+		if directive.Name == ".org" && len(directive.Args) > 0 {
+			var addr uint32
+			if _, err := fmt.Sscanf(directive.Args[0], "0x%x", &addr); err != nil {
+				if _, err := fmt.Sscanf(directive.Args[0], "%d", &addr); err != nil {
+					return fmt.Errorf("invalid .org address: %s", directive.Args[0])
+				}
+			}
+			dataAddr = addr
+		}
+	}
+
+	// Process data directives
 	for _, directive := range program.Directives {
 		switch directive.Name {
 		case ".org":
@@ -203,7 +230,7 @@ func loadProgramIntoVM(machine *vm.VM, program *parser.Program, entryPoint uint3
 						return fmt.Errorf("invalid .org address: %s", directive.Args[0])
 					}
 				}
-				currentAddr = addr
+				dataAddr = addr
 			}
 
 		case ".word":
@@ -215,10 +242,10 @@ func loadProgramIntoVM(machine *vm.VM, program *parser.Program, entryPoint uint3
 						return fmt.Errorf("invalid .word value: %s", arg)
 					}
 				}
-				if err := machine.Memory.WriteWordUnsafe(currentAddr, value); err != nil {
+				if err := machine.Memory.WriteWordUnsafe(dataAddr, value); err != nil {
 					return err
 				}
-				currentAddr += 4
+				dataAddr += 4
 			}
 
 		case ".byte":
@@ -230,10 +257,10 @@ func loadProgramIntoVM(machine *vm.VM, program *parser.Program, entryPoint uint3
 						return fmt.Errorf("invalid .byte value: %s", arg)
 					}
 				}
-				if err := machine.Memory.WriteByteUnsafe(currentAddr, byte(value)); err != nil {
+				if err := machine.Memory.WriteByteUnsafe(dataAddr, byte(value)); err != nil {
 					return err
 				}
-				currentAddr++
+				dataAddr++
 			}
 
 		case ".asciz", ".string":
@@ -246,30 +273,45 @@ func loadProgramIntoVM(machine *vm.VM, program *parser.Program, entryPoint uint3
 				}
 				// Write string bytes
 				for i := 0; i < len(str); i++ {
-					if err := machine.Memory.WriteByteUnsafe(currentAddr, str[i]); err != nil {
+					if err := machine.Memory.WriteByteUnsafe(dataAddr, str[i]); err != nil {
 						return err
 					}
-					currentAddr++
+					dataAddr++
 				}
 				// Write null terminator
-				if err := machine.Memory.WriteByteUnsafe(currentAddr, 0); err != nil {
+				if err := machine.Memory.WriteByteUnsafe(dataAddr, 0); err != nil {
 					return err
 				}
-				currentAddr++
+				dataAddr++
 			}
 		}
 	}
 
-	// Now encode and load instructions
-	// Note: This is a simplified loader. A full implementation would need
-	// to encode the parsed instructions into ARM machine code.
-	// For now, we'll need an encoder that converts parser.Instruction -> uint32
+	// Second pass: encode and write instructions
+	for _, inst := range program.Instructions {
+		addr := addressMap[inst]
 
-	// TODO: Implement instruction encoding
-	// This requires translating parsed mnemonics and operands into ARM opcodes
+		// Encode instruction
+		opcode, err := enc.EncodeInstruction(inst, addr)
+		if err != nil {
+			return fmt.Errorf("failed to encode instruction at 0x%08X (%s): %w", addr, inst.Mnemonic, err)
+		}
 
-	fmt.Fprintln(os.Stderr, "Warning: Instruction encoding not yet fully implemented")
-	fmt.Fprintln(os.Stderr, "The VM infrastructure is ready, but parsed instructions need to be encoded to ARM opcodes")
+		// Write to memory
+		if err := machine.Memory.WriteWordUnsafe(addr, opcode); err != nil {
+			return fmt.Errorf("failed to write instruction at 0x%08X: %w", addr, err)
+		}
+	}
+
+	// Write any literal pool values generated during encoding
+	for addr, value := range enc.LiteralPool {
+		if err := machine.Memory.WriteWordUnsafe(addr, value); err != nil {
+			return fmt.Errorf("failed to write literal at 0x%08X: %w", addr, err)
+		}
+	}
+
+	// Set PC to entry point
+	machine.CPU.PC = entryPoint
 
 	return nil
 }

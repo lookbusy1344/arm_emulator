@@ -391,6 +391,8 @@ func (p *Parser) parseOperand() string {
 			parts = append(parts, p.currentToken.Literal)
 			p.nextToken()
 		}
+		// Return without joining with spaces for #value
+		return strings.Join(parts, "")
 
 	case TokenLBracket:
 		// Memory address: [Rn], [Rn, #offset], etc.
@@ -416,6 +418,18 @@ func (p *Parser) parseOperand() string {
 				p.nextToken()
 			}
 		}
+
+	case TokenEqual:
+		// Handle =label or =value for pseudo-instructions like LDR Rd, =label
+		parts = append(parts, "=")
+		p.nextToken()
+		// Get the identifier or number after =
+		if p.currentToken.Type == TokenIdentifier || p.currentToken.Type == TokenNumber {
+			parts = append(parts, p.currentToken.Literal)
+			p.nextToken()
+		}
+		// Return without joining with spaces for =value
+		return strings.Join(parts, "")
 
 	case TokenRegister, TokenIdentifier, TokenNumber:
 		// Register or label
