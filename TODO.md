@@ -4,7 +4,7 @@
 
 It should not contain completed items or notes about past work. Those belong in `PROGRESS.md`.
 
-**Last Updated:** 2025-10-09 (Cleaned up completed items - encoder, TUI, tools, examples, and docs)
+**Last Updated:** 2025-10-09 (Added parser limitations for register lists and shifted operands)
 
 ---
 
@@ -281,7 +281,60 @@ func (p *Parser) ParseExpression(minPrecedence int) (uint32, error)
    - Cannot parse register operations
    - Cannot parse hex numbers with bitwise operators
 
-2. **None currently** - All other features working as expected
+2. **Parser Limitations - Register Lists and Shifted Operands**
+
+   **Status:** Not implemented
+
+   **Problem:** The parser cannot handle certain ARM assembly syntax features that are commonly used:
+
+   **Missing Features:**
+   - ❌ Register lists in PUSH/POP: `PUSH {R0, R1, R2}` or `POP {R0-R3}`
+   - ❌ Shifted register operands in MOV: `MOV R1, R0, LSL #2`
+   - ❌ Shifted register operands in data processing: `ADD R0, R1, R2, LSR #3`
+
+   **Impact:**
+   - Integration tests for stack operations fail (TestProgram_Stack)
+   - Integration tests for loops with PUSH/POP fail (TestProgram_Loop)
+   - Integration tests for shift operations fail (TestProgram_Shifts)
+   - Some example programs may not parse correctly
+
+   **Current Workarounds:**
+   - Use individual PUSH/POP instructions: `PUSH {R0}` works, `PUSH {R0, R1}` does not
+   - Use separate shift instructions: `MOV R1, R0` then `MOV R1, R1, LSL #2`
+   - Use explicit LDM/STM with one register at a time
+
+   **Recommended Solution:**
+
+   a) **Register Lists** (2-3 hours):
+      - Modify lexer to recognize `{` and `}` as special tokens
+      - Parse comma-separated register lists: `{R0, R1, R2}`
+      - Support register ranges: `{R0-R3}` expands to `{R0, R1, R2, R3}`
+      - Update PUSH/POP encoder to handle multiple registers
+      - Update LDM/STM encoder to use register lists
+
+   b) **Shifted Operands** (3-4 hours):
+      - Extend operand parsing to handle optional shift suffix
+      - Parse shift syntax: `R0, LSL #2` or `R1, LSR R2`
+      - Support all shift types: LSL, LSR, ASR, ROR, RRX
+      - Update MOV encoder to handle shifted source operands
+      - Update data processing encoders (ADD, SUB, etc.) for shifted operands
+
+   **Files to Modify:**
+   - `parser/lexer.go` - Add token types for `{`, `}`, `-` (in register ranges)
+   - `parser/parser.go` - Parse register lists and shifted operands
+   - `encoder/data_processing.go` - Encode shifted operands
+   - `encoder/other.go` - Encode PUSH/POP with register lists
+
+   **Tests to Update:**
+   - Re-enable `TestProgram_Loop` in `tests/integration/programs_test.go`
+   - Re-enable `TestProgram_Shifts` in `tests/integration/programs_test.go`
+   - Re-enable `TestProgram_Stack` in `tests/integration/programs_test.go`
+
+   **Effort Estimate:** 5-7 hours total
+
+   **Priority:** Medium - Common ARM syntax, needed for real-world programs
+
+   **Assigned To:** Unassigned
 
 ### Technical Debt
 
