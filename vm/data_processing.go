@@ -70,6 +70,11 @@ func ExecuteDataProcessing(vm *VM, inst *Instruction) error {
 			shiftAmount = int((inst.Opcode >> 7) & 0x1F)
 		}
 
+		// In ARM, ROR #0 means RRX (rotate right extended through carry)
+		if shiftType == ShiftROR && shiftAmount == 0 && shiftByReg == 0 {
+			shiftType = ShiftRRX
+		}
+
 		shiftCarry = CalculateShiftCarry(op2Value, shiftAmount, shiftType, vm.CPU.CPSR.C)
 		op2 = PerformShift(op2Value, shiftAmount, shiftType, vm.CPU.CPSR.C)
 	}

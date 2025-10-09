@@ -84,9 +84,10 @@ func (c *CPU) SetLR(value uint32) {
 }
 
 // GetRegister returns the value of a register (R0-R14 or PC)
+// When reading R15 (PC), returns PC+8 to simulate ARM pipeline effect
 func (c *CPU) GetRegister(reg int) uint32 {
 	if reg == 15 {
-		return c.PC
+		return c.PC + 8
 	}
 	if reg < 0 || reg > 14 {
 		return 0

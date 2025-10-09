@@ -67,7 +67,8 @@ func CalculateSubOverflow(a, b, result uint32) bool {
 // CalculateShiftCarry calculates the carry flag for shift operations
 // Returns the last bit that was shifted out, or current carry if shift amount is 0
 func CalculateShiftCarry(value uint32, shiftAmount int, shiftType ShiftType, currentCarry bool) bool {
-	if shiftAmount == 0 {
+	// Note: RRX is always a 1-bit shift, don't apply the shiftAmount==0 shortcut
+	if shiftAmount == 0 && shiftType != ShiftRRX {
 		return currentCarry
 	}
 
@@ -82,6 +83,10 @@ func CalculateShiftCarry(value uint32, shiftAmount int, shiftType ShiftType, cur
 		return (value & (1 << (32 - shiftAmount))) != 0
 
 	case ShiftLSR: // Logical Shift Right
+		// In ARM, LSR #0 is encoded to mean LSR #32
+		if shiftAmount == 0 {
+			return (value & 0x80000000) != 0
+		}
 		if shiftAmount > 32 {
 			return false
 		}
@@ -91,6 +96,10 @@ func CalculateShiftCarry(value uint32, shiftAmount int, shiftType ShiftType, cur
 		return (value & (1 << (shiftAmount - 1))) != 0
 
 	case ShiftASR: // Arithmetic Shift Right
+		// In ARM, ASR #0 is encoded to mean ASR #32
+		if shiftAmount == 0 {
+			return (value & 0x80000000) != 0
+		}
 		if shiftAmount >= 32 {
 			return (value & 0x80000000) != 0
 		}
@@ -123,7 +132,12 @@ const (
 
 // PerformShift performs a shift operation and returns the result
 func PerformShift(value uint32, shiftAmount int, shiftType ShiftType, carry bool) uint32 {
-	if shiftAmount == 0 && shiftType != ShiftRRX {
+	// Note: In ARM encoding, shift amount 0 has special meanings:
+	// - LSR #0 means LSR #32
+	// - ASR #0 means ASR #32
+	// - ROR #0 means RRX (handled in data_processing.go)
+	// - LSL #0 means no shift
+	if shiftAmount == 0 && shiftType == ShiftLSL {
 		return value
 	}
 
@@ -145,6 +159,10 @@ func PerformShift(value uint32, shiftAmount int, shiftType ShiftType, carry bool
 		return value >> shiftAmount
 
 	case ShiftASR:
+		// In ARM, ASR #0 is encoded to mean ASR #32
+		if shiftAmount == 0 {
+			shiftAmount = 32
+		}
 		if shiftAmount >= 32 {
 			// Arithmetic shift preserves sign bit
 			if (value & 0x80000000) != 0 {
