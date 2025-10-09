@@ -51,10 +51,14 @@ An ARM emulator written in Go that implements a subset of the ARM2 instruction s
 
 ## Features
 
-- ARM2 instruction set implementation
+- ARM2 instruction set implementation with 493 passing tests
 - Assembly parser for ARM assembly programs
-- Debugging utilities
+- Interactive debugger with TUI (Text User Interface)
 - Virtual machine execution environment
+- Cross-platform configuration management (TOML)
+- Execution and memory tracing with filtering
+- Performance statistics (JSON/CSV/HTML export)
+- Development tools (linter, formatter, cross-reference generator)
 
 ## Prerequisites
 
@@ -111,6 +115,30 @@ The emulator includes a powerful debugger with both command-line and TUI (Text U
 - `F11` - Step into
 
 For complete debugger documentation including conditional breakpoints, watchpoints, memory examination, and expression syntax, see [docs/debugger_reference.md](docs/debugger_reference.md).
+
+### Performance Analysis
+
+The emulator includes built-in tracing and statistics capabilities:
+
+```bash
+# Enable execution tracing
+./arm-emulator --trace --trace-file trace.txt program.s
+
+# Enable memory access tracing
+./arm-emulator --mem-trace --mem-trace-file mem_trace.txt program.s
+
+# Generate performance statistics
+./arm-emulator --stats --stats-file stats.html --stats-format html program.s
+```
+
+**Performance features:**
+- Execution trace with register changes and timing
+- Memory access tracking (reads/writes)
+- Instruction frequency analysis
+- Branch statistics and prediction
+- Function call profiling
+- Hot path analysis
+- Export to JSON, CSV, or HTML formats
 
 ### Example Programs
 

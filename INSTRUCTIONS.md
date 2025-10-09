@@ -941,7 +941,12 @@ Pseudo-instructions are assembler conveniences that map to real instructions. ‚è
 
 - **ARM2 Compatibility:** This emulator targets the ARM2 instruction set with select ARM2a extensions (halfword load/store)
 
-- **Implementation Status:** 338 unit tests passing covering all implemented instructions (60 debugger + 35 parser + 243 VM tests)
+- **Phase 10 Complete (2025-10-09):**
+  - Cross-platform configuration management (config/) with TOML support
+  - Execution and memory tracing (vm/trace.go) with register filtering
+  - Performance statistics tracking (vm/statistics.go) with JSON/CSV/HTML export
+  - Command-line flags: -trace, -mem-trace, -stats with file and format options
+  - 493 total tests passing (29 new tests for Phase 10)
 
 - **Recent Fixes (2025-10-09):**
   - PC Pipeline Handling: GetRegister() now returns PC+8 when reading R15 to simulate ARM pipeline effect
@@ -949,6 +954,14 @@ Pseudo-instructions are assembler conveniences that map to real instructions. ‚è
   - LSR #0 Special Case: Now correctly treated as LSR #32 (shifts all bits out to 0)
   - ASR #0 Special Case: Now correctly treated as ASR #32 (preserves sign bit across all positions)
   - RRX Carry Calculation: Fixed carry flag handling for rotate right extended operations
+  - Debugger Run Command: Fixed to preserve program memory using ResetRegisters() instead of Reset()
+
+- **Implementation Status:** 493 unit tests passing covering all implemented instructions (60 debugger + 35 parser + 398 VM/integration tests)
+
+- **Development Tools:**
+  - Assembly Linter (tools/lint.go) - Code analysis with 25 tests
+  - Code Formatter (tools/format.go) - Professional formatting with 27 tests
+  - Cross-Reference Generator (tools/xref.go) - Symbol analysis with 21 tests
 
 - **Future Extensions:** Long multiply instructions (UMULL, UMLAL, SMULL, SMLAL) and PSR transfer instructions (MRS, MSR) are planned
 
