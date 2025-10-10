@@ -14,6 +14,12 @@ go build -o arm-emulator
 go fmt ./...
 ```
 
+## Lint Command
+
+```bash
+golangci-lint run ./...
+```
+
 ## Test Command
 
 ```bash
@@ -47,7 +53,7 @@ go test ./...
 - Document any implementation details or deviations from the original plan
 - Update the status of related tasks
 
-**IMPORTANT:** Always run `go fmt ./...` and `go test ./...` after making changes to ensure code quality and correctness.
+**IMPORTANT:** Always run `go fmt ./...`, `golangci-lint run ./...`, and `go test ./...` after making changes to ensure code quality and correctness.
 
 **IMPORTANT:** Do not delete failing tests without explicit instructions.
 
@@ -57,8 +63,10 @@ go test ./...
 
 **Phase 11 (Production Hardening) - In Progress**
 - 509 tests passing (99.6% pass rate)
+- Code quality tools implemented (golangci-lint with errcheck, unused, govet, ineffassign, misspell)
+- All lint issues resolved (0 issues reported)
 - Go vet warnings fixed (method renames to avoid interface conflicts)
-- CI updated to Go 1.25
+- CI updated to Go 1.25 with automated linting
 - Build artifacts added to .gitignore
 - Parser limitations resolved (debugger expression parser rewritten)
 
