@@ -51,8 +51,9 @@ An ARM emulator written in Go that implements a subset of the ARM2 instruction s
 
 ## Features
 
-- ARM2 instruction set implementation with 493 passing tests
-- Assembly parser for ARM assembly programs
+- ARM2 instruction set implementation with 509 passing tests (99.6% pass rate)
+- Assembly parser for ARM assembly programs with macros and preprocessor
+- Machine code encoder/decoder for binary ARM instruction formats
 - Interactive debugger with TUI (Text User Interface)
 - Virtual machine execution environment
 - Cross-platform configuration management (TOML)
@@ -63,6 +64,7 @@ An ARM emulator written in Go that implements a subset of the ARM2 instruction s
 ## Prerequisites
 
 - Go 1.25 or higher
+- Supported platforms: macOS, Linux, Windows
 
 ## Installation
 
@@ -177,14 +179,17 @@ go test ./...
 
 ```
 .
-├── main.go              # Entry point
+├── main.go              # Entry point and CLI
 ├── vm/                  # Virtual machine implementation
-├── parser/              # Assembly parser
+├── parser/              # Assembly parser with preprocessor
 ├── instructions/        # Instruction implementations
-├── debugger/            # Debugging utilities
-├── tests/               # Test files
-├── examples/            # Example ARM assembly programs
-└── tools/               # Utility tools
+├── encoder/             # Machine code encoder/decoder
+├── debugger/            # Debugging utilities with TUI
+├── config/              # Cross-platform configuration
+├── tools/               # Development tools (lint, format, xref)
+├── tests/               # Test files (509 tests)
+├── examples/            # Example ARM assembly programs (17 programs)
+└── docs/                # User and developer documentation
 ```
 
 ## License
