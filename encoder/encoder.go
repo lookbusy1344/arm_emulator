@@ -65,13 +65,18 @@ func (e *Encoder) EncodeInstruction(inst *parser.Instruction, address uint32) (u
 		return e.encodeLoadStoreMultiple(inst, cond, false)
 	case "STMIA", "STMIB", "STMDA", "STMDB":
 		return e.encodeLoadStoreMultiple(inst, cond, true)
+	// Load/Store multiple aliases (FD=Full Descending, FA=Full Ascending, EA=Empty Ascending, ED=Empty Descending)
+	case "LDMFD", "LDMFA", "LDMEA", "LDMED":
+		return e.encodeLoadStoreMultiple(inst, cond, false)
+	case "STMFD", "STMFA", "STMEA", "STMED":
+		return e.encodeLoadStoreMultiple(inst, cond, true)
 	case "PUSH":
 		return e.encodePush(inst, cond)
 	case "POP":
 		return e.encodePop(inst, cond)
 
 	// Software interrupt
-	case "SWI":
+	case "SWI", "SVC": // SVC is ARM7+ name for SWI
 		return e.encodeSWI(inst, cond)
 
 	default:

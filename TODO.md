@@ -122,8 +122,8 @@ The ARM2 emulator is **functionally complete and production-ready**. All core fe
 - Unit tests: 477 total (477 passing, 100% pass rate)
 
 **Failing Tests (2):**
-- `TestExamplePrograms_Loops` - requires `STMFD`/`LDMFD` support
-- `TestExamplePrograms_Conditionals` - requires `STMFD`/`LDMFD` support
+- `TestExamplePrograms_Loops` - requires character literal support (`#' '`, `#'\t'`)
+- `TestExamplePrograms_Conditionals` - requires character literal support (`#'\t'`)
 
 **Completed:** 2025-10-10
 
@@ -131,19 +131,21 @@ The ARM2 emulator is **functionally complete and production-ready**. All core fe
 
 ### 2. Missing ARM2 Instructions for Example Programs
 
-**Status:** Partially complete - Most core functionality works
+**Status:** ✅ COMPLETE (STMFD/LDMFD implemented)
 
-**Missing or Limited Features:**
+**Completed Features (2025-10-10):**
 
-1. **Stack Multi-Register Operations** (HIGH PRIORITY)
-   - `STMFD` (Store Multiple, Full Descending) - not implemented
-   - `LDMFD` (Load Multiple, Full Descending) - not implemented
-   - Affects: loops.s, conditionals.s, bubble_sort.s, factorial.s, fibonacci.s, gcd.s
-   - Impact: Many example programs cannot run
-   - Workaround: Use individual PUSH/POP instructions
-   - Effort: 4-6 hours
+1. **Stack Multi-Register Operations** ✅ COMPLETE
+   - `STMFD` (Store Multiple, Full Descending) - ✅ implemented
+   - `LDMFD` (Load Multiple, Full Descending) - ✅ implemented
+   - `STMFA`, `STMEA`, `STMED` aliases - ✅ implemented
+   - `LDMFA`, `LDMEA`, `LDMED` aliases - ✅ implemented
+   - `SVC` instruction (ARM7+ alias for SWI) - ✅ implemented
+   - All aliases properly map to existing LDM/STM implementations
 
-2. **Addressing Modes** (MEDIUM PRIORITY)
+**Remaining Limited Features:**
+
+1. **Addressing Modes** (MEDIUM PRIORITY)
    - Pre-indexed with writeback: `LDR R0, [R1, #4]!` - parser errors
    - Post-indexed: `LDRB R0, [R1], #4` - parser errors
    - Immediate offset: `LDR R0, [R1, #4]` - parser errors
@@ -151,20 +153,14 @@ The ARM2 emulator is **functionally complete and production-ready**. All core fe
    - Workaround: Use separate ADD instructions and base register addressing
    - Effort: 3-4 hours
 
-3. **Character Literal Escaping** (LOW PRIORITY)
-   - `'\t'`, `'\n'` in strings are literal, not escape sequences
-   - Impact: Minor - affects string formatting in some examples
-   - Workaround: Use actual tab/newline characters or numeric values
+2. **Character Literal Escaping** (HIGH PRIORITY - blocks 2 example programs)
+   - Character literals in immediates: `MOV R0, #' '` (space) and `MOV R0, #'\t'` (tab)
+   - Affects: loops.s (line 26, 105), conditionals.s (line 106)
+   - Impact: **2 example programs cannot run** (loops.s, conditionals.s)
+   - Workaround: Use numeric values (`MOV R0, #32` for space, `MOV R0, #9` for tab)
    - Effort: 1-2 hours
 
-4. **SVC vs SWI Instructions** (DOCUMENTATION ONLY)
-   - Some examples use `SVC #0` instead of `SWI #0`
-   - These are the same instruction, just different nomenclature (ARM7+ uses SVC)
-   - Impact: None - just needs parser alias support
-   - Workaround: Change SVC to SWI in examples
-   - Effort: 30 minutes
-
-**Total Effort to Support All Examples:** 8-12 hours
+**Total Effort to Support All Examples:** 4-6 hours (down from 8-12 hours)
 
 **Priority:** Medium-High (for M8 if we want all examples working)
 
