@@ -26,11 +26,11 @@ The ARM2 emulator is **fully functional**:
 - ✅ Character literal support (basic chars + escape sequences)
 
 **Remaining Work:**
-- **High Priority:** CI/CD enhancements (matrix builds, code coverage), cross-platform testing
+- **High Priority:** Fix integer conversion issues (56 instances), CI/CD enhancements (matrix builds, code coverage), cross-platform testing
 - **Medium Priority:** Release pipeline, installation packages, performance benchmarking
 - **Low Priority:** Trace/stats integration, advanced features
 
-**Estimated effort to v1.0.0:** 40-60 hours
+**Estimated effort to v1.0.0:** 46-70 hours
 
 ---
 
@@ -159,6 +159,50 @@ The ARM2 emulator is **fully functional**:
 
 ## Phase 11: Production Hardening
 
+### Task 1: Fix Integer Conversion Issues
+
+**Status:** Detected by gosec linter (G115 rule)
+
+**Issues Found:** 56 integer conversions that could potentially overflow
+- uint32 ↔ int32 conversions (sign bit reinterpretation)
+- int → uint32 conversions (negative values become large positive)
+- int64 → uint32 conversions (truncation of high bits)
+- uint32 → uint16/uint8 conversions (truncation)
+
+**Examples:**
+- `debugger/commands.go:388` - uint32 → int32 (display formatting)
+- `debugger/expr_parser.go:251` - int64 → uint32 (expression evaluation)
+- `encoder/branch.go:48` - uint32 → int32 (has bounds check, but flagged)
+- `vm/memory.go:159` - int → uint32 (length comparisons)
+- `vm/syscall.go:269` - int → uint32 (buffer size)
+
+**Requirements:**
+- [ ] Review all 56 flagged conversions
+- [ ] Add bounds checking where needed
+- [ ] Use safe conversion functions for critical paths
+- [ ] Document intentional conversions that are safe
+- [ ] Consider implementing safecast helper functions
+
+**Files Affected:**
+- debugger/commands.go (5 instances)
+- debugger/expr_parser.go (1 instance)
+- debugger/tui.go (4 instances)
+- encoder/branch.go (2 instances)
+- encoder/encoder.go (2 instances)
+- encoder/memory.go (2 instances)
+- vm/memory.go (9 instances)
+- vm/memory_multi.go (4 instances)
+- vm/syscall.go (9 instances)
+- vm/inst_memory.go (2 instances)
+- parser/parser.go (5 instances)
+- main.go (1 instance)
+
+**Effort:** 6-10 hours
+
+**Priority:** High (security/correctness issue)
+
+---
+
 ### Task 2: Enhanced CI/CD Pipeline
 
 **Status:** Basic CI exists with Go 1.25
@@ -284,11 +328,11 @@ The ARM2 emulator is **fully functional**:
 
 ## Summary
 
-**Estimated effort to v1.0.0:** 55-80 hours
+**Estimated effort to v1.0.0:** 61-90 hours
 
 **By Priority:**
-- **Critical (Example Programs):** 10-15 hours - Fix input handling, memory permissions, encoding errors
-- **High (Phase 11):** 15-20 hours - Code quality, CI/CD, cross-platform testing, coverage
+- **Critical (Example Programs):** COMPLETED ✅
+- **High (Phase 11):** 21-30 hours - Fix integer conversions (6-10h), code quality, CI/CD, cross-platform testing, coverage
 - **Medium-High (Phase 13):** 16-22 hours - Release pipeline, packages, documentation
 - **Medium (Phase 12):** 14-20 hours - Benchmarking and performance
 - **Low (Optional):** 8-11 hours - Additional docs, trace integration, advanced features

@@ -15,11 +15,18 @@ linters:
     - govet         # Standard go vet checks
     - ineffassign   # Detect ineffectual assignments
     - misspell      # Check for commonly misspelled words
+    - gosec         # Security checks including integer overflow (G109, G115)
+    - unconvert     # Remove unnecessary type conversions
 
   disable:
     - staticcheck   # Disable staticcheck QF style suggestions
 
 linters-settings:
+  gosec:
+    # Severity settings for gosec
+    # Focuses on integer overflow and conversion checks
+    severity: "medium"
+
   errcheck:
     # Check type assertions: a := b.(MyStruct)
     check-type-assertions: true
@@ -68,6 +75,20 @@ issues:
     - path: _test\.go
       linters:
         - unused
+
+    # Exclude non-integer-overflow gosec rules
+    - linters:
+        - gosec
+      text: "G301: Expect directory permissions"
+    - linters:
+        - gosec
+      text: "G302: Expect file permissions"
+    - linters:
+        - gosec
+      text: "G304: Potential file inclusion"
+    - linters:
+        - gosec
+      text: "G404: Use of weak random number"
 
   # Independently of option `exclude` we use default exclude patterns
   exclude-use-default: true
