@@ -54,7 +54,8 @@ func NewMemory() *Memory {
 	}
 
 	// Initialize standard memory segments
-	m.AddSegment("code", CodeSegmentStart, CodeSegmentSize, PermRead|PermExecute)
+	// Note: Code segment is writable to support .word/.byte data and self-modifying code
+	m.AddSegment("code", CodeSegmentStart, CodeSegmentSize, PermRead|PermWrite|PermExecute)
 	m.AddSegment("data", DataSegmentStart, DataSegmentSize, PermRead|PermWrite)
 	m.AddSegment("heap", HeapSegmentStart, HeapSegmentSize, PermRead|PermWrite)
 	m.AddSegment("stack", StackSegmentStart, StackSegmentSize, PermRead|PermWrite)
@@ -280,6 +281,18 @@ func (m *Memory) WriteWord(address uint32, value uint32) error {
 func (m *Memory) LoadBytes(address uint32, data []byte) error {
 	for i, b := range data {
 		if err := m.WriteByteAt(address+uint32(i), b); err != nil {
+			return fmt.Errorf("failed to load byte at offset %d: %w", i, err)
+		}
+	}
+	return nil
+}
+
+// LoadBytesUnsafe loads a byte array into memory bypassing permission checks
+// This should be used for initial program loading where we need to write to
+// read-only segments (e.g., loading .word data into the code segment)
+func (m *Memory) LoadBytesUnsafe(address uint32, data []byte) error {
+	for i, b := range data {
+		if err := m.WriteByteUnsafe(address+uint32(i), b); err != nil {
 			return fmt.Errorf("failed to load byte at offset %d: %w", i, err)
 		}
 	}

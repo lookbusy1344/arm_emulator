@@ -400,8 +400,18 @@ func (p *Parser) parseOperand() string {
 		for p.currentToken.Type != TokenRBracket && p.currentToken.Type != TokenNewline && p.currentToken.Type != TokenEOF {
 			if p.currentToken.Type == TokenComma {
 				parts = append(parts, ",")
-			} else {
-				parts = append(parts, p.currentToken.Literal)
+			} else if p.currentToken.Type == TokenHash {
+				// Add space before # for shift amounts like "LSL #2"
+				parts = append(parts, " #")
+			} else if p.currentToken.Literal != "" && strings.TrimSpace(p.currentToken.Literal) != "" {
+				lit := p.currentToken.Literal
+				// Add space before shift operators for proper parsing
+				shiftOp := strings.ToUpper(lit)
+				if shiftOp == "LSL" || shiftOp == "LSR" || shiftOp == "ASR" || shiftOp == "ROR" || shiftOp == "RRX" {
+					parts = append(parts, " "+lit)
+				} else {
+					parts = append(parts, lit)
+				}
 			}
 			p.nextToken()
 		}
@@ -416,6 +426,8 @@ func (p *Parser) parseOperand() string {
 				p.nextToken()
 			}
 		}
+		// Return without joining with spaces for memory addressing
+		return strings.Join(parts, "")
 
 	case TokenLBrace:
 		// Register list: {R0, R1, R2} or {R0-R3}

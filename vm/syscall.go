@@ -211,7 +211,9 @@ func handleWriteInt(vm *VM) error {
 	value := vm.CPU.GetRegister(0)
 	base := vm.CPU.GetRegister(1)
 
-	if base == 0 {
+	// Validate base and default to 10 for invalid values
+	// This handles cases where R1 wasn't explicitly set (e.g., contains error flags from previous syscalls)
+	if base == 0 || base == 0xFFFFFFFF || (base != 2 && base != 8 && base != 10 && base != 16) {
 		base = 10 // Default to decimal
 	}
 
@@ -225,7 +227,8 @@ func handleWriteInt(vm *VM) error {
 	case 16:
 		fmt.Printf("%x", value)
 	default:
-		return fmt.Errorf("unsupported base: %d", base)
+		// This should never happen due to validation above, but keep for safety
+		fmt.Printf("%d", int32(value))
 	}
 
 	_ = os.Stdout.Sync() // Ignore sync errors
@@ -292,11 +295,12 @@ func handleReadInt(vm *VM) error {
 	var value int32
 	_, err := fmt.Scanf("%d", &value)
 	if err != nil {
+		// On error, return 0 in R0
+		// Note: We don't modify R1 to avoid corrupting it for subsequent syscalls
+		// Programs that need error checking should validate the input themselves
 		vm.CPU.SetRegister(0, 0)
-		vm.CPU.SetRegister(1, 0xFFFFFFFF) // Return error flag in R1
 	} else {
 		vm.CPU.SetRegister(0, uint32(value))
-		vm.CPU.SetRegister(1, 0) // Success flag in R1
 	}
 	vm.CPU.IncrementPC()
 	return nil

@@ -199,7 +199,31 @@ func (e *Encoder) encodeOperand2(cond, opcode, rn, rd, sBit uint32, operand stri
 		// Try to encode as rotated immediate
 		encoded, ok := e.encodeImmediate(value)
 		if !ok {
-			return 0, fmt.Errorf("immediate value 0x%08X cannot be encoded as ARM immediate", value)
+			// If MOV fails, try converting to MVN with inverted value
+			// MOV Rd, #imm  ->  MVN Rd, #~imm
+			if opcode == opMOV {
+				invertedValue := ^value
+				if invertedEncoded, invertedOk := e.encodeImmediate(invertedValue); invertedOk {
+					// Use MVN instead of MOV
+					opcode = opMVN
+					encoded = invertedEncoded
+				} else {
+					return 0, fmt.Errorf("immediate value 0x%08X cannot be encoded as ARM immediate (tried MOV and MVN)", value)
+				}
+			} else if opcode == opMVN {
+				// If MVN fails, try converting to MOV with inverted value
+				// MVN Rd, #imm  ->  MOV Rd, #~imm
+				invertedValue := ^value
+				if invertedEncoded, invertedOk := e.encodeImmediate(invertedValue); invertedOk {
+					// Use MOV instead of MVN
+					opcode = opMOV
+					encoded = invertedEncoded
+				} else {
+					return 0, fmt.Errorf("immediate value 0x%08X cannot be encoded as ARM immediate (tried MVN and MOV)", value)
+				}
+			} else {
+				return 0, fmt.Errorf("immediate value 0x%08X cannot be encoded as ARM immediate", value)
+			}
 		}
 
 		// Format: cccc 001o oooo Srrr rddd iiii iiii iiii
