@@ -52,10 +52,36 @@ const (
 	SWI_ASSERT         = 0xF4
 )
 
+// Linux-style ARM syscall numbers (used with SVC #0 and R7)
+const (
+	LINUX_SYS_EXIT       = 0
+	LINUX_SYS_PRINT_INT  = 1
+	LINUX_SYS_PRINT_CHAR = 2
+	LINUX_SYS_READ_INT   = 3
+	LINUX_SYS_PRINT_STR  = 4
+	LINUX_SYS_READ_STR   = 5
+	LINUX_SYS_READ_CHAR  = 6
+	LINUX_SYS_NEWLINE    = 7
+)
+
 // ExecuteSWI executes a software interrupt (system call)
 func ExecuteSWI(vm *VM, inst *Instruction) error {
-	// Extract the SWI number (bottom 24 bits)
-	swiNum := inst.Opcode & 0x00FFFFFF
+	// Extract the immediate value (bottom 24 bits)
+	immValue := inst.Opcode & 0x00FFFFFF
+
+	var swiNum uint32
+
+	// Determine which syscall convention is being used:
+	// 1. Traditional: SWI #num (syscall number in instruction immediate)
+	// 2. Linux-style: SVC #0 (syscall number in R7 register)
+	if immValue == 0 {
+		// Linux-style convention: syscall number is in R7
+		r7Value := vm.CPU.GetRegister(7)
+		swiNum = mapLinuxSyscall(r7Value)
+	} else {
+		// Traditional convention: syscall number is in instruction
+		swiNum = immValue
+	}
 
 	switch swiNum {
 	// Console I/O
@@ -649,4 +675,29 @@ func handleAssert(vm *VM) error {
 
 	vm.CPU.IncrementPC()
 	return nil
+}
+
+// mapLinuxSyscall maps Linux-style syscall numbers (from R7) to our internal syscall numbers
+func mapLinuxSyscall(linuxSysNum uint32) uint32 {
+	switch linuxSysNum {
+	case LINUX_SYS_EXIT:
+		return SWI_EXIT
+	case LINUX_SYS_PRINT_INT:
+		return SWI_WRITE_INT
+	case LINUX_SYS_PRINT_CHAR:
+		return SWI_WRITE_CHAR
+	case LINUX_SYS_READ_INT:
+		return SWI_READ_INT
+	case LINUX_SYS_PRINT_STR:
+		return SWI_WRITE_STRING
+	case LINUX_SYS_READ_STR:
+		return SWI_READ_STRING
+	case LINUX_SYS_READ_CHAR:
+		return SWI_READ_CHAR
+	case LINUX_SYS_NEWLINE:
+		return SWI_WRITE_NEWLINE
+	default:
+		// Return the original number if no mapping exists
+		return linuxSysNum
+	}
 }
