@@ -1,11 +1,49 @@
 # ARM2 Emulator Implementation Progress
 
-**Last Updated:** 2025-10-09
-**Current Phase:** Phase 6 Complete ✓
+**Last Updated:** 2025-10-10
+**Current Phase:** Phase 10 Complete ✓
 
 ---
 
 ## Recent Updates
+
+### 2025-10-10: Parser Limitations Fixed ✅
+**Action:** Fixed all remaining parser limitations:
+
+1. **Debugger Expression Parser** - Completely rewritten with proper tokenization
+   - Created `debugger/expr_lexer.go` - Tokenizer for debugger expressions
+   - Created `debugger/expr_parser.go` - Precedence-climbing parser
+   - Updated `debugger/expressions.go` - Now uses new lexer/parser
+   - All previously failing tests now passing:
+     - Hex number arithmetic: `0x10 + 0x20`, `0xFF & 0x0F`
+     - Register operations: `r0 + r1`, `r0 + 5`, `r1 - r0`
+     - Bitwise operations: `0xF0 | 0x0F`, `0xFF ^ 0x0F`
+     - Proper operator precedence with parentheses support
+   - All tests in `debugger/expressions_test.go` now passing (100%)
+
+2. **Assembly Parser - Register Lists & Shifted Operands** - Already working!
+   - Verified that parser already supports:
+     - Register lists: `PUSH {R0, R1, R2}`, `POP {R0-R3}`
+     - Shifted operands: `MOV R1, R0, LSL #2`
+     - Data processing with shifts: `ADD R0, R1, R2, LSR #3`
+   - All integration tests passing:
+     - `TestProgram_Stack` ✅
+     - `TestProgram_Loop` ✅
+     - `TestProgram_Shifts` ✅
+
+**Files Created:**
+- `debugger/expr_lexer.go`
+- `debugger/expr_parser.go`
+
+**Files Modified:**
+- `debugger/expressions.go` - Refactored to use new parser
+- `debugger/expressions_test.go` - Re-enabled all disabled tests
+- `TODO.md` - Marked parser issues as complete
+
+**Impact:**
+- All parser limitations resolved
+- 100% of expression parser tests passing
+- No critical issues remaining in TODO.md
 
 ### 2025-10-09: TODO.md Cleanup ✅
 **Action:** Cleaned up TODO.md by removing all completed items:

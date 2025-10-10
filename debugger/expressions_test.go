@@ -161,8 +161,7 @@ func TestExpressionEvaluator_Arithmetic(t *testing.T) {
 		{"Subtraction", "50 - 20", 30},
 		{"Multiplication", "5 * 6", 30},
 		{"Division", "60 / 2", 30},
-		// TODO: Fix hex number parsing in expressions
-		// {"Hex addition", "0x10 + 0x20", 0x30},
+		{"Hex addition", "0x10 + 0x20", 0x30},
 	}
 
 	for _, tt := range tests {
@@ -188,10 +187,9 @@ func TestExpressionEvaluator_Bitwise(t *testing.T) {
 		expr string
 		want uint32
 	}{
-		// TODO: Fix hex number parsing in bitwise expressions
-		// {"AND", "0xFF & 0x0F", 0x0F},
-		// {"OR", "0xF0 | 0x0F", 0xFF},
-		// {"XOR", "0xFF ^ 0x0F", 0xF0},
+		{"AND", "0xFF & 0x0F", 0x0F},
+		{"OR", "0xF0 | 0x0F", 0xFF},
+		{"XOR", "0xFF ^ 0x0F", 0xF0},
 		{"Left shift", "1 << 4", 16},
 		{"Right shift", "16 >> 2", 4},
 	}
@@ -222,10 +220,9 @@ func TestExpressionEvaluator_RegisterOperations(t *testing.T) {
 		expr string
 		want uint32
 	}{
-		// TODO: Fix register expression parsing
-		// {"Register addition", "r0 + r1", 30},
-		// {"Register with constant", "r0 + 5", 15},
-		// {"Register subtraction", "r1 - r0", 10},
+		{"Register addition", "r0 + r1", 30},
+		{"Register with constant", "r0 + 5", 15},
+		{"Register subtraction", "r1 - r0", 10},
 	}
 
 	for _, tt := range tests {

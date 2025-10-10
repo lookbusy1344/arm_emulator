@@ -77,179 +77,30 @@ The ARM2 emulator is **functionally complete and production-ready**. All core fe
 
 ### 1. Expression Parser Improvements (Phase 5 Enhancement)
 
-**Status:** Partially Complete - Basic expressions work, complex expressions need proper tokenization
+**Status:** ✅ COMPLETE
 
-**Problem:** The current expression evaluator uses simple string searching to find operators, which cannot properly distinguish between:
-- Operators that are part of numeric literals (e.g., hex digits like 'F' in '0xFF')
-- Actual binary operators between values
-- Register names vs operators
+**Implementation:** The expression parser has been upgraded with a proper two-phase tokenizer and precedence-climbing parser.
 
-**Disabled Tests:**
-```go
-// In debugger/expressions_test.go:
-
-// Hex number arithmetic
-{"Hex addition", "0x10 + 0x20", 0x30}
-
-// Bitwise operations with hex numbers
-{"AND", "0xFF & 0x0F", 0x0F}
-{"OR", "0xF0 | 0x0F", 0xFF}
-{"XOR", "0xFF ^ 0x0F", 0xF0}
-
-// Register expression operations
-{"Register addition", "r0 + r1", 30}
-{"Register with constant", "r0 + 5", 15}
-{"Register subtraction", "r1 - r0", 10}
-```
-
-**Current Workarounds:**
-- ✅ Simple numeric literals work
+**Completed Features:**
+- ✅ All numeric literals work (decimal, hex, binary, octal)
 - ✅ Register references work
 - ✅ Symbol lookups work
-- ✅ Memory dereferencing works
-- ✅ Simple decimal arithmetic works (`10 + 20`, `5 * 6`)
-- ✅ Shift operations work (`1 << 4`)
+- ✅ Memory dereferencing works (`[addr]`, `*addr`)
+- ✅ Arithmetic operations work (`10 + 20`, `5 * 6`, `0x10 + 0x20`)
+- ✅ Bitwise operations work (`0xFF & 0x0F`, `0xF0 | 0x0F`, `0xFF ^ 0x0F`)
+- ✅ Shift operations work (`1 << 4`, `16 >> 2`)
+- ✅ Register operations work (`r0 + r1`, `r0 + 5`, `r1 - r0`)
+- ✅ Operator precedence correctly implemented
+- ✅ Parentheses for grouping
+- ✅ All previously disabled tests now passing
 
-**Failures:**
-- ❌ Arithmetic with hex numbers
-- ❌ Bitwise operations with hex numbers
-- ❌ Operations between registers
+**Implementation Details:**
+- Created `debugger/expr_lexer.go` - Tokenizer for debugger expressions
+- Created `debugger/expr_parser.go` - Precedence-climbing parser with proper operator precedence
+- Updated `debugger/expressions.go` - Refactored to use new lexer and parser
+- All tests in `debugger/expressions_test.go` are now passing (100%)
 
-**Recommended Solution:**
-
-Implement a proper two-phase expression parser:
-
-#### Phase 1: Lexical Analysis (Tokenization)
-
-Create a lexer in `debugger/lexer.go`:
-
-```go
-type Token struct {
-    Type  TokenType
-    Value string
-    Pos   int
-}
-
-type TokenType int
-const (
-    TOKEN_NUMBER TokenType = iota
-    TOKEN_HEX_NUMBER
-    TOKEN_BINARY_NUMBER
-    TOKEN_OCTAL_NUMBER
-    TOKEN_REGISTER
-    TOKEN_SYMBOL
-    TOKEN_OPERATOR
-    TOKEN_LPAREN
-    TOKEN_RPAREN
-    TOKEN_LBRACKET
-    TOKEN_RBRACKET
-    TOKEN_MEMORY_DEREF  // *
-    TOKEN_EOF
-)
-
-type Lexer struct {
-    input string
-    pos   int
-    tokens []Token
-}
-
-func (l *Lexer) Tokenize() []Token
-func (l *Lexer) NextToken() Token
-```
-
-**Example tokenization:**
-- `"0x10 + 0x20"` → `[TOKEN_HEX_NUMBER("0x10"), TOKEN_OPERATOR("+"), TOKEN_HEX_NUMBER("0x20")]`
-- `"r0 + r1"` → `[TOKEN_REGISTER("r0"), TOKEN_OPERATOR("+"), TOKEN_REGISTER("r1")]`
-- `"0xFF & 0x0F"` → `[TOKEN_HEX_NUMBER("0xFF"), TOKEN_OPERATOR("&"), TOKEN_HEX_NUMBER("0x0F")]`
-- `"[r0 + 4]"` → `[TOKEN_LBRACKET, TOKEN_REGISTER("r0"), TOKEN_OPERATOR("+"), TOKEN_NUMBER("4"), TOKEN_RBRACKET]`
-
-#### Phase 2: Parsing (Syntax Analysis)
-
-Implement a proper expression parser using one of these approaches:
-
-**Option A: Recursive Descent Parser**
-```go
-type Parser struct {
-    tokens []Token
-    pos    int
-    vm     *vm.VM
-    symbols map[string]uint32
-}
-
-func (p *Parser) Parse() (uint32, error)
-func (p *Parser) parseExpression() (uint32, error)
-func (p *Parser) parseTerm() (uint32, error)
-func (p *Parser) parseFactor() (uint32, error)
-func (p *Parser) parsePrimary() (uint32, error)
-```
-
-**Option B: Shunting-Yard Algorithm** (better for operator precedence)
-```go
-func (p *Parser) ShuntingYard() ([]Token, error)  // Convert to postfix
-func (p *Parser) EvaluatePostfix(postfix []Token) (uint32, error)
-```
-
-**Option C: Precedence Climbing**
-```go
-func (p *Parser) ParseExpression(minPrecedence int) (uint32, error)
-```
-
-#### Operator Precedence (from highest to lowest)
-1. Memory dereference: `[]`, `*`
-2. Multiplication/Division: `*`, `/`
-3. Addition/Subtraction: `+`, `-`
-4. Bitwise Shift: `<<`, `>>`
-5. Bitwise AND: `&`
-6. Bitwise XOR: `^`
-7. Bitwise OR: `|`
-
-#### Implementation Steps
-
-1. **Create `debugger/lexer.go`** (2-3 hours)
-   - [ ] Implement Token struct and TokenType enum
-   - [ ] Implement Lexer struct with Tokenize() method
-   - [ ] Handle all token types (numbers, registers, operators, symbols)
-   - [ ] Add whitespace skipping
-   - [ ] Handle hex (0x), binary (0b), octal (0) number prefixes
-   - [ ] Recognize all operators: `+`, `-`, `*`, `/`, `&`, `|`, `^`, `<<`, `>>`
-   - [ ] Handle brackets: `[`, `]`, `(`, `)`
-   - [ ] Handle memory deref operator: `*`
-
-2. **Create `debugger/parser.go`** (2-3 hours)
-   - [ ] Implement Parser struct
-   - [ ] Implement expression parsing with operator precedence
-   - [ ] Handle parentheses for grouping
-   - [ ] Support memory dereferencing `[expr]` and `*expr`
-   - [ ] Integrate with existing VM and symbol table
-
-3. **Update `debugger/expressions.go`** (1 hour)
-   - [ ] Replace current `evaluate()` method with tokenizer + parser approach
-   - [ ] Keep existing helper methods (parseNumber, evalRegister, etc.) for use by parser
-   - [ ] Maintain backward compatibility with value history
-
-4. **Add Tests** (1-2 hours)
-   - [ ] Re-enable all disabled tests in `expressions_test.go`
-   - [ ] Add tests for complex expressions: `(r0 + r1) * 2`
-   - [ ] Add tests for nested memory access: `[r0 + [r1]]`
-   - [ ] Add tests for operator precedence: `2 + 3 * 4` should equal 14
-   - [ ] Add tests for parentheses: `(2 + 3) * 4` should equal 20
-
-5. **Documentation** (30 minutes)
-   - [ ] Update debugger help text with expression syntax
-   - [ ] Document operator precedence
-   - [ ] Add expression examples to README
-
-**Effort Estimate:** 6-8 hours total
-
-**Priority:** Medium - Current implementation is functional for common use cases
-
-**Assigned To:** Unassigned
-
-**Related Files:**
-- `debugger/expressions.go` (to be refactored)
-- `debugger/expressions_test.go` (tests to re-enable)
-- `debugger/lexer.go` (new file)
-- `debugger/parser.go` (new file, or refactor expressions.go)
+**Completed:** 2025-10-10
 
 ---
 
@@ -518,65 +369,33 @@ func (p *Parser) ParseExpression(minPrecedence int) (uint32, error)
 
 ### Known Issues
 
-1. **Expression Parser** (see item #1 above)
-   - Cannot parse hex numbers with arithmetic operators
-   - Cannot parse register operations
-   - Cannot parse hex numbers with bitwise operators
+**No critical issues!** All parser limitations have been resolved:
 
-2. **Parser Limitations - Register Lists and Shifted Operands**
+1. ✅ **Expression Parser** - COMPLETE (see item #1 above)
+   - Fixed hex numbers with arithmetic operators
+   - Fixed register operations
+   - Fixed hex numbers with bitwise operators
+   - Completed: 2025-10-10
 
-   **Status:** Not implemented
+2. ✅ **Parser - Register Lists and Shifted Operands** - ALREADY WORKING
 
-   **Problem:** The parser cannot handle certain ARM assembly syntax features that are commonly used:
+   **Status:** ✅ COMPLETE - Parser already supported these features!
 
-   **Missing Features:**
-   - ❌ Register lists in PUSH/POP: `PUSH {R0, R1, R2}` or `POP {R0-R3}`
-   - ❌ Shifted register operands in MOV: `MOV R1, R0, LSL #2`
-   - ❌ Shifted register operands in data processing: `ADD R0, R1, R2, LSR #3`
+   **Verified Working Features:**
+   - ✅ Register lists in PUSH/POP: `PUSH {R0, R1, R2}`, `POP {R0-R3}`
+   - ✅ Shifted register operands in MOV: `MOV R1, R0, LSL #2`
+   - ✅ Shifted register operands in data processing: `ADD R0, R1, R2, LSR #3`
 
-   **Impact:**
-   - Integration tests for stack operations fail (TestProgram_Stack)
-   - Integration tests for loops with PUSH/POP fail (TestProgram_Loop)
-   - Integration tests for shift operations fail (TestProgram_Shifts)
-   - Some example programs may not parse correctly
+   **Test Status:**
+   - ✅ `TestProgram_Stack` - PASSING
+   - ✅ `TestProgram_Loop` - PASSING
+   - ✅ `TestProgram_Shifts` - PASSING
 
-   **Current Workarounds:**
-   - Use individual PUSH/POP instructions: `PUSH {R0}` works, `PUSH {R0, R1}` does not
-   - Use separate shift instructions: `MOV R1, R0` then `MOV R1, R1, LSL #2`
-   - Use explicit LDM/STM with one register at a time
-
-   **Recommended Solution:**
-
-   a) **Register Lists** (2-3 hours):
-      - Modify lexer to recognize `{` and `}` as special tokens
-      - Parse comma-separated register lists: `{R0, R1, R2}`
-      - Support register ranges: `{R0-R3}` expands to `{R0, R1, R2, R3}`
-      - Update PUSH/POP encoder to handle multiple registers
-      - Update LDM/STM encoder to use register lists
-
-   b) **Shifted Operands** (3-4 hours):
-      - Extend operand parsing to handle optional shift suffix
-      - Parse shift syntax: `R0, LSL #2` or `R1, LSR R2`
-      - Support all shift types: LSL, LSR, ASR, ROR, RRX
-      - Update MOV encoder to handle shifted source operands
-      - Update data processing encoders (ADD, SUB, etc.) for shifted operands
-
-   **Files to Modify:**
-   - `parser/lexer.go` - Add token types for `{`, `}`, `-` (in register ranges)
-   - `parser/parser.go` - Parse register lists and shifted operands
-   - `encoder/data_processing.go` - Encode shifted operands
-   - `encoder/other.go` - Encode PUSH/POP with register lists
-
-   **Tests to Update:**
-   - Re-enable `TestProgram_Loop` in `tests/integration/programs_test.go`
-   - Re-enable `TestProgram_Shifts` in `tests/integration/programs_test.go`
-   - Re-enable `TestProgram_Stack` in `tests/integration/programs_test.go`
-
-   **Effort Estimate:** 5-7 hours total
-
-   **Priority:** Medium - Common ARM syntax, needed for real-world programs
-
-   **Assigned To:** Unassigned
+   **Implementation Notes:**
+   - Parser in `parser/parser.go` already handles register lists (lines 422-444)
+   - Parser already handles shifted operands (lines 463-487)
+   - Encoder correctly processes these operands
+   - All integration tests passing
 
 ### Technical Debt
 
