@@ -103,22 +103,6 @@ The ARM2 emulator is **functionally complete**. All core features work:
 
 ---
 
-### Task 3: Cross-Platform Testing
-
-**Status:** macOS only
-
-**Requirements:**
-- [ ] Create `docs/testing_checklist.md`
-- [ ] Test on Windows 10/11 (build, tests, TUI, file paths, config)
-- [ ] Test on Linux (Ubuntu, Fedora, Arch)
-- [ ] Document platform-specific quirks
-
-**Effort:** 3-4 hours
-
-**Priority:** High
-
----
-
 ### Task 4: Code Coverage Analysis
 
 **Current:** ~40% (estimated)
@@ -186,21 +170,6 @@ The ARM2 emulator is **functionally complete**. All core features work:
 
 ---
 
-### Installation Packages
-
-**Requirements:**
-- [ ] Installation scripts (install.sh, install.ps1)
-- [ ] Homebrew formula (macOS)
-- [ ] Chocolatey package (Windows)
-- [ ] Debian package (.deb)
-- [ ] RPM package (Fedora/RHEL)
-- [ ] Test installation on each platform
-
-**Effort:** 6-8 hours
-**Priority:** Medium
-
----
-
 ### Release Documentation
 
 **Requirements:**
@@ -224,20 +193,6 @@ The ARM2 emulator is **functionally complete**. All core features work:
 
 **Effort:** 3-4 hours
 **Priority:** High
-
----
-
-## Phase 14: Advanced Features (Post-Release)
-
-**Effort:** 80-120 hours
-**Priority:** Low
-
-### Optional Enhancements
-
-- **JIT Compilation** - ARM to x86-64 translation (40-60 hours)
-- **Web-Based Debugger** - React frontend with WebSocket backend (30-40 hours)
-- **GDB Protocol Support** - IDE integration (20-30 hours)
-- **Additional Architectures** - ARM3, ARM7, etc. (40+ hours per architecture)
 
 ---
 
