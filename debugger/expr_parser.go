@@ -248,7 +248,12 @@ func (p *ExprParser) parseNumberValue(s string) (uint32, error) {
 		return 0, err
 	}
 
-	return uint32(val), nil
+	result, err := vm.SafeInt64ToUint32(val)
+	if err != nil {
+		// If negative, interpret as two's complement
+		return uint32(val), nil
+	}
+	return result, nil
 }
 
 // parseRegisterValue gets the value of a register

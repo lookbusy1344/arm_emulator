@@ -42,21 +42,29 @@ func ExecuteLoadStoreMultiple(vm *VM, inst *Instruction) error {
 		}
 	} else {
 		// Decrementing
+		offset, err := SafeIntToUint32(numRegs * 4)
+		if err != nil {
+			return fmt.Errorf("register count too large: %w", err)
+		}
 		if preIndex == 1 {
 			// Pre-decrement (DB - Decrement Before)
-			addr = baseAddr - uint32(numRegs*4)
+			addr = baseAddr - offset
 		} else {
 			// Post-decrement (DA - Decrement After)
-			addr = baseAddr - uint32(numRegs*4) + 4
+			addr = baseAddr - offset + 4
 		}
 	}
 
 	// Save the start address for writeback calculation
+	regOffset, err := SafeIntToUint32(numRegs * 4)
+	if err != nil {
+		return fmt.Errorf("register count too large: %w", err)
+	}
 	var newBase uint32
 	if increment == 1 {
-		newBase = baseAddr + uint32(numRegs*4)
+		newBase = baseAddr + regOffset
 	} else {
-		newBase = baseAddr - uint32(numRegs*4)
+		newBase = baseAddr - regOffset
 	}
 
 	// Process each register in the list

@@ -385,7 +385,7 @@ func (d *Debugger) cmdExamine(args []string) error {
 		case 'x': // hex
 			d.Printf(" 0x%08X", value)
 		case 'd': // signed decimal
-			d.Printf(" %d", int32(value))
+			d.Printf(" %d", vm.AsInt32(value))
 		case 'u': // unsigned decimal
 			d.Printf(" %d", value)
 		case 'o': // octal
@@ -431,9 +431,9 @@ func (d *Debugger) showRegisters() error {
 		} else if i == 14 {
 			name = "LR"
 		}
-		d.Printf("  %-3s = 0x%08X (%d)\n", name, d.VM.CPU.R[i], int32(d.VM.CPU.R[i]))
+		d.Printf("  %-3s = 0x%08X (%d)\n", name, d.VM.CPU.R[i], vm.AsInt32(d.VM.CPU.R[i]))
 	}
-	d.Printf("  PC  = 0x%08X (%d)\n", d.VM.CPU.PC, int32(d.VM.CPU.PC))
+	d.Printf("  PC  = 0x%08X (%d)\n", d.VM.CPU.PC, vm.AsInt32(d.VM.CPU.PC))
 
 	// Show CPSR flags
 	flags := ""
@@ -530,12 +530,16 @@ func (d *Debugger) showStack() error {
 
 	// Show 8 words from stack
 	for i := 0; i < 8; i++ {
-		addr := sp + uint32(i*4)
+		offset, err := vm.SafeIntToUint32(i * 4)
+		if err != nil {
+			break // Should never happen with i < 8
+		}
+		addr := sp + offset
 		value, err := d.VM.Memory.ReadWord(addr)
 		if err != nil {
 			break
 		}
-		d.Printf("  0x%08X: 0x%08X (%d)\n", addr, value, int32(value))
+		d.Printf("  0x%08X: 0x%08X (%d)\n", addr, value, vm.AsInt32(value))
 	}
 
 	return nil

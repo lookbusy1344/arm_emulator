@@ -166,6 +166,8 @@ func ExecuteSWI(vm *VM, inst *Instruction) error {
 // Console I/O handlers
 func handleExit(vm *VM) error {
 	exitCode := vm.CPU.GetRegister(0)
+	// Intentional conversion - exit codes are typically signed
+	//nolint:gosec // G115: Exit code conversion uint32->int32
 	vm.ExitCode = int32(exitCode)
 	vm.State = StateHalted
 	return fmt.Errorf("program exited with code %d", exitCode)
@@ -223,12 +225,12 @@ func handleWriteInt(vm *VM) error {
 	case 8:
 		fmt.Printf("%o", value)
 	case 10:
-		fmt.Printf("%d", int32(value))
+		fmt.Printf("%d", AsInt32(value))
 	case 16:
 		fmt.Printf("%x", value)
 	default:
 		// This should never happen due to validation above, but keep for safety
-		fmt.Printf("%d", int32(value))
+		fmt.Printf("%d", AsInt32(value))
 	}
 
 	_ = os.Stdout.Sync() // Ignore sync errors

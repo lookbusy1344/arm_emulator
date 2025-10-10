@@ -6,6 +6,8 @@ import (
 
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
+
+	"github.com/lookbusy1344/arm-emulator/vm"
 )
 
 // TUI represents the text user interface for the debugger
@@ -373,7 +375,11 @@ func (t *TUI) UpdateMemoryView() {
 
 	// Show 16 rows of 16 bytes each
 	for row := 0; row < 16; row++ {
-		rowAddr := addr + uint32(row*16)
+		rowOffset, err := vm.SafeIntToUint32(row * 16)
+		if err != nil {
+			break // Should never happen
+		}
+		rowAddr := addr + rowOffset
 
 		// Address
 		line := fmt.Sprintf("0x%08X: ", rowAddr)
@@ -383,7 +389,11 @@ func (t *TUI) UpdateMemoryView() {
 		var asciiBytes []byte
 
 		for col := 0; col < 16; col++ {
-			byteAddr := rowAddr + uint32(col)
+			colOffset, err := vm.SafeIntToUint32(col)
+			if err != nil {
+				break // Should never happen
+			}
+			byteAddr := rowAddr + colOffset
 			b, err := t.Debugger.VM.Memory.ReadByteAt(byteAddr)
 			if err != nil {
 				hexBytes = append(hexBytes, "??")
@@ -416,7 +426,11 @@ func (t *TUI) UpdateStackView() {
 
 	// Show 16 words (64 bytes) from stack
 	for i := 0; i < 16; i++ {
-		addr := sp + uint32(i*4)
+		offset, err := vm.SafeIntToUint32(i * 4)
+		if err != nil {
+			break // Should never happen
+		}
+		addr := sp + offset
 
 		// Read word
 		word, err := t.Debugger.VM.Memory.ReadWord(addr)
@@ -459,7 +473,11 @@ func (t *TUI) UpdateDisassemblyView() {
 	}
 
 	for i := 0; i < 16; i++ {
-		addr := startAddr + uint32(i*4)
+		offset, err := vm.SafeIntToUint32(i * 4)
+		if err != nil {
+			break // Should never happen
+		}
+		addr := startAddr + offset
 
 		// Read instruction
 		instr, err := t.Debugger.VM.Memory.ReadWord(addr)

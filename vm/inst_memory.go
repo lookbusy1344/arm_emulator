@@ -90,11 +90,13 @@ func ExecuteLoadStore(v *VM, inst *Instruction) error {
 		var err error
 
 		if isHalfword {
-			// Store halfword
-			err = vm.Memory.WriteHalfword(accessAddr, uint16(value))
+			// Store halfword - ARM architecture truncates to lower 16 bits
+			//nolint:gosec // G115: Intentional truncation for STRH instruction
+			err = vm.Memory.WriteHalfword(accessAddr, uint16(value&0xFFFF))
 		} else if byteTransfer == 1 {
-			// Store byte
-			err = vm.Memory.WriteByteAt(accessAddr, uint8(value))
+			// Store byte - ARM architecture truncates to lower 8 bits
+			//nolint:gosec // G115: Intentional truncation for STRB instruction
+			err = vm.Memory.WriteByteAt(accessAddr, uint8(value&0xFF))
 		} else {
 			// Store word
 			err = vm.Memory.WriteWord(accessAddr, value)

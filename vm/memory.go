@@ -156,7 +156,8 @@ func (m *Memory) ReadHalfword(address uint32) (uint16, error) {
 		return 0, fmt.Errorf("read permission denied for segment '%s' at 0x%08X", seg.Name, address)
 	}
 
-	if offset+1 >= uint32(len(seg.Data)) {
+	segLen, err := SafeIntToUint32(len(seg.Data))
+	if err != nil || offset+1 >= segLen {
 		return 0, fmt.Errorf("halfword read exceeds segment bounds at 0x%08X", address)
 	}
 
@@ -187,7 +188,8 @@ func (m *Memory) WriteHalfword(address uint32, value uint16) error {
 		return fmt.Errorf("write permission denied for segment '%s' at 0x%08X", seg.Name, address)
 	}
 
-	if offset+1 >= uint32(len(seg.Data)) {
+	segLen, err := SafeIntToUint32(len(seg.Data))
+	if err != nil || offset+1 >= segLen {
 		return fmt.Errorf("halfword write exceeds segment bounds at 0x%08X", address)
 	}
 
@@ -219,7 +221,8 @@ func (m *Memory) ReadWord(address uint32) (uint32, error) {
 		return 0, fmt.Errorf("read permission denied for segment '%s' at 0x%08X", seg.Name, address)
 	}
 
-	if offset+3 >= uint32(len(seg.Data)) {
+	segLen, err := SafeIntToUint32(len(seg.Data))
+	if err != nil || offset+3 >= segLen {
 		return 0, fmt.Errorf("word read exceeds segment bounds at 0x%08X", address)
 	}
 
@@ -256,7 +259,8 @@ func (m *Memory) WriteWord(address uint32, value uint32) error {
 		return fmt.Errorf("write permission denied for segment '%s' at 0x%08X", seg.Name, address)
 	}
 
-	if offset+3 >= uint32(len(seg.Data)) {
+	segLen, err := SafeIntToUint32(len(seg.Data))
+	if err != nil || offset+3 >= segLen {
 		return fmt.Errorf("word write exceeds segment bounds at 0x%08X", address)
 	}
 
@@ -280,7 +284,11 @@ func (m *Memory) WriteWord(address uint32, value uint32) error {
 // LoadBytes loads a byte array into memory at the specified address
 func (m *Memory) LoadBytes(address uint32, data []byte) error {
 	for i, b := range data {
-		if err := m.WriteByteAt(address+uint32(i), b); err != nil {
+		offset, err := SafeIntToUint32(i)
+		if err != nil {
+			return fmt.Errorf("offset too large at index %d: %w", i, err)
+		}
+		if err := m.WriteByteAt(address+offset, b); err != nil {
 			return fmt.Errorf("failed to load byte at offset %d: %w", i, err)
 		}
 	}
@@ -292,7 +300,11 @@ func (m *Memory) LoadBytes(address uint32, data []byte) error {
 // read-only segments (e.g., loading .word data into the code segment)
 func (m *Memory) LoadBytesUnsafe(address uint32, data []byte) error {
 	for i, b := range data {
-		if err := m.WriteByteUnsafe(address+uint32(i), b); err != nil {
+		offset, err := SafeIntToUint32(i)
+		if err != nil {
+			return fmt.Errorf("offset too large at index %d: %w", i, err)
+		}
+		if err := m.WriteByteUnsafe(address+offset, b); err != nil {
 			return fmt.Errorf("failed to load byte at offset %d: %w", i, err)
 		}
 	}
@@ -306,7 +318,8 @@ func (m *Memory) WriteByteUnsafe(address uint32, value byte) error {
 		return err
 	}
 
-	if offset >= uint32(len(seg.Data)) {
+	segLen, err := SafeIntToUint32(len(seg.Data))
+	if err != nil || offset >= segLen {
 		return fmt.Errorf("write beyond segment bounds at 0x%08X", address)
 	}
 
@@ -325,7 +338,8 @@ func (m *Memory) WriteWordUnsafe(address uint32, value uint32) error {
 		return err
 	}
 
-	if offset+3 >= uint32(len(seg.Data)) {
+	segLen, err := SafeIntToUint32(len(seg.Data))
+	if err != nil || offset+3 >= segLen {
 		return fmt.Errorf("write beyond segment bounds at 0x%08X", address)
 	}
 

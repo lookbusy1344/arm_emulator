@@ -41,11 +41,14 @@ func (e *Encoder) encodeBranch(inst *parser.Instruction, cond uint32) (uint32, e
 	// Calculate offset: (target - PC - 8) / 4
 	// PC is current instruction address + 8 (ARM pipeline)
 	pc := e.currentAddr + 8
-	// Ensure targetAddr is safely convertible to int32
+	// Ensure both targetAddr and pc are safely convertible to int32
 	if targetAddr > math.MaxInt32 {
 		return 0, fmt.Errorf("branch target address out of int32 range: 0x%X", targetAddr)
 	}
-	offset := int32(targetAddr) - int32(pc)
+	if pc > math.MaxInt32 {
+		return 0, fmt.Errorf("PC out of int32 range: 0x%X", pc)
+	}
+	offset := int32(targetAddr) - int32(pc) // Safe: both values checked
 
 	// Check if offset is word-aligned
 	if offset&0x3 != 0 {
@@ -61,6 +64,7 @@ func (e *Encoder) encodeBranch(inst *parser.Instruction, cond uint32) (uint32, e
 	}
 
 	// Encode 24-bit offset (sign-extended)
+	// Intentional conversion for bit pattern encoding
 	encodedOffset := uint32(wordOffset) & 0xFFFFFF
 
 	// L bit: 1 for BL (link), 0 for B

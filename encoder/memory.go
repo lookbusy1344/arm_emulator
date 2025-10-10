@@ -2,9 +2,11 @@ package encoder
 
 import (
 	"fmt"
+	"math"
 	"strings"
 
 	"github.com/lookbusy1344/arm-emulator/parser"
+	"github.com/lookbusy1344/arm-emulator/vm"
 )
 
 // encodeMemory encodes LDR, STR, LDRB, STRB, LDRH, STRH instructions
@@ -222,7 +224,11 @@ func (e *Encoder) encodeLDRPseudo(inst *parser.Instruction, cond, rd uint32) (ui
 	// Need to use literal pool - generate PC-relative LDR
 	// Place literals in a pool at a fixed offset to avoid overwriting instructions
 	// Use a large offset (4KB) to ensure it's after all code and data
-	literalOffset := uint32(0x1000 + (len(e.LiteralPool) * 4))
+	poolSize, err := vm.SafeIntToUint32(len(e.LiteralPool) * 4)
+	if err != nil {
+		return 0, fmt.Errorf("literal pool too large: %v", err)
+	}
+	literalOffset := 0x1000 + poolSize
 	literalAddr := (e.currentAddr & 0xFFFFF000) + literalOffset
 
 	// Store value in literal pool
@@ -231,7 +237,11 @@ func (e *Encoder) encodeLDRPseudo(inst *parser.Instruction, cond, rd uint32) (ui
 	// Calculate PC-relative offset
 	// PC = current instruction + 8
 	pc := e.currentAddr + 8
-	offset := int32(literalAddr) - int32(pc)
+	// Check addresses are in int32 range
+	if literalAddr > math.MaxInt32 || pc > math.MaxInt32 {
+		return 0, fmt.Errorf("address out of int32 range for PC-relative addressing")
+	}
+	offset := int32(literalAddr) - int32(pc) // Safe: both values checked
 
 	if offset < 0 {
 		offset = -offset

@@ -236,6 +236,7 @@ func (e *Encoder) parseImmediate(imm string) (uint32, error) {
 		if result > uint32(math.MaxInt32)+1 {
 			return 0, fmt.Errorf("immediate value out of valid signed 32-bit range: %s", imm)
 		}
+		// Safe: value checked to be in valid range for negation
 		result = uint32(-int32(result))
 	}
 
@@ -303,6 +304,7 @@ func (e *Encoder) parseShift(shift string) (shiftType, shiftAmount uint32, shift
 		if err != nil {
 			return 0, 0, -1, err
 		}
+		// Safe: register number is 0-15, well within int32 range
 		return shiftType, 0, int32(reg), nil
 	}
 }
