@@ -119,33 +119,291 @@ The ARM2 emulator is **functionally complete and production-ready**. All core fe
 
 ---
 
-## M8: Release Ready - Outstanding Items
+## Phase 11: Production Hardening - Remaining Tasks
 
-### 2. CI/CD Pipeline (From Phase 1)
+### Task 1: Complete Code Quality Issues
+
+**Status:** Partially complete
+
+**Remaining:**
+- [ ] Run golangci-lint and address issues
+
+**Effort Estimate:** 20-30 minutes
+
+**Priority:** High
+
+---
+
+### Task 2: Enhance CI/CD Pipeline
+
+**Status:** Partially complete (basic CI exists with Go 1.25)
+
+**Requirements:**
+- [x] Basic CI workflow exists ✅
+- [x] Updated to Go 1.25 ✅
+- [ ] Configure matrix builds (macOS, Windows, Linux)
+- [ ] Add test coverage reporting with codecov
+- [ ] Add coverage threshold enforcement (70% minimum)
+- [ ] Add race detector to tests
+- [ ] Upload test results as CI artifacts
+
+**Effort Estimate:** 4-6 hours
+
+**Priority:** High
+
+**Files to Modify:**
+- `.github/workflows/ci.yml` - Enhance existing workflow
+
+---
+
+### Task 3: Cross-Platform Manual Testing
+
+**Status:** Partially complete (macOS only)
+
+**Requirements:**
+- [x] Test on macOS (development platform) ✅
+- [ ] Create testing checklist in `docs/testing_checklist.md`
+- [ ] Test on Windows 10/11
+  - [ ] Binary builds successfully
+  - [ ] All tests pass
+  - [ ] TUI renders correctly
+  - [ ] File paths work (backslash handling)
+  - [ ] Config file loads from correct location
+  - [ ] Example programs execute correctly
+  - [ ] Command-line flags work
+- [ ] Test on Linux (Ubuntu, Fedora, Arch)
+  - [ ] TUI renders correctly
+  - [ ] File I/O works correctly
+  - [ ] Config file paths work
+  - [ ] Example programs run identically
+  - [ ] Command-line flags work
+  - [ ] Terminal compatibility (various emulators)
+  - [ ] Package dependencies documented
+- [ ] Document any platform-specific quirks or limitations
+- [ ] Fix any platform-specific issues found
+
+**Effort Estimate:** 3-4 hours
+
+**Priority:** High (needed for M8)
+
+---
+
+### Task 4: Increase Code Coverage to 75%+
+
+**Status:** Not started
+
+**Current Coverage:** ~40% estimated (not measured)
+**Target Coverage:** 75%+
+
+**Target Coverage by Package:**
+- `vm/`: 75%+ (currently no direct tests)
+- `debugger/`: 65%+ (currently 47.9%)
+- `parser/`: 75%+
+- `tools/`: 90%+ (currently 86.6%)
+- `config/`: 85%+
+
+**Focus Areas:**
+
+**A. VM Package Tests (2 hours)**
+- [ ] Create `vm/vm_test.go`
+- [ ] Test VM initialization
+- [ ] Test VM.Reset()
+- [ ] Test VM.ResetRegisters()
+- [ ] Test execution modes
+
+**B. Debugger Expression Tests (1-2 hours)**
+- [ ] Enhance `debugger/expressions_test.go`
+- [ ] Test complex hex arithmetic
+- [ ] Test bitwise operations
+- [ ] Test error handling
+
+**C. Parser Error Paths (1-2 hours)**
+- [ ] Add tests for invalid input
+- [ ] Test malformed instructions
+- [ ] Test undefined labels
+- [ ] Test forward references
+
+**Effort Estimate:** 4-6 hours
+
+**Priority:** Medium-High
+
+---
+
+### Task 5: Connect Tracing to Execution
+
+**Status:** Infrastructure complete, integration pending
+
+**Requirements:**
+- [ ] Connect ExecutionTrace to VM.Step()
+  - [ ] Call `trace.RecordInstruction()` after each instruction
+  - [ ] Generate disassembly string for each instruction
+  - [ ] Make optional via VM flag or config
+- [ ] Connect MemoryTrace to Memory operations
+  - [ ] Call `trace.RecordRead()` in Memory.ReadWord(), ReadByteAt(), etc.
+  - [ ] Call `trace.RecordWrite()` in Memory.WriteWord(), WriteByteAt(), etc.
+  - [ ] Make optional via VM flag or config
+- [ ] Connect Statistics to VM operations
+  - [ ] Call `stats.RecordInstruction()` after each instruction
+  - [ ] Call `stats.RecordBranch()` for branch instructions
+  - [ ] Call `stats.RecordFunctionCall()` for BL instructions
+  - [ ] Call `stats.RecordMemoryRead/Write()` for memory operations
+  - [ ] Make optional via VM flag or config
+- [ ] Add tests for trace/stats integration
+
+**Effort Estimate:** 2-3 hours
+
+**Priority:** Low (infrastructure is ready, integration is optional)
+
+**Files to Modify:**
+- `vm/executor.go` - Add trace/stats calls to Step()
+- `vm/memory.go` - Add trace calls to memory operations
+
+---
+
+## Phase 12: Performance & Benchmarking
+
+**Total Effort:** 14-20 hours
+**Priority:** MEDIUM
+
+### Task 1: Create Benchmark Suite
 
 **Status:** Not started
 
 **Requirements:**
-- [ ] Set up GitHub Actions workflow
-- [ ] Configure matrix builds (macOS, Windows, Linux)
-- [ ] Automated testing on all platforms on every commit
-- [ ] Coverage reporting integration
-- [ ] Cross-compilation builds for all platforms:
+- [ ] Create `vm/vm_bench_test.go`
+  - [ ] BenchmarkExecutionLoop
+  - [ ] BenchmarkMemoryRead
+  - [ ] BenchmarkInstructionDecode
+- [ ] Create `parser/parser_bench_test.go`
+  - [ ] BenchmarkParseLargeFile
+  - [ ] BenchmarkLexer
+- [ ] Create `tests/benchmarks/tui_bench_test.go`
+  - [ ] Benchmark TUI refresh rate
+- [ ] Document benchmark targets:
+  - Parser: < 100ms for < 1000 line programs
+  - Execution: > 100k instructions/second
+  - Memory: < 100MB for typical programs
+  - TUI: 60 FPS minimum
+
+**Effort Estimate:** 4-6 hours
+
+**Priority:** Medium
+
+---
+
+### Task 2: Profile Performance
+
+**Status:** Not started
+
+**Requirements:**
+- [ ] Run CPU profiling: `go test -bench=. -cpuprofile=cpu.prof ./vm`
+- [ ] Run memory profiling: `go test -bench=. -memprofile=mem.prof ./vm`
+- [ ] Analyze profiles with `go tool pprof`
+- [ ] Generate profile reports
+- [ ] Create `docs/performance_analysis.md` with findings
+- [ ] Identify optimization opportunities
+
+**Effort Estimate:** 2-3 hours
+
+**Priority:** Medium
+
+---
+
+### Task 3: Implement Optimizations
+
+**Status:** Not started (defer until after profiling)
+
+**Potential Optimizations:**
+- [ ] Instruction decode cache (if decode is hot path)
+- [ ] Memory access optimization (if memory is bottleneck)
+- [ ] Flag calculation optimization (only when S bit set)
+- [ ] Pre-allocate common memory regions
+
+**Effort Estimate:** 6-8 hours
+
+**Priority:** Low (only if profiling shows need)
+
+---
+
+### Task 4: Document Performance
+
+**Status:** Not started
+
+**Requirements:**
+- [ ] Create `docs/performance_characteristics.md`
+  - [ ] Benchmark results
+  - [ ] Performance comparison to similar tools
+  - [ ] Optimization opportunities
+  - [ ] Scalability limits
+
+**Effort Estimate:** 2-3 hours
+
+**Priority:** Low
+
+---
+
+## Phase 13: Release Engineering
+
+**Total Effort:** 16-22 hours
+**Priority:** MEDIUM-HIGH
+
+### Task 1: Create Release Pipeline
+
+**Status:** Not started
+
+**Requirements:**
+- [ ] Create `.github/workflows/release.yml`
+  - [ ] Trigger on version tags (v*)
+  - [ ] Matrix builds for all platforms:
+    - [ ] linux-amd64
+    - [ ] darwin-amd64
+    - [ ] darwin-arm64
+    - [ ] windows-amd64
+  - [ ] Create release archives (tar.gz)
+  - [ ] Upload artifacts
+  - [ ] Create GitHub Release with notes
+- [ ] Create cross-compilation builds for all platforms:
   - [ ] `GOOS=darwin GOARCH=amd64` - macOS Intel
   - [ ] `GOOS=darwin GOARCH=arm64` - macOS Apple Silicon
   - [ ] `GOOS=linux GOARCH=amd64` - Linux x64
   - [ ] `GOOS=windows GOARCH=amd64` - Windows x64
-- [ ] Artifact uploads for releases
-- [ ] Version tagging automation
+- [ ] Test release workflow
 
 **Effort Estimate:** 4-6 hours
 
-**Priority:** High (needed for M8)
+**Priority:** High (needed for v1.0.0 release)
 
 **Files to Create:**
-- `.github/workflows/ci.yml` - Main CI workflow
 - `.github/workflows/release.yml` - Release workflow
-- `Makefile` - Build targets for cross-compilation
+- `Makefile` - Build targets for cross-compilation (optional)
+
+---
+
+### Task 2: Create Installation Packages
+
+**Status:** Not started
+
+**Requirements:**
+- [ ] Create installation scripts
+  - [ ] `install.sh` for macOS/Linux
+  - [ ] `install.ps1` for Windows
+- [ ] Package for distribution:
+  - [ ] Homebrew formula (macOS) - 2 hours
+    - Create `homebrew-arm-emulator` repository
+    - Write formula with proper dependencies
+    - Test installation
+  - [ ] Chocolatey package (Windows) - 2 hours
+    - Create `chocolatey/arm-emulator.nuspec`
+    - Test installation
+  - [ ] Debian package (`.deb`) - 2 hours
+    - Create debian/ structure (control, changelog, rules, install)
+  - [ ] RPM package (Fedora/RHEL) - 2 hours
+    - Create RPM spec file
+  - [ ] AUR package (Arch Linux) - optional
+  - [ ] Scoop manifest (Windows) - optional
+- [ ] Create release assets (tarballs, zip files)
+- [ ] Add installation instructions to docs
+- [ ] Test installation process on each platform
 
 ---
 
@@ -256,7 +514,155 @@ The ARM2 emulator is **functionally complete and production-ready**. All core fe
 
 ---
 
-### 7. Deferred Documentation (From Phase 9)
+### Task 3: Release Documentation
+
+**Status:** Not started
+
+**Requirements:**
+- [ ] Create `CHANGELOG.md`
+  - [ ] Document v1.0.0 features
+  - [ ] List all completed features
+  - [ ] Document fixes (go vet warnings, etc.)
+  - [ ] Note performance characteristics
+- [ ] Update `README.md`
+  - [ ] Add installation instructions for all package managers
+  - [ ] Add badges (tests, coverage, version)
+  - [ ] Update quick start guide
+- [ ] Create `CONTRIBUTING.md`
+  - [ ] Guidelines for contributors
+  - [ ] Code style requirements
+  - [ ] PR process
+  - [ ] Testing requirements
+
+**Effort Estimate:** 3-4 hours
+
+**Priority:** Medium-High
+
+---
+
+### Task 4: Release Testing
+
+**Status:** Not started
+
+**Requirements:**
+- [ ] Create `docs/release_checklist.md`
+- [ ] Pre-Release verification:
+  - [ ] All tests passing
+  - [ ] Code coverage >70%
+  - [ ] Documentation up to date
+  - [ ] CHANGELOG.md updated
+  - [ ] Version numbers updated
+- [ ] Build Testing:
+  - [ ] Linux build works
+  - [ ] macOS Intel build works
+  - [ ] macOS ARM build works
+  - [ ] Windows build works
+- [ ] Installation Testing:
+  - [ ] Homebrew formula works
+  - [ ] Chocolatey package works
+  - [ ] DEB package installs
+  - [ ] RPM package installs
+- [ ] Functional Testing:
+  - [ ] All examples run successfully
+  - [ ] TUI debugger works on all platforms
+  - [ ] Command-line arguments work
+  - [ ] Configuration files load correctly
+- [ ] Release execution:
+  - [ ] Tag version in git
+  - [ ] GitHub Release created
+  - [ ] Release notes published
+  - [ ] Packages uploaded to repositories
+
+**Effort Estimate:** 3-4 hours
+
+**Priority:** High (needed before v1.0.0 release)
+
+---
+
+## Phase 14: Advanced Features (Optional, Future)
+
+**Total Effort:** 80-120 hours
+**Priority:** LOW (Post-release)
+
+### 1. JIT Compilation
+
+**Status:** Not started
+
+**Description:** Translate ARM to native x86-64 for 10-100x speedup
+
+**Requirements:**
+- [ ] Design JIT architecture
+- [ ] Implement ARM to x86-64 translator
+- [ ] Add runtime code generation
+- [ ] Handle self-modifying code
+- [ ] Add JIT-specific tests
+- [ ] Benchmark performance improvements
+
+**Effort Estimate:** 40-60 hours
+
+**Priority:** Low
+
+---
+
+### 2. Web-Based Debugger
+
+**Status:** Not started
+
+**Description:** React frontend with WebSocket backend for browser-based debugging
+
+**Requirements:**
+- [ ] Design WebSocket protocol
+- [ ] Implement backend server
+- [ ] Create React frontend
+- [ ] Add real-time state synchronization
+- [ ] Support multiple concurrent clients
+- [ ] Add web-based TUI
+
+**Effort Estimate:** 30-40 hours
+
+**Priority:** Low
+
+---
+
+### 3. GDB Protocol Support
+
+**Status:** Not started
+
+**Description:** Implement GDB remote serial protocol for IDE integration
+
+**Requirements:**
+- [ ] Implement GDB remote protocol
+- [ ] Add protocol parser
+- [ ] Support common GDB commands
+- [ ] Test with popular IDEs (VSCode, IntelliJ, etc.)
+- [ ] Document GDB integration
+
+**Effort Estimate:** 20-30 hours
+
+**Priority:** Low
+
+---
+
+### 4. Additional Architectures
+
+**Status:** Not started
+
+**Description:** Extend to ARM3, ARM7, or other RISC architectures
+
+**Requirements:**
+- [ ] Research target architecture
+- [ ] Extend instruction set
+- [ ] Add architecture-specific features
+- [ ] Update tests for new architecture
+- [ ] Document new architecture support
+
+**Effort Estimate:** 40+ hours per architecture
+
+**Priority:** Low
+
+---
+
+## Deferred Documentation (From Phase 9)
 
 **Status:** Core docs complete, additional docs deferred
 
@@ -304,130 +710,32 @@ The ARM2 emulator is **functionally complete and production-ready**. All core fe
 
 ---
 
-### 8. Trace/Stats Integration with VM
+## Summary of Remaining Work
 
-**Status:** Infrastructure complete, integration pending
+**Estimated Total Effort to v1.0.0 Release:** ~50-70 hours
 
-**Requirements:**
-- [ ] Connect ExecutionTrace to VM.Step()
-  - [ ] Call `trace.RecordInstruction()` after each instruction
-  - [ ] Generate disassembly string for each instruction
-  - [ ] Make optional via VM flag or config
+**High Priority (Phase 11 - Production Hardening):** ~15-20 hours
+- Code quality (golangci-lint)
+- Enhanced CI/CD with multi-platform testing
+- Cross-platform manual testing
+- Code coverage increase to 75%+
 
-- [ ] Connect MemoryTrace to Memory operations
-  - [ ] Call `trace.RecordRead()` in Memory.ReadWord(), ReadByte(), etc.
-  - [ ] Call `trace.RecordWrite()` in Memory.WriteWord(), WriteByte(), etc.
-  - [ ] Make optional via VM flag or config
+**Medium-High Priority (Phase 13 - Release Engineering):** ~16-22 hours
+- Release pipeline automation
+- Installation packages (Homebrew, Chocolatey, DEB, RPM)
+- Release documentation (CHANGELOG, CONTRIBUTING)
+- Release testing checklist
 
-- [ ] Connect Statistics to VM operations
-  - [ ] Call `stats.RecordInstruction()` after each instruction
-  - [ ] Call `stats.RecordBranch()` for branch instructions
-  - [ ] Call `stats.RecordFunctionCall()` for BL instructions
-  - [ ] Call `stats.RecordMemoryRead/Write()` for memory operations
-  - [ ] Make optional via VM flag or config
+**Medium Priority (Phase 12 - Performance):** ~14-20 hours
+- Benchmark suite creation
+- Performance profiling
+- Optimization implementation
+- Performance documentation
 
-**Effort Estimate:** 2-3 hours
-
-**Priority:** Low (infrastructure is ready, integration is optional)
-
----
-
-## Future Enhancements
-
-### 4. Advanced Call Stack Tracking
-
-**Status:** Basic implementation complete
-
-**Enhancements:**
-- [ ] Frame selection with `up`/`down` commands
-- [ ] Frame-relative variable inspection
-- [ ] Stack unwinding for exception handling
-- [ ] Call graph visualization
-
-**Effort Estimate:** 3-4 hours
-
-**Priority:** Low
-
-### 5. Disassembler
-
-**Status:** Not started
-
-**Features:**
-- [ ] Binary to assembly conversion
-- [ ] Symbol recovery
-- [ ] Control flow analysis
-- [ ] Data section identification
-
-**File:** `tools/disassembler.go`
-
-**Effort Estimate:** 10-12 hours
-
-**Priority:** Low
-
-### 6. Remote Debugging
-
-**Status:** Not started
-
-**Features:**
-- [ ] GDB remote protocol support
-- [ ] Network debugging
-- [ ] Multiple client support
-- [ ] Secure connections
-
-**Effort Estimate:** 12-16 hours
-
-**Priority:** Low
-
----
-
-## Bug Fixes & Technical Debt
-
-### Known Issues
-
-**No critical issues!** All parser limitations have been resolved:
-
-1. ✅ **Expression Parser** - COMPLETE (see item #1 above)
-   - Fixed hex numbers with arithmetic operators
-   - Fixed register operations
-   - Fixed hex numbers with bitwise operators
-   - Completed: 2025-10-10
-
-2. ✅ **Parser - Register Lists and Shifted Operands** - ALREADY WORKING
-
-   **Status:** ✅ COMPLETE - Parser already supported these features!
-
-   **Verified Working Features:**
-   - ✅ Register lists in PUSH/POP: `PUSH {R0, R1, R2}`, `POP {R0-R3}`
-   - ✅ Shifted register operands in MOV: `MOV R1, R0, LSL #2`
-   - ✅ Shifted register operands in data processing: `ADD R0, R1, R2, LSR #3`
-
-   **Test Status:**
-   - ✅ `TestProgram_Stack` - PASSING
-   - ✅ `TestProgram_Loop` - PASSING
-   - ✅ `TestProgram_Shifts` - PASSING
-
-   **Implementation Notes:**
-   - Parser in `parser/parser.go` already handles register lists (lines 422-444)
-   - Parser already handles shifted operands (lines 463-487)
-   - Encoder correctly processes these operands
-   - All integration tests passing
-
-### Technical Debt
-
-1. **Code Coverage**
-   - Current: ~40% estimated
-   - Target: 85%+
-   - Action: Add more comprehensive tests
-
-2. **Error Messages**
-   - Some error messages could be more descriptive
-   - Add suggestions for common mistakes
-   - Improve error context
-
-3. **Performance**
-   - No profiling done yet
-   - Potential optimization opportunities in fetch-decode-execute cycle
-   - Memory allocations could be reduced
+**Low Priority (Optional):** ~8-11 hours
+- Deferred documentation (tutorials, FAQ, API docs)
+- Trace/stats integration with VM
+- Advanced features (JIT, web debugger, GDB protocol)
 
 ---
 
