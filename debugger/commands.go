@@ -186,7 +186,7 @@ func (d *Debugger) cmdWatch(args []string) error {
 
 	// Initialize current value
 	if err := d.Watchpoints.InitializeWatchpoint(wp.ID, d.VM); err != nil {
-		d.Watchpoints.DeleteWatchpoint(wp.ID)
+		_ = d.Watchpoints.DeleteWatchpoint(wp.ID) // Ignore error on cleanup
 		return err
 	}
 
@@ -209,7 +209,7 @@ func (d *Debugger) cmdRWatch(args []string) error {
 	wp := d.Watchpoints.AddWatchpoint(WatchRead, expression, address, isRegister, register)
 
 	if err := d.Watchpoints.InitializeWatchpoint(wp.ID, d.VM); err != nil {
-		d.Watchpoints.DeleteWatchpoint(wp.ID)
+		_ = d.Watchpoints.DeleteWatchpoint(wp.ID) // Ignore error on cleanup
 		return err
 	}
 
@@ -232,7 +232,7 @@ func (d *Debugger) cmdAWatch(args []string) error {
 	wp := d.Watchpoints.AddWatchpoint(WatchReadWrite, expression, address, isRegister, register)
 
 	if err := d.Watchpoints.InitializeWatchpoint(wp.ID, d.VM); err != nil {
-		d.Watchpoints.DeleteWatchpoint(wp.ID)
+		_ = d.Watchpoints.DeleteWatchpoint(wp.ID) // Ignore error on cleanup
 		return err
 	}
 

@@ -293,10 +293,10 @@ func (s *PerformanceStatistics) ExportCSV(w io.Writer) error {
 	}
 
 	// Write blank line
-	writer.Write([]string{})
+	_ = writer.Write([]string{}) // Ignore error for separator
 
 	// Write instruction breakdown
-	writer.Write([]string{"Instruction", "Count"})
+	_ = writer.Write([]string{"Instruction", "Count"}) // Ignore error for header
 	for _, stat := range s.GetTopInstructions(0) {
 		if err := writer.Write([]string{stat.Mnemonic, fmt.Sprintf("%d", stat.Count)}); err != nil {
 			return err

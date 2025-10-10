@@ -130,7 +130,7 @@ func TestWatchpointManager_CheckWatchpoints_Register(t *testing.T) {
 	machine.CPU.R[0] = 200
 	triggered, changed = wm.CheckWatchpoints(machine)
 	if triggered == nil || !changed {
-		t.Error("Should trigger when value changes")
+		t.Fatal("Should trigger when value changes")
 	}
 
 	if triggered.ID != wp.ID {
@@ -172,7 +172,7 @@ func TestWatchpointManager_CheckWatchpoints_Memory(t *testing.T) {
 	machine.Memory.WriteWord(addr, 0xABCDEF00)
 	triggered, changed = wm.CheckWatchpoints(machine)
 	if triggered == nil || !changed {
-		t.Error("Should trigger when value changes")
+		t.Fatal("Should trigger when value changes")
 	}
 
 	if triggered.ID != wp.ID {

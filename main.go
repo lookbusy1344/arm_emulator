@@ -165,7 +165,11 @@ func main() {
 			fmt.Fprintf(os.Stderr, "Error creating trace file: %v\n", err)
 			os.Exit(1)
 		}
-		defer traceWriter.Close()
+		defer func() {
+			if err := traceWriter.Close(); err != nil {
+				fmt.Fprintf(os.Stderr, "Warning: failed to close trace file: %v\n", err)
+			}
+		}()
 
 		machine.ExecutionTrace = vm.NewExecutionTrace(traceWriter)
 		machine.ExecutionTrace.Start()
@@ -193,7 +197,11 @@ func main() {
 			fmt.Fprintf(os.Stderr, "Error creating memory trace file: %v\n", err)
 			os.Exit(1)
 		}
-		defer memTraceWriter.Close()
+		defer func() {
+			if err := memTraceWriter.Close(); err != nil {
+				fmt.Fprintf(os.Stderr, "Warning: failed to close memory trace file: %v\n", err)
+			}
+		}()
 
 		machine.MemoryTrace = vm.NewMemoryTrace(memTraceWriter)
 		machine.MemoryTrace.Start()
@@ -300,7 +308,11 @@ func main() {
 			if err != nil {
 				fmt.Fprintf(os.Stderr, "Error creating statistics file: %v\n", err)
 			} else {
-				defer statsWriter.Close()
+				defer func() {
+					if err := statsWriter.Close(); err != nil {
+						fmt.Fprintf(os.Stderr, "Warning: failed to close statistics file: %v\n", err)
+					}
+				}()
 
 				switch *statsFormat {
 				case "json":

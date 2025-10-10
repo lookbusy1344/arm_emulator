@@ -223,7 +223,7 @@ func (t *TUI) executeCommand(cmd string) {
 
 // WriteOutput writes to the output view
 func (t *TUI) WriteOutput(text string) {
-	t.OutputView.Write([]byte(text))
+	_, _ = t.OutputView.Write([]byte(text)) // Ignore write errors in TUI
 	t.OutputView.ScrollToEnd()
 }
 

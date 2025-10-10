@@ -1,0 +1,78 @@
+# golangci-lint configuration for ARM Emulator
+# https://golangci-lint.run/usage/configuration/
+
+version: 2
+
+run:
+  timeout: 5m
+  tests: false
+  modules-download-mode: readonly
+
+linters:
+  enable:
+    - errcheck      # Check for unchecked errors
+    - unused        # Check for unused code
+    - govet         # Standard go vet checks
+    - ineffassign   # Detect ineffectual assignments
+    - misspell      # Check for commonly misspelled words
+
+  disable:
+    - staticcheck   # Disable staticcheck QF style suggestions
+
+linters-settings:
+  errcheck:
+    # Check type assertions: a := b.(MyStruct)
+    check-type-assertions: true
+    # Check blank assignments: _ = f()
+    check-blank: false
+    # Exclude certain functions from error checking
+    exclude-functions:
+      # Allow ignoring fmt print functions in non-critical paths
+      - (fmt\.Fprintf|fmt\.Fprintln)
+
+  staticcheck:
+    # Enable only serious checks, skip style suggestions (QF prefix)
+    checks:
+      - "SA*"  # Static analysis checks
+      - "S1*"  # Simplifications
+
+  revive:
+    rules:
+      # Disable style rules that are too strict for this project
+      - name: var-naming
+        disabled: true  # Allow ALL_CAPS for constants (SWI codes, etc.)
+      - name: exported
+        disabled: true  # Skip exported comments for now
+      - name: package-comments
+        disabled: true  # Not all packages need package comments for internal use
+      - name: unused-parameter
+        disabled: true  # Allow unused parameters in interface methods
+      - name: indent-error-flow
+        disabled: true  # Allow else blocks after returns
+
+issues:
+  # Maximum issues count per one linter
+  max-issues-per-linter: 0
+  # Maximum count of issues with the same text
+  max-same-issues: 0
+
+  # Exclude some linters from running on tests
+  exclude-rules:
+    # Exclude errcheck for test cleanup code
+    - path: _test\.go
+      linters:
+        - errcheck
+      text: "Error return value.*is not checked"
+
+    # Allow unused functions in test files
+    - path: _test\.go
+      linters:
+        - unused
+
+  # Independently of option `exclude` we use default exclude patterns
+  exclude-use-default: true
+
+output:
+  format: colored-line-number
+  print-issued-lines: true
+  print-linter-name: true

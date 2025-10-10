@@ -250,10 +250,9 @@ ADD R1, R0, #1 ; Comment 2
 		// but they should be close
 		for i := 1; i < len(commentPositions); i++ {
 			diff := commentPositions[i] - commentPositions[i-1]
-			if diff < -5 || diff > 5 {
-				// Comments are not well aligned
-				// This is ok if instructions are very different lengths
-			}
+			// Comments are considered well-aligned if within 5 columns
+			// This is ok if instructions are very different lengths
+			_ = diff // Future validation could check alignment
 		}
 	}
 }
@@ -298,10 +297,9 @@ func TestFormat_OnlyComments(t *testing.T) {
 	_, err := formatter.Format(source, "test.s")
 
 	// Should handle comments-only input
-	if err != nil {
-		// This is acceptable - parser may not handle comments-only input
-		// as they are typically stripped during tokenization
-	}
+	// This is acceptable - parser may not handle comments-only input
+	// as they are typically stripped during tokenization
+	_ = err
 }
 
 func TestFormat_MixedCase(t *testing.T) {

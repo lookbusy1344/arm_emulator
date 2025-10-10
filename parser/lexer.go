@@ -144,14 +144,6 @@ func (l *Lexer) peekChar() rune {
 	return rune(l.input[l.pos])
 }
 
-// peekChar2 returns the character two positions ahead
-func (l *Lexer) peekChar2() rune {
-	if l.pos+1 >= len(l.input) {
-		return 0
-	}
-	return rune(l.input[l.pos+1])
-}
-
 // currentPos returns the current position
 func (l *Lexer) currentPos() Position {
 	return Position{

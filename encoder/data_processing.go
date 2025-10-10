@@ -253,9 +253,7 @@ func isNumeric(s string) bool {
 	if s == "" {
 		return false
 	}
-	if strings.HasPrefix(s, "-") {
-		s = s[1:]
-	}
+	s = strings.TrimPrefix(s, "-")
 	return strings.HasPrefix(s, "0x") || strings.HasPrefix(s, "0X") ||
 		strings.HasPrefix(s, "0b") || strings.HasPrefix(s, "0B") ||
 		(s[0] >= '0' && s[0] <= '9')

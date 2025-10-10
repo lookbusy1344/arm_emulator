@@ -240,7 +240,7 @@ func (d *Debugger) ShouldBreak() (bool, string) {
 
 		// Check if temporary breakpoint
 		if bp.Temporary {
-			d.Breakpoints.DeleteBreakpoint(bp.ID)
+			_ = d.Breakpoints.DeleteBreakpoint(bp.ID) // Ignore error on cleanup
 		}
 
 		return true, fmt.Sprintf("breakpoint %d", bp.ID)

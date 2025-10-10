@@ -71,10 +71,7 @@ func (e *Encoder) encodeAddressingMode(cond, lBit, bBit, rd uint32, addrMode str
 	}
 
 	// Check for post-indexed: [Rn], offset
-	postIndexed := false
-	if strings.Contains(addrMode, "]") && !strings.HasSuffix(addrMode, "]") && !strings.HasSuffix(addrMode, "]!") {
-		postIndexed = true
-	}
+	postIndexed := strings.Contains(addrMode, "]") && !strings.HasSuffix(addrMode, "]") && !strings.HasSuffix(addrMode, "]!")
 
 	// Check for pre-indexed with writeback: [Rn, offset]!
 	writeBack := strings.HasSuffix(addrMode, "]!")

@@ -174,7 +174,7 @@ func handleExit(vm *VM) error {
 func handleWriteChar(vm *VM) error {
 	char := vm.CPU.GetRegister(0)
 	fmt.Printf("%c", char)
-	os.Stdout.Sync()
+	_ = os.Stdout.Sync() // Ignore sync errors
 	vm.CPU.IncrementPC()
 	return nil
 }
@@ -202,7 +202,7 @@ func handleWriteString(vm *VM) error {
 	}
 
 	fmt.Print(string(str))
-	os.Stdout.Sync()
+	_ = os.Stdout.Sync() // Ignore sync errors
 	vm.CPU.IncrementPC()
 	return nil
 }
@@ -228,7 +228,7 @@ func handleWriteInt(vm *VM) error {
 		return fmt.Errorf("unsupported base: %d", base)
 	}
 
-	os.Stdout.Sync()
+	_ = os.Stdout.Sync() // Ignore sync errors
 	vm.CPU.IncrementPC()
 	return nil
 }
@@ -554,7 +554,7 @@ func handleWrite(vm *VM) error {
 	} else {
 		vm.CPU.SetRegister(0, uint32(n))
 	}
-	os.Stdout.Sync()
+	_ = os.Stdout.Sync() // Ignore sync errors
 
 	vm.CPU.IncrementPC()
 	return nil
@@ -592,7 +592,7 @@ func handleReallocate(vm *VM) error {
 		vm.CPU.SetRegister(0, 0) // NULL on failure
 	} else {
 		// Would copy old data here in full implementation
-		vm.Memory.Free(oldAddr) // Free old memory
+		_ = vm.Memory.Free(oldAddr) // Free old memory (ignore error if invalid)
 		vm.CPU.SetRegister(0, newAddr)
 	}
 

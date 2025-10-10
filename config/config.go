@@ -206,7 +206,11 @@ func (c *Config) SaveTo(path string) error {
 	if err != nil {
 		return fmt.Errorf("failed to create config file: %w", err)
 	}
-	defer f.Close()
+	defer func() {
+		if closeErr := f.Close(); closeErr != nil && err == nil {
+			err = fmt.Errorf("failed to close config file: %w", closeErr)
+		}
+	}()
 
 	// Encode to TOML
 	encoder := toml.NewEncoder(f)

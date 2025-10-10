@@ -511,9 +511,7 @@ func normalizeRegister(operand string) string {
 // isNumeric checks if a string represents a number
 func isNumeric(s string) bool {
 	s = strings.TrimSpace(s)
-	if strings.HasPrefix(s, "#") {
-		s = strings.TrimPrefix(s, "#")
-	}
+	s = strings.TrimPrefix(s, "#")
 	if strings.HasPrefix(s, "0x") || strings.HasPrefix(s, "0X") {
 		return true
 	}

@@ -15,7 +15,6 @@ type Encoder struct {
 	symbolTable      *parser.SymbolTable
 	currentAddr      uint32
 	LiteralPool      map[uint32]uint32 // address -> value for literal pool (exported)
-	literalCounter   uint32            // Counter for generating unique literal addresses
 	LiteralPoolStart uint32            // Start address for literal pool (set externally)
 }
 
@@ -160,9 +159,7 @@ func (e *Encoder) parseImmediate(imm string) (uint32, error) {
 	}
 
 	// Remove leading # if present
-	if strings.HasPrefix(imm, "#") {
-		imm = imm[1:]
-	}
+	imm = strings.TrimPrefix(imm, "#")
 
 	// Handle character literals like 'A' or ' ' or '\t'
 	if strings.HasPrefix(imm, "'") && strings.HasSuffix(imm, "'") && len(imm) >= 3 {

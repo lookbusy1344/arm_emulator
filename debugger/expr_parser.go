@@ -41,14 +41,6 @@ func (p *ExprParser) advance() {
 	p.pos++
 }
 
-// peek returns the next token without advancing
-func (p *ExprParser) peek() ExprToken {
-	if p.pos+1 >= len(p.tokens) {
-		return ExprToken{Type: ExprTokenEOF}
-	}
-	return p.tokens[p.pos+1]
-}
-
 // operatorPrecedence returns the precedence of an operator
 // Higher numbers = higher precedence
 func operatorPrecedence(op string) int {

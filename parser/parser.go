@@ -98,20 +98,6 @@ func (p *Parser) nextToken() {
 	}
 }
 
-// expectToken checks if current token matches expected type and advances
-func (p *Parser) expectToken(t TokenType) bool {
-	if p.currentToken.Type == t {
-		p.nextToken()
-		return true
-	}
-	p.errors.AddError(NewError(
-		p.currentToken.Pos,
-		ErrorSyntax,
-		fmt.Sprintf("expected %s, got %s", t, p.currentToken.Type),
-	))
-	return false
-}
-
 // skipNewlines skips newline and comment tokens
 func (p *Parser) skipNewlines() {
 	for p.currentToken.Type == TokenNewline || p.currentToken.Type == TokenComment {

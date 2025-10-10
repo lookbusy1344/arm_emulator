@@ -416,7 +416,7 @@ func (m *Memory) Allocate(size uint32) (uint32, error) {
 
 	// Zero the allocated memory
 	for i := uint32(0); i < size; i++ {
-		m.WriteByteAt(addr+i, 0)
+		_ = m.WriteByteAt(addr+i, 0) // Ignore error - address is guaranteed valid
 	}
 
 	return addr, nil
@@ -438,7 +438,7 @@ func (m *Memory) Free(address uint32) error {
 
 	// Zero the freed memory (helps catch use-after-free)
 	for i := uint32(0); i < alloc.Size; i++ {
-		m.WriteByteAt(address+i, 0)
+		_ = m.WriteByteAt(address+i, 0) // Ignore error - address is guaranteed valid
 	}
 
 	return nil
