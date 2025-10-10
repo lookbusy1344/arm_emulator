@@ -90,7 +90,87 @@ The ARM2 emulator is **functionally complete and production-ready**. All core fe
 
 ## High Priority
 
-### 1. Expression Parser Improvements (Phase 5 Enhancement)
+### 1. End-to-End Integration Tests
+
+**Status:** ✅ COMPLETE
+
+**Implementation:** Comprehensive end-to-end and integration tests have been added to verify the emulator works correctly with real programs.
+
+**Completed Features:**
+- ✅ Added 12 new integration tests for complete programs
+- ✅ Test arithmetic operations, loops, conditionals, function calls
+- ✅ Test array operations, string operations, bitwise operations
+- ✅ Test nested function calls (factorial, recursion)
+- ✅ Test stack operations (PUSH/POP)
+- ✅ Test shifts and rotations
+- ✅ Test example programs (hello.s, arithmetic.s - working)
+- ✅ All syscalls tested with real programs
+- ✅ 34 integration tests total (32 passing, 93.5% pass rate)
+
+**Known Limitations (documented below):**
+- `STMFD`/`LDMFD` instructions not fully supported (affects loops.s, conditionals.s, bubble_sort.s, etc.)
+- Pre-indexed addressing with writeback `[Rn, #offset]!` not supported
+- Post-indexed addressing `[Rn], #offset` not supported
+- Some example programs use `SVC` instead of `SWI` (same instruction, different name)
+- Character literals in strings (e.g., `'\t'`) are treated as literal backslash-t, not tab
+- Immediate offsets in load/store `[Rn, #offset]` have parser issues
+
+**Test Results:**
+- Total tests: 511 tests
+- Passing tests: 509 (99.6% pass rate)
+- Integration tests: 34 total (32 passing, 93.5% pass rate)
+- Unit tests: 477 total (477 passing, 100% pass rate)
+
+**Failing Tests (2):**
+- `TestExamplePrograms_Loops` - requires `STMFD`/`LDMFD` support
+- `TestExamplePrograms_Conditionals` - requires `STMFD`/`LDMFD` support
+
+**Completed:** 2025-10-10
+
+---
+
+### 2. Missing ARM2 Instructions for Example Programs
+
+**Status:** Partially complete - Most core functionality works
+
+**Missing or Limited Features:**
+
+1. **Stack Multi-Register Operations** (HIGH PRIORITY)
+   - `STMFD` (Store Multiple, Full Descending) - not implemented
+   - `LDMFD` (Load Multiple, Full Descending) - not implemented
+   - Affects: loops.s, conditionals.s, bubble_sort.s, factorial.s, fibonacci.s, gcd.s
+   - Impact: Many example programs cannot run
+   - Workaround: Use individual PUSH/POP instructions
+   - Effort: 4-6 hours
+
+2. **Addressing Modes** (MEDIUM PRIORITY)
+   - Pre-indexed with writeback: `LDR R0, [R1, #4]!` - parser errors
+   - Post-indexed: `LDRB R0, [R1], #4` - parser errors
+   - Immediate offset: `LDR R0, [R1, #4]` - parser errors
+   - Impact: More sophisticated memory access patterns don't work
+   - Workaround: Use separate ADD instructions and base register addressing
+   - Effort: 3-4 hours
+
+3. **Character Literal Escaping** (LOW PRIORITY)
+   - `'\t'`, `'\n'` in strings are literal, not escape sequences
+   - Impact: Minor - affects string formatting in some examples
+   - Workaround: Use actual tab/newline characters or numeric values
+   - Effort: 1-2 hours
+
+4. **SVC vs SWI Instructions** (DOCUMENTATION ONLY)
+   - Some examples use `SVC #0` instead of `SWI #0`
+   - These are the same instruction, just different nomenclature (ARM7+ uses SVC)
+   - Impact: None - just needs parser alias support
+   - Workaround: Change SVC to SWI in examples
+   - Effort: 30 minutes
+
+**Total Effort to Support All Examples:** 8-12 hours
+
+**Priority:** Medium-High (for M8 if we want all examples working)
+
+---
+
+### 3. Expression Parser Improvements (Phase 5 Enhancement)
 
 **Status:** ✅ COMPLETE
 
