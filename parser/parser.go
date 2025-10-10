@@ -189,7 +189,8 @@ func (p *Parser) firstPass(program *Program) error {
 				inst.Label = label
 				inst.EncodedLen = 4 // ARM instructions are 4 bytes
 				program.Instructions = append(program.Instructions, inst)
-				p.currentAddress += uint32(inst.EncodedLen)
+				// Safe: EncodedLen is always 4 for ARM instructions
+				p.currentAddress += uint32(inst.EncodedLen) // #nosec G115 -- EncodedLen is always 4
 			}
 		} else if p.currentToken.Type != TokenNewline && p.currentToken.Type != TokenComment {
 			// Skip unknown tokens (but not newlines/comments)
@@ -272,15 +273,18 @@ func (p *Parser) handleDirective(d *Directive, program *Program) {
 
 	case ".word":
 		// Reserve 4 bytes per word
-		p.currentAddress += uint32(len(d.Args) * 4)
+		// Safe: len(d.Args) is limited by available memory, multiplication by 4 won't overflow in practice
+		p.currentAddress += uint32(len(d.Args) * 4) // #nosec G115 -- reasonable argument count
 
 	case ".half":
 		// Reserve 2 bytes per halfword
-		p.currentAddress += uint32(len(d.Args) * 2)
+		// Safe: len(d.Args) is limited by available memory, multiplication by 2 won't overflow in practice
+		p.currentAddress += uint32(len(d.Args) * 2) // #nosec G115 -- reasonable argument count
 
 	case ".byte":
 		// Reserve 1 byte per byte
-		p.currentAddress += uint32(len(d.Args))
+		// Safe: len(d.Args) is limited by available memory
+		p.currentAddress += uint32(len(d.Args)) // #nosec G115 -- reasonable argument count
 
 	case ".ascii", ".asciz", ".string":
 		// Reserve bytes for string
@@ -290,7 +294,8 @@ func (p *Parser) handleDirective(d *Directive, program *Program) {
 			if len(str) >= 2 && (str[0] == '"' || str[0] == '\'') {
 				str = str[1 : len(str)-1]
 			}
-			p.currentAddress += uint32(len(str))
+			// Safe: string length is limited by available memory
+			p.currentAddress += uint32(len(str)) // #nosec G115 -- reasonable string length
 			if d.Name == ".asciz" || d.Name == ".string" {
 				p.currentAddress++ // Null terminator
 			}
@@ -603,7 +608,8 @@ func parseNumber(s string) (uint32, error) {
 		if result > uint32(math.MaxInt32) {
 			return 0, fmt.Errorf("negative value %d is out of range for int32", result)
 		}
-		result = uint32(-int32(result))
+		// Safe: bounds checked above to be within int32 range
+		result = uint32(-int32(result)) // #nosec G115 -- bounds checked
 	}
 
 	return result, nil

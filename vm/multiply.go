@@ -52,7 +52,8 @@ func ExecuteMultiply(vm *VM, inst *Instruction) error {
 	// Increment cycle count (multiply takes variable cycles: 2-16)
 	// For simplicity, we use a fixed count based on the value
 	cycles := calculateMultiplyCycles(op2)
-	vm.CPU.IncrementCycles(uint64(cycles - 1)) // -1 because Step() already adds 1
+	// Safe: cycles is in range [2, 16], well within uint64 range
+	vm.CPU.IncrementCycles(uint64(cycles - 1)) // #nosec G115 -- cycles is 2-16, -1 because Step() already adds 1
 
 	return nil
 }

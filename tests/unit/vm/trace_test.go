@@ -235,7 +235,7 @@ func TestMemoryTrace_MaxEntries(t *testing.T) {
 
 	// Record more than max
 	for i := 0; i < 10; i++ {
-		trace.RecordRead(uint64(i), 0x8000, 0x20000, 0, "WORD")
+		trace.RecordRead(uint64(i), 0x8000, 0x20000, 0, "WORD") // #nosec G115 -- test loop counter, known safe range
 	}
 
 	// Should only have MaxEntries

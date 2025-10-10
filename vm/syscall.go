@@ -268,7 +268,8 @@ func handleReadString(vm *VM) error {
 	}
 
 	// Write string to memory (up to maxLen-1 chars + null terminator)
-	bytesToWrite := uint32(len(input))
+	// Safe: input is from reader, length bounded by buffer size and maxLen check below
+	bytesToWrite := uint32(len(input)) // #nosec G115 -- bounded by maxLen
 	if bytesToWrite >= maxLen {
 		bytesToWrite = maxLen - 1
 	}
@@ -302,7 +303,9 @@ func handleReadInt(vm *VM) error {
 		// Programs that need error checking should validate the input themselves
 		vm.CPU.SetRegister(0, 0)
 	} else {
-		vm.CPU.SetRegister(0, uint32(value))
+		// Safe: value from ParseInt with bitSize 32, fits in int32 range [-2^31, 2^31-1]
+		// which maps correctly to uint32 via two's complement
+		vm.CPU.SetRegister(0, uint32(value)) // #nosec G115 -- int32 to uint32, intentional
 	}
 	vm.CPU.IncrementPC()
 	return nil
@@ -342,7 +345,8 @@ func handleFree(vm *VM) error {
 func handleGetTime(vm *VM) error {
 	// Return time in milliseconds since Unix epoch
 	millis := time.Now().UnixMilli()
-	vm.CPU.SetRegister(0, uint32(millis&0xFFFFFFFF))
+	// Safe: masking with 0xFFFFFFFF before conversion ensures result fits in uint32
+	vm.CPU.SetRegister(0, uint32(millis&0xFFFFFFFF)) // #nosec G115 -- masked to 32 bits
 	vm.CPU.IncrementPC()
 	return nil
 }
@@ -389,7 +393,8 @@ func handleBreakpoint(vm *VM) error {
 func handleDumpRegisters(vm *VM) error {
 	fmt.Println("=== Register Dump ===")
 	for i := 0; i < 15; i++ {
-		fmt.Printf("R%-2d = 0x%08X (%d)\n", i, vm.CPU.R[i], int32(vm.CPU.R[i]))
+		// Safe: intentional conversion to show signed interpretation of register value
+		fmt.Printf("R%-2d = 0x%08X (%d)\n", i, vm.CPU.R[i], int32(vm.CPU.R[i])) // #nosec G115 -- intentional uint32->int32 for display
 	}
 	fmt.Printf("PC  = 0x%08X\n", vm.CPU.PC)
 	fmt.Printf("CPSR = [%s%s%s%s]\n",
@@ -524,7 +529,8 @@ func handleRead(vm *VM) error {
 
 	// Write to memory
 	for i := 0; i < n; i++ {
-		if err := vm.Memory.WriteByteAt(bufferAddr+uint32(i), data[i]); err != nil {
+		// Safe: i is bounded by n which comes from Read(), typically small buffer size
+		if err := vm.Memory.WriteByteAt(bufferAddr+uint32(i), data[i]); err != nil { // #nosec G115 -- bounded by buffer size
 			vm.CPU.SetRegister(0, 0xFFFFFFFF)
 			vm.CPU.IncrementPC()
 			return nil

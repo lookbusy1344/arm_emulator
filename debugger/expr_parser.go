@@ -251,7 +251,9 @@ func (p *ExprParser) parseNumberValue(s string) (uint32, error) {
 	result, err := vm.SafeInt64ToUint32(val)
 	if err != nil {
 		// If negative, interpret as two's complement
-		return uint32(val), nil
+		// Safe: ParseInt with bitSize 32 ensures val fits in int32 range [-2^31, 2^31-1]
+		// which maps correctly to uint32 via two's complement
+		return uint32(val), nil // #nosec G115 -- intentional two's complement conversion
 	}
 	return result, nil
 }
