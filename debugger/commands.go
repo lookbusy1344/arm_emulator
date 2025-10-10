@@ -362,7 +362,7 @@ func (d *Debugger) cmdExamine(args []string) error {
 
 		switch unit {
 		case 'b': // byte
-			val, e := d.VM.Memory.ReadByte(address)
+			val, e := d.VM.Memory.ReadByteAt(address)
 			value = uint32(val)
 			readErr = e
 			address++

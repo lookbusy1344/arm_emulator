@@ -5,3 +5,7 @@ target/
 copilotDiffState.xml
 copilot.data.*.xml
 /arm-emulator
+/tmp/
+*.prof
+coverage.out
+*.log

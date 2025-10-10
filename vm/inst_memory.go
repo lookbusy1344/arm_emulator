@@ -71,7 +71,7 @@ func ExecuteLoadStore(v *VM, inst *Instruction) error {
 			err = err2
 		} else if byteTransfer == 1 {
 			// Load byte
-			byteValue, err2 := vm.Memory.ReadByte(accessAddr)
+			byteValue, err2 := vm.Memory.ReadByteAt(accessAddr)
 			value = uint32(byteValue)
 			err = err2
 		} else {
@@ -94,7 +94,7 @@ func ExecuteLoadStore(v *VM, inst *Instruction) error {
 			err = vm.Memory.WriteHalfword(accessAddr, uint16(value))
 		} else if byteTransfer == 1 {
 			// Store byte
-			err = vm.Memory.WriteByte(accessAddr, uint8(value))
+			err = vm.Memory.WriteByteAt(accessAddr, uint8(value))
 		} else {
 			// Store word
 			err = vm.Memory.WriteWord(accessAddr, value)

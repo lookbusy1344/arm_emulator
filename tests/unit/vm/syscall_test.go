@@ -321,9 +321,9 @@ func TestSWI_Assert_Pass(t *testing.T) {
 	msgAddr := uint32(0x10000)
 	msg := "Test assertion"
 	for i, c := range msg {
-		v.Memory.WriteByte(msgAddr+uint32(i), byte(c))
+		v.Memory.WriteByteAt(msgAddr+uint32(i), byte(c))
 	}
-	v.Memory.WriteByte(msgAddr+uint32(len(msg)), 0) // Null terminator
+	v.Memory.WriteByteAt(msgAddr+uint32(len(msg)), 0) // Null terminator
 
 	v.CPU.R[0] = 1 // Condition is true
 	v.CPU.R[1] = msgAddr
@@ -353,9 +353,9 @@ func TestSWI_Assert_Fail(t *testing.T) {
 	msgAddr := uint32(0x10000)
 	msg := "Assertion failed message"
 	for i, c := range msg {
-		v.Memory.WriteByte(msgAddr+uint32(i), byte(c))
+		v.Memory.WriteByteAt(msgAddr+uint32(i), byte(c))
 	}
-	v.Memory.WriteByte(msgAddr+uint32(len(msg)), 0) // Null terminator
+	v.Memory.WriteByteAt(msgAddr+uint32(len(msg)), 0) // Null terminator
 
 	v.CPU.R[0] = 0 // Condition is false
 	v.CPU.R[1] = msgAddr

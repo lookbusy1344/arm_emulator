@@ -53,7 +53,7 @@ func TestLDRB_LoadByte(t *testing.T) {
 	v.CPU.PC = 0x8000
 
 	// Write test data
-	v.Memory.WriteByte(0x20000, 0xAB)
+	v.Memory.WriteByteAt(0x20000, 0xAB)
 
 	// LDRB R0, [R1] (E5D10000)
 	opcode := uint32(0xE5D10000)
@@ -79,7 +79,7 @@ func TestSTRB_StoreByte(t *testing.T) {
 	v.Memory.WriteWord(0x8000, opcode)
 	v.Step()
 
-	value, _ := v.Memory.ReadByte(0x20000)
+	value, _ := v.Memory.ReadByteAt(0x20000)
 	if value != 0x78 {
 		t.Errorf("expected memory[0x20000]=0x78, got 0x%X", value)
 	}

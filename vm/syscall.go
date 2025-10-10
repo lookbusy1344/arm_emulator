@@ -159,7 +159,7 @@ func handleWriteString(vm *VM) error {
 	// Read null-terminated string from memory
 	var str []byte
 	for {
-		b, err := vm.Memory.ReadByte(addr)
+		b, err := vm.Memory.ReadByteAt(addr)
 		if err != nil {
 			return fmt.Errorf("failed to read string at 0x%08X: %w", addr, err)
 		}
@@ -243,7 +243,7 @@ func handleReadString(vm *VM) error {
 	}
 
 	for i := uint32(0); i < bytesToWrite; i++ {
-		if err := vm.Memory.WriteByte(addr+i, input[i]); err != nil {
+		if err := vm.Memory.WriteByteAt(addr+i, input[i]); err != nil {
 			vm.CPU.SetRegister(0, 0xFFFFFFFF) // Return -1 on error
 			vm.CPU.IncrementPC()
 			return nil
@@ -251,7 +251,7 @@ func handleReadString(vm *VM) error {
 	}
 
 	// Write null terminator
-	if err := vm.Memory.WriteByte(addr+bytesToWrite, 0); err != nil {
+	if err := vm.Memory.WriteByteAt(addr+bytesToWrite, 0); err != nil {
 		vm.CPU.SetRegister(0, 0xFFFFFFFF)
 		vm.CPU.IncrementPC()
 		return nil
@@ -329,7 +329,7 @@ func handleDebugPrint(vm *VM) error {
 	// Read null-terminated string from memory
 	var str []byte
 	for {
-		b, err := vm.Memory.ReadByte(addr)
+		b, err := vm.Memory.ReadByteAt(addr)
 		if err != nil {
 			return fmt.Errorf("failed to read debug string at 0x%08X: %w", addr, err)
 		}
@@ -386,7 +386,7 @@ func handleDumpMemory(vm *VM) error {
 
 		// Hex bytes
 		for j := uint32(0); j < 16 && i+j < length; j++ {
-			b, err := vm.Memory.ReadByte(addr + i + j)
+			b, err := vm.Memory.ReadByteAt(addr + i + j)
 			if err != nil {
 				fmt.Printf("?? ")
 			} else {
@@ -397,7 +397,7 @@ func handleDumpMemory(vm *VM) error {
 		// ASCII representation
 		fmt.Print(" |")
 		for j := uint32(0); j < 16 && i+j < length; j++ {
-			b, err := vm.Memory.ReadByte(addr + i + j)
+			b, err := vm.Memory.ReadByteAt(addr + i + j)
 			if err != nil || b < 32 || b > 126 {
 				fmt.Print(".")
 			} else {
@@ -421,7 +421,7 @@ func handleOpen(vm *VM) error {
 	var filename []byte
 	addr := filenameAddr
 	for {
-		b, err := vm.Memory.ReadByte(addr)
+		b, err := vm.Memory.ReadByteAt(addr)
 		if err != nil {
 			vm.CPU.SetRegister(0, 0xFFFFFFFF)
 			vm.CPU.IncrementPC()
@@ -492,7 +492,7 @@ func handleRead(vm *VM) error {
 
 	// Write to memory
 	for i := 0; i < n; i++ {
-		if err := vm.Memory.WriteByte(bufferAddr+uint32(i), data[i]); err != nil {
+		if err := vm.Memory.WriteByteAt(bufferAddr+uint32(i), data[i]); err != nil {
 			vm.CPU.SetRegister(0, 0xFFFFFFFF)
 			vm.CPU.IncrementPC()
 			return nil
@@ -512,7 +512,7 @@ func handleWrite(vm *VM) error {
 	// Read data from memory
 	data := make([]byte, length)
 	for i := uint32(0); i < length; i++ {
-		b, err := vm.Memory.ReadByte(bufferAddr + i)
+		b, err := vm.Memory.ReadByteAt(bufferAddr + i)
 		if err != nil {
 			vm.CPU.SetRegister(0, 0xFFFFFFFF)
 			vm.CPU.IncrementPC()
@@ -632,7 +632,7 @@ func handleAssert(vm *VM) error {
 		var msg []byte
 		addr := msgAddr
 		for {
-			b, err := vm.Memory.ReadByte(addr)
+			b, err := vm.Memory.ReadByteAt(addr)
 			if err != nil || b == 0 {
 				break
 			}

@@ -107,8 +107,8 @@ func (m *Memory) checkAlignment(address uint32, size int) error {
 	return nil
 }
 
-// ReadByte reads a single byte from memory
-func (m *Memory) ReadByte(address uint32) (byte, error) {
+// ReadByteAt reads a single byte from memory at the specified address
+func (m *Memory) ReadByteAt(address uint32) (byte, error) {
 	seg, offset, err := m.findSegment(address)
 	if err != nil {
 		return 0, err
@@ -123,8 +123,8 @@ func (m *Memory) ReadByte(address uint32) (byte, error) {
 	return seg.Data[offset], nil
 }
 
-// WriteByte writes a single byte to memory
-func (m *Memory) WriteByte(address uint32, value byte) error {
+// WriteByteAt writes a single byte to memory at the specified address
+func (m *Memory) WriteByteAt(address uint32, value byte) error {
 	seg, offset, err := m.findSegment(address)
 	if err != nil {
 		return err
@@ -279,7 +279,7 @@ func (m *Memory) WriteWord(address uint32, value uint32) error {
 // LoadBytes loads a byte array into memory at the specified address
 func (m *Memory) LoadBytes(address uint32, data []byte) error {
 	for i, b := range data {
-		if err := m.WriteByte(address+uint32(i), b); err != nil {
+		if err := m.WriteByteAt(address+uint32(i), b); err != nil {
 			return fmt.Errorf("failed to load byte at offset %d: %w", i, err)
 		}
 	}
@@ -337,7 +337,7 @@ func (m *Memory) WriteWordUnsafe(address uint32, value uint32) error {
 func (m *Memory) GetBytes(address uint32, length uint32) ([]byte, error) {
 	result := make([]byte, length)
 	for i := uint32(0); i < length; i++ {
-		b, err := m.ReadByte(address + i)
+		b, err := m.ReadByteAt(address + i)
 		if err != nil {
 			return nil, fmt.Errorf("failed to read byte at offset %d: %w", i, err)
 		}
@@ -416,7 +416,7 @@ func (m *Memory) Allocate(size uint32) (uint32, error) {
 
 	// Zero the allocated memory
 	for i := uint32(0); i < size; i++ {
-		m.WriteByte(addr+i, 0)
+		m.WriteByteAt(addr+i, 0)
 	}
 
 	return addr, nil
@@ -438,7 +438,7 @@ func (m *Memory) Free(address uint32) error {
 
 	// Zero the freed memory (helps catch use-after-free)
 	for i := uint32(0); i < alloc.Size; i++ {
-		m.WriteByte(address+i, 0)
+		m.WriteByteAt(address+i, 0)
 	}
 
 	return nil

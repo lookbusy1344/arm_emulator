@@ -384,7 +384,7 @@ func (t *TUI) UpdateMemoryView() {
 
 		for col := 0; col < 16; col++ {
 			byteAddr := rowAddr + uint32(col)
-			b, err := t.Debugger.VM.Memory.ReadByte(byteAddr)
+			b, err := t.Debugger.VM.Memory.ReadByteAt(byteAddr)
 			if err != nil {
 				hexBytes = append(hexBytes, "??")
 				asciiBytes = append(asciiBytes, '.')
