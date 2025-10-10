@@ -53,6 +53,7 @@ type Parser struct {
 	macroExpander  *MacroExpander
 	preprocessor   *Preprocessor
 	currentAddress uint32
+	originSet      bool // Track if .org directive has been encountered
 }
 
 // NewParser creates a new parser
@@ -193,7 +194,7 @@ func (p *Parser) firstPass(program *Program) error {
 			if directive != nil {
 				directive.Label = label
 				program.Directives = append(program.Directives, directive)
-				p.handleDirective(directive)
+				p.handleDirective(directive, program)
 			}
 		} else if p.currentToken.Type == TokenIdentifier {
 			// Parse instruction
@@ -253,13 +254,18 @@ func (p *Parser) parseDirective() *Directive {
 }
 
 // handleDirective processes directives that affect assembly state
-func (p *Parser) handleDirective(d *Directive) {
+func (p *Parser) handleDirective(d *Directive, program *Program) {
 	switch d.Name {
 	case ".org":
 		// Set origin address
 		if len(d.Args) > 0 {
 			if addr, err := parseNumber(d.Args[0]); err == nil {
 				p.currentAddress = addr
+				// Set program origin if this is the first .org directive
+				if !p.originSet {
+					program.Origin = addr
+					p.originSet = true
+				}
 			} else {
 				p.errors.AddError(NewError(d.Pos, ErrorSyntax, fmt.Sprintf("invalid .org address: %s", d.Args[0])))
 			}

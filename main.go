@@ -100,10 +100,18 @@ func main() {
 
 	// Parse entry point
 	var entryAddr uint32
-	if _, err := fmt.Sscanf(*entryPoint, "0x%x", &entryAddr); err != nil {
-		if _, err := fmt.Sscanf(*entryPoint, "%d", &entryAddr); err != nil {
-			fmt.Fprintf(os.Stderr, "Invalid entry point: %s\n", *entryPoint)
-			os.Exit(1)
+	// If entry point is default and program has .org directive, use that
+	if *entryPoint == "0x8000" && program.Origin != 0 {
+		entryAddr = program.Origin
+		if *verboseMode {
+			fmt.Printf("Using .org directive address: 0x%08X\n", entryAddr)
+		}
+	} else {
+		if _, err := fmt.Sscanf(*entryPoint, "0x%x", &entryAddr); err != nil {
+			if _, err := fmt.Sscanf(*entryPoint, "%d", &entryAddr); err != nil {
+				fmt.Fprintf(os.Stderr, "Invalid entry point: %s\n", *entryPoint)
+				os.Exit(1)
+			}
 		}
 	}
 
@@ -337,6 +345,14 @@ func loadProgramIntoVM(machine *vm.VM, program *parser.Program, entryPoint uint3
 
 	for _, inst := range program.Instructions {
 		addressMap[inst] = dataAddr
+
+		// Update symbol table with actual load address for instruction labels
+		if inst.Label != "" {
+			if err := program.SymbolTable.UpdateAddress(inst.Label, dataAddr); err != nil {
+				return fmt.Errorf("failed to update instruction label %s address: %w", inst.Label, err)
+			}
+		}
+
 		dataAddr += 4 // Each instruction is 4 bytes
 	}
 
