@@ -46,7 +46,7 @@ _start:
         BL      stack_pop
         MOV     R7, R0
         BL      stack_pop
-        MUL     R0, R0, R7
+        MUL     R0, R7, R0      ; Fixed: Rd must differ from Rm
         BL      stack_push
 
         ; Result is on top of stack

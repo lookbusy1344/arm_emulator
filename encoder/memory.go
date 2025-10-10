@@ -40,6 +40,13 @@ func (e *Encoder) encodeMemory(inst *parser.Instruction, cond uint32) (uint32, e
 	// Parse addressing mode
 	addrMode := inst.Operands[1]
 
+	// Check for post-indexed addressing: [Rn], offset
+	// Parser splits this into two operands: "[Rn]" and "offset"
+	if len(inst.Operands) > 2 && strings.HasSuffix(addrMode, "]") && !strings.HasSuffix(addrMode, "]!") {
+		// Combine the bracket part with the offset: "[Rn]" + "," + "#offset"
+		addrMode = addrMode + "," + inst.Operands[2]
+	}
+
 	// Determine L bit (1 for load, 0 for store)
 	var lBit uint32
 	if strings.HasPrefix(mnemonic, "LDR") {
@@ -71,7 +78,7 @@ func (e *Encoder) encodeAddressingMode(cond, lBit, bBit, rd uint32, addrMode str
 	}
 
 	// Check for post-indexed: [Rn], offset
-	postIndexed := strings.Contains(addrMode, "]") && !strings.HasSuffix(addrMode, "]") && !strings.HasSuffix(addrMode, "]!")
+	postIndexed := strings.Contains(addrMode, "],")
 
 	// Check for pre-indexed with writeback: [Rn, offset]!
 	writeBack := strings.HasSuffix(addrMode, "]!")
@@ -79,12 +86,19 @@ func (e *Encoder) encodeAddressingMode(cond, lBit, bBit, rd uint32, addrMode str
 		addrMode = strings.TrimSuffix(addrMode, "!")
 	}
 
-	// Remove brackets
-	addrMode = strings.TrimPrefix(addrMode, "[")
-	addrMode = strings.TrimSuffix(addrMode, "]")
-
-	// Split into base register and offset
-	parts := strings.Split(addrMode, ",")
+	// Remove brackets and split
+	var parts []string
+	if postIndexed {
+		// Post-indexed: "[Rn],offset" → split on "]," then clean up
+		addrMode = strings.TrimPrefix(addrMode, "[")
+		parts = strings.Split(addrMode, "],")
+		// parts[0] is "Rn", parts[1] is "offset"
+	} else {
+		// Pre-indexed or offset: "[Rn,offset]" or "[Rn]"
+		addrMode = strings.TrimPrefix(addrMode, "[")
+		addrMode = strings.TrimSuffix(addrMode, "]")
+		parts = strings.Split(addrMode, ",")
+	}
 	rn, err := e.parseRegister(strings.TrimSpace(parts[0]))
 	if err != nil {
 		return 0, err
