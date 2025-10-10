@@ -66,7 +66,7 @@ while_done:
         MOV     R6, R4          ; i = n
 
 do_while_loop:
-        MUL     R5, R5, R6      ; result *= i
+        MUL     R5, R6, R5      ; result *= i (R5 = R6 * R5)
         SUB     R6, R6, #1      ; i--
         CMP     R6, #0
         BGT     do_while_loop

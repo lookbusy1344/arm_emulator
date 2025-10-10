@@ -313,10 +313,11 @@ func (p *Parser) handleDirective(d *Directive) {
 		}
 
 	case ".align":
-		// Align to power of 2
+		// Align to power of 2 (e.g., .align 2 means align to 2^2 = 4 bytes)
 		if len(d.Args) > 0 {
-			if align, err := parseNumber(d.Args[0]); err == nil {
-				mask := align - 1
+			if alignPower, err := parseNumber(d.Args[0]); err == nil {
+				alignBytes := uint32(1 << alignPower) // 2^alignPower
+				mask := alignBytes - 1
 				p.currentAddress = (p.currentAddress + mask) & ^mask
 			}
 		}
@@ -380,15 +381,20 @@ func (p *Parser) parseOperand() string {
 	// Handle different operand types
 	switch p.currentToken.Type {
 	case TokenHash:
-		// Immediate value: #123
+		// Immediate value: #123 or #'A'
 		parts = append(parts, "#")
 		p.nextToken()
-		if p.currentToken.Type == TokenNumber || p.currentToken.Type == TokenIdentifier || p.currentToken.Type == TokenMinus {
+		if p.currentToken.Type == TokenNumber || p.currentToken.Type == TokenIdentifier || p.currentToken.Type == TokenMinus || p.currentToken.Type == TokenString {
 			if p.currentToken.Type == TokenMinus {
 				parts = append(parts, "-")
 				p.nextToken()
 			}
-			parts = append(parts, p.currentToken.Literal)
+			// Handle character literals: #'A'
+			if p.currentToken.Type == TokenString {
+				parts = append(parts, "'"+p.currentToken.Literal+"'")
+			} else {
+				parts = append(parts, p.currentToken.Literal)
+			}
 			p.nextToken()
 		}
 		// Return without joining with spaces for #value
@@ -459,6 +465,14 @@ func (p *Parser) parseOperand() string {
 		// Register or label
 		parts = append(parts, p.currentToken.Literal)
 		p.nextToken()
+
+		// Check for writeback: R13! or SP!
+		if p.currentToken.Type == TokenExclaim {
+			parts = append(parts, "!")
+			p.nextToken()
+			// Return immediately for writeback syntax
+			return strings.Join(parts, "")
+		}
 
 		// Check for shift operations: Rm, LSL #shift
 		if p.currentToken.Type == TokenComma {

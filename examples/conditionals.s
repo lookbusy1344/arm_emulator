@@ -72,7 +72,7 @@ ex3_done2:
         LDR     R0, =msg_ex4
         SWI     #0x02           ; WRITE_STRING
 
-        MOV     R0, #3          ; Wednesday (0=Monday)
+        MOV     R0, #2          ; Wednesday (0=Monday)
         BL      day_name
 
         SWI     #0x02           ; WRITE_STRING

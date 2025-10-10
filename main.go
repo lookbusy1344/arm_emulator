@@ -344,18 +344,59 @@ func loadProgramIntoVM(machine *vm.VM, program *parser.Program, entryPoint uint3
 
 	// Process data directives
 	for _, directive := range program.Directives {
+		// Update label address in symbol table if this directive has a label
+		if directive.Label != "" {
+			if err := program.SymbolTable.UpdateAddress(directive.Label, dataAddr); err != nil {
+				return fmt.Errorf("failed to update label %s address: %w", directive.Label, err)
+			}
+		}
+
 		switch directive.Name {
 		case ".org":
 			// .org directive is handled at parse time, skip it here
 			continue
 
+		case ".align":
+			// Align to power of 2 (e.g., .align 2 means align to 2^2 = 4 bytes)
+			if len(directive.Args) > 0 {
+				var alignPower uint32
+				if _, err := fmt.Sscanf(directive.Args[0], "0x%x", &alignPower); err != nil {
+					if _, err := fmt.Sscanf(directive.Args[0], "%d", &alignPower); err != nil {
+						return fmt.Errorf("invalid .align value: %s", directive.Args[0])
+					}
+				}
+				alignBytes := uint32(1 << alignPower) // 2^alignPower
+				mask := alignBytes - 1
+				dataAddr = (dataAddr + mask) & ^mask
+			}
+
+		case ".balign":
+			// Align to specified boundary
+			if len(directive.Args) > 0 {
+				var align uint32
+				if _, err := fmt.Sscanf(directive.Args[0], "0x%x", &align); err != nil {
+					if _, err := fmt.Sscanf(directive.Args[0], "%d", &align); err != nil {
+						return fmt.Errorf("invalid .balign value: %s", directive.Args[0])
+					}
+				}
+				if dataAddr%align != 0 {
+					dataAddr += align - (dataAddr % align)
+				}
+			}
+
 		case ".word":
 			// Write 32-bit words
 			for _, arg := range directive.Args {
 				var value uint32
+				// Try to parse as a number first
 				if _, err := fmt.Sscanf(arg, "0x%x", &value); err != nil {
 					if _, err := fmt.Sscanf(arg, "%d", &value); err != nil {
-						return fmt.Errorf("invalid .word value: %s", arg)
+						// Not a number, try to look up as a symbol (label)
+						symValue, symErr := program.SymbolTable.Get(arg)
+						if symErr != nil {
+							return fmt.Errorf("invalid .word value %q: %w", arg, symErr)
+						}
+						value = symValue
 					}
 				}
 				if err := machine.Memory.WriteWordUnsafe(dataAddr, value); err != nil {

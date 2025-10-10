@@ -164,6 +164,43 @@ func (e *Encoder) parseImmediate(imm string) (uint32, error) {
 		imm = imm[1:]
 	}
 
+	// Handle character literals like 'A' or ' ' or '\t'
+	if strings.HasPrefix(imm, "'") && strings.HasSuffix(imm, "'") && len(imm) >= 3 {
+		charLiteral := imm[1 : len(imm)-1] // Remove quotes
+
+		// Handle escape sequences
+		if strings.HasPrefix(charLiteral, "\\") {
+			if len(charLiteral) != 2 {
+				return 0, fmt.Errorf("invalid character literal: %s", imm)
+			}
+			escapeChar := charLiteral[1]
+			switch escapeChar {
+			case 'n':
+				return uint32('\n'), nil
+			case 't':
+				return uint32('\t'), nil
+			case 'r':
+				return uint32('\r'), nil
+			case '0':
+				return 0, nil
+			case '\\':
+				return uint32('\\'), nil
+			case '\'':
+				return uint32('\''), nil
+			case '"':
+				return uint32('"'), nil
+			default:
+				return 0, fmt.Errorf("invalid escape sequence: \\%c", escapeChar)
+			}
+		}
+
+		// Regular character literal
+		if len(charLiteral) != 1 {
+			return 0, fmt.Errorf("character literal must contain exactly one character: %s", imm)
+		}
+		return uint32(charLiteral[0]), nil
+	}
+
 	// Handle negative numbers
 	negative := false
 	if strings.HasPrefix(imm, "-") {

@@ -81,6 +81,16 @@ func (st *SymbolTable) Define(name string, symType SymbolType, value uint32, pos
 	return nil
 }
 
+// UpdateAddress updates the address of an existing symbol
+func (st *SymbolTable) UpdateAddress(name string, value uint32) error {
+	sym, exists := st.symbols[name]
+	if !exists {
+		return fmt.Errorf("symbol %q not found", name)
+	}
+	sym.Value = value
+	return nil
+}
+
 // Reference marks a symbol as referenced at a position
 func (st *SymbolTable) Reference(name string, pos Position) {
 	if sym, exists := st.symbols[name]; exists {

@@ -95,18 +95,57 @@ func loadProgramIntoVM(machine *vm.VM, program *parser.Program, entryPoint uint3
 
 	// Process data directives
 	for _, directive := range program.Directives {
+		// Update label address in symbol table if this directive has a label
+		if directive.Label != "" {
+			if err := program.SymbolTable.UpdateAddress(directive.Label, dataAddr); err != nil {
+				return err
+			}
+		}
+
 		switch directive.Name {
 		case ".org":
 			// .org directive is handled at parse time, skip it here
 			continue
 
+		case ".align":
+			// Align to power of 2 (e.g., .align 2 means align to 2^2 = 4 bytes)
+			if len(directive.Args) > 0 {
+				var alignPower uint32
+				_, err := parseValue(directive.Args[0], &alignPower)
+				if err != nil {
+					return err
+				}
+				alignBytes := uint32(1 << alignPower) // 2^alignPower
+				mask := alignBytes - 1
+				dataAddr = (dataAddr + mask) & ^mask
+			}
+
+		case ".balign":
+			// Align to specified boundary
+			if len(directive.Args) > 0 {
+				var align uint32
+				_, err := parseValue(directive.Args[0], &align)
+				if err != nil {
+					return err
+				}
+				if dataAddr%align != 0 {
+					dataAddr += align - (dataAddr % align)
+				}
+			}
+
 		case ".word":
 			// Write 32-bit words
 			for _, arg := range directive.Args {
 				var value uint32
-				_, err := parseValue(arg, &value)
-				if err != nil {
-					return err
+				// Check if it's a symbol first (labels are more common than numbers in .word)
+				if symValue, symErr := program.SymbolTable.Get(arg); symErr == nil {
+					value = symValue
+				} else {
+					// Try to parse as a number
+					_, err := parseValue(arg, &value)
+					if err != nil {
+						return err
+					}
 				}
 				if err := machine.Memory.WriteWordUnsafe(dataAddr, value); err != nil {
 					return err
