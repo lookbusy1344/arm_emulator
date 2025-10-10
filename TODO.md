@@ -12,32 +12,123 @@ It should not contain completed items or notes about past work. Those belong in 
 
 **Status:** All 10 core phases complete! Phase 11 (Production Hardening) in progress.
 
-The ARM2 emulator is **functionally complete**. All core features work:
+The ARM2 emulator is **mostly functional** but has critical issues in example programs:
 - ✅ All ARM2 instructions implemented and tested
 - ✅ Full debugger with TUI
-- ✅ All system calls functional
+- ⚠️ System calls have input handling issues (SYS_READ_INT returns 0/-1 without user input)
 - ✅ 511 tests (509 passing, 99.6% pass rate)
 - ✅ Cross-platform configuration
 - ✅ Tracing and performance statistics
 - ✅ Development tools (linter, formatter, xref)
-- ✅ 17 example programs
+- ⚠️ 17 example programs (only 6/17 passing, 11 with critical issues)
 - ✅ Comprehensive documentation
 - ✅ Code quality tools (golangci-lint integrated, 0 lint issues)
 
 **Remaining Work:**
+- **Critical Priority:** Fix example program malfunctions (input handling, memory permissions, encoding errors)
 - **High Priority:** CI/CD enhancements (matrix builds, code coverage), cross-platform testing
 - **Medium Priority:** Release pipeline, installation packages, performance benchmarking
 - **Low Priority:** Character literal support (2 failing tests), trace/stats integration, advanced features
 
-**Estimated effort to v1.0.0:** 45-65 hours (reduced from 50-70)
+**Estimated effort to v1.0.0:** 55-80 hours (increased from 45-65 due to example program issues)
 
 ---
 
 ## Known Issues
 
+### Example Program Malfunctions (11 of 17 programs have issues)
+
+**Testing Date:** 2025-10-10
+
+**Passing Programs (6/17):**
+- ✅ hello.s - Works correctly
+- ✅ arithmetic.s - Works correctly
+- ✅ gcd.s - Works correctly (but reads 0,0 without user input)
+- ✅ loops.s - Works correctly
+- ✅ conditionals.s - Works correctly
+- ✅ arrays.s - Partial success (crashes with unimplemented SWI 0xCD near end)
+
+**Failing Programs (11/17):**
+
+1. **times_table.s** - Runtime error: "unsupported base: 4294967295"
+   - Error at PC=0x00008078
+   - Appears to be related to input parsing
+
+2. **factorial.s** - Runtime error: "unsupported base: 4294967295"
+   - Error at PC=0x000080BC
+   - Same input parsing issue as times_table.s
+
+3. **fibonacci.s** - Input validation failure
+   - Prints "Error: Please enter a positive number"
+   - Never receives valid input (reads 0 without user input)
+
+4. **string_reverse.s** - Input failure
+   - Prints "Error: Empty string"
+   - Never receives string input
+
+5. **functions.s** - Memory access error
+   - Error at PC=0x000080C4: "write permission denied for segment 'code' at 0x0000827C"
+   - Attempting to write to code segment
+
+6. **strings.s** - Infinite loop
+   - Runtime error: "cycle limit exceeded (1000000 cycles)"
+   - Error at PC=0x00008144
+
+7. **stack.s** - Memory access error
+   - Error at PC=0x00008128: "write permission denied for segment 'code' at 0x00008304"
+   - Attempting to write to code segment
+
+8. **linked_list.s** - Encoding error
+   - "failed to encode instruction at 0x000080F0 (STR): invalid immediate value:  4"
+   - STR instruction with invalid immediate offset
+
+9. **bubble_sort.s** - Encoding error
+   - "failed to encode instruction at 0x0000805C (STR): invalid immediate value"
+   - STR instruction with invalid immediate offset
+
+10. **binary_search.s** - Encoding error
+    - "failed to encode instruction at 0x000080B0 (MOV): immediate value 0xFFFFFFFF cannot be encoded as ARM immediate"
+    - Attempting to load -1 with MOV instead of MVN
+
+11. **calculator.s** - Infinite loop
+    - Runtime error: "cycle limit exceeded (1000000 cycles)"
+    - Error at PC=0x000081C0
+    - Infinite loop reading invalid operations
+
+**Root Causes Identified:**
+
+1. **Input Handling Issues:**
+   - SYS_READ_INT appears to return 0 or -1 (0xFFFFFFFF) without prompting user
+   - Programs expecting user input fail or loop infinitely
+   - Affects: times_table.s, factorial.s, fibonacci.s, string_reverse.s, gcd.s, calculator.s
+
+2. **Memory Permissions:**
+   - Programs attempting to write to code segment
+   - May be related to data section placement or stack initialization
+   - Affects: functions.s, stack.s
+
+3. **Instruction Encoding:**
+   - STR with immediate offsets not properly validated/encoded
+   - MOV with 0xFFFFFFFF should use MVN R0, #0 instead
+   - Affects: linked_list.s, bubble_sort.s, binary_search.s
+
+4. **Unimplemented Syscalls:**
+   - SWI 0xCD not implemented
+   - Affects: arrays.s (partial)
+
+5. **Infinite Loops:**
+   - Likely due to input reading failures causing loop conditions to never be met
+   - Affects: strings.s, calculator.s
+
+**Effort:** 10-15 hours to fix all issues
+
+**Priority:** High (example programs are key demonstration of emulator capabilities)
+
+---
+
 ### Character Literal Escaping (2 Failing Tests)
 
-**Impact:** 2 example programs cannot run (loops.s, conditionals.s)
+**Impact:** Character literals in assembly not supported
 
 **Issue:** Character literals in immediates not supported:
 - `MOV R0, #' '` (space)
@@ -197,9 +288,10 @@ The ARM2 emulator is **functionally complete**. All core features work:
 
 ## Summary
 
-**Estimated effort to v1.0.0:** 50-70 hours
+**Estimated effort to v1.0.0:** 55-80 hours
 
 **By Priority:**
+- **Critical (Example Programs):** 10-15 hours - Fix input handling, memory permissions, encoding errors
 - **High (Phase 11):** 15-20 hours - Code quality, CI/CD, cross-platform testing, coverage
 - **Medium-High (Phase 13):** 16-22 hours - Release pipeline, packages, documentation
 - **Medium (Phase 12):** 14-20 hours - Benchmarking and performance
