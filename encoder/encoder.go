@@ -254,8 +254,12 @@ func (e *Encoder) encodeImmediate(value uint32) (uint32, bool) {
 		// Check if it fits in 8 bits
 		if rotated <= 0xFF {
 			// Encode as: rotation (4 bits) | immediate (8 bits)
-			// Rotation is stored as rotate/2 in bits 11-8
-			return ((rotate / 2) << 8) | rotated, true
+			// The rotation field specifies how much to ROR the immediate value
+			// We rotated RIGHT by 'rotate' bits to find the 8-bit value
+			// So the CPU needs to rotate RIGHT by (32-rotate) bits to reconstruct the original
+			// This is because we rotated right to compress, CPU rotates right to decompress
+			decodeRotate := (32 - rotate) % 32
+			return ((decodeRotate / 2) << 8) | rotated, true
 		}
 	}
 
