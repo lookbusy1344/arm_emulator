@@ -114,12 +114,12 @@ print_loop:
 
         ; Print node data
         LDR     R0, [R1]        ; Load data
-        MOV     R2, R0          ; Save data
+        MOV     R2, R1          ; Save current node pointer
         MOV     R1, #10
         SWI     #0x03           ; WRITE_INT
 
         ; Move to next node
-        LDR     R1, [R1, #4]    ; R1 = node->next
+        LDR     R1, [R2, #4]    ; R1 = node->next
 
         ; Print arrow if not last
         CMP     R1, #0
@@ -162,6 +162,7 @@ delete_value:
         MOV     R2, R0          ; R2 = current
         MOV     R3, R1          ; R3 = value to delete
         MOV     R4, #0          ; R4 = previous
+        MOV     R5, R0          ; R5 = original head
 
         ; Check if head needs to be deleted
         CMP     R2, #0
@@ -172,8 +173,8 @@ delete_value:
         BNE     delete_loop
 
         ; Delete head
-        LDR     R0, [R2, #4]    ; new head = head->next
-        MOV     R5, R2
+        LDR     R5, [R2, #4]    ; new head = head->next
+        MOV     R0, R2
         SWI     #0x21           ; FREE(old head)
         B       delete_done
 
@@ -191,16 +192,15 @@ delete_loop:
 
 delete_found:
         ; prev->next = current->next
-        LDR     R5, [R2, #4]
-        STR     R5, [R4, #4]
+        LDR     R1, [R2, #4]
+        STR     R1, [R4, #4]
 
         ; Free current node
         MOV     R0, R2
         SWI     #0x21           ; FREE
 
-        MOV     R0, R2          ; Return original head
-
 delete_done:
+        MOV     R0, R5          ; Return head (original or updated)
         LDMFD   SP!, {R1-R5, PC}
 
 ; Free entire list
