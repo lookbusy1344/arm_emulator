@@ -43,7 +43,7 @@ go test ./...
 - `config/` - Cross-platform configuration management
 - `tools/` - Development tools (linter, formatter, cross-reference generator)
 - `tests/` - Test files (525 tests, 100% pass rate)
-- `examples/` - Example ARM assembly programs (17 complete programs)
+- `examples/` - Example ARM assembly programs (18 complete programs)
 - `docs/` - User and developer documentation
 
 ## Development Guidelines
@@ -59,6 +59,8 @@ go test ./...
 
 **IMPORTANT:** Anything that cannot be implemented should be noted in `TODO.md` with details so work can result later.
 
+**IMPORTANT:** Do not modify example programs just to make them work without explicit permission, unless they are actually broken. Instead, fix the emulator to run the programs properly. Example programs are test cases that demonstrate expected behavior.
+
 ## Current Status
 
 **Phase 11 (Production Hardening) - In Progress**
@@ -71,7 +73,8 @@ go test ./...
 - CI updated to Go 1.25 with automated linting
 - Build artifacts added to .gitignore
 - Parser limitations resolved (debugger expression parser rewritten)
-- All example programs working (16 of 17 fully functional, 1 interactive by design)
+- All example programs working (17 of 18 fully functional, 1 interactive by design)
+- Addressing modes example added (comprehensive demonstration of all ARM2 addressing modes)
 - Character literal support complete (basic chars + escape sequences)
 
 ## Additional Features
