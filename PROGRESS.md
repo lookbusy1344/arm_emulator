@@ -7,6 +7,30 @@
 
 ## Recent Updates
 
+### 2025-10-11: Memory Trace Bug Discovered 🐛
+**Action:** Discovered that the `--mem-trace` flag does not work correctly
+
+**Problem:**
+- The `--mem-trace` command-line flag creates empty trace files
+- Infrastructure is set up correctly (MemoryTrace created, started, and flushed in main.go)
+- However, RecordRead() and RecordWrite() methods are never called during execution
+- Result: Empty trace files with 0 entries
+
+**Root Cause:**
+- Load/store instruction handlers in `vm/inst_memory.go` call memory operations but don't record traces
+- Memory read/write functions in `vm/memory.go` have no access to VM's MemoryTrace
+- Same issue likely exists in multi-register transfers (`vm/memory_multi.go`)
+
+**Status:**
+- Bug documented in `TODO.md` as "Task 5: Memory Trace Integration (BROKEN)"
+- Marked as Medium priority (advertised feature that doesn't work)
+- Estimated fix effort: 2-3 hours
+
+**Impact:**
+- `--mem-trace` and `--mem-trace-file` flags do not produce useful output
+- Users cannot trace memory access patterns
+- Documentation updated to reflect this limitation
+
 ### 2025-10-11: Pre-indexed Writeback Bug Fixed ✅
 **Action:** Resolved the "Pre-indexed with Writeback Instruction Bug" - it was not a bug in the addressing mode implementation!
 

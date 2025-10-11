@@ -87,12 +87,14 @@ Run programs with tracing and statistics:
 # Execution tracing
 ./arm-emulator --trace --trace-file trace.txt program.s
 
-# Memory tracing
+# Memory tracing (NOTE: Currently not functional - creates empty trace files)
 ./arm-emulator --mem-trace --mem-trace-file mem_trace.txt program.s
 
 # Performance statistics
 ./arm-emulator --stats --stats-file stats.html --stats-format html program.s
 ```
+
+**Known Issue:** The `--mem-trace` flag currently does not work. While the infrastructure is in place, the memory operations do not call the trace recording methods. This results in empty trace files. See `TODO.md` for details.
 
 ### Development Tools
 

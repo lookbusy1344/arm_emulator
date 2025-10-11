@@ -126,7 +126,7 @@ The emulator includes built-in tracing and statistics capabilities:
 # Enable execution tracing
 ./arm-emulator --trace --trace-file trace.txt program.s
 
-# Enable memory access tracing
+# Enable memory access tracing (NOTE: Currently not functional)
 ./arm-emulator --mem-trace --mem-trace-file mem_trace.txt program.s
 
 # Generate performance statistics
@@ -135,7 +135,7 @@ The emulator includes built-in tracing and statistics capabilities:
 
 **Performance features:**
 - Execution trace with register changes and timing
-- Memory access tracking (reads/writes)
+- ~~Memory access tracking (reads/writes)~~ - Currently not functional (see TODO.md)
 - Instruction frequency analysis
 - Branch statistics and prediction
 - Function call profiling
