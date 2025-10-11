@@ -497,7 +497,7 @@ func handleOpen(vm *VM) error {
 	} else {
 		// Store file descriptor (using file pointer as fd for simplicity)
 		// In a real implementation, we'd maintain a file descriptor table
-		fd := uint32(uintptr(file.Fd()))
+		fd := uint32(file.Fd())
 		vm.CPU.SetRegister(0, fd)
 	}
 
@@ -529,14 +529,25 @@ func handleRead(vm *VM) error {
 
 	// Write to memory
 	for i := 0; i < n; i++ {
-		// Safe: i is bounded by n which comes from Read(), typically small buffer size
-		if err := vm.Memory.WriteByteAt(bufferAddr+uint32(i), data[i]); err != nil { // #nosec G115 -- bounded by buffer size
+		// Validate offset won't overflow
+		if i < 0 || i > int(^uint32(0)) {
+			vm.CPU.SetRegister(0, 0xFFFFFFFF)
+			vm.CPU.IncrementPC()
+			return nil
+		}
+		if err := vm.Memory.WriteByteAt(bufferAddr+uint32(i), data[i]); err != nil {
 			vm.CPU.SetRegister(0, 0xFFFFFFFF)
 			vm.CPU.IncrementPC()
 			return nil
 		}
 	}
 
+	// Validate n fits in uint32
+	if n < 0 || n > int(^uint32(0)) {
+		vm.CPU.SetRegister(0, 0xFFFFFFFF)
+		vm.CPU.IncrementPC()
+		return nil
+	}
 	vm.CPU.SetRegister(0, uint32(n))
 	vm.CPU.IncrementPC()
 	return nil
@@ -564,7 +575,12 @@ func handleWrite(vm *VM) error {
 	if err != nil {
 		vm.CPU.SetRegister(0, 0xFFFFFFFF)
 	} else {
-		vm.CPU.SetRegister(0, uint32(n))
+		// Validate n fits in uint32
+		if n < 0 || n > int(^uint32(0)) {
+			vm.CPU.SetRegister(0, 0xFFFFFFFF)
+		} else {
+			vm.CPU.SetRegister(0, uint32(n))
+		}
 	}
 	_ = os.Stdout.Sync() // Ignore sync errors
 
@@ -615,7 +631,14 @@ func handleReallocate(vm *VM) error {
 // System information handlers (extended)
 func handleGetArguments(vm *VM) error {
 	// Return number of arguments in R0, pointer to argv in R1
-	argc := uint32(len(vm.ProgramArguments))
+	argLen := len(vm.ProgramArguments)
+	// Validate length fits in uint32
+	if argLen < 0 || argLen > int(^uint32(0)) {
+		vm.CPU.SetRegister(0, 0xFFFFFFFF)
+		vm.CPU.IncrementPC()
+		return nil
+	}
+	argc := uint32(argLen)
 	vm.CPU.SetRegister(0, argc)
 
 	// In a full implementation, we would:
