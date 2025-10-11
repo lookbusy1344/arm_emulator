@@ -140,60 +140,37 @@ The ARM2 emulator is **fully functional**:
 
 ## Parser/Encoder Issues
 
-### Pre-indexed with Writeback Instruction Bug
+### Pre-indexed with Writeback Instruction Bug ✅ FIXED
 
-**Status:** BUG FOUND - Pre-indexed writeback works in unit tests but fails in full programs
+**Status:** RESOLVED - Bug was not in pre-indexed writeback, but in test code using SWI 0x00
 
-**Symptoms:**
-- Pre-indexed with writeback syntax `LDR Rd, [Rn, #offset]!` parses and encodes correctly
-- Unit test `TestAddressing_Memory_PreIndexed` passes (uses hardcoded opcode 0xE5B10008)
-- When used in a full assembly program, subsequent instructions appear corrupted
-- Error: "unimplemented SWI" with incorrect SWI numbers (e.g., 0x64, 0xC8) corresponding to data values in registers
+**Original Symptoms:**
+- Pre-indexed with writeback syntax `LDR Rd, [Rn, #offset]!` appeared to fail in integration tests
+- Error: "unimplemented SWI" with incorrect SWI numbers (e.g., 0x64 = 100 decimal)
+- The error occurred when using `LDR R7, [R6, #4]!` followed by `SWI 0x00`
+
+**Root Cause Found:**
+- Pre-indexed writeback works perfectly! Parsing, encoding, and execution are all correct
+- The bug was in the test code using `SWI 0x00` after loading a value into R7
+- When `SWI 0x00` is executed, the VM uses Linux-style syscall convention
+- Linux convention reads the syscall number from R7 instead of the instruction immediate
+- R7 contained 100 (0x64) from the LDR instruction, causing "unimplemented SWI: 0x000064"
+
+**Fix:**
+- Changed integration test to use R2 instead of R7 for the LDR instruction
+- This avoids conflict with Linux-style syscall convention
+- All tests now pass (525 tests total, 100% pass rate maintained)
 
 **Evidence:**
-- `LDR R7, [R6, #4]!` encodes correctly to 0xE5B67004 (verified via test_encode.go)
-- The encoding has correct P=1, W=1, L=1 bits for pre-indexed with writeback
-- When executed in context of full program, instruction at next PC address reads as corrupted SWI
-- Simple test with just MOV + writeback LDR works (fails on memory access, but instruction executes)
-- Complex test with stores before writeback LDR shows corruption
+- `LDR R7, [R6, #4]!` encodes correctly to 0xE5B67004 (P=1, W=1, L=1 all correct)
+- Writeback works correctly (R6 is incremented by 4)
+- Value is loaded correctly (R7 = 100)
+- See `vm/syscall.go:77-80` for Linux-style syscall convention
 
-**Root Cause:** Unknown - possibly related to:
-- How instructions are loaded into memory from assembled program
-- Interaction between writeback and program loading
-- Code segment being writable (added for .word support) may allow corruption
-- Parser operand handling for `]!` syntax in multi-instruction context
-
-**Workaround:** Use separate ADD instruction instead of pre-indexed writeback
-```
-; Instead of: LDR R0, [R1, #4]!
-; Use:
-ADD R1, R1, #4
-LDR R0, [R1]
-```
-
-**Effort:** 4-6 hours to debug and fix
-
-**Priority:** High (feature advertised as working but broken in practice)
-
-**Files to investigate:**
-- `main.go` or program loader - how instructions are written to memory
-- `encoder/memory.go:82-120` - Pre-indexed writeback encoding
-- `parser/parser.go:428-482` - Writeback syntax parsing
-- `vm/inst_memory.go:111-116` - Writeback execution logic
-
-**Test Coverage:**
-- ✅ **Unit tests** (29 tests in `tests/unit/vm/addressing_modes_test.go`)
-  - All 3 memory addressing modes tested with hardcoded opcodes (PASS)
-  - `TestAddressing_Memory_ImmediateOffset` - Passes
-  - `TestAddressing_Memory_PreIndexed` - Passes (doesn't catch the bug - uses hardcoded opcode)
-  - `TestAddressing_Memory_PostIndexed` - Passes
-- ✅ **Integration tests** (3 tests in `tests/integration/addressing_modes_test.go`)
-  - Full pipeline: parse → encode → load → execute
-  - `TestAddressingMode_ImmediateOffset_FullPipeline` - ✅ PASS
-  - `TestAddressingMode_PreIndexedWriteback_FullPipeline` - ⏭️ SKIPPED (known bug)
-  - `TestAddressingMode_PostIndexed_FullPipeline` - ✅ PASS
-
-**Note:** Unit tests pass because they bypass the parser/encoder by using hardcoded opcodes. Integration tests expose the real bug in the full assembly pipeline.
+**Resolution:**
+- Integration test fixed in `tests/integration/addressing_modes_test.go`
+- Test now uses R2 instead of R7 and passes successfully
+- Pre-indexed writeback is fully functional and tested
 
 ---
 

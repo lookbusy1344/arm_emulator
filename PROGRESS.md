@@ -7,6 +7,35 @@
 
 ## Recent Updates
 
+### 2025-10-11: Pre-indexed Writeback Bug Fixed ✅
+**Action:** Resolved the "Pre-indexed with Writeback Instruction Bug" - it was not a bug in the addressing mode implementation!
+
+**Root Cause:**
+- The bug was in the integration test code, not in the pre-indexed writeback implementation
+- Test used `LDR R7, [R6, #4]!` followed by `SWI 0x00`
+- When `SWI 0x00` executes, the VM uses Linux-style syscall convention (reads syscall number from R7)
+- R7 contained 100 (0x64) from the LDR, causing "unimplemented SWI: 0x000064" error
+- Pre-indexed writeback parsing, encoding, and execution all work perfectly!
+
+**Fix:**
+- Changed integration test to use R2 instead of R7
+- This avoids conflict with Linux-style syscall convention in `vm/syscall.go:77-80`
+- Integration test now passes successfully
+
+**Files Modified:**
+- `tests/integration/addressing_modes_test.go` - Changed test to use R2, updated comments
+- `TODO.md` - Updated bug documentation to show resolution
+
+**Testing:**
+- **525 total tests passing** (100% pass rate) ✅
+- Integration test `TestAddressingMode_PreIndexedWriteback_FullPipeline` now passes
+- All addressing modes (immediate offset, pre-indexed writeback, post-indexed) fully tested
+
+**Impact:**
+- Pre-indexed writeback is confirmed working and can be used in programs
+- No workarounds needed - the feature works as designed
+- Documentation updated to reflect correct understanding
+
 ### 2025-10-11: Integration Tests Verified ✅
 **Action:** Verified that all integration tests are working correctly - they were never actually broken!
 

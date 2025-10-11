@@ -33,10 +33,9 @@ start:
 }
 
 // TestAddressingMode_PreIndexedWriteback_FullPipeline tests pre-indexed with writeback
-// This test is expected to FAIL due to the known bug documented in TODO.md
+// NOTE: The original bug was not in pre-indexed writeback, but in the test using SWI 0x00
+// which triggers Linux-style syscall convention that reads R7 for the syscall number
 func TestAddressingMode_PreIndexedWriteback_FullPipeline(t *testing.T) {
-	t.Skip("KNOWN BUG: Pre-indexed writeback corrupts subsequent instructions (see TODO.md)")
-
 	code := `.org 0x8000
 start:
     MOV R1, #100
@@ -44,11 +43,11 @@ start:
     STR R1, [SP]
     STR R1, [SP, #4]
     MOV R6, SP
-    LDR R7, [R6, #4]!
-    ; Write R7 to stdout to verify it's correct
-    MOV R0, R7
+    LDR R2, [R6, #4]!
+    ; Write R2 to stdout to verify it's correct (changed from R7 to avoid SWI 0x00 conflict)
+    MOV R0, R2
     SWI 0x03
-    MOV R0, #0
+    MOV R0, #1
     SWI 0x00
 `
 
@@ -57,8 +56,8 @@ start:
 		t.Fatalf("Execution error: %v\nStderr: %s", err, stderr)
 	}
 
-	if exitCode != 0 {
-		t.Errorf("Expected exit code 0, got %d\nStderr: %s", exitCode, stderr)
+	if exitCode != 1 {
+		t.Errorf("Expected exit code 1, got %d\nStderr: %s", exitCode, stderr)
 	}
 }
 
