@@ -73,6 +73,17 @@ func (c *CPU) SetSP(value uint32) {
 	c.R[SP] = value
 }
 
+// SetSPWithTrace sets the stack pointer value and records it for stack tracing
+func (c *CPU) SetSPWithTrace(vm *VM, value uint32, pc uint32) {
+	oldSP := c.R[SP]
+	c.R[SP] = value
+
+	// Record stack trace if enabled
+	if vm.StackTrace != nil {
+		vm.StackTrace.RecordSPMove(vm.CPU.Cycles, pc, oldSP, value)
+	}
+}
+
 // GetLR returns the link register value
 func (c *CPU) GetLR() uint32 {
 	return c.R[LR]

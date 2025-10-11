@@ -96,6 +96,31 @@ Run programs with tracing and statistics:
 ./arm-emulator --stats --stats-file stats.html --stats-format html program.s
 ```
 
+### Diagnostic Modes
+
+Run programs with advanced diagnostic tracking:
+
+```bash
+# Code coverage - track which instructions were executed
+./arm-emulator --coverage --coverage-format text program.s
+
+# Stack trace - monitor stack operations and detect overflow/underflow
+./arm-emulator --stack-trace --stack-trace-format text program.s
+
+# Flag trace - track CPSR flag changes for debugging conditional logic
+./arm-emulator --flag-trace --flag-trace-format text program.s
+
+# Combine multiple diagnostic modes
+./arm-emulator --coverage --stack-trace --flag-trace --verbose program.s
+```
+
+Features:
+- **Code Coverage**: Tracks executed vs unexecuted instructions, reports coverage percentage
+- **Stack Trace**: Monitors all stack operations (push/pop/SP modifications), detects overflow/underflow
+- **Flag Trace**: Records CPSR flag changes (N, Z, C, V) for each instruction that modifies flags
+
+All diagnostic modes support both text and JSON output formats.
+
 ### Development Tools
 
 Located in `tools/` directory:

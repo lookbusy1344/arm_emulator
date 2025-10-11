@@ -71,6 +71,11 @@ type VM struct {
 	ExecutionTrace *ExecutionTrace
 	MemoryTrace    *MemoryTrace
 	Statistics     *PerformanceStatistics
+
+	// Additional diagnostic modes (Phase 11)
+	CodeCoverage *CodeCoverage
+	StackTrace   *StackTrace
+	FlagTrace    *FlagTrace
 }
 
 // NewVM creates a new virtual machine instance
@@ -187,6 +192,22 @@ func (vm *VM) Step() error {
 	}
 
 	vm.CPU.IncrementCycles(1)
+
+	// Record diagnostic information after instruction execution
+	currentPC := decoded.Address
+
+	// Code coverage tracking
+	if vm.CodeCoverage != nil {
+		vm.CodeCoverage.RecordExecution(currentPC, vm.CPU.Cycles)
+	}
+
+	// Flag change tracking
+	if vm.FlagTrace != nil {
+		// Get simple instruction name for trace (we'll enhance this later with proper disassembly)
+		instName := fmt.Sprintf("0x%08X", decoded.Opcode)
+		vm.FlagTrace.RecordFlags(vm.CPU.Cycles, currentPC, instName, vm.CPU.CPSR)
+	}
+
 	return nil
 }
 

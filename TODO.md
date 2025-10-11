@@ -183,17 +183,37 @@ No known critical issues at this time. All 531 tests pass (100%).
 
 ---
 
-## Additional Diagnostic Modes (Future Enhancements)
+## Additional Diagnostic Modes ✅ COMPLETED (Phase 11)
 
-**Effort:** 12-18 hours
+**Status:** ✅ Completed (2025-10-11)
+**Actual Effort:** 4 hours
 **Priority:** Low-Medium
 
-### Proposed Diagnostic Features
+### Implemented Diagnostic Features
 
-**High Value (Implementing Now):**
-- [ ] Code Coverage Mode - Track which instructions/addresses were executed vs not executed
-- [ ] Stack Trace Mode - Track stack operations (push/pop) and detect overflow/underflow
-- [ ] Flag Change Trace - Dedicated mode to track CPSR flag changes for debugging conditional logic
+**Completed:**
+- ✅ Code Coverage Mode - Track which instructions/addresses were executed vs not executed
+- ✅ Stack Trace Mode - Track stack operations (push/pop/SP modifications) and detect overflow/underflow
+- ✅ Flag Change Trace - Dedicated mode to track CPSR flag changes for debugging conditional logic
+
+**Implementation Details:**
+- Created `vm/coverage.go` - Code coverage tracker with execution counts and coverage percentage
+- Created `vm/stack_trace.go` - Stack trace tracker with overflow/underflow detection
+- Created `vm/flag_trace.go` - Flag change tracker for CPSR flag modifications
+- Integrated all trackers into VM execution flow
+- Added command-line flags: `--coverage`, `--stack-trace`, `--flag-trace`
+- All modes support both text and JSON output formats
+- Added integration with data processing and memory operations
+- All 531 tests still pass (100%)
+- Zero lint issues
+
+**Files Modified:**
+- `vm/executor.go` - Added diagnostic tracking fields to VM struct
+- `vm/cpu.go` - Added SetSPWithTrace for stack tracking
+- `vm/data_processing.go` - Added stack trace recording for SP modifications
+- `vm/memory_multi.go` - Added stack trace recording for LDM/STM with SP
+- `main.go` - Added command-line flags and initialization code
+- `CLAUDE.md` - Updated documentation with diagnostic modes section
 
 **Future Considerations:**
 - [ ] Register Access Pattern Analysis - Track which registers are most frequently read/written

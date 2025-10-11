@@ -39,6 +39,17 @@ func main() {
 		enableStats    = flag.Bool("stats", false, "Enable performance statistics")
 		statsFile      = flag.String("stats-file", "", "Statistics output file (default: stats.json)")
 		statsFormat    = flag.String("stats-format", "json", "Statistics format (json, csv, html)")
+
+		// Additional diagnostic modes (Phase 11)
+		enableCoverage   = flag.Bool("coverage", false, "Enable code coverage tracking")
+		coverageFile     = flag.String("coverage-file", "", "Coverage output file (default: coverage.txt)")
+		coverageFormat   = flag.String("coverage-format", "text", "Coverage format (text, json)")
+		enableStackTrace = flag.Bool("stack-trace", false, "Enable stack operation tracing")
+		stackTraceFile   = flag.String("stack-trace-file", "", "Stack trace output file (default: stack_trace.txt)")
+		stackTraceFormat = flag.String("stack-trace-format", "text", "Stack trace format (text, json)")
+		enableFlagTrace  = flag.Bool("flag-trace", false, "Enable CPSR flag change tracing")
+		flagTraceFile    = flag.String("flag-trace-file", "", "Flag trace output file (default: flag_trace.txt)")
+		flagTraceFormat  = flag.String("flag-trace-format", "text", "Flag trace format (text, json)")
 	)
 
 	flag.Parse()
@@ -222,6 +233,105 @@ func main() {
 		}
 	}
 
+	// Setup additional diagnostic modes (Phase 11)
+	if *enableCoverage {
+		// Determine coverage file path
+		covPath := *coverageFile
+		if covPath == "" {
+			ext := "txt"
+			if *coverageFormat == "json" {
+				ext = "json"
+			}
+			covPath = filepath.Join(config.GetLogPath(), "coverage."+ext)
+		}
+
+		covWriter, err := os.Create(covPath) // #nosec G304 -- user-specified coverage output path
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error creating coverage file: %v\n", err)
+			os.Exit(1)
+		}
+		defer func() {
+			if err := covWriter.Close(); err != nil {
+				fmt.Fprintf(os.Stderr, "Warning: failed to close coverage file: %v\n", err)
+			}
+		}()
+
+		machine.CodeCoverage = vm.NewCodeCoverage(covWriter)
+		// Set code range based on program size
+		if len(program.Instructions) > 0 {
+			codeStart := entryAddr
+			// Safe conversion: instruction count is bounded by memory size and parser limits
+			codeEnd := entryAddr + uint32(len(program.Instructions)*4) // #nosec G115 -- program size is bounded by memory
+			machine.CodeCoverage.SetCodeRange(codeStart, codeEnd)
+		}
+		machine.CodeCoverage.LoadSymbols(symbols)
+		machine.CodeCoverage.Start()
+
+		if *verboseMode {
+			fmt.Printf("Code coverage enabled: %s\n", covPath)
+		}
+	}
+
+	if *enableStackTrace {
+		// Determine stack trace file path
+		stPath := *stackTraceFile
+		if stPath == "" {
+			ext := "txt"
+			if *stackTraceFormat == "json" {
+				ext = "json"
+			}
+			stPath = filepath.Join(config.GetLogPath(), "stack_trace."+ext)
+		}
+
+		stWriter, err := os.Create(stPath) // #nosec G304 -- user-specified stack trace output path
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error creating stack trace file: %v\n", err)
+			os.Exit(1)
+		}
+		defer func() {
+			if err := stWriter.Close(); err != nil {
+				fmt.Fprintf(os.Stderr, "Warning: failed to close stack trace file: %v\n", err)
+			}
+		}()
+
+		machine.StackTrace = vm.NewStackTrace(stWriter, stackTop, vm.StackSegmentStart)
+		machine.StackTrace.Start(stackTop)
+
+		if *verboseMode {
+			fmt.Printf("Stack trace enabled: %s\n", stPath)
+		}
+	}
+
+	if *enableFlagTrace {
+		// Determine flag trace file path
+		ftPath := *flagTraceFile
+		if ftPath == "" {
+			ext := "txt"
+			if *flagTraceFormat == "json" {
+				ext = "json"
+			}
+			ftPath = filepath.Join(config.GetLogPath(), "flag_trace."+ext)
+		}
+
+		ftWriter, err := os.Create(ftPath) // #nosec G304 -- user-specified flag trace output path
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error creating flag trace file: %v\n", err)
+			os.Exit(1)
+		}
+		defer func() {
+			if err := ftWriter.Close(); err != nil {
+				fmt.Fprintf(os.Stderr, "Warning: failed to close flag trace file: %v\n", err)
+			}
+		}()
+
+		machine.FlagTrace = vm.NewFlagTrace(ftWriter)
+		machine.FlagTrace.Start(machine.CPU.CPSR)
+
+		if *verboseMode {
+			fmt.Printf("Flag trace enabled: %s\n", ftPath)
+		}
+	}
+
 	// Run in appropriate mode
 	if *debugMode || *tuiMode {
 		// Start debugger
@@ -338,6 +448,64 @@ func main() {
 			if *verboseMode {
 				fmt.Println()
 				fmt.Println(machine.Statistics.String())
+			}
+		}
+
+		// Flush additional diagnostic modes (Phase 11)
+		if machine.CodeCoverage != nil {
+			switch *coverageFormat {
+			case "json":
+				err := machine.CodeCoverage.ExportJSON(machine.CodeCoverage.Writer)
+				if err != nil {
+					fmt.Fprintf(os.Stderr, "Error exporting coverage: %v\n", err)
+				}
+			default:
+				err := machine.CodeCoverage.Flush()
+				if err != nil {
+					fmt.Fprintf(os.Stderr, "Error flushing coverage: %v\n", err)
+				}
+			}
+			if *verboseMode {
+				fmt.Println()
+				fmt.Println(machine.CodeCoverage.String())
+			}
+		}
+
+		if machine.StackTrace != nil {
+			switch *stackTraceFormat {
+			case "json":
+				err := machine.StackTrace.ExportJSON(machine.StackTrace.Writer)
+				if err != nil {
+					fmt.Fprintf(os.Stderr, "Error exporting stack trace: %v\n", err)
+				}
+			default:
+				err := machine.StackTrace.Flush()
+				if err != nil {
+					fmt.Fprintf(os.Stderr, "Error flushing stack trace: %v\n", err)
+				}
+			}
+			if *verboseMode {
+				fmt.Println()
+				fmt.Println(machine.StackTrace.String())
+			}
+		}
+
+		if machine.FlagTrace != nil {
+			switch *flagTraceFormat {
+			case "json":
+				err := machine.FlagTrace.ExportJSON(machine.FlagTrace.Writer)
+				if err != nil {
+					fmt.Fprintf(os.Stderr, "Error exporting flag trace: %v\n", err)
+				}
+			default:
+				err := machine.FlagTrace.Flush()
+				if err != nil {
+					fmt.Fprintf(os.Stderr, "Error flushing flag trace: %v\n", err)
+				}
+			}
+			if *verboseMode {
+				fmt.Println()
+				fmt.Println(machine.FlagTrace.String())
 			}
 		}
 
@@ -580,6 +748,17 @@ Tracing & Performance Options:
   -stats-file FILE   Statistics output file (default: stats.json)
   -stats-format FMT  Statistics format: json, csv, html (default: json)
 
+Diagnostic Modes:
+  -coverage          Enable code coverage tracking
+  -coverage-file F   Coverage output file (default: coverage.txt)
+  -coverage-format   Coverage format: text, json (default: text)
+  -stack-trace       Enable stack operation tracing
+  -stack-trace-file  Stack trace file (default: stack_trace.txt)
+  -stack-trace-format Stack trace format: text, json (default: text)
+  -flag-trace        Enable CPSR flag change tracing
+  -flag-trace-file   Flag trace file (default: flag_trace.txt)
+  -flag-trace-format Flag trace format: text, json (default: text)
+
 Examples:
   # Run a program directly
   arm-emulator examples/hello.s
@@ -601,6 +780,15 @@ Examples:
 
   # Run with all monitoring enabled
   arm-emulator -trace -mem-trace -stats -verbose program.s
+
+  # Run with code coverage
+  arm-emulator -coverage -verbose program.s
+
+  # Run with stack trace to debug stack issues
+  arm-emulator -stack-trace program.s
+
+  # Run with flag trace to debug conditional logic
+  arm-emulator -flag-trace program.s
 
 Debugger Commands (when in -debug mode):
   run, r             Start/restart program execution

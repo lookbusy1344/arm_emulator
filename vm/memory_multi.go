@@ -116,7 +116,20 @@ func ExecuteLoadStoreMultiple(vm *VM, inst *Instruction) error {
 
 	// Write back to base register if requested
 	if writeBack == 1 && rn != 15 {
-		vm.CPU.SetRegister(rn, newBase)
+		// If modifying SP (R13), record stack trace
+		if rn == SP && vm.StackTrace != nil {
+			oldSP := vm.CPU.GetSP()
+			vm.CPU.SetRegister(rn, newBase)
+			vm.StackTrace.RecordSPMove(vm.CPU.Cycles, inst.Address, oldSP, newBase)
+		} else {
+			vm.CPU.SetRegister(rn, newBase)
+		}
+	}
+
+	// Also check if SP was loaded (but not base register)
+	if load == 1 && (regList&(1<<SP)) != 0 && rn != SP && vm.StackTrace != nil {
+		// SP was loaded from memory, record as SP move
+		vm.StackTrace.RecordSPMove(vm.CPU.Cycles, inst.Address, baseAddr, vm.CPU.GetSP())
 	}
 
 	// Handle S bit (PSR transfer or user mode access)
