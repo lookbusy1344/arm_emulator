@@ -51,7 +51,7 @@ An ARM emulator written in Go that implements a subset of the ARM2 instruction s
 
 ## Features
 
-- ARM2 instruction set implementation with 531 passing tests (100% pass rate)
+- ARM2 instruction set implementation with 575 passing tests (100% pass rate)
 - Assembly parser for ARM assembly programs with macros and preprocessor
 - Machine code encoder/decoder for binary ARM instruction formats
 - Interactive debugger with TUI (Text User Interface)
@@ -59,6 +59,7 @@ An ARM emulator written in Go that implements a subset of the ARM2 instruction s
 - Cross-platform configuration management (TOML)
 - Execution and memory tracing with filtering
 - Performance statistics (JSON/CSV/HTML export)
+- **Diagnostic modes: code coverage, stack trace, flag trace**
 - Development tools (linter, formatter, cross-reference generator)
 
 ## Prerequisites
@@ -126,7 +127,7 @@ The emulator includes built-in tracing and statistics capabilities:
 # Enable execution tracing
 ./arm-emulator --trace --trace-file trace.txt program.s
 
-# Enable memory access tracing (NOTE: Currently not functional)
+# Enable memory access tracing
 ./arm-emulator --mem-trace --mem-trace-file mem_trace.txt program.s
 
 # Generate performance statistics
@@ -135,12 +136,61 @@ The emulator includes built-in tracing and statistics capabilities:
 
 **Performance features:**
 - Execution trace with register changes and timing
-- ~~Memory access tracking (reads/writes)~~ - Currently not functional (see TODO.md)
+- Memory access tracking (reads/writes)
 - Instruction frequency analysis
 - Branch statistics and prediction
 - Function call profiling
 - Hot path analysis
 - Export to JSON, CSV, or HTML formats
+
+### Diagnostic Modes
+
+Advanced debugging tools to help identify and fix issues:
+
+```bash
+# Code coverage - track which instructions were executed
+./arm-emulator --coverage program.s
+
+# Stack trace - monitor stack operations and detect overflow/underflow
+./arm-emulator --stack-trace program.s
+
+# Flag trace - track CPSR flag changes for debugging conditional logic
+./arm-emulator --flag-trace program.s
+
+# Combine multiple diagnostic modes with verbose output
+./arm-emulator --coverage --stack-trace --flag-trace --verbose program.s
+```
+
+**Diagnostic features:**
+
+**Code Coverage:**
+- Tracks executed vs unexecuted instructions
+- Reports coverage percentage
+- Shows execution counts for each address
+- Records first and last execution cycle
+- Identifies dead code and untested paths
+
+**Stack Trace:**
+- Monitors all stack operations (PUSH, POP, SP modifications)
+- Tracks stack depth and maximum usage
+- **Detects and warns on stack overflow/underflow**
+- Detailed trace with addresses and values
+- Helps identify stack-related bugs
+
+**Flag Trace:**
+- Tracks CPSR flag changes (N, Z, C, V)
+- Only records actual changes for efficiency
+- Shows before/after states with highlights
+- Statistics on flag change frequency
+- Helps debug conditional logic issues
+
+All diagnostic modes support both text and JSON output formats:
+```bash
+# JSON output for programmatic analysis
+./arm-emulator --coverage --coverage-format json program.s
+./arm-emulator --stack-trace --stack-trace-format json program.s
+./arm-emulator --flag-trace --flag-trace-format json program.s
+```
 
 ### Example Programs
 
@@ -187,7 +237,7 @@ go test ./...
 ├── debugger/            # Debugging utilities with TUI
 ├── config/              # Cross-platform configuration
 ├── tools/               # Development tools (lint, format, xref)
-├── tests/               # Test files (531 tests)
+├── tests/               # Test files (575 tests)
 ├── examples/            # Example ARM assembly programs (19 programs)
 └── docs/                # User and developer documentation
 ```
