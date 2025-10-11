@@ -23,7 +23,29 @@ Completed items and past work belong in `PROGRESS.md`.
 
 ## Known Issues
 
-No known critical issues at this time. All 531 tests pass (100%).
+### Example Program Issues (Non-Critical)
+
+**Status:** 4 of 23 example programs have pre-existing bugs (83% functional rate)
+
+1. **fibonacci.s** - Memory access violation at 0x81000000
+   - Converted to ARM2-style syscalls but has underlying bug
+   - Issue exists in original version before conversion
+   - Program structure appears correct but crashes during execution
+
+2. **calculator.s** - Memory access violation at 0x82000000
+   - Converted to ARM2-style syscalls but has underlying bug
+   - Issue exists in original version before conversion
+   - Similar memory addressing issue as fibonacci.s
+
+3. **linked_list.s** - Unaligned word access at 0x0000000E
+   - Pre-existing bug, not related to syscall conversion
+   - Attempting unaligned memory access (must be 4-byte aligned)
+
+4. **reverse_chatgpt.s** - Parse errors (syntax issues)
+   - Multiple syntax errors preventing parsing
+   - Pre-existing issues with assembly syntax
+
+**Note:** All other 19 example programs work correctly. All tests pass (583 tests, 100%).
 
 ---
 

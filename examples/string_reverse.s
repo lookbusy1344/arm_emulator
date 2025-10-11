@@ -88,21 +88,18 @@ strlen_done:
 
 ; Helper functions
 print_string:
-    PUSH {r7, lr}
-    MOV r7, #4
-    SVC #0
-    POP {r7, pc}
+    PUSH {lr}
+    SWI #0x02               ; SWI_WRITE_STRING
+    POP {pc}
 
 read_string:
     ; r0 = buffer, r1 = max length
-    PUSH {r7, lr}
-    MOV r7, #5              ; syscall: read_string
-    SVC #0
-    POP {r7, pc}
+    PUSH {lr}
+    SWI #0x05               ; SWI_READ_STRING
+    POP {pc}
 
 exit:
-    MOV r7, #0
-    SVC #0
+    SWI #0x00               ; SWI_EXIT
 
 ; Data section
 .align 4

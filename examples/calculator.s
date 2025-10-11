@@ -184,38 +184,32 @@ div_done:
 
 ; Helper functions
 print_string:
-    PUSH {r7, lr}
-    MOV r7, #4
-    SVC #0
-    POP {r7, pc}
+    PUSH {lr}
+    SWI #0x02               ; SWI_WRITE_STRING
+    POP {pc}
 
 print_int:
-    PUSH {r7, lr}
-    MOV r7, #1
-    SVC #0
-    POP {r7, pc}
+    PUSH {lr}
+    SWI #0x03               ; SWI_WRITE_INT
+    POP {pc}
 
 print_char:
-    PUSH {r7, lr}
-    MOV r7, #2              ; syscall: print_char
-    SVC #0
-    POP {r7, pc}
+    PUSH {lr}
+    SWI #0x01               ; SWI_WRITE_CHAR
+    POP {pc}
 
 read_int:
-    PUSH {r7, lr}
-    MOV r7, #3
-    SVC #0
-    POP {r7, pc}
+    PUSH {lr}
+    SWI #0x06               ; SWI_READ_INT
+    POP {pc}
 
 read_char:
-    PUSH {r7, lr}
-    MOV r7, #6              ; syscall: read_char
-    SVC #0
-    POP {r7, pc}
+    PUSH {lr}
+    SWI #0x04               ; SWI_READ_CHAR
+    POP {pc}
 
 exit:
-    MOV r7, #0
-    SVC #0
+    SWI #0x00               ; SWI_EXIT
 
 ; Data section
 .align 4
