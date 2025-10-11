@@ -106,29 +106,29 @@
 - No ambiguity in syscall handling
 - Eliminates entire class of bugs related to R7 register conflicts
 
-### 2025-10-11: Memory Trace Bug Discovered 🐛
-**Action:** Discovered that the `--mem-trace` flag does not work correctly
+### 2025-10-11: Memory Trace Bug Investigation - FALSE ALARM ✅
+**Action:** Investigated reported `--mem-trace` bug - discovered the feature **ACTUALLY WORKS CORRECTLY**
 
-**Problem:**
-- The `--mem-trace` command-line flag creates empty trace files
-- Infrastructure is set up correctly (MemoryTrace created, started, and flushed in main.go)
-- However, RecordRead() and RecordWrite() methods are never called during execution
-- Result: Empty trace files with 0 entries
+**Initial Report (INCORRECT):**
+- Claimed the `--mem-trace` command-line flag creates empty trace files
+- Claimed RecordRead() and RecordWrite() methods are never called
 
-**Root Cause:**
-- Load/store instruction handlers in `vm/inst_memory.go` call memory operations but don't record traces
-- Memory read/write functions in `vm/memory.go` have no access to VM's MemoryTrace
-- Same issue likely exists in multi-register transfers (`vm/memory_multi.go`)
+**Actual Testing Results:**
+- Ran `./arm-emulator --mem-trace --mem-trace-file /tmp/mem_trace_test.log examples/arrays.s`
+- Generated 93 lines of detailed memory trace output
+- Format: `[sequence] [READ/WRITE] PC <- [address] = value (size)`
+- Example: `[000000] [READ ] 0x8000 <- [0x00008208] = 0x000081B4 (WORD)`
+
+**Verification:**
+- RecordRead() and RecordWrite() ARE properly called in `vm/inst_memory.go` (lines 92, 124)
+- RecordRead() and RecordWrite() ARE properly called in `vm/memory_multi.go` (lines 86, 110)
+- MemoryTrace has proper nil checks before calling Record methods
+- Unit tests exist in `tests/unit/vm/trace_test.go` (lines 152-246) covering MemoryTrace functionality
 
 **Status:**
-- Bug documented in `TODO.md` as "Task 5: Memory Trace Integration (BROKEN)"
-- Marked as Medium priority (advertised feature that doesn't work)
-- Estimated fix effort: 2-3 hours
-
-**Impact:**
-- `--mem-trace` and `--mem-trace-file` flags do not produce useful output
-- Users cannot trace memory access patterns
-- Documentation updated to reflect this limitation
+- Feature confirmed **WORKING**
+- Previous bug report in PROGRESS.md was based on incorrect information
+- No fix needed - infrastructure is correctly implemented
 
 ### 2025-10-11: Pre-indexed Writeback Bug Fixed ✅
 **Action:** Resolved the "Pre-indexed with Writeback Instruction Bug" - it was not a bug in the addressing mode implementation!
