@@ -296,19 +296,37 @@ The ARM2 emulator is **fully functional**:
 
 ---
 
-### Task 5: Trace/Stats Integration (Optional)
+### Task 5: Memory Trace Integration (BROKEN)
 
-**Status:** Infrastructure complete, integration optional
+**Status:** Infrastructure exists but not functional - `--mem-trace` flag does not work
 
-**Requirements:**
-- [ ] Connect ExecutionTrace to VM.Step()
-- [ ] Connect MemoryTrace to Memory operations
-- [ ] Connect Statistics to VM operations
-- [ ] Add integration tests
+**Problem:**
+- MemoryTrace infrastructure is set up correctly (created, started, flushed in main.go)
+- RecordRead() and RecordWrite() methods exist in vm/trace.go but are never called
+- Result: Empty trace files are created with no memory access data
+
+**Root Cause:**
+- Load/store instruction handlers in `vm/inst_memory.go` call memory operations (ReadWord, WriteWord, etc.) but don't record traces
+- Memory read/write functions in `vm/memory.go` don't have access to VM's MemoryTrace
+- Same issue likely exists in multi-register transfers (`vm/memory_multi.go`) and other memory operations
+
+**Fix Required:**
+- [ ] Add MemoryTrace recording calls after each memory operation in `vm/inst_memory.go`
+- [ ] Handle all memory access types: word (lines 79, 102), byte (lines 74, 99), halfword (lines 69, 95)
+- [ ] Add recording for multi-register transfers in `vm/memory_multi.go` (LDM/STM instructions)
+- [ ] Check if MemoryTrace is enabled before recording (nil check)
+- [ ] Pass correct parameters: sequence number (vm.CPU.Cycles), PC, address, value, size ("WORD", "BYTE", "HALF")
+- [ ] Add integration test to verify memory trace output is generated
+- [ ] Optionally connect ExecutionTrace to VM.Step()
+- [ ] Optionally connect Statistics to VM operations
+
+**Files to Modify:**
+- `vm/inst_memory.go` - Add RecordRead/RecordWrite calls after memory operations (lines 69-104)
+- `vm/memory_multi.go` - Add RecordRead/RecordWrite calls in LDM/STM handlers
 
 **Effort:** 2-3 hours
 
-**Priority:** Low
+**Priority:** Medium (advertised feature that doesn't work)
 
 ---
 
