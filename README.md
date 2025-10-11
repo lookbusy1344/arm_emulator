@@ -32,6 +32,20 @@ TODO.md
 
 Prompt for each phase: *"Let’s implement phase X from IMPLEMENTATION_PLAN.md considering PROGRESS.md, and implement appropriate tests. Anything that you cannot fix, note in TODO.md"*
 
+## Observations
+
+Day 1 - Claude has written a specification, and a staged implemenation plan. It's made good progress with phases 1-5 completed.
+
+Day 2 - Phases 6-10 completed. From the original plan the project should be essentially complete, but there is actually much more to do. Including the parser. I have directed Claude to note in TODO.md anything it cannot complete, as frequently it will truncate a complex task and then 'forget' about the more difficult features left unfinished.
+
+Day 3 - 10th Oct - Go code is about 25,000 lines using command:
+
+```
+find . -name "*.go" -type f -exec cat {} + | wc -l
+```
+
+Day 4 - Whats becoming increasingly clear is that, although Claude is very impressive and has done great things in only 4 days (3 hours per day), it can get lost in the weeds. It has a tendency to 'fix' tests by removing them, or simplifying them. It sometimes loses sight of the big picture and currently several of the test programs to not operate correctly (but Claude hasn't noticed).
+
 ## Overview
 
 An ARM emulator written in Go that implements a subset of the ARM2 instruction set.
