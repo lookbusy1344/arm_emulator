@@ -24,156 +24,25 @@ _start:
 	}
 }
 
-// TestSyscallConvention_TraditionalExitWithGarbageR7 tests that SWI #0x00 works
-// even when R7 contains garbage (the bug we just fixed)
-func TestSyscallConvention_TraditionalExitWithGarbageR7(t *testing.T) {
+// TestSyscallConvention_TraditionalExitWithR7 tests that SWI #0x00 works
+// regardless of R7 contents (R7 is now just a general-purpose register)
+func TestSyscallConvention_TraditionalExitWithR7(t *testing.T) {
 	code := `
         .org    0x8000
 _start:
-        LDR     R7, =0xDEADBEEF ; Put garbage in R7
+        LDR     R7, =0xDEADBEEF ; Put any value in R7
         MOV     R0, #0
-        SWI     #0x00           ; Should still exit cleanly (not read R7)
+        SWI     #0x00           ; Should exit cleanly (R7 is irrelevant)
 `
 
 	stdout, stderr, exitCode, err := runAssembly(t, code)
 	if err != nil && !strings.Contains(err.Error(), "program exited with code 0") {
-		t.Errorf("Program should exit cleanly even with garbage in R7")
+		t.Errorf("Program should exit cleanly regardless of R7 value")
 		t.Errorf("Error: %v\nStderr: %s", err, stderr)
 	}
 
 	if exitCode != 0 {
 		t.Errorf("Expected exit code 0, got %d\nStdout: %s", exitCode, stdout)
-	}
-}
-
-// TestSyscallConvention_LinuxStyleExit tests Linux-style SVC #0 with R7=0 (exit)
-func TestSyscallConvention_LinuxStyleExit(t *testing.T) {
-	code := `
-        .org    0x8000
-_start:
-        MOV     R7, #0          ; Linux syscall 0 = exit
-        MOV     R0, #5          ; Exit code 5
-        SWI     #0              ; Linux-style syscall
-`
-
-	stdout, stderr, exitCode, err := runAssembly(t, code)
-	if err != nil && !strings.Contains(err.Error(), "program exited with code 5") {
-		t.Fatalf("Unexpected error: %v\nStderr: %s", err, stderr)
-	}
-
-	if exitCode != 5 {
-		t.Errorf("Expected exit code 5, got %d\nStdout: %s\nStderr: %s", exitCode, stdout, stderr)
-	}
-}
-
-// TestSyscallConvention_LinuxStylePrintInt tests Linux-style syscall for print_int
-func TestSyscallConvention_LinuxStylePrintInt(t *testing.T) {
-	code := `
-        .org    0x8000
-_start:
-        MOV     R7, #1          ; Linux syscall 1 = print_int
-        LDR     R0, =999        ; Use LDR for large immediate
-        MOV     R1, #10
-        SWI     #0              ; Linux-style syscall
-        MOV     R7, #0          ; Exit
-        MOV     R0, #0
-        SWI     #0
-`
-
-	stdout, stderr, exitCode, err := runAssembly(t, code)
-	if err != nil && !strings.Contains(err.Error(), "program exited with code 0") {
-		t.Fatalf("Unexpected error: %v\nStderr: %s", err, stderr)
-	}
-
-	if !strings.Contains(stdout, "999") {
-		t.Errorf("Expected '999' in output, got: %s", stdout)
-	}
-
-	if exitCode != 0 {
-		t.Errorf("Expected exit code 0, got %d", exitCode)
-	}
-}
-
-// TestSyscallConvention_MixedStyle tests mixing traditional and Linux-style in same program
-func TestSyscallConvention_MixedStyle(t *testing.T) {
-	code := `
-        .org    0x8000
-_start:
-        ; Use traditional style
-        MOV     R0, #65         ; 'A' in ASCII
-        SWI     #0x01           ; WRITE_CHAR
-
-        ; Use Linux style
-        MOV     R7, #2          ; Linux syscall 2 = print_char
-        MOV     R0, #66         ; 'B' in ASCII
-        SWI     #0
-
-        ; Back to traditional
-        MOV     R0, #67         ; 'C' in ASCII
-        SWI     #0x01           ; WRITE_CHAR
-
-        ; IMPORTANT: Clear R7 before using SWI #0x00 for EXIT
-        ; Otherwise, leftover R7 value causes misinterpretation
-        MOV     R7, #0          ; Clear R7
-        MOV     R0, #0
-        SWI     #0x00
-`
-
-	stdout, stderr, exitCode, err := runAssembly(t, code)
-	if err != nil && !strings.Contains(err.Error(), "program exited with code 0") {
-		t.Fatalf("Unexpected error: %v\nStderr: %s", err, stderr)
-	}
-
-	if !strings.Contains(stdout, "ABC") {
-		t.Errorf("Expected 'ABC' in output, got: %s", stdout)
-	}
-
-	if exitCode != 0 {
-		t.Errorf("Expected exit code 0, got %d", exitCode)
-	}
-}
-
-// TestSyscallConvention_BoundaryR7Values tests R7 values at the boundary (7 and 8)
-func TestSyscallConvention_BoundaryR7Values(t *testing.T) {
-	// Test with R7=7 (valid Linux syscall - print_char)
-	// Using print_char instead of newline since it's simpler
-	code1 := `
-        .org    0x8000
-_start:
-        MOV     R7, #2          ; Linux syscall 2 = print_char
-        MOV     R0, #65         ; 'A'
-        SWI     #0              ; Should work as Linux-style
-        MOV     R7, #0          ; Clear R7
-        MOV     R0, #0
-        SWI     #0x00           ; Traditional exit
-`
-
-	stdout1, _, exitCode1, err1 := runAssembly(t, code1)
-	if err1 != nil && !strings.Contains(err1.Error(), "program exited with code 0") {
-		t.Errorf("R7=2 (Linux-style) should work: %v", err1)
-	}
-	if exitCode1 != 0 {
-		t.Errorf("R7=2: Expected exit code 0, got %d", exitCode1)
-	}
-	if !strings.Contains(stdout1, "A") {
-		t.Errorf("R7=2: Expected 'A' in output, got: %q", stdout1)
-	}
-
-	// Test with R7=8 (invalid, should be treated as traditional EXIT)
-	code2 := `
-        .org    0x8000
-_start:
-        MOV     R7, #8          ; R7=8 (> 7), so SWI #0 should be EXIT
-        MOV     R0, #0
-        SWI     #0              ; Should exit (not read R7 for syscall)
-`
-
-	_, _, exitCode2, err2 := runAssembly(t, code2)
-	if err2 != nil && !strings.Contains(err2.Error(), "program exited with code 0") {
-		t.Errorf("R7=8 should treat SWI #0 as EXIT: %v", err2)
-	}
-	if exitCode2 != 0 {
-		t.Errorf("R7=8: Expected exit code 0, got %d", exitCode2)
 	}
 }
 

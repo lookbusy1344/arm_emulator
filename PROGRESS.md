@@ -7,6 +7,38 @@
 
 ## Recent Updates
 
+### 2025-10-11: Linux-Style Syscall Support Removed ✅
+**Action:** Removed Linux-style syscall convention to align with ARM2 specification
+
+**Rationale:**
+- Linux-style syscalls (using `SVC #0` with syscall number in R7) were not part of the original ARM2 architecture
+- This was a modern extension that created ambiguity and complexity
+- The heuristic-based approach (checking R7 value to distinguish conventions) was error-prone
+- Caused bugs where R7 register usage in programs conflicted with syscall detection
+
+**Changes Made:**
+- Removed Linux-style syscall constants (`LINUX_SYS_EXIT`, `LINUX_SYS_PRINT_INT`, etc.)
+- Removed `mapLinuxSyscall()` function
+- Simplified `ExecuteSWI()` to use only immediate values from instruction encoding
+- Updated syscall convention tests to remove Linux-style tests
+- All example programs already used traditional ARM2 syntax (no changes needed)
+
+**Files Modified:**
+- `vm/syscall.go` - Removed Linux-style constants and simplified ExecuteSWI (lines 55-105)
+- `tests/integration/syscall_convention_test.go` - Removed Linux-style tests, kept traditional tests
+- `PROGRESS.md` - Updated documentation
+
+**Testing:**
+- **531 total tests passing** (100% pass rate) ✅
+- All syscall tests pass with traditional ARM2 SWI syntax
+- Example programs continue to work correctly
+
+**Impact:**
+- Simpler, more correct implementation aligned with ARM2 specification
+- R7 is now just a general-purpose register with no special meaning
+- No ambiguity in syscall handling
+- Eliminates entire class of bugs related to R7 register conflicts
+
 ### 2025-10-11: Memory Trace Bug Discovered 🐛
 **Action:** Discovered that the `--mem-trace` flag does not work correctly
 
@@ -37,14 +69,16 @@
 **Root Cause:**
 - The bug was in the integration test code, not in the pre-indexed writeback implementation
 - Test used `LDR R7, [R6, #4]!` followed by `SWI 0x00`
-- When `SWI 0x00` executes, the VM uses Linux-style syscall convention (reads syscall number from R7)
+- When `SWI 0x00` executes, the original VM implementation used a Linux-style syscall convention (reading syscall number from R7)
 - R7 contained 100 (0x64) from the LDR, causing "unimplemented SWI: 0x000064" error
 - Pre-indexed writeback parsing, encoding, and execution all work perfectly!
 
 **Fix:**
 - Changed integration test to use R2 instead of R7
-- This avoids conflict with Linux-style syscall convention in `vm/syscall.go:77-80`
+- This avoided conflict with the (now removed) Linux-style syscall convention
 - Integration test now passes successfully
+
+**Note:** Linux-style syscall support has since been removed (2025-10-11) to align with ARM2 specification
 
 **Files Modified:**
 - `tests/integration/addressing_modes_test.go` - Changed test to use R2, updated comments
