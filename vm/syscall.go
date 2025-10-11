@@ -52,57 +52,11 @@ const (
 	SWI_ASSERT         = 0xF4
 )
 
-// Linux-style ARM syscall numbers (used with SVC #0 and R7)
-const (
-	LINUX_SYS_EXIT       = 0
-	LINUX_SYS_PRINT_INT  = 1
-	LINUX_SYS_PRINT_CHAR = 2
-	LINUX_SYS_READ_INT   = 3
-	LINUX_SYS_PRINT_STR  = 4
-	LINUX_SYS_READ_STR   = 5
-	LINUX_SYS_READ_CHAR  = 6
-	LINUX_SYS_NEWLINE    = 7
-)
-
 // ExecuteSWI executes a software interrupt (system call)
 func ExecuteSWI(vm *VM, inst *Instruction) error {
-	// Extract the immediate value (bottom 24 bits)
-	immValue := inst.Opcode & 0x00FFFFFF
-
-	var swiNum uint32
-
-	// Determine which syscall convention is being used:
-	// 1. Traditional: SWI #num (syscall number in instruction immediate)
-	// 2. Linux-style: SVC #0 (syscall number in R7 register)
-	//
-	// IMPORTANT: SWI #0x00 is ambiguous - it could be either:
-	// - Traditional EXIT syscall (most common)
-	// - Linux-style SVC #0 with syscall number in R7
-	//
-	// We use a heuristic based on R7 value:
-	// - If R7 is 0-7: treat as Linux-style (read syscall from R7)
-	// - If R7 > 7: treat as traditional EXIT
-	//
-	// LIMITATION: When mixing conventions, you MUST clear R7 (set to 0 or >7)
-	// before using traditional SWI #0x00 for EXIT. Otherwise, leftover R7 values
-	// from previous Linux-style calls will cause SWI #0x00 to be misinterpreted.
-	//
-	// Example of correct mixed usage:
-	//   MOV R7, #2; MOV R0, #65; SWI #0  ; Linux print_char
-	//   MOV R7, #0; MOV R0, #0; SWI #0   ; Linux/traditional EXIT (R7 cleared!)
-	if immValue == 0 {
-		r7Value := vm.CPU.GetRegister(7)
-		if r7Value <= 7 {
-			// Linux-style: syscall number in R7
-			swiNum = mapLinuxSyscall(r7Value)
-		} else {
-			// Traditional EXIT: R7 contains garbage or was explicitly cleared to >7
-			swiNum = SWI_EXIT
-		}
-	} else {
-		// Traditional convention: syscall number is in instruction
-		swiNum = immValue
-	}
+	// Extract the syscall number from the immediate value (bottom 24 bits)
+	// ARM2 traditional convention: SWI #num
+	swiNum := inst.Opcode & 0x00FFFFFF
 
 	switch swiNum {
 	// Console I/O
@@ -731,29 +685,4 @@ func handleAssert(vm *VM) error {
 
 	vm.CPU.IncrementPC()
 	return nil
-}
-
-// mapLinuxSyscall maps Linux-style syscall numbers (from R7) to our internal syscall numbers
-func mapLinuxSyscall(linuxSysNum uint32) uint32 {
-	switch linuxSysNum {
-	case LINUX_SYS_EXIT:
-		return SWI_EXIT
-	case LINUX_SYS_PRINT_INT:
-		return SWI_WRITE_INT
-	case LINUX_SYS_PRINT_CHAR:
-		return SWI_WRITE_CHAR
-	case LINUX_SYS_READ_INT:
-		return SWI_READ_INT
-	case LINUX_SYS_PRINT_STR:
-		return SWI_WRITE_STRING
-	case LINUX_SYS_READ_STR:
-		return SWI_READ_STRING
-	case LINUX_SYS_READ_CHAR:
-		return SWI_READ_CHAR
-	case LINUX_SYS_NEWLINE:
-		return SWI_WRITE_NEWLINE
-	default:
-		// Return the original number if no mapping exists
-		return linuxSysNum
-	}
 }
