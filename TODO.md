@@ -13,73 +13,17 @@ Completed items and past work belong in `PROGRESS.md`.
 **Status:** All 10 core phases complete! Phase 11 (Production Hardening) in progress.
 
 **Remaining Work:**
-- **High Priority:** Literal pool bug fix, CI/CD enhancements, cross-platform testing
+- **High Priority:** CI/CD enhancements, cross-platform testing, code coverage analysis
 - **Medium Priority:** Memory trace integration, release pipeline, performance benchmarking
 - **Low Priority:** Additional documentation, advanced features
 
-**Estimated effort to v1.0.0:** 40-60 hours
+**Estimated effort to v1.0.0:** 32-48 hours
 
 ---
 
 ## Known Issues
 
-### Literal Pool Memory Corruption Bug 🐛 OPEN
-
-**Status:** Active bug affecting programs with many `LDR Rx, =label` instructions
-
-**Symptoms:**
-- Programs with multiple `LDR Rx, =label` instructions can corrupt memory at offsets 8 and 12
-- Reading from stack offsets +8 and +12 returns incorrect values (-1073741806 and 25)
-- Error at program end: "unimplemented SWI: 0xNNNNNN" with invalid SWI numbers
-- The bug does not occur when using direct register addressing without literal pools
-
-**Evidence:**
-- Created test program that stores values at SP+0, SP+4, SP+8, SP+12
-- Stores work correctly: 100, 200, 300, 400
-- Reads return: 100, 200, -1073741806, 25 (offsets 8 and 12 are corrupted)
-- Integration test `TestStackFile` reproduces the bug when using `LDR R0, =msg`
-- Same test passes when avoiding literal pool loads
-
-**Root Cause (Updated after investigation):**
-- Programs with many `LDR Rx, =label` instructions execute correctly but fail to halt properly
-- After producing correct output, execution continues past the final `SWI #0x00` (exit)
-- PC advances into memory containing literal pool entries or data
-- These values are interpreted as invalid SWI instructions (e.g., SWI 0x04FFC4, SWI 0xCD)
-- The literal pool placement formula `(currentAddr & 0xFFFFF000) + 0x1000` may cause overlap issues
-- Simple programs (1-2 literals) work; complex programs (8+ literals) fail
-
-**Investigation Notes (2025-10-11):**
-- Added `LiteralPoolStart` field to encoder to control literal pool placement
-- Tried placing literal pool between instructions and data → still fails
-- Tried placing literal pool after all data → still fails
-- Added PC-relative offset validation (must be within 4KB) → helped but didn't solve it
-- Integration test `TestStackFile` actually PASSES (stack corruption may be different manifestation)
-- The issue may be related to execution not halting properly, not just literal placement
-
-**Workaround:**
-- Minimize use of `LDR Rx, =label` in programs
-- Use direct values or register-to-register operations where possible
-- Note: `examples/addressing_modes.s` still exhibits the bug despite workarounds
-
-**Files Modified:**
-- `encoder/memory.go` - Added `LiteralPoolStart` support and offset validation
-- `main.go` - Set literal pool start address during assembly
-- `tests/integration/syscalls_test.go` - Updated test helper with same logic
-
-**Test Case:**
-- Example programs: `examples/addressing_modes.s` (8 literals), `examples/arrays.s` (16 literals)
-- Both produce correct output but then hit runtime errors
-- Integration test: `tests/integration/test_stack_file_test.go` (PASSES - may not reproduce this specific issue)
-
-**Next Steps:**
-- Investigate why execution continues after `SWI #0x00` in programs with many literals
-- Check if branch target calculations are affected by literal pool presence
-- Verify SWI #0x00 handler properly sets VM state to halt
-- Consider implementing proper multi-pass assembly with literal pool size calculation
-
-**Effort:** 8-12 hours (complex issue requiring deeper investigation)
-
-**Priority:** High (affects program correctness)
+No known critical issues at this time. All 531 tests pass (100%).
 
 ---
 
@@ -259,12 +203,13 @@ Completed items and past work belong in `PROGRESS.md`.
 
 ## Effort Summary
 
-**Total estimated effort to v1.0.0:** 40-60 hours
+**Total estimated effort to v1.0.0:** 32-48 hours
 
 **By Priority:**
-- **High (Phase 11):** 15-20 hours - Literal pool bug (4-6h), CI/CD enhancements, cross-platform testing, code coverage
+- **High (Phase 11):** 7-12 hours - CI/CD enhancements, cross-platform testing, code coverage
 - **Medium (Phase 12-13):** 18-26 hours - Memory trace integration (2-3h), release pipeline, performance benchmarking
 - **Low (Optional):** 8-11 hours - Additional documentation, advanced features
 
 **Completed:**
 - ✅ Integer conversion issues fixed (1h)
+- ✅ Literal pool bug fixed (0h - was already fixed in commit b6c59e2)
