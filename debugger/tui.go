@@ -205,6 +205,14 @@ func (t *TUI) executeCommand(cmd string) {
 	// Clear previous output
 	t.Debugger.Output.Reset()
 
+	// Check for quit/exit commands
+	cmdLower := strings.ToLower(strings.TrimSpace(cmd))
+	if cmdLower == "quit" || cmdLower == "q" || cmdLower == "exit" {
+		t.WriteOutput("[yellow]Exiting debugger...[white]\n")
+		t.App.Stop()
+		return
+	}
+
 	// Execute command
 	err := t.Debugger.ExecuteCommand(cmd)
 
