@@ -55,28 +55,24 @@ end:
 ; Helper functions (syscall wrappers)
 print_string:
     ; Print null-terminated string in r0
-    PUSH {r7, lr}
-    MOV r7, #4              ; syscall: write
-    SVC #0
-    POP {r7, pc}
+    PUSH {lr}
+    SWI #0x02               ; SWI_WRITE_STRING
+    POP {pc}
 
 print_int:
     ; Print integer in r0
-    PUSH {r7, lr}
-    MOV r7, #1              ; syscall: print_int
-    SVC #0
-    POP {r7, pc}
+    PUSH {lr}
+    SWI #0x03               ; SWI_WRITE_INT
+    POP {pc}
 
 read_int:
     ; Read integer into r0
-    PUSH {r7, lr}
-    MOV r7, #3              ; syscall: read_int
-    SVC #0
-    POP {r7, pc}
+    PUSH {lr}
+    SWI #0x06               ; SWI_READ_INT
+    POP {pc}
 
 exit:
-    MOV r7, #0              ; syscall: exit
-    SVC #0
+    SWI #0x00               ; SWI_EXIT
 
 ; Data section
 .align 4
