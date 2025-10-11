@@ -94,6 +94,8 @@ cleanup:
         ; Restore stack
         ADD     SP, SP, #128
 
+        ; Clear R7 to ensure clean exit (avoiding syscall convention confusion)
+        MOV     R7, #0
         MOV     R0, #0
         SWI     #0x00
 
@@ -141,11 +143,11 @@ test_strided:
         STMFD   SP!, {R1-R5, LR}
         MOV     R5, R4
 
-        ; Write every 4th word with pattern
+        ; Write every 4th word with pattern (8 iterations = max offset 112 bytes)
         MOV     R1, #0          ; Counter
         MOV     R2, #100        ; Base value
 stride_write:
-        CMP     R1, #16
+        CMP     R1, #8
         BGE     stride_write_done
         MOV     R3, R1, LSL #4  ; Offset = i * 16
         ADD     R3, R3, R2      ; Value = 100 + offset
@@ -158,7 +160,7 @@ stride_write_done:
         ; Read and verify
         MOV     R1, #0
 stride_read:
-        CMP     R1, #16
+        CMP     R1, #8
         BGE     stride_pass
         MOV     R6, R1, LSL #4
         LDR     R3, [R5, R6]

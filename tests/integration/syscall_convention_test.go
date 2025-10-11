@@ -96,7 +96,6 @@ _start:
 
 // TestSyscallConvention_MixedStyle tests mixing traditional and Linux-style in same program
 func TestSyscallConvention_MixedStyle(t *testing.T) {
-	t.Skip("Skipping due to intermittent memory access issue - functionality verified in other tests")
 	code := `
         .org    0x8000
 _start:
@@ -113,7 +112,9 @@ _start:
         MOV     R0, #67         ; 'C' in ASCII
         SWI     #0x01           ; WRITE_CHAR
 
-        ; Exit traditional style
+        ; IMPORTANT: Clear R7 before using SWI #0x00 for EXIT
+        ; Otherwise, leftover R7 value causes misinterpretation
+        MOV     R7, #0          ; Clear R7
         MOV     R0, #0
         SWI     #0x00
 `

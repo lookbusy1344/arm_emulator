@@ -79,16 +79,24 @@ func ExecuteSWI(vm *VM, inst *Instruction) error {
 	// - Traditional EXIT syscall (most common)
 	// - Linux-style SVC #0 with syscall number in R7
 	//
-	// We use a heuristic: if immValue == 0 AND R7 contains a valid Linux syscall
-	// number (0-7), then treat as Linux-style. Otherwise, treat as traditional.
+	// We use a heuristic based on R7 value:
+	// - If R7 is 0-7: treat as Linux-style (read syscall from R7)
+	// - If R7 > 7: treat as traditional EXIT
+	//
+	// LIMITATION: When mixing conventions, you MUST clear R7 (set to 0 or >7)
+	// before using traditional SWI #0x00 for EXIT. Otherwise, leftover R7 values
+	// from previous Linux-style calls will cause SWI #0x00 to be misinterpreted.
+	//
+	// Example of correct mixed usage:
+	//   MOV R7, #2; MOV R0, #65; SWI #0  ; Linux print_char
+	//   MOV R7, #0; MOV R0, #0; SWI #0   ; Linux/traditional EXIT (R7 cleared!)
 	if immValue == 0 {
 		r7Value := vm.CPU.GetRegister(7)
-		// Check if R7 contains a plausible Linux syscall number (0-7)
 		if r7Value <= 7 {
-			// Likely Linux-style convention: syscall number is in R7
+			// Linux-style: syscall number in R7
 			swiNum = mapLinuxSyscall(r7Value)
 		} else {
-			// Treat as traditional EXIT (SWI #0x00)
+			// Traditional EXIT: R7 contains garbage or was explicitly cleared to >7
 			swiNum = SWI_EXIT
 		}
 	} else {
