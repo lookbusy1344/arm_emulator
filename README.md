@@ -65,7 +65,7 @@ An ARM emulator written in Go that implements a subset of the ARM2 instruction s
 
 ## Features
 
-- ARM2 instruction set implementation with 575 passing tests (100% pass rate)
+- ARM2 instruction set implementation with 660 passing tests (100% pass rate)
 - Assembly parser for ARM assembly programs with macros and preprocessor
 - Machine code encoder/decoder for binary ARM instruction formats
 - Interactive debugger with TUI (Text User Interface)
@@ -208,16 +208,32 @@ All diagnostic modes support both text and JSON output formats:
 
 ### Example Programs
 
-The `examples/` directory contains sample ARM assembly programs that demonstrate various features:
+The `examples/` directory contains 23 sample ARM assembly programs that demonstrate various features:
 
-- **times_table.s** - Multiplication table generator
-- **factorial.s** - Recursive factorial calculator
+**Basic Examples:**
+- **hello.s** - Hello World program
+- **arithmetic.s** - Basic arithmetic operations
+
+**Algorithm Examples:**
 - **fibonacci.s** - Fibonacci sequence generator
-- **string_reverse.s** - String reversal program
+- **factorial.s** - Recursive factorial calculator
 - **bubble_sort.s** - Bubble sort algorithm
-- **calculator.s** - Interactive calculator with basic operations
+- **binary_search.s** - Binary search implementation
+- **gcd.s** - Greatest common divisor
 
-See [examples/README.md](examples/README.md) for detailed descriptions and usage instructions.
+**Data Structure Examples:**
+- **arrays.s** - Array operations
+- **linked_list.s** - Linked list implementation
+- **stack.s** - Stack implementation
+- **strings.s** - String manipulation
+
+**Advanced Examples:**
+- **functions.s** - Function calling conventions
+- **conditionals.s** - If/else, switch/case patterns
+- **loops.s** - For, while, do-while loops
+- **addressing_modes.s** - ARM2 addressing modes demonstration
+
+And more! See [examples/README.md](examples/README.md) for detailed descriptions and usage instructions.
 
 ## Development
 
@@ -251,8 +267,8 @@ go test ./...
 ├── debugger/            # Debugging utilities with TUI
 ├── config/              # Cross-platform configuration
 ├── tools/               # Development tools (lint, format, xref)
-├── tests/               # Test files (575 tests)
-├── examples/            # Example ARM assembly programs (19 programs)
+├── tests/               # Test files (660 tests)
+├── examples/            # Example ARM assembly programs (23 programs)
 └── docs/                # User and developer documentation
 ```
 
