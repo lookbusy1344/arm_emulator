@@ -42,7 +42,7 @@ go test ./...
 - `debugger/` - Debugging utilities with TUI (breakpoints, watchpoints, expression evaluation)
 - `config/` - Cross-platform configuration management
 - `tools/` - Development tools (linter, formatter, cross-reference generator)
-- `tests/` - Test files (518 tests, 100% pass rate)
+- `tests/` - Test files (525 tests, 100% pass rate)
 - `examples/` - Example ARM assembly programs (17 complete programs)
 - `docs/` - User and developer documentation
 
@@ -62,7 +62,9 @@ go test ./...
 ## Current Status
 
 **Phase 11 (Production Hardening) - In Progress**
-- 518 tests passing (100% pass rate)
+- 525 tests passing (100% pass rate)
+  - Unit tests: 492 tests
+  - Integration tests: 33 tests (full end-to-end execution pipeline)
 - Code quality tools implemented (golangci-lint with errcheck, unused, govet, ineffassign, misspell)
 - All lint issues resolved (0 issues reported)
 - Go vet warnings fixed (method renames to avoid interface conflicts)
