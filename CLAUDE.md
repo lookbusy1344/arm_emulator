@@ -66,9 +66,9 @@ go test ./...
 ## Current Status
 
 **Phase 11 (Production Hardening) - In Progress**
-- 531 tests passing (100% pass rate)
+- 583 tests passing (100% pass rate)
   - Unit tests: 498 tests
-  - Integration tests: 33 tests (full end-to-end execution pipeline)
+  - Integration tests: 85 tests (full end-to-end execution pipeline + CLI diagnostic flags)
 - Code quality tools implemented (golangci-lint with errcheck, unused, govet, ineffassign, misspell)
 - All lint issues resolved (0 issues reported)
 - Go vet warnings fixed (method renames to avoid interface conflicts)

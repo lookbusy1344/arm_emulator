@@ -7,6 +7,35 @@
 
 ## Recent Updates
 
+### 2025-10-11: CLI Diagnostic Flags Integration Tests Added ✅
+**Action:** Created comprehensive integration tests for all CLI diagnostic flags
+
+**Tests Added:**
+- `tests/integration/diagnostic_flags_test.go` - 8 new integration tests (52 tests total added to suite)
+- Tests execute the actual emulator binary with CLI flags and verify output files
+
+**Coverage:**
+- `--mem-trace` / `--mem-trace-file` - verifies READ/WRITE operations are traced
+- `--coverage` / `--coverage-file` (text format) - verifies code coverage reporting
+- `--coverage` / `--coverage-file` (JSON format) - verifies JSON output structure
+- `--stack-trace` / `--stack-trace-file` (text format) - verifies stack operation tracking
+- `--stack-trace` / `--stack-trace-file` (JSON format) - verifies JSON output structure
+- `--flag-trace` / `--flag-trace-file` (text format) - verifies CPSR flag change tracking
+- `--flag-trace` / `--flag-trace-file` (JSON format) - verifies JSON output structure
+- Multiple flags combined - verifies all diagnostic modes work together
+
+**Test Results:**
+- All 583 tests pass (100% pass rate - up from 531)
+- 52 new tests covering CLI diagnostic functionality
+- 0 lint issues
+- Tests verify actual binary execution, not just in-memory API calls
+
+**Benefits:**
+- End-to-end testing of diagnostic features
+- Verifies CLI argument parsing works correctly
+- Ensures output files are created with correct formats
+- Tests realistic user workflows combining multiple diagnostic flags
+
 ### 2025-10-11: Integer Conversion Issues Fixed ✅
 **Action:** Fixed all gosec G115 integer overflow conversion warnings
 
