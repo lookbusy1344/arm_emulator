@@ -51,16 +51,16 @@ func runAssembly(t *testing.T, code string) (stdout string, stderr string, exitC
 	}
 
 	// Run program
+	var execErr error
 	machine.State = vm.StateRunning
 	for machine.State == vm.StateRunning {
 		if err := machine.Step(); err != nil {
 			if machine.State == vm.StateHalted {
 				break
 			}
-			// Close pipes before returning error
-			wOut.Close()
-			wErr.Close()
-			return "", "", machine.ExitCode, err
+			// Save error but continue to capture output
+			execErr = err
+			break
 		}
 	}
 
@@ -72,7 +72,8 @@ func runAssembly(t *testing.T, code string) (stdout string, stderr string, exitC
 	io.Copy(&outBuf, rOut)
 	io.Copy(&errBuf, rErr)
 
-	return outBuf.String(), errBuf.String(), machine.ExitCode, nil
+	// Return captured output along with any error
+	return outBuf.String(), errBuf.String(), machine.ExitCode, execErr
 }
 
 // Helper function to load program into VM (copied from main.go)
