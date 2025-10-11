@@ -183,6 +183,31 @@ No known critical issues at this time. All 531 tests pass (100%).
 
 ---
 
+## Additional Diagnostic Modes (Future Enhancements)
+
+**Effort:** 12-18 hours
+**Priority:** Low-Medium
+
+### Proposed Diagnostic Features
+
+**High Value (Implementing Now):**
+- [ ] Code Coverage Mode - Track which instructions/addresses were executed vs not executed
+- [ ] Stack Trace Mode - Track stack operations (push/pop) and detect overflow/underflow
+- [ ] Flag Change Trace - Dedicated mode to track CPSR flag changes for debugging conditional logic
+
+**Future Considerations:**
+- [ ] Register Access Pattern Analysis - Track which registers are most frequently read/written
+- [ ] Data Flow Trace - Track how data flows through registers (value provenance)
+- [ ] Cycle-Accurate Timing - Per-instruction timing breakdown for performance analysis
+- [ ] Symbol-Aware Trace - Enhanced trace showing function names instead of just addresses
+- [ ] Diff Mode - Compare register/memory state between two execution points
+- [ ] Memory Region Heatmap - Visualize which memory regions are most accessed
+- [ ] Assertion/Invariant Checking - Verify user-defined conditions during execution
+- [ ] Reverse Execution Log - Log sufficient state to enable stepping backwards
+- [ ] Pipeline Visualization - Show instruction flow through execution stages
+
+---
+
 ## Additional Documentation (Optional)
 
 **Effort:** 8-11 hours
