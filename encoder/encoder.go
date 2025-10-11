@@ -233,10 +233,10 @@ func (e *Encoder) parseImmediate(imm string) (uint32, error) {
 	result := uint32(value)
 	if negative {
 		// Bounds check before casting to int32 and negating
-		if result > uint32(math.MaxInt32)+1 {
+		if result < 1 || result > uint32(math.MaxInt32)+1 {
 			return 0, fmt.Errorf("immediate value out of valid signed 32-bit range: %s", imm)
 		}
-		// Safe: value checked to be in valid range for negation
+		// Safe: value checked to be in valid range for signed negation
 		result = uint32(-int32(result)) // #nosec G115 -- bounds checked above
 	}
 
