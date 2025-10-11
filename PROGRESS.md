@@ -566,11 +566,14 @@ Complete Phase 10 implementation - Cross-Platform & Diagnostics:
   - Export to JSON, CSV, and HTML with beautiful formatting
   - 11 tests - ALL PASSING ✅
 
-- **Command-Line Integration**
-  - New flags: -trace, -mem-trace, -stats with file and format options
-  - Automatic setup and teardown of tracing/statistics
-  - Enhanced help text with usage examples
-  - Verbose mode shows detailed trace/stats information
+- **Command-Line Integration** ✅ COMPLETE
+  - New flags: -trace, -trace-file, -trace-filter for execution tracing
+  - New flags: -mem-trace, -mem-trace-file for memory tracing
+  - New flags: -stats, -stats-file, -stats-format (json/csv/html) for performance statistics
+  - Automatic setup and teardown of tracing/statistics (main.go:158-223, 277-342)
+  - Enhanced help text with comprehensive examples (main.go:567-597)
+  - Verbose mode shows detailed trace/stats information with file paths and entry counts
+  - Proper error handling and file cleanup with deferred closure
 
 **Total: 29 new tests for Phase 10 - ALL PASSING** ✅
 **Overall: 493 tests across all phases (464 + 29 new) - ALL PASSING** ✅
