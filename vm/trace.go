@@ -343,5 +343,5 @@ func (t *MemoryTrace) Clear() {
 
 // OpenTraceFile opens a trace file for writing
 func OpenTraceFile(filename string) (*os.File, error) {
-	return os.Create(filename)
+	return os.Create(filename) // #nosec G304 -- user-specified trace file path
 }

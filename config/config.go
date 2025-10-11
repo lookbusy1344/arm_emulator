@@ -125,7 +125,7 @@ func GetConfigPath() string {
 	}
 
 	// Ensure directory exists
-	if err := os.MkdirAll(configDir, 0755); err != nil {
+	if err := os.MkdirAll(configDir, 0750); err != nil {
 		// If we can't create the directory, fall back to current directory
 		return "config.toml"
 	}
@@ -159,7 +159,7 @@ func GetLogPath() string {
 	}
 
 	// Ensure directory exists
-	if err := os.MkdirAll(logDir, 0755); err != nil {
+	if err := os.MkdirAll(logDir, 0750); err != nil {
 		return "logs"
 	}
 
@@ -197,12 +197,12 @@ func (c *Config) Save() error {
 func (c *Config) SaveTo(path string) error {
 	// Ensure directory exists
 	dir := filepath.Dir(path)
-	if err := os.MkdirAll(dir, 0755); err != nil {
+	if err := os.MkdirAll(dir, 0750); err != nil {
 		return fmt.Errorf("failed to create config directory: %w", err)
 	}
 
 	// Create file
-	f, err := os.Create(path)
+	f, err := os.Create(path) // #nosec G304 -- user config file path
 	if err != nil {
 		return fmt.Errorf("failed to create config file: %w", err)
 	}

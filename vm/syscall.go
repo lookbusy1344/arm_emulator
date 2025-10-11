@@ -352,8 +352,8 @@ func handleGetTime(vm *VM) error {
 }
 
 func handleGetRandom(vm *VM) error {
-	// Return a random 32-bit number
-	vm.CPU.SetRegister(0, rand.Uint32())
+	// Return a random 32-bit number (non-cryptographic use)
+	vm.CPU.SetRegister(0, rand.Uint32()) // #nosec G404 -- pseudo-random for emulator, not crypto
 	vm.CPU.IncrementPC()
 	return nil
 }
@@ -485,7 +485,7 @@ func handleOpen(vm *VM) error {
 	case 1: // Write
 		file, err = os.Create(string(filename))
 	case 2: // Append
-		file, err = os.OpenFile(string(filename), os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+		file, err = os.OpenFile(string(filename), os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0600)
 	default:
 		vm.CPU.SetRegister(0, 0xFFFFFFFF)
 		vm.CPU.IncrementPC()

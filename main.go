@@ -67,7 +67,7 @@ func main() {
 		fmt.Printf("Loading assembly file: %s\n", asmFile)
 	}
 
-	input, err := os.ReadFile(asmFile)
+	input, err := os.ReadFile(asmFile) // #nosec G304 -- user-provided assembly file path
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error reading file: %v\n", err)
 		os.Exit(1)
@@ -162,7 +162,7 @@ func main() {
 			tracePath = filepath.Join(config.GetLogPath(), "trace.log")
 		}
 
-		traceWriter, err := os.Create(tracePath)
+		traceWriter, err := os.Create(tracePath) // #nosec G304 -- user-specified trace output path
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Error creating trace file: %v\n", err)
 			os.Exit(1)
@@ -194,7 +194,7 @@ func main() {
 			memTracePath = filepath.Join(config.GetLogPath(), "memtrace.log")
 		}
 
-		memTraceWriter, err := os.Create(memTracePath)
+		memTraceWriter, err := os.Create(memTracePath) // #nosec G304 -- user-specified memory trace output path
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Error creating memory trace file: %v\n", err)
 			os.Exit(1)
@@ -306,7 +306,7 @@ func main() {
 				statPath = filepath.Join(config.GetLogPath(), "stats."+ext)
 			}
 
-			statsWriter, err := os.Create(statPath)
+			statsWriter, err := os.Create(statPath) // #nosec G304 -- user-specified stats output path
 			if err != nil {
 				fmt.Fprintf(os.Stderr, "Error creating statistics file: %v\n", err)
 			} else {

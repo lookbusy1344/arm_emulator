@@ -63,7 +63,7 @@ func (p *Preprocessor) ProcessFile(filename string) (string, error) {
 	}
 
 	// Read file
-	content, err := os.ReadFile(absPath)
+	content, err := os.ReadFile(absPath) // #nosec G304 -- user-provided include file path
 	if err != nil {
 		return "", fmt.Errorf("failed to read file %s: %w", filename, err)
 	}
