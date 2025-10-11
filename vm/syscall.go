@@ -1,11 +1,17 @@
 package vm
 
 import (
+	"bufio"
 	"fmt"
 	"math/rand"
 	"os"
+	"strconv"
+	"strings"
 	"time"
 )
+
+// Global stdin reader for consistent input handling across syscalls
+var stdinReader = bufio.NewReader(os.Stdin)
 
 // SWI (Software Interrupt) syscall numbers
 const (
@@ -214,15 +220,21 @@ func handleWriteInt(vm *VM) error {
 }
 
 func handleReadChar(vm *VM) error {
-	var char byte
-	_, err := fmt.Scanf("%c", &char)
-	if err != nil {
-		vm.CPU.SetRegister(0, 0xFFFFFFFF) // Return -1 on error
-	} else {
-		vm.CPU.SetRegister(0, uint32(char))
+	// Skip any leading whitespace (newlines, spaces, tabs)
+	for {
+		char, err := stdinReader.ReadByte()
+		if err != nil {
+			vm.CPU.SetRegister(0, 0xFFFFFFFF) // Return -1 on error
+			vm.CPU.IncrementPC()
+			return nil
+		}
+		// If it's not whitespace, we found our character
+		if char != '\n' && char != '\r' && char != ' ' && char != '\t' {
+			vm.CPU.SetRegister(0, uint32(char))
+			vm.CPU.IncrementPC()
+			return nil
+		}
 	}
-	vm.CPU.IncrementPC()
-	return nil
 }
 
 func handleReadString(vm *VM) error {
@@ -233,14 +245,17 @@ func handleReadString(vm *VM) error {
 		maxLen = 256 // Default max length
 	}
 
-	// Read string from stdin
-	var input string
-	_, err := fmt.Scanln(&input)
+	// Read string from stdin (up to newline)
+	input, err := stdinReader.ReadString('\n')
 	if err != nil {
 		vm.CPU.SetRegister(0, 0xFFFFFFFF) // Return -1 on error
 		vm.CPU.IncrementPC()
 		return nil
 	}
+
+	// Remove trailing newline
+	input = strings.TrimSuffix(input, "\n")
+	input = strings.TrimSuffix(input, "\r")
 
 	// Write string to memory (up to maxLen-1 chars + null terminator)
 	// Safe: input is from reader, length bounded by buffer size and maxLen check below
@@ -270,20 +285,34 @@ func handleReadString(vm *VM) error {
 }
 
 func handleReadInt(vm *VM) error {
-	var value int32
-	_, err := fmt.Scanf("%d", &value)
-	if err != nil {
-		// On error, return 0 in R0
-		// Note: We don't modify R1 to avoid corrupting it for subsequent syscalls
-		// Programs that need error checking should validate the input themselves
-		vm.CPU.SetRegister(0, 0)
-	} else {
-		// Safe: value from ParseInt with bitSize 32, fits in int32 range [-2^31, 2^31-1]
-		// which maps correctly to uint32 via two's complement
-		vm.CPU.SetRegister(0, uint32(value)) // #nosec G115 -- int32 to uint32, intentional
+	// Read lines until we get a non-empty one or hit EOF
+	for {
+		line, err := stdinReader.ReadString('\n')
+		if err != nil {
+			vm.CPU.SetRegister(0, 0)
+			vm.CPU.IncrementPC()
+			return nil
+		}
+
+		// Parse the integer from the line
+		line = strings.TrimSpace(line)
+		if line == "" {
+			// Skip empty lines
+			continue
+		}
+
+		value, err := strconv.ParseInt(line, 10, 32)
+		if err != nil {
+			// On error, return 0 in R0
+			vm.CPU.SetRegister(0, 0)
+		} else {
+			// Safe: value from ParseInt with bitSize 32, fits in int32 range [-2^31, 2^31-1]
+			// which maps correctly to uint32 via two's complement
+			vm.CPU.SetRegister(0, uint32(int32(value))) // #nosec G115 -- int32 to uint32, intentional
+		}
+		vm.CPU.IncrementPC()
+		return nil
 	}
-	vm.CPU.IncrementPC()
-	return nil
 }
 
 // Memory operation handlers

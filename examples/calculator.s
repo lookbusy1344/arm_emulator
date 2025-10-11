@@ -190,7 +190,10 @@ print_string:
 
 print_int:
     PUSH {lr}
+    PUSH {r1}               ; Save R1
+    MOV r1, #10             ; Use decimal base
     SWI #0x03               ; SWI_WRITE_INT
+    POP {r1}                ; Restore R1
     POP {pc}
 
 print_char:
