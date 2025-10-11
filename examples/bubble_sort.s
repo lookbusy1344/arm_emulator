@@ -156,26 +156,22 @@ error_size:
 
 ; Helper functions
 print_string:
-    PUSH {r7, lr}
-    MOV r7, #4
-    SVC #0
-    POP {r7, pc}
+    PUSH {lr}
+    SWI #0x02               ; SWI_WRITE_STRING
+    POP {pc}
 
 print_int:
-    PUSH {r7, lr}
-    MOV r7, #1
-    SVC #0
-    POP {r7, pc}
+    PUSH {lr}
+    SWI #0x03               ; SWI_WRITE_INT
+    POP {pc}
 
 read_int:
-    PUSH {r7, lr}
-    MOV r7, #3
-    SVC #0
-    POP {r7, pc}
+    PUSH {lr}
+    SWI #0x06               ; SWI_READ_INT
+    POP {pc}
 
 exit:
-    MOV r7, #0
-    SVC #0
+    SWI #0x00               ; SWI_EXIT
 
 ; Data section
 .align 4
