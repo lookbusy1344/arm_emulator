@@ -40,27 +40,44 @@ Completed items and past work belong in `PROGRESS.md`.
 - Integration test `TestStackFile` reproduces the bug when using `LDR R0, =msg`
 - Same test passes when avoiding literal pool loads
 
-**Root Cause:**
-- Literal pools created by `LDR Rx, =label` appear to overlap with memory regions
-- The value -1073741806 (0xC0000012) looks like an ARM instruction
-- The parser/encoder places literal pools inline with code, potentially at incorrect offsets
-- Literal pool entries may be placed where data/stack is expected to be
+**Root Cause (Updated after investigation):**
+- Programs with many `LDR Rx, =label` instructions execute correctly but fail to halt properly
+- After producing correct output, execution continues past the final `SWI #0x00` (exit)
+- PC advances into memory containing literal pool entries or data
+- These values are interpreted as invalid SWI instructions (e.g., SWI 0x04FFC4, SWI 0xCD)
+- The literal pool placement formula `(currentAddr & 0xFFFFF000) + 0x1000` may cause overlap issues
+- Simple programs (1-2 literals) work; complex programs (8+ literals) fail
+
+**Investigation Notes (2025-10-11):**
+- Added `LiteralPoolStart` field to encoder to control literal pool placement
+- Tried placing literal pool between instructions and data → still fails
+- Tried placing literal pool after all data → still fails
+- Added PC-relative offset validation (must be within 4KB) → helped but didn't solve it
+- Integration test `TestStackFile` actually PASSES (stack corruption may be different manifestation)
+- The issue may be related to execution not halting properly, not just literal placement
 
 **Workaround:**
 - Minimize use of `LDR Rx, =label` in programs
 - Use direct values or register-to-register operations where possible
-- See `examples/addressing_modes.s` for a working example that avoids the bug
+- Note: `examples/addressing_modes.s` still exhibits the bug despite workarounds
 
-**Files to Investigate:**
-- `parser/parser.go` - Literal pool generation and placement
-- `encoder/encoder.go` - How literal pools are encoded
-- Memory layout - Understanding where literals are placed relative to code/data
+**Files Modified:**
+- `encoder/memory.go` - Added `LiteralPoolStart` support and offset validation
+- `main.go` - Set literal pool start address during assembly
+- `tests/integration/syscalls_test.go` - Updated test helper with same logic
 
 **Test Case:**
-- Integration test: `tests/integration/test_stack_file_test.go` (currently FAILS)
-- Example program: See deleted `examples/test_stack.s` for minimal reproduction
+- Example programs: `examples/addressing_modes.s` (8 literals), `examples/arrays.s` (16 literals)
+- Both produce correct output but then hit runtime errors
+- Integration test: `tests/integration/test_stack_file_test.go` (PASSES - may not reproduce this specific issue)
 
-**Effort:** 4-6 hours (investigation + fix)
+**Next Steps:**
+- Investigate why execution continues after `SWI #0x00` in programs with many literals
+- Check if branch target calculations are affected by literal pool presence
+- Verify SWI #0x00 handler properly sets VM state to halt
+- Consider implementing proper multi-pass assembly with literal pool size calculation
+
+**Effort:** 8-12 hours (complex issue requiring deeper investigation)
 
 **Priority:** High (affects program correctness)
 

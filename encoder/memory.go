@@ -222,14 +222,26 @@ func (e *Encoder) encodeLDRPseudo(inst *parser.Instruction, cond, rd uint32) (ui
 	}
 
 	// Need to use literal pool - generate PC-relative LDR
-	// Place literals in a pool at a fixed offset to avoid overwriting instructions
-	// Use a large offset (4KB) to ensure it's after all code and data
-	poolSize, err := vm.SafeIntToUint32(len(e.LiteralPool) * 4)
-	if err != nil {
-		return 0, fmt.Errorf("literal pool too large: %v", err)
+	// Place literals after all code and data
+	// If LiteralPoolStart is set (by loadProgramIntoVM), use it
+	// Otherwise fall back to the old behavior (for compatibility with tests)
+	var literalAddr uint32
+	if e.LiteralPoolStart > 0 {
+		// Use the start address set by the loader, plus offset for each literal
+		poolSize, err := vm.SafeIntToUint32(len(e.LiteralPool) * 4)
+		if err != nil {
+			return 0, fmt.Errorf("literal pool too large: %v", err)
+		}
+		literalAddr = e.LiteralPoolStart + poolSize
+	} else {
+		// Fallback: place literals at a fixed offset
+		poolSize, err := vm.SafeIntToUint32(len(e.LiteralPool) * 4)
+		if err != nil {
+			return 0, fmt.Errorf("literal pool too large: %v", err)
+		}
+		literalOffset := 0x1000 + poolSize
+		literalAddr = (e.currentAddr & 0xFFFFF000) + literalOffset
 	}
-	literalOffset := 0x1000 + poolSize
-	literalAddr := (e.currentAddr & 0xFFFFF000) + literalOffset
 
 	// Store value in literal pool
 	e.LiteralPool[literalAddr] = value
@@ -242,6 +254,15 @@ func (e *Encoder) encodeLDRPseudo(inst *parser.Instruction, cond, rd uint32) (ui
 		return 0, fmt.Errorf("address out of int32 range for PC-relative addressing")
 	}
 	offset := int32(literalAddr) - int32(pc) // Safe: both values checked
+
+	// Check if offset fits in 12 bits (max 4095 bytes)
+	absOffset := offset
+	if absOffset < 0 {
+		absOffset = -absOffset
+	}
+	if absOffset > 4095 {
+		return 0, fmt.Errorf("literal pool offset too large: %d bytes (max 4095) - literal at 0x%08X, PC=0x%08X", absOffset, literalAddr, pc)
+	}
 
 	if offset < 0 {
 		offset = -offset

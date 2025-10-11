@@ -414,7 +414,8 @@ func loadProgramIntoVM(machine *vm.VM, program *parser.Program, entryPoint uint3
 		dataAddr += 4 // Each instruction is 4 bytes
 	}
 
-	// Data directives go after instructions (dataAddr is now positioned after all instructions)
+	// Data directives go after instructions (original layout)
+	// We'll place the literal pool after all data
 
 	// Process data directives
 	for _, directive := range program.Directives {
@@ -519,6 +520,11 @@ func loadProgramIntoVM(machine *vm.VM, program *parser.Program, entryPoint uint3
 			}
 		}
 	}
+
+	// Set literal pool start address to after all data
+	// Align to 4-byte boundary
+	literalPoolStart := (dataAddr + 3) & ^uint32(3)
+	enc.LiteralPoolStart = literalPoolStart
 
 	// Second pass: encode and write instructions
 	for _, inst := range program.Instructions {
