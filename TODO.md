@@ -31,11 +31,26 @@ Completed items and past work belong in `PROGRESS.md`.
    - Converted to ARM2-style syscalls but has underlying bug
    - Issue exists in original version before conversion
    - Program structure appears correct but crashes during execution
+   - **Diagnostic Details:**
+     - Error occurs at PC=0x000080DC when calling `print_string` syscall
+     - R0 contains invalid address 0x81000000 instead of valid string address
+     - Error message: "failed to read string at 0x81000000: memory access violation"
+     - 0x81000000 = 0b10000001_00000000_00000000_00000000 (looks like encoded instruction)
+     - Simplified versions with same structure work fine (tested with 10 LDR pseudo-instructions)
+     - Likely a **literal pool addressing bug** - LDR pseudo-instruction generating wrong address
+     - May be related to PC-relative offset calculation or literal pool placement
+     - Literal pool system places literals at `(dataAddr + 3) & ^uint32(3)` after data section
+     - Each LDR pseudo-instruction must be within 4095 bytes of its literal (12-bit offset limit)
+     - Similar programs with many strings work correctly, suggesting edge case in specific code structure
 
 2. **calculator.s** - Memory access violation at 0x82000000
    - Converted to ARM2-style syscalls but has underlying bug
    - Issue exists in original version before conversion
    - Similar memory addressing issue as fibonacci.s
+   - **Diagnostic Details:**
+     - Similar literal pool addressing bug to fibonacci.s
+     - 0x82000000 = 0b10000010_00000000_00000000_00000000 (also looks like encoded instruction)
+     - Likely same root cause - LDR pseudo-instruction generating invalid address
 
 3. **linked_list.s** - Unaligned word access at 0x0000000E
    - Pre-existing bug, not related to syscall conversion
@@ -82,7 +97,43 @@ Completed items and past work belong in `PROGRESS.md`.
 
 ---
 
-### Task 2: Enhanced CI/CD Pipeline
+### Task 2: Fix Literal Pool Bug (fibonacci.s, calculator.s)
+
+**Status:** In investigation - diagnostics added to TODO.md (2025-10-11)
+
+**Problem:**
+- fibonacci.s and calculator.s crash with memory access violations at 0x81000000 and 0x82000000
+- Invalid addresses (0x81000000, 0x82000000) look like encoded ARM instructions, not valid memory addresses
+- LDR pseudo-instructions (`LDR r0, =label`) are generating wrong addresses in certain cases
+- Simplified test programs with similar structure work fine, indicating edge case
+
+**Root Cause (Suspected):**
+- Literal pool addressing calculation issue in `encoder/memory.go`
+- PC-relative offset may be incorrectly calculated or literal pool placement wrong
+- May be related to specific combination of code size, data section size, and literal pool placement
+- Should trigger "literal pool offset too large" error if offset > 4095 bytes, but doesn't
+
+**Investigation Steps:**
+- [ ] Add debug logging to `encoder/memory.go` to see literal pool addresses being generated
+- [ ] Check what addresses are in `enc.LiteralPool` map for fibonacci.s
+- [ ] Verify PC-relative offset calculation in `addLiteralToPool()` function
+- [ ] Check if literal pool is being written to memory correctly in `main.go` line 714-718
+- [ ] Test if issue occurs when literal pool offset approaches 4095 byte limit
+- [ ] Create minimal reproduction case that triggers the bug
+
+**Files to Investigate:**
+- `encoder/memory.go:220-270` - `addLiteralToPool()` function
+- `main.go:692-718` - Literal pool initialization and writing
+- `examples/fibonacci.s` - Test case
+- `examples/calculator.s` - Test case
+
+**Effort:** 4-8 hours (investigation + fix + testing)
+
+**Priority:** High (affects 2 example programs, may indicate broader encoder bug)
+
+---
+
+### Task 3: Enhanced CI/CD Pipeline
 
 **Status:** Basic CI exists with Go 1.25
 
