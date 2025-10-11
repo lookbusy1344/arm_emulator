@@ -135,7 +135,10 @@ func TestCharacterLiteral_InComparisons(t *testing.T) {
 			continue
 		}
 
-		machineCode, err := enc.EncodeInstruction(inst, uint32(i*4))
+		// Safe conversion: i is from range, always >= 0 and bounded by instruction count
+		// #nosec G115 -- i is loop index, guaranteed non-negative and within bounds
+		addr := uint32(i * 4)
+		machineCode, err := enc.EncodeInstruction(inst, addr)
 		if err != nil {
 			t.Fatalf("instruction %d encode error: %v", i, err)
 		}
@@ -290,7 +293,10 @@ func TestCharacterLiteral_MultipleInSameProgram(t *testing.T) {
 
 	enc := encoder.NewEncoder(program.SymbolTable)
 	for i, inst := range program.Instructions {
-		machineCode, err := enc.EncodeInstruction(inst, uint32(i*4))
+		// Safe conversion: i is from range, always >= 0 and bounded by instruction count
+		// #nosec G115 -- i is loop index, guaranteed non-negative and within bounds
+		addr := uint32(i * 4)
+		machineCode, err := enc.EncodeInstruction(inst, addr)
 		if err != nil {
 			t.Fatalf("instruction %d encode error: %v", i, err)
 		}

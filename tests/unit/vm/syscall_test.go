@@ -191,6 +191,7 @@ func TestSWI_MultipleAllocations(t *testing.T) {
 
 	for i := 0; i < 5; i++ {
 		v.CPU.R[0] = 32 // Allocate 32 bytes each
+		// #nosec G115 -- i is loop index [0,5), guaranteed non-negative and within bounds
 		v.CPU.PC = 0x8000 + uint32(i*4)
 
 		setupCodeWrite(v)

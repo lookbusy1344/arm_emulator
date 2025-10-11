@@ -378,12 +378,18 @@ func TestMemory_FillPattern(t *testing.T) {
 	// Fill with pattern
 	pattern := []byte{0xAA, 0xBB, 0xCC, 0xDD}
 	for i := 0; i < 4; i++ {
-		v.Memory.WriteByteAt(0x20000+uint32(i), pattern[i])
+		// Safe conversion: i is from loop [0, 4), always >= 0
+		// #nosec G115 -- i is loop index, guaranteed non-negative and within bounds
+		offset := uint32(i)
+		v.Memory.WriteByteAt(0x20000+offset, pattern[i])
 	}
 
 	// Verify pattern
 	for i := 0; i < 4; i++ {
-		value, _ := v.Memory.ReadByteAt(0x20000 + uint32(i))
+		// Safe conversion: i is from loop [0, 4), always >= 0
+		// #nosec G115 -- i is loop index, guaranteed non-negative and within bounds
+		offset := uint32(i)
+		value, _ := v.Memory.ReadByteAt(0x20000 + offset)
 		if value != pattern[i] {
 			t.Errorf("Byte %d should be 0x%X, got 0x%X", i, pattern[i], value)
 		}
