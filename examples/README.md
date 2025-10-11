@@ -2,9 +2,25 @@
 
 This directory contains example ARM assembly programs that demonstrate various features of the ARM2 emulator.
 
+**Total Examples:** 18 programs covering basic operations, algorithms, data structures, and advanced features.
+
 ## Basic Examples
 
-### 1. hello.s
+### 1. addressing_modes.s
+**Addressing Modes Demonstration**
+- Comprehensive demonstration of ARM2 addressing modes
+- Tests immediate offset, pre-indexed with writeback, post-indexed
+- Tests register offset and scaled register offset
+- Demonstrates byte access with post-indexed addressing
+- Self-testing program that validates each mode
+
+**Example Output:**
+```
+Testing ARM Addressing Modes...
+All addressing mode tests passed!
+```
+
+### 2. hello.s
 **Hello World Program**
 - Classic first program in any language
 - Demonstrates: String output, program termination
@@ -15,7 +31,7 @@ This directory contains example ARM assembly programs that demonstrate various f
 Hello, World!
 ```
 
-### 2. arithmetic.s
+### 3. arithmetic.s
 **Basic Arithmetic Operations**
 - Demonstrates addition, subtraction, multiplication, and division
 - Shows how to perform basic math in ARM assembly
@@ -31,7 +47,7 @@ Division: 35 / 5 = 7
 
 ## Algorithm Examples
 
-### 3. fibonacci.s
+### 4. fibonacci.s
 **Fibonacci Sequence Generator**
 - Generates the first N Fibonacci numbers
 - Supports up to 20 numbers
@@ -43,7 +59,7 @@ Input: 10
 Output: 0, 1, 1, 2, 3, 5, 8, 13, 21, 34
 ```
 
-### 4. factorial.s
+### 5. factorial.s
 **Factorial Calculator**
 - Computes factorial using recursion
 - Input validation (0-12 to prevent overflow)

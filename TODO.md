@@ -140,6 +140,49 @@ The ARM2 emulator is **fully functional**:
 
 ## Parser/Encoder Issues
 
+### Literal Pool Memory Corruption Bug 🐛 OPEN
+
+**Status:** Active bug affecting programs with many `LDR Rx, =label` instructions
+
+**Symptoms:**
+- Programs with multiple `LDR Rx, =label` instructions can corrupt memory at offsets 8 and 12
+- Reading from stack offsets +8 and +12 returns incorrect values (-1073741806 and 25)
+- Error at program end: "unimplemented SWI: 0xNNNNNN" with invalid SWI numbers
+- The bug does not occur when using direct register addressing without literal pools
+
+**Evidence:**
+- Created test program that stores values at SP+0, SP+4, SP+8, SP+12
+- Stores work correctly: 100, 200, 300, 400
+- Reads return: 100, 200, -1073741806, 25 (offsets 8 and 12 are corrupted)
+- Integration test `TestStackFile` reproduces the bug when using `LDR R0, =msg`
+- Same test passes when avoiding literal pool loads
+
+**Root Cause:**
+- Literal pools created by `LDR Rx, =label` appear to overlap with memory regions
+- The value -1073741806 (0xC0000012) looks like an ARM instruction
+- The parser/encoder places literal pools inline with code, potentially at incorrect offsets
+- Literal pool entries may be placed where data/stack is expected to be
+
+**Workaround:**
+- Minimize use of `LDR Rx, =label` in programs
+- Use direct values or register-to-register operations where possible
+- See `examples/addressing_modes.s` for a working example that avoids the bug
+
+**Files to Investigate:**
+- `parser/parser.go` - Literal pool generation and placement
+- `encoder/encoder.go` - How literal pools are encoded
+- Memory layout - Understanding where literals are placed relative to code/data
+
+**Test Case:**
+- Integration test: `tests/integration/test_stack_file_test.go` (currently FAILS)
+- Example program: See deleted `examples/test_stack.s` for minimal reproduction
+
+**Effort:** 4-6 hours (investigation + fix)
+
+**Priority:** High (affects program correctness)
+
+---
+
 ### Pre-indexed with Writeback Instruction Bug ✅ FIXED
 
 **Status:** RESOLVED - Bug was not in pre-indexed writeback, but in test code using SWI 0x00
