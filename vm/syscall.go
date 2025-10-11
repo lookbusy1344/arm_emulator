@@ -74,10 +74,23 @@ func ExecuteSWI(vm *VM, inst *Instruction) error {
 	// Determine which syscall convention is being used:
 	// 1. Traditional: SWI #num (syscall number in instruction immediate)
 	// 2. Linux-style: SVC #0 (syscall number in R7 register)
+	//
+	// IMPORTANT: SWI #0x00 is ambiguous - it could be either:
+	// - Traditional EXIT syscall (most common)
+	// - Linux-style SVC #0 with syscall number in R7
+	//
+	// We use a heuristic: if immValue == 0 AND R7 contains a valid Linux syscall
+	// number (0-7), then treat as Linux-style. Otherwise, treat as traditional.
 	if immValue == 0 {
-		// Linux-style convention: syscall number is in R7
 		r7Value := vm.CPU.GetRegister(7)
-		swiNum = mapLinuxSyscall(r7Value)
+		// Check if R7 contains a plausible Linux syscall number (0-7)
+		if r7Value <= 7 {
+			// Likely Linux-style convention: syscall number is in R7
+			swiNum = mapLinuxSyscall(r7Value)
+		} else {
+			// Treat as traditional EXIT (SWI #0x00)
+			swiNum = SWI_EXIT
+		}
 	} else {
 		// Traditional convention: syscall number is in instruction
 		swiNum = immValue
