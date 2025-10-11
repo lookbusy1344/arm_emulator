@@ -46,9 +46,7 @@ find . -name "*.go" -type f -exec cat {} + | wc -l
 
 Day 4 - Whats becoming increasingly clear is that, although Claude is very impressive and has done great things in only 4 days (3 hours per day), it can get lost in the weeds. It has a tendency to 'fix' tests by removing them, or simplifying them. It sometimes loses sight of the big picture and currently several of the test programs to not operate correctly (but Claude hasn't noticed).
 
-## Overview
-
-An ARM emulator written in Go that implements a subset of the ARM2 instruction set.
+Go code is 28,331 lines long at the end of day. Weekly Claude usages limits hit.
 
 ## Documentation
 
