@@ -181,6 +181,20 @@ LDR R0, [R1]
 - `parser/parser.go:428-482` - Writeback syntax parsing
 - `vm/inst_memory.go:111-116` - Writeback execution logic
 
+**Test Coverage:**
+- ✅ **Unit tests** (29 tests in `tests/unit/vm/addressing_modes_test.go`)
+  - All 3 memory addressing modes tested with hardcoded opcodes (PASS)
+  - `TestAddressing_Memory_ImmediateOffset` - Passes
+  - `TestAddressing_Memory_PreIndexed` - Passes (doesn't catch the bug - uses hardcoded opcode)
+  - `TestAddressing_Memory_PostIndexed` - Passes
+- ✅ **Integration tests** (3 tests in `tests/integration/addressing_modes_test.go`)
+  - Full pipeline: parse → encode → load → execute
+  - `TestAddressingMode_ImmediateOffset_FullPipeline` - ✅ PASS
+  - `TestAddressingMode_PreIndexedWriteback_FullPipeline` - ⏭️ SKIPPED (known bug)
+  - `TestAddressingMode_PostIndexed_FullPipeline` - ✅ PASS
+
+**Note:** Unit tests pass because they bypass the parser/encoder by using hardcoded opcodes. Integration tests expose the real bug in the full assembly pipeline.
+
 ---
 
 ## Phase 11: Production Hardening
