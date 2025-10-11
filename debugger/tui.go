@@ -219,8 +219,45 @@ func (t *TUI) executeCommand(cmd string) {
 		t.WriteOutput(output)
 	}
 
+	// If running, execute until breakpoint or halt
+	if t.Debugger.Running {
+		t.executeUntilBreak()
+	}
+
 	// Refresh all views
 	t.RefreshAll()
+}
+
+// executeUntilBreak runs the VM until a breakpoint is hit or the program halts
+func (t *TUI) executeUntilBreak() {
+	for t.Debugger.Running {
+		// Check for breakpoint before execution
+		if shouldBreak, reason := t.Debugger.ShouldBreak(); shouldBreak {
+			t.Debugger.Running = false
+			t.WriteOutput(fmt.Sprintf("[yellow]Stopped:[white] %s at PC=0x%08X\n", reason, t.Debugger.VM.CPU.PC))
+			break
+		}
+
+		// Execute one step
+		if err := t.Debugger.VM.Step(); err != nil {
+			if t.Debugger.VM.State == vm.StateHalted {
+				t.Debugger.Running = false
+				t.WriteOutput(fmt.Sprintf("[green]Program exited with code %d[white]\n", t.Debugger.VM.ExitCode))
+				break
+			}
+			t.WriteOutput(fmt.Sprintf("[red]Runtime error:[white] %v\n", err))
+			t.Debugger.Running = false
+			break
+		}
+
+		// Update display periodically during long runs
+		// (every 1000 instructions to avoid slowing down execution too much)
+		if t.Debugger.VM.CPU.Cycles%1000 == 0 {
+			t.App.QueueUpdateDraw(func() {
+				t.RefreshAll()
+			})
+		}
+	}
 }
 
 // WriteOutput writes to the output view
@@ -585,15 +622,20 @@ func (t *TUI) findSymbolForAddress(addr uint32) string {
 
 // Run starts the TUI application
 func (t *TUI) Run() error {
-	// Initial refresh
-	t.RefreshAll()
+	// Set up initial content (but don't call Draw yet - app isn't running)
+	t.UpdateSourceView()
+	t.UpdateRegisterView()
+	t.UpdateMemoryView()
+	t.UpdateStackView()
+	t.UpdateDisassemblyView()
+	t.UpdateBreakpointsView()
 
 	// Show welcome message
 	t.WriteOutput("[green]ARM Emulator Debugger TUI[white]\n")
 	t.WriteOutput("Press F1 for help, F5 to continue, F10 to step over, F11 to step\n")
 	t.WriteOutput("Type 'help' for command list\n\n")
 
-	// Run the application
+	// Run the application (this will handle drawing)
 	return t.App.SetRoot(t.Pages, true).SetFocus(t.CommandInput).Run()
 }
 
