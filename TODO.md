@@ -138,22 +138,48 @@ The ARM2 emulator is **fully functional**:
 
 ---
 
-## Parser Enhancements (Optional)
+## Parser/Encoder Issues
 
-### Advanced Addressing Modes
+### Pre-indexed with Writeback Instruction Bug
 
-**Status:** Not required for ARM2, but would enable more sophisticated patterns
+**Status:** BUG FOUND - Pre-indexed writeback works in unit tests but fails in full programs
 
-**Missing Features:**
-- Pre-indexed with writeback: `LDR R0, [R1, #4]!`
-- Post-indexed: `LDRB R0, [R1], #4`
-- Immediate offset: `LDR R0, [R1, #4]`
+**Symptoms:**
+- Pre-indexed with writeback syntax `LDR Rd, [Rn, #offset]!` parses and encodes correctly
+- Unit test `TestAddressing_Memory_PreIndexed` passes (uses hardcoded opcode 0xE5B10008)
+- When used in a full assembly program, subsequent instructions appear corrupted
+- Error: "unimplemented SWI" with incorrect SWI numbers (e.g., 0x64, 0xC8) corresponding to data values in registers
 
-**Workaround:** Use separate ADD instructions and base register addressing
+**Evidence:**
+- `LDR R7, [R6, #4]!` encodes correctly to 0xE5B67004 (verified via test_encode.go)
+- The encoding has correct P=1, W=1, L=1 bits for pre-indexed with writeback
+- When executed in context of full program, instruction at next PC address reads as corrupted SWI
+- Simple test with just MOV + writeback LDR works (fails on memory access, but instruction executes)
+- Complex test with stores before writeback LDR shows corruption
 
-**Effort:** 3-4 hours
+**Root Cause:** Unknown - possibly related to:
+- How instructions are loaded into memory from assembled program
+- Interaction between writeback and program loading
+- Code segment being writable (added for .word support) may allow corruption
+- Parser operand handling for `]!` syntax in multi-instruction context
 
-**Priority:** Low (not needed for current examples)
+**Workaround:** Use separate ADD instruction instead of pre-indexed writeback
+```
+; Instead of: LDR R0, [R1, #4]!
+; Use:
+ADD R1, R1, #4
+LDR R0, [R1]
+```
+
+**Effort:** 4-6 hours to debug and fix
+
+**Priority:** High (feature advertised as working but broken in practice)
+
+**Files to investigate:**
+- `main.go` or program loader - how instructions are written to memory
+- `encoder/memory.go:82-120` - Pre-indexed writeback encoding
+- `parser/parser.go:428-482` - Writeback syntax parsing
+- `vm/inst_memory.go:111-116` - Writeback execution logic
 
 ---
 
