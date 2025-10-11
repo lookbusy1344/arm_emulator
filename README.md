@@ -51,7 +51,7 @@ An ARM emulator written in Go that implements a subset of the ARM2 instruction s
 
 ## Features
 
-- ARM2 instruction set implementation with 518 passing tests (100% pass rate)
+- ARM2 instruction set implementation with 531 passing tests (100% pass rate)
 - Assembly parser for ARM assembly programs with macros and preprocessor
 - Machine code encoder/decoder for binary ARM instruction formats
 - Interactive debugger with TUI (Text User Interface)
@@ -187,8 +187,8 @@ go test ./...
 ├── debugger/            # Debugging utilities with TUI
 ├── config/              # Cross-platform configuration
 ├── tools/               # Development tools (lint, format, xref)
-├── tests/               # Test files (518 tests)
-├── examples/            # Example ARM assembly programs (17 programs)
+├── tests/               # Test files (531 tests)
+├── examples/            # Example ARM assembly programs (19 programs)
 └── docs/                # User and developer documentation
 ```
 

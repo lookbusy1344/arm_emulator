@@ -42,8 +42,8 @@ go test ./...
 - `debugger/` - Debugging utilities with TUI (breakpoints, watchpoints, expression evaluation)
 - `config/` - Cross-platform configuration management
 - `tools/` - Development tools (linter, formatter, cross-reference generator)
-- `tests/` - Test files (525 tests, 100% pass rate)
-- `examples/` - Example ARM assembly programs (18 complete programs)
+- `tests/` - Test files (531 tests, 100% pass rate)
+- `examples/` - Example ARM assembly programs (19 complete programs)
 - `docs/` - User and developer documentation
 
 ## Development Guidelines
@@ -64,8 +64,8 @@ go test ./...
 ## Current Status
 
 **Phase 11 (Production Hardening) - In Progress**
-- 525 tests passing (100% pass rate)
-  - Unit tests: 492 tests
+- 531 tests passing (100% pass rate)
+  - Unit tests: 498 tests
   - Integration tests: 33 tests (full end-to-end execution pipeline)
 - Code quality tools implemented (golangci-lint with errcheck, unused, govet, ineffassign, misspell)
 - All lint issues resolved (0 issues reported)
@@ -73,7 +73,7 @@ go test ./...
 - CI updated to Go 1.25 with automated linting
 - Build artifacts added to .gitignore
 - Parser limitations resolved (debugger expression parser rewritten)
-- All example programs working (17 of 18 fully functional, 1 interactive by design)
+- All example programs working (18 of 19 fully functional, 1 interactive by design)
 - Addressing modes example added (comprehensive demonstration of all ARM2 addressing modes)
 - Character literal support complete (basic chars + escape sequences)
 

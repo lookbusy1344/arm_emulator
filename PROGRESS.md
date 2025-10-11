@@ -51,7 +51,7 @@
 - `TODO.md` - Updated bug documentation to show resolution
 
 **Testing:**
-- **525 total tests passing** (100% pass rate) ✅
+- **531 total tests passing** (100% pass rate) ✅
 - Integration test `TestAddressingMode_PreIndexedWriteback_FullPipeline` now passes
 - All addressing modes (immediate offset, pre-indexed writeback, post-indexed) fully tested
 
@@ -75,7 +75,7 @@
 - `PROGRESS.md` - Corrected integration test status (section 14)
 
 **Testing:**
-- **525 total tests passing** (all phases) ✅
+- **531 total tests passing** (all phases) ✅
 - Integration tests fully functional with correct parser API
 - No issues found - previous note about API incompatibility was incorrect
 
