@@ -63,24 +63,33 @@ func ExecuteLoadStore(v *VM, inst *Instruction) error {
 		// Load instruction
 		var value uint32
 		var err error
+		var sizeStr string
 
 		if isHalfword {
 			// Load halfword
 			halfValue, err2 := vm.Memory.ReadHalfword(accessAddr)
 			value = uint32(halfValue)
 			err = err2
+			sizeStr = "HALF"
 		} else if byteTransfer == 1 {
 			// Load byte
 			byteValue, err2 := vm.Memory.ReadByteAt(accessAddr)
 			value = uint32(byteValue)
 			err = err2
+			sizeStr = "BYTE"
 		} else {
 			// Load word
 			value, err = vm.Memory.ReadWord(accessAddr)
+			sizeStr = "WORD"
 		}
 
 		if err != nil {
 			return fmt.Errorf("load failed at 0x%08X: %w", accessAddr, err)
+		}
+
+		// Record memory trace if enabled
+		if vm.MemoryTrace != nil {
+			vm.MemoryTrace.RecordRead(vm.CPU.Cycles, vm.CPU.PC, accessAddr, value, sizeStr)
 		}
 
 		vm.CPU.SetRegister(rd, value)
@@ -88,22 +97,31 @@ func ExecuteLoadStore(v *VM, inst *Instruction) error {
 		// Store instruction
 		value := vm.CPU.GetRegister(rd)
 		var err error
+		var sizeStr string
 
 		if isHalfword {
 			// Store halfword - ARM architecture truncates to lower 16 bits
 			//nolint:gosec // G115: Intentional truncation for STRH instruction
 			err = vm.Memory.WriteHalfword(accessAddr, uint16(value&0xFFFF))
+			sizeStr = "HALF"
 		} else if byteTransfer == 1 {
 			// Store byte - ARM architecture truncates to lower 8 bits
 			//nolint:gosec // G115: Intentional truncation for STRB instruction
 			err = vm.Memory.WriteByteAt(accessAddr, uint8(value&0xFF))
+			sizeStr = "BYTE"
 		} else {
 			// Store word
 			err = vm.Memory.WriteWord(accessAddr, value)
+			sizeStr = "WORD"
 		}
 
 		if err != nil {
 			return fmt.Errorf("store failed at 0x%08X: %w", accessAddr, err)
+		}
+
+		// Record memory trace if enabled
+		if vm.MemoryTrace != nil {
+			vm.MemoryTrace.RecordWrite(vm.CPU.Cycles, vm.CPU.PC, accessAddr, value, sizeStr)
 		}
 	}
 

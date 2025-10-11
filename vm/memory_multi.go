@@ -80,6 +80,12 @@ func ExecuteLoadStoreMultiple(vm *VM, inst *Instruction) error {
 			if err != nil {
 				return fmt.Errorf("load multiple failed at 0x%08X: %w", addr, err)
 			}
+
+			// Record memory trace if enabled
+			if vm.MemoryTrace != nil {
+				vm.MemoryTrace.RecordRead(vm.CPU.Cycles, vm.CPU.PC, addr, value, "WORD")
+			}
+
 			vm.CPU.SetRegister(i, value)
 
 			if i == 15 {
@@ -97,6 +103,11 @@ func ExecuteLoadStoreMultiple(vm *VM, inst *Instruction) error {
 			err := vm.Memory.WriteWord(addr, value)
 			if err != nil {
 				return fmt.Errorf("store multiple failed at 0x%08X: %w", addr, err)
+			}
+
+			// Record memory trace if enabled
+			if vm.MemoryTrace != nil {
+				vm.MemoryTrace.RecordWrite(vm.CPU.Cycles, vm.CPU.PC, addr, value, "WORD")
 			}
 		}
 
