@@ -1,5 +1,4 @@
-; addressing_modes_simple.s - ARM addressing modes demonstration
-; This version works around a literal pool bug by minimizing LDR =label usage
+; addressing_modes.s - ARM addressing modes demonstration
 
         .org    0x8000
 
