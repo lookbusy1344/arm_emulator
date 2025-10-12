@@ -1243,3 +1243,1223 @@ func TestTEQ_SignBit(t *testing.T) {
 		t.Error("expected Z flag to be set")
 	}
 }
+
+// ============================================================================
+// Priority 3: Data Processing with Register-Specified Shifts
+// ============================================================================
+//
+// These tests verify all data processing instructions work correctly when
+// the second operand is shifted by a value in a register (rather than an
+// immediate shift amount).
+//
+// Register shift encoding: Bits [11:8]=Rs, Bit 4=1, Bits [6:5]=shift type
+// Shift types: 00=LSL, 01=LSR, 10=ASR, 11=ROR
+//
+// Examples: ADD R0, R1, R2, LSL R3  (shift R2 left by value in R3)
+//
+
+// ====== ADD with Register Shifts ======
+
+func TestADD_RegisterShift_LSL(t *testing.T) {
+	// ADD R0, R1, R2, LSL R3
+	// R0 = R1 + (R2 << R3)
+	v := vm.NewVM()
+	v.CPU.R[1] = 100 // base value
+	v.CPU.R[2] = 5   // value to shift
+	v.CPU.R[3] = 2   // shift amount (5 << 2 = 20)
+	v.CPU.PC = 0x8000
+
+	// ADD R0, R1, R2, LSL R3
+	// Format: cccc 000o oooo Srrr rddd ssss 0tt1 mmmm
+	// Condition: AL (1110), I=0, Opcode: ADD (0100), S=0
+	// Rn=R1 (0001), Rd=R0 (0000)
+	// Rs=R3 (0011), shift type=00 (LSL), bit4=1, Rm=R2 (0010)
+	// Shift field: 0011 0 00 1 0010 = 0x312
+	opcode := uint32(0xE0810312) // 1110 0000 1000 0001 0000 0011 0001 0010
+	setupCodeWrite(v)
+	v.Memory.WriteWord(0x8000, opcode)
+	v.Step()
+
+	// Expected: 100 + (5 << 2) = 100 + 20 = 120
+	if v.CPU.R[0] != 120 {
+		t.Errorf("expected R0=120, got R0=%d", v.CPU.R[0])
+	}
+}
+
+func TestADD_RegisterShift_LSR(t *testing.T) {
+	// ADD R0, R1, R2, LSR R3
+	// R0 = R1 + (R2 >> R3)
+	v := vm.NewVM()
+	v.CPU.R[1] = 100 // base value
+	v.CPU.R[2] = 80  // value to shift
+	v.CPU.R[3] = 2   // shift amount (80 >> 2 = 20)
+	v.CPU.PC = 0x8000
+
+	// ADD R0, R1, R2, LSR R3
+	// Shift type=01 (LSR), bit4=1
+	// Shift field: 0011 0 01 1 0010 = 0x332
+	opcode := uint32(0xE0810332) // 1110 0000 1000 0001 0000 0011 0011 0010
+	setupCodeWrite(v)
+	v.Memory.WriteWord(0x8000, opcode)
+	v.Step()
+
+	// Expected: 100 + (80 >> 2) = 100 + 20 = 120
+	if v.CPU.R[0] != 120 {
+		t.Errorf("expected R0=120, got R0=%d", v.CPU.R[0])
+	}
+}
+
+func TestADD_RegisterShift_ASR(t *testing.T) {
+	// ADD R0, R1, R2, ASR R3
+	// R0 = R1 + (R2 ASR R3)
+	v := vm.NewVM()
+	v.CPU.R[1] = 100        // base value
+	v.CPU.R[2] = 0xFFFFFFF0 // -16 in two's complement
+	v.CPU.R[3] = 2          // shift amount (-16 ASR 2 = -4)
+	v.CPU.PC = 0x8000
+
+	// ADD R0, R1, R2, ASR R3
+	// Shift type=10 (ASR), bit4=1
+	// Shift field: 0011 0 10 1 0010 = 0x352
+	opcode := uint32(0xE0810352) // 1110 0000 1000 0001 0000 0011 0101 0010
+	setupCodeWrite(v)
+	v.Memory.WriteWord(0x8000, opcode)
+	v.Step()
+
+	// Expected: 100 + (-16 ASR 2) = 100 + (-4) = 96
+	if v.CPU.R[0] != 96 {
+		t.Errorf("expected R0=96, got R0=%d", v.CPU.R[0])
+	}
+}
+
+func TestADD_RegisterShift_ROR(t *testing.T) {
+	// ADD R0, R1, R2, ROR R3
+	// R0 = R1 + (R2 ROR R3)
+	v := vm.NewVM()
+	v.CPU.R[1] = 100        // base value
+	v.CPU.R[2] = 0x80000001 // bits at both ends
+	v.CPU.R[3] = 1          // rotate right by 1
+	v.CPU.PC = 0x8000
+
+	// ADD R0, R1, R2, ROR R3
+	// Shift type=11 (ROR), bit4=1
+	// Shift field: 0011 0 11 1 0010 = 0x372
+	opcode := uint32(0xE0810372) // 1110 0000 1000 0001 0000 0011 0111 0010
+	setupCodeWrite(v)
+	v.Memory.WriteWord(0x8000, opcode)
+	v.Step()
+
+	// Expected: 100 + (0x80000001 ROR 1) = 100 + 0xC0000000
+	expected := uint32(100 + 0xC0000000)
+	if v.CPU.R[0] != expected {
+		t.Errorf("expected R0=%d, got R0=%d", expected, v.CPU.R[0])
+	}
+}
+
+// ====== SUB with Register Shifts ======
+
+func TestSUB_RegisterShift_LSL(t *testing.T) {
+	// SUB R0, R1, R2, LSL R3
+	v := vm.NewVM()
+	v.CPU.R[1] = 100
+	v.CPU.R[2] = 5
+	v.CPU.R[3] = 2 // 5 << 2 = 20
+	v.CPU.PC = 0x8000
+
+	// SUB R0, R1, R2, LSL R3
+	// Opcode: SUB (0010)
+	opcode := uint32(0xE0410312) // 1110 0000 0100 0001 0000 0011 0001 0010
+	setupCodeWrite(v)
+	v.Memory.WriteWord(0x8000, opcode)
+	v.Step()
+
+	// Expected: 100 - 20 = 80
+	if v.CPU.R[0] != 80 {
+		t.Errorf("expected R0=80, got R0=%d", v.CPU.R[0])
+	}
+}
+
+func TestSUB_RegisterShift_LSR(t *testing.T) {
+	// SUB R0, R1, R2, LSR R3
+	v := vm.NewVM()
+	v.CPU.R[1] = 100
+	v.CPU.R[2] = 80
+	v.CPU.R[3] = 2 // 80 >> 2 = 20
+	v.CPU.PC = 0x8000
+
+	// SUB R0, R1, R2, LSR R3
+	opcode := uint32(0xE0410332)
+	setupCodeWrite(v)
+	v.Memory.WriteWord(0x8000, opcode)
+	v.Step()
+
+	// Expected: 100 - 20 = 80
+	if v.CPU.R[0] != 80 {
+		t.Errorf("expected R0=80, got R0=%d", v.CPU.R[0])
+	}
+}
+
+func TestSUB_RegisterShift_ASR(t *testing.T) {
+	// SUB R0, R1, R2, ASR R3
+	v := vm.NewVM()
+	v.CPU.R[1] = 100
+	v.CPU.R[2] = 0xFFFFFFF0 // -16
+	v.CPU.R[3] = 2          // -16 ASR 2 = -4
+	v.CPU.PC = 0x8000
+
+	// SUB R0, R1, R2, ASR R3
+	opcode := uint32(0xE0410352)
+	setupCodeWrite(v)
+	v.Memory.WriteWord(0x8000, opcode)
+	v.Step()
+
+	// Expected: 100 - (-4) = 104
+	if v.CPU.R[0] != 104 {
+		t.Errorf("expected R0=104, got R0=%d", v.CPU.R[0])
+	}
+}
+
+func TestSUB_RegisterShift_ROR(t *testing.T) {
+	// SUB R0, R1, R2, ROR R3
+	v := vm.NewVM()
+	v.CPU.R[1] = 0x80000000
+	v.CPU.R[2] = 0x00000002
+	v.CPU.R[3] = 1 // 2 ROR 1 = 1
+	v.CPU.PC = 0x8000
+
+	// SUB R0, R1, R2, ROR R3
+	opcode := uint32(0xE0410372)
+	setupCodeWrite(v)
+	v.Memory.WriteWord(0x8000, opcode)
+	v.Step()
+
+	// Expected: 0x80000000 - 1 = 0x7FFFFFFF
+	expected := uint32(0x7FFFFFFF)
+	if v.CPU.R[0] != expected {
+		t.Errorf("expected R0=0x%X, got R0=0x%X", expected, v.CPU.R[0])
+	}
+}
+
+// ====== RSB with Register Shifts ======
+
+func TestRSB_RegisterShift_LSL(t *testing.T) {
+	// RSB R0, R1, R2, LSL R3 (reverse subtract)
+	// R0 = (R2 << R3) - R1
+	v := vm.NewVM()
+	v.CPU.R[1] = 20
+	v.CPU.R[2] = 10
+	v.CPU.R[3] = 2 // 10 << 2 = 40
+	v.CPU.PC = 0x8000
+
+	// RSB R0, R1, R2, LSL R3
+	// Opcode: RSB (0011)
+	opcode := uint32(0xE0610312) // 1110 0000 0110 0001 0000 0011 0001 0010
+	setupCodeWrite(v)
+	v.Memory.WriteWord(0x8000, opcode)
+	v.Step()
+
+	// Expected: 40 - 20 = 20
+	if v.CPU.R[0] != 20 {
+		t.Errorf("expected R0=20, got R0=%d", v.CPU.R[0])
+	}
+}
+
+func TestRSB_RegisterShift_LSR(t *testing.T) {
+	// RSB R0, R1, R2, LSR R3
+	v := vm.NewVM()
+	v.CPU.R[1] = 10
+	v.CPU.R[2] = 80
+	v.CPU.R[3] = 2 // 80 >> 2 = 20
+	v.CPU.PC = 0x8000
+
+	// RSB R0, R1, R2, LSR R3
+	opcode := uint32(0xE0610332)
+	setupCodeWrite(v)
+	v.Memory.WriteWord(0x8000, opcode)
+	v.Step()
+
+	// Expected: 20 - 10 = 10
+	if v.CPU.R[0] != 10 {
+		t.Errorf("expected R0=10, got R0=%d", v.CPU.R[0])
+	}
+}
+
+func TestRSB_RegisterShift_ASR(t *testing.T) {
+	// RSB R0, R1, R2, ASR R3
+	v := vm.NewVM()
+	v.CPU.R[1] = 10
+	v.CPU.R[2] = 0xFFFFFFF0 // -16
+	v.CPU.R[3] = 2          // -16 ASR 2 = -4
+	v.CPU.PC = 0x8000
+
+	// RSB R0, R1, R2, ASR R3
+	opcode := uint32(0xE0610352)
+	setupCodeWrite(v)
+	v.Memory.WriteWord(0x8000, opcode)
+	v.Step()
+
+	// Expected: -4 - 10 = -14 = 0xFFFFFFF2
+	expected := uint32(0xFFFFFFF2)
+	if v.CPU.R[0] != expected {
+		t.Errorf("expected R0=0x%X, got R0=0x%X", expected, v.CPU.R[0])
+	}
+}
+
+func TestRSB_RegisterShift_ROR(t *testing.T) {
+	// RSB R0, R1, R2, ROR R3
+	v := vm.NewVM()
+	v.CPU.R[1] = 0x10000000
+	v.CPU.R[2] = 0x00000002
+	v.CPU.R[3] = 1 // 2 ROR 1 = 1
+	v.CPU.PC = 0x8000
+
+	// RSB R0, R1, R2, ROR R3
+	opcode := uint32(0xE0610372)
+	setupCodeWrite(v)
+	v.Memory.WriteWord(0x8000, opcode)
+	v.Step()
+
+	// Expected: 1 - 0x10000000 = 0xF0000001
+	expected := uint32(0xF0000001)
+	if v.CPU.R[0] != expected {
+		t.Errorf("expected R0=0x%X, got R0=0x%X", expected, v.CPU.R[0])
+	}
+}
+
+// ====== RSC with Register Shifts ======
+
+func TestRSC_RegisterShift_LSL(t *testing.T) {
+	// RSC R0, R1, R2, LSL R3 (reverse subtract with carry)
+	// R0 = (R2 << R3) - R1 - NOT(C)
+	v := vm.NewVM()
+	v.CPU.R[1] = 20
+	v.CPU.R[2] = 10
+	v.CPU.R[3] = 2      // 10 << 2 = 40
+	v.CPU.CPSR.C = true // carry set, so NOT(C) = 0
+	v.CPU.PC = 0x8000
+
+	// RSC R0, R1, R2, LSL R3
+	// Opcode: RSC (0111)
+	opcode := uint32(0xE0E10312) // 1110 0000 1110 0001 0000 0011 0001 0010
+	setupCodeWrite(v)
+	v.Memory.WriteWord(0x8000, opcode)
+	v.Step()
+
+	// Expected: 40 - 20 - 0 = 20
+	if v.CPU.R[0] != 20 {
+		t.Errorf("expected R0=20, got R0=%d", v.CPU.R[0])
+	}
+}
+
+func TestRSC_RegisterShift_LSR(t *testing.T) {
+	// RSC R0, R1, R2, LSR R3
+	v := vm.NewVM()
+	v.CPU.R[1] = 10
+	v.CPU.R[2] = 80
+	v.CPU.R[3] = 2       // 80 >> 2 = 20
+	v.CPU.CPSR.C = false // carry clear, so NOT(C) = 1
+	v.CPU.PC = 0x8000
+
+	// RSC R0, R1, R2, LSR R3
+	opcode := uint32(0xE0E10332)
+	setupCodeWrite(v)
+	v.Memory.WriteWord(0x8000, opcode)
+	v.Step()
+
+	// Expected: 20 - 10 - 1 = 9
+	if v.CPU.R[0] != 9 {
+		t.Errorf("expected R0=9, got R0=%d", v.CPU.R[0])
+	}
+}
+
+func TestRSC_RegisterShift_ASR(t *testing.T) {
+	// RSC R0, R1, R2, ASR R3
+	v := vm.NewVM()
+	v.CPU.R[1] = 10
+	v.CPU.R[2] = 0xFFFFFFF0 // -16
+	v.CPU.R[3] = 2          // -16 ASR 2 = -4
+	v.CPU.CPSR.C = true     // carry set
+	v.CPU.PC = 0x8000
+
+	// RSC R0, R1, R2, ASR R3
+	opcode := uint32(0xE0E10352)
+	setupCodeWrite(v)
+	v.Memory.WriteWord(0x8000, opcode)
+	v.Step()
+
+	// Expected: -4 - 10 - 0 = -14 = 0xFFFFFFF2
+	expected := uint32(0xFFFFFFF2)
+	if v.CPU.R[0] != expected {
+		t.Errorf("expected R0=0x%X, got R0=0x%X", expected, v.CPU.R[0])
+	}
+}
+
+func TestRSC_RegisterShift_ROR(t *testing.T) {
+	// RSC R0, R1, R2, ROR R3
+	v := vm.NewVM()
+	v.CPU.R[1] = 5
+	v.CPU.R[2] = 0x00000002
+	v.CPU.R[3] = 1 // 2 ROR 1 = 1
+	v.CPU.CPSR.C = true
+	v.CPU.PC = 0x8000
+
+	// RSC R0, R1, R2, ROR R3
+	opcode := uint32(0xE0E10372)
+	setupCodeWrite(v)
+	v.Memory.WriteWord(0x8000, opcode)
+	v.Step()
+
+	// Expected: 1 - 5 - 0 = -4 = 0xFFFFFFFC
+	expected := uint32(0xFFFFFFFC)
+	if v.CPU.R[0] != expected {
+		t.Errorf("expected R0=0x%X, got R0=0x%X", expected, v.CPU.R[0])
+	}
+}
+
+// ====== AND with Register Shifts ======
+
+func TestAND_RegisterShift_LSL(t *testing.T) {
+	// AND R0, R1, R2, LSL R3
+	v := vm.NewVM()
+	v.CPU.R[1] = 0xFF
+	v.CPU.R[2] = 0x0F
+	v.CPU.R[3] = 4 // 0x0F << 4 = 0xF0
+	v.CPU.PC = 0x8000
+
+	// AND R0, R1, R2, LSL R3
+	// Opcode: AND (0000)
+	opcode := uint32(0xE0010312) // 1110 0000 0000 0001 0000 0011 0001 0010
+	setupCodeWrite(v)
+	v.Memory.WriteWord(0x8000, opcode)
+	v.Step()
+
+	// Expected: 0xFF & 0xF0 = 0xF0
+	if v.CPU.R[0] != 0xF0 {
+		t.Errorf("expected R0=0xF0, got R0=0x%X", v.CPU.R[0])
+	}
+}
+
+func TestAND_RegisterShift_LSR(t *testing.T) {
+	// AND R0, R1, R2, LSR R3
+	v := vm.NewVM()
+	v.CPU.R[1] = 0xFF
+	v.CPU.R[2] = 0xF0
+	v.CPU.R[3] = 4 // 0xF0 >> 4 = 0x0F
+	v.CPU.PC = 0x8000
+
+	// AND R0, R1, R2, LSR R3
+	opcode := uint32(0xE0010332)
+	setupCodeWrite(v)
+	v.Memory.WriteWord(0x8000, opcode)
+	v.Step()
+
+	// Expected: 0xFF & 0x0F = 0x0F
+	if v.CPU.R[0] != 0x0F {
+		t.Errorf("expected R0=0x0F, got R0=0x%X", v.CPU.R[0])
+	}
+}
+
+func TestAND_RegisterShift_ASR(t *testing.T) {
+	// AND R0, R1, R2, ASR R3
+	v := vm.NewVM()
+	v.CPU.R[1] = 0xF0F0F0F0
+	v.CPU.R[2] = 0x80000000
+	v.CPU.R[3] = 4 // 0x80000000 ASR 4 = 0xF8000000
+	v.CPU.PC = 0x8000
+
+	// AND R0, R1, R2, ASR R3
+	opcode := uint32(0xE0010352)
+	setupCodeWrite(v)
+	v.Memory.WriteWord(0x8000, opcode)
+	v.Step()
+
+	// Expected: 0xF0F0F0F0 & 0xF8000000 = 0xF0000000
+	expected := uint32(0xF0000000)
+	if v.CPU.R[0] != expected {
+		t.Errorf("expected R0=0x%X, got R0=0x%X", expected, v.CPU.R[0])
+	}
+}
+
+func TestAND_RegisterShift_ROR(t *testing.T) {
+	// AND R0, R1, R2, ROR R3
+	v := vm.NewVM()
+	v.CPU.R[1] = 0xFFFFFFFF
+	v.CPU.R[2] = 0x00000003
+	v.CPU.R[3] = 1 // 3 ROR 1 = 0x80000001
+	v.CPU.PC = 0x8000
+
+	// AND R0, R1, R2, ROR R3
+	opcode := uint32(0xE0010372)
+	setupCodeWrite(v)
+	v.Memory.WriteWord(0x8000, opcode)
+	v.Step()
+
+	// Expected: 0xFFFFFFFF & 0x80000001 = 0x80000001
+	expected := uint32(0x80000001)
+	if v.CPU.R[0] != expected {
+		t.Errorf("expected R0=0x%X, got R0=0x%X", expected, v.CPU.R[0])
+	}
+}
+
+// ====== ORR with Register Shifts ======
+
+func TestORR_RegisterShift_LSL(t *testing.T) {
+	// ORR R0, R1, R2, LSL R3
+	v := vm.NewVM()
+	v.CPU.R[1] = 0x0F
+	v.CPU.R[2] = 0x0F
+	v.CPU.R[3] = 4 // 0x0F << 4 = 0xF0
+	v.CPU.PC = 0x8000
+
+	// ORR R0, R1, R2, LSL R3
+	// Opcode: ORR (1100)
+	opcode := uint32(0xE1810312) // 1110 0001 1000 0001 0000 0011 0001 0010
+	setupCodeWrite(v)
+	v.Memory.WriteWord(0x8000, opcode)
+	v.Step()
+
+	// Expected: 0x0F | 0xF0 = 0xFF
+	if v.CPU.R[0] != 0xFF {
+		t.Errorf("expected R0=0xFF, got R0=0x%X", v.CPU.R[0])
+	}
+}
+
+func TestORR_RegisterShift_LSR(t *testing.T) {
+	// ORR R0, R1, R2, LSR R3
+	v := vm.NewVM()
+	v.CPU.R[1] = 0xF0
+	v.CPU.R[2] = 0xF0
+	v.CPU.R[3] = 4 // 0xF0 >> 4 = 0x0F
+	v.CPU.PC = 0x8000
+
+	// ORR R0, R1, R2, LSR R3
+	opcode := uint32(0xE1810332)
+	setupCodeWrite(v)
+	v.Memory.WriteWord(0x8000, opcode)
+	v.Step()
+
+	// Expected: 0xF0 | 0x0F = 0xFF
+	if v.CPU.R[0] != 0xFF {
+		t.Errorf("expected R0=0xFF, got R0=0x%X", v.CPU.R[0])
+	}
+}
+
+func TestORR_RegisterShift_ASR(t *testing.T) {
+	// ORR R0, R1, R2, ASR R3
+	v := vm.NewVM()
+	v.CPU.R[1] = 0x0F0F0F0F
+	v.CPU.R[2] = 0x80000000
+	v.CPU.R[3] = 4 // 0x80000000 ASR 4 = 0xF8000000
+	v.CPU.PC = 0x8000
+
+	// ORR R0, R1, R2, ASR R3
+	opcode := uint32(0xE1810352)
+	setupCodeWrite(v)
+	v.Memory.WriteWord(0x8000, opcode)
+	v.Step()
+
+	// Expected: 0x0F0F0F0F | 0xF8000000 = 0xFF0F0F0F
+	expected := uint32(0xFF0F0F0F)
+	if v.CPU.R[0] != expected {
+		t.Errorf("expected R0=0x%X, got R0=0x%X", expected, v.CPU.R[0])
+	}
+}
+
+func TestORR_RegisterShift_ROR(t *testing.T) {
+	// ORR R0, R1, R2, ROR R3
+	v := vm.NewVM()
+	v.CPU.R[1] = 0x12345678
+	v.CPU.R[2] = 0x00000003
+	v.CPU.R[3] = 1 // 3 ROR 1 = 0x80000001
+	v.CPU.PC = 0x8000
+
+	// ORR R0, R1, R2, ROR R3
+	opcode := uint32(0xE1810372)
+	setupCodeWrite(v)
+	v.Memory.WriteWord(0x8000, opcode)
+	v.Step()
+
+	// Expected: 0x12345678 | 0x80000001 = 0x92345679
+	expected := uint32(0x92345679)
+	if v.CPU.R[0] != expected {
+		t.Errorf("expected R0=0x%X, got R0=0x%X", expected, v.CPU.R[0])
+	}
+}
+
+// ====== EOR with Register Shifts ======
+
+func TestEOR_RegisterShift_LSL(t *testing.T) {
+	// EOR R0, R1, R2, LSL R3
+	v := vm.NewVM()
+	v.CPU.R[1] = 0xFF
+	v.CPU.R[2] = 0x0F
+	v.CPU.R[3] = 4 // 0x0F << 4 = 0xF0
+	v.CPU.PC = 0x8000
+
+	// EOR R0, R1, R2, LSL R3
+	// Opcode: EOR (0001)
+	opcode := uint32(0xE0210312) // 1110 0000 0010 0001 0000 0011 0001 0010
+	setupCodeWrite(v)
+	v.Memory.WriteWord(0x8000, opcode)
+	v.Step()
+
+	// Expected: 0xFF ^ 0xF0 = 0x0F
+	if v.CPU.R[0] != 0x0F {
+		t.Errorf("expected R0=0x0F, got R0=0x%X", v.CPU.R[0])
+	}
+}
+
+func TestEOR_RegisterShift_LSR(t *testing.T) {
+	// EOR R0, R1, R2, LSR R3
+	v := vm.NewVM()
+	v.CPU.R[1] = 0xFF
+	v.CPU.R[2] = 0xF0
+	v.CPU.R[3] = 4 // 0xF0 >> 4 = 0x0F
+	v.CPU.PC = 0x8000
+
+	// EOR R0, R1, R2, LSR R3
+	opcode := uint32(0xE0210332)
+	setupCodeWrite(v)
+	v.Memory.WriteWord(0x8000, opcode)
+	v.Step()
+
+	// Expected: 0xFF ^ 0x0F = 0xF0
+	if v.CPU.R[0] != 0xF0 {
+		t.Errorf("expected R0=0xF0, got R0=0x%X", v.CPU.R[0])
+	}
+}
+
+func TestEOR_RegisterShift_ASR(t *testing.T) {
+	// EOR R0, R1, R2, ASR R3
+	v := vm.NewVM()
+	v.CPU.R[1] = 0xF0F0F0F0
+	v.CPU.R[2] = 0x80000000
+	v.CPU.R[3] = 4 // 0x80000000 ASR 4 = 0xF8000000
+	v.CPU.PC = 0x8000
+
+	// EOR R0, R1, R2, ASR R3
+	opcode := uint32(0xE0210352)
+	setupCodeWrite(v)
+	v.Memory.WriteWord(0x8000, opcode)
+	v.Step()
+
+	// Expected: 0xF0F0F0F0 ^ 0xF8000000 = 0x08F0F0F0
+	expected := uint32(0x08F0F0F0)
+	if v.CPU.R[0] != expected {
+		t.Errorf("expected R0=0x%X, got R0=0x%X", expected, v.CPU.R[0])
+	}
+}
+
+func TestEOR_RegisterShift_ROR(t *testing.T) {
+	// EOR R0, R1, R2, ROR R3
+	v := vm.NewVM()
+	v.CPU.R[1] = 0xFFFFFFFF
+	v.CPU.R[2] = 0x00000003
+	v.CPU.R[3] = 1 // 3 ROR 1 = 0x80000001
+	v.CPU.PC = 0x8000
+
+	// EOR R0, R1, R2, ROR R3
+	opcode := uint32(0xE0210372)
+	setupCodeWrite(v)
+	v.Memory.WriteWord(0x8000, opcode)
+	v.Step()
+
+	// Expected: 0xFFFFFFFF ^ 0x80000001 = 0x7FFFFFFE
+	expected := uint32(0x7FFFFFFE)
+	if v.CPU.R[0] != expected {
+		t.Errorf("expected R0=0x%X, got R0=0x%X", expected, v.CPU.R[0])
+	}
+}
+
+// ====== BIC with Register Shifts ======
+
+func TestBIC_RegisterShift_LSL(t *testing.T) {
+	// BIC R0, R1, R2, LSL R3 (bit clear)
+	v := vm.NewVM()
+	v.CPU.R[1] = 0xFF
+	v.CPU.R[2] = 0x0F
+	v.CPU.R[3] = 4 // 0x0F << 4 = 0xF0
+	v.CPU.PC = 0x8000
+
+	// BIC R0, R1, R2, LSL R3
+	// Opcode: BIC (1110)
+	opcode := uint32(0xE1C10312) // 1110 0001 1100 0001 0000 0011 0001 0010
+	setupCodeWrite(v)
+	v.Memory.WriteWord(0x8000, opcode)
+	v.Step()
+
+	// Expected: 0xFF & ~0xF0 = 0x0F
+	if v.CPU.R[0] != 0x0F {
+		t.Errorf("expected R0=0x0F, got R0=0x%X", v.CPU.R[0])
+	}
+}
+
+func TestBIC_RegisterShift_LSR(t *testing.T) {
+	// BIC R0, R1, R2, LSR R3
+	v := vm.NewVM()
+	v.CPU.R[1] = 0xFF
+	v.CPU.R[2] = 0xF0
+	v.CPU.R[3] = 4 // 0xF0 >> 4 = 0x0F
+	v.CPU.PC = 0x8000
+
+	// BIC R0, R1, R2, LSR R3
+	opcode := uint32(0xE1C10332)
+	setupCodeWrite(v)
+	v.Memory.WriteWord(0x8000, opcode)
+	v.Step()
+
+	// Expected: 0xFF & ~0x0F = 0xF0
+	if v.CPU.R[0] != 0xF0 {
+		t.Errorf("expected R0=0xF0, got R0=0x%X", v.CPU.R[0])
+	}
+}
+
+func TestBIC_RegisterShift_ASR(t *testing.T) {
+	// BIC R0, R1, R2, ASR R3
+	v := vm.NewVM()
+	v.CPU.R[1] = 0xFFFFFFFF
+	v.CPU.R[2] = 0x80000000
+	v.CPU.R[3] = 4 // 0x80000000 ASR 4 = 0xF8000000
+	v.CPU.PC = 0x8000
+
+	// BIC R0, R1, R2, ASR R3
+	opcode := uint32(0xE1C10352)
+	setupCodeWrite(v)
+	v.Memory.WriteWord(0x8000, opcode)
+	v.Step()
+
+	// Expected: 0xFFFFFFFF & ~0xF8000000 = 0x07FFFFFF
+	expected := uint32(0x07FFFFFF)
+	if v.CPU.R[0] != expected {
+		t.Errorf("expected R0=0x%X, got R0=0x%X", expected, v.CPU.R[0])
+	}
+}
+
+func TestBIC_RegisterShift_ROR(t *testing.T) {
+	// BIC R0, R1, R2, ROR R3
+	v := vm.NewVM()
+	v.CPU.R[1] = 0xFFFFFFFF
+	v.CPU.R[2] = 0x00000003
+	v.CPU.R[3] = 1 // 3 ROR 1 = 0x80000001
+	v.CPU.PC = 0x8000
+
+	// BIC R0, R1, R2, ROR R3
+	opcode := uint32(0xE1C10372)
+	setupCodeWrite(v)
+	v.Memory.WriteWord(0x8000, opcode)
+	v.Step()
+
+	// Expected: 0xFFFFFFFF & ~0x80000001 = 0x7FFFFFFE
+	expected := uint32(0x7FFFFFFE)
+	if v.CPU.R[0] != expected {
+		t.Errorf("expected R0=0x%X, got R0=0x%X", expected, v.CPU.R[0])
+	}
+}
+
+// ====== MOV with Register Shifts ======
+
+func TestMOV_RegisterShift_LSL(t *testing.T) {
+	// MOV R0, R2, LSL R3
+	v := vm.NewVM()
+	v.CPU.R[2] = 5
+	v.CPU.R[3] = 4 // 5 << 4 = 80
+	v.CPU.PC = 0x8000
+
+	// MOV R0, R2, LSL R3
+	// Opcode: MOV (1101), Rn is ignored (0000)
+	opcode := uint32(0xE1A00312) // 1110 0001 1010 0000 0000 0011 0001 0010
+	setupCodeWrite(v)
+	v.Memory.WriteWord(0x8000, opcode)
+	v.Step()
+
+	// Expected: 5 << 4 = 80
+	if v.CPU.R[0] != 80 {
+		t.Errorf("expected R0=80, got R0=%d", v.CPU.R[0])
+	}
+}
+
+func TestMOV_RegisterShift_LSR(t *testing.T) {
+	// MOV R0, R2, LSR R3
+	v := vm.NewVM()
+	v.CPU.R[2] = 80
+	v.CPU.R[3] = 2 // 80 >> 2 = 20
+	v.CPU.PC = 0x8000
+
+	// MOV R0, R2, LSR R3
+	opcode := uint32(0xE1A00332)
+	setupCodeWrite(v)
+	v.Memory.WriteWord(0x8000, opcode)
+	v.Step()
+
+	// Expected: 80 >> 2 = 20
+	if v.CPU.R[0] != 20 {
+		t.Errorf("expected R0=20, got R0=%d", v.CPU.R[0])
+	}
+}
+
+func TestMOV_RegisterShift_ASR(t *testing.T) {
+	// MOV R0, R2, ASR R3
+	v := vm.NewVM()
+	v.CPU.R[2] = 0xFFFFFFF0 // -16
+	v.CPU.R[3] = 2          // -16 ASR 2 = -4
+	v.CPU.PC = 0x8000
+
+	// MOV R0, R2, ASR R3
+	opcode := uint32(0xE1A00352)
+	setupCodeWrite(v)
+	v.Memory.WriteWord(0x8000, opcode)
+	v.Step()
+
+	// Expected: -16 ASR 2 = -4 = 0xFFFFFFFC
+	expected := uint32(0xFFFFFFFC)
+	if v.CPU.R[0] != expected {
+		t.Errorf("expected R0=0x%X, got R0=0x%X", expected, v.CPU.R[0])
+	}
+}
+
+func TestMOV_RegisterShift_ROR(t *testing.T) {
+	// MOV R0, R2, ROR R3
+	v := vm.NewVM()
+	v.CPU.R[2] = 0x80000001
+	v.CPU.R[3] = 1 // rotate right by 1
+	v.CPU.PC = 0x8000
+
+	// MOV R0, R2, ROR R3
+	opcode := uint32(0xE1A00372)
+	setupCodeWrite(v)
+	v.Memory.WriteWord(0x8000, opcode)
+	v.Step()
+
+	// Expected: 0x80000001 ROR 1 = 0xC0000000
+	expected := uint32(0xC0000000)
+	if v.CPU.R[0] != expected {
+		t.Errorf("expected R0=0x%X, got R0=0x%X", expected, v.CPU.R[0])
+	}
+}
+
+// ====== MVN with Register Shifts ======
+
+func TestMVN_RegisterShift_LSL(t *testing.T) {
+	// MVN R0, R2, LSL R3 (move NOT)
+	v := vm.NewVM()
+	v.CPU.R[2] = 0x0F
+	v.CPU.R[3] = 4 // 0x0F << 4 = 0xF0
+	v.CPU.PC = 0x8000
+
+	// MVN R0, R2, LSL R3
+	// Opcode: MVN (1111), Rn is ignored (0000)
+	opcode := uint32(0xE1E00312) // 1110 0001 1110 0000 0000 0011 0001 0010
+	setupCodeWrite(v)
+	v.Memory.WriteWord(0x8000, opcode)
+	v.Step()
+
+	// Expected: ~0xF0 = 0xFFFFFF0F
+	expected := uint32(0xFFFFFF0F)
+	if v.CPU.R[0] != expected {
+		t.Errorf("expected R0=0x%X, got R0=0x%X", expected, v.CPU.R[0])
+	}
+}
+
+func TestMVN_RegisterShift_LSR(t *testing.T) {
+	// MVN R0, R2, LSR R3
+	v := vm.NewVM()
+	v.CPU.R[2] = 0xF0
+	v.CPU.R[3] = 4 // 0xF0 >> 4 = 0x0F
+	v.CPU.PC = 0x8000
+
+	// MVN R0, R2, LSR R3
+	opcode := uint32(0xE1E00332)
+	setupCodeWrite(v)
+	v.Memory.WriteWord(0x8000, opcode)
+	v.Step()
+
+	// Expected: ~0x0F = 0xFFFFFFF0
+	expected := uint32(0xFFFFFFF0)
+	if v.CPU.R[0] != expected {
+		t.Errorf("expected R0=0x%X, got R0=0x%X", expected, v.CPU.R[0])
+	}
+}
+
+func TestMVN_RegisterShift_ASR(t *testing.T) {
+	// MVN R0, R2, ASR R3
+	v := vm.NewVM()
+	v.CPU.R[2] = 0x80000000
+	v.CPU.R[3] = 4 // 0x80000000 ASR 4 = 0xF8000000
+	v.CPU.PC = 0x8000
+
+	// MVN R0, R2, ASR R3
+	opcode := uint32(0xE1E00352)
+	setupCodeWrite(v)
+	v.Memory.WriteWord(0x8000, opcode)
+	v.Step()
+
+	// Expected: ~0xF8000000 = 0x07FFFFFF
+	expected := uint32(0x07FFFFFF)
+	if v.CPU.R[0] != expected {
+		t.Errorf("expected R0=0x%X, got R0=0x%X", expected, v.CPU.R[0])
+	}
+}
+
+func TestMVN_RegisterShift_ROR(t *testing.T) {
+	// MVN R0, R2, ROR R3
+	v := vm.NewVM()
+	v.CPU.R[2] = 0x00000003
+	v.CPU.R[3] = 1 // 3 ROR 1 = 0x80000001
+	v.CPU.PC = 0x8000
+
+	// MVN R0, R2, ROR R3
+	opcode := uint32(0xE1E00372)
+	setupCodeWrite(v)
+	v.Memory.WriteWord(0x8000, opcode)
+	v.Step()
+
+	// Expected: ~0x80000001 = 0x7FFFFFFE
+	expected := uint32(0x7FFFFFFE)
+	if v.CPU.R[0] != expected {
+		t.Errorf("expected R0=0x%X, got R0=0x%X", expected, v.CPU.R[0])
+	}
+}
+
+// ====== CMP with Register Shifts ======
+
+func TestCMP_RegisterShift_LSL(t *testing.T) {
+	// CMP R1, R2, LSL R3 (compare, sets flags only)
+	v := vm.NewVM()
+	v.CPU.R[1] = 100
+	v.CPU.R[2] = 10
+	v.CPU.R[3] = 3 // 10 << 3 = 80
+	v.CPU.PC = 0x8000
+
+	// CMP R1, R2, LSL R3
+	// Opcode: CMP (1010), S bit always 1, Rd is ignored (0000)
+	opcode := uint32(0xE1510312) // 1110 0001 0101 0001 0000 0011 0001 0010
+	setupCodeWrite(v)
+	v.Memory.WriteWord(0x8000, opcode)
+	v.Step()
+
+	// Expected: 100 - 80 = 20 (positive, so N=0, Z=0)
+	if v.CPU.CPSR.N {
+		t.Error("expected N flag to be clear")
+	}
+	if v.CPU.CPSR.Z {
+		t.Error("expected Z flag to be clear")
+	}
+}
+
+func TestCMP_RegisterShift_LSR(t *testing.T) {
+	// CMP R1, R2, LSR R3
+	v := vm.NewVM()
+	v.CPU.R[1] = 20
+	v.CPU.R[2] = 80
+	v.CPU.R[3] = 2 // 80 >> 2 = 20
+	v.CPU.PC = 0x8000
+
+	// CMP R1, R2, LSR R3
+	opcode := uint32(0xE1510332)
+	setupCodeWrite(v)
+	v.Memory.WriteWord(0x8000, opcode)
+	v.Step()
+
+	// Expected: 20 - 20 = 0 (Z=1)
+	if !v.CPU.CPSR.Z {
+		t.Error("expected Z flag to be set")
+	}
+}
+
+func TestCMP_RegisterShift_ASR(t *testing.T) {
+	// CMP R1, R2, ASR R3
+	v := vm.NewVM()
+	v.CPU.R[1] = 100
+	v.CPU.R[2] = 0xFFFFFFC0 // -64
+	v.CPU.R[3] = 2          // -64 ASR 2 = -16
+	v.CPU.PC = 0x8000
+
+	// CMP R1, R2, ASR R3
+	opcode := uint32(0xE1510352)
+	setupCodeWrite(v)
+	v.Memory.WriteWord(0x8000, opcode)
+	v.Step()
+
+	// Expected: 100 - (-16) = 116 (positive)
+	if v.CPU.CPSR.N {
+		t.Error("expected N flag to be clear (result is positive)")
+	}
+}
+
+func TestCMP_RegisterShift_ROR(t *testing.T) {
+	// CMP R1, R2, ROR R3
+	v := vm.NewVM()
+	v.CPU.R[1] = 0x80000001
+	v.CPU.R[2] = 0x00000003
+	v.CPU.R[3] = 1 // 3 ROR 1 = 0x80000001
+	v.CPU.PC = 0x8000
+
+	// CMP R1, R2, ROR R3
+	opcode := uint32(0xE1510372)
+	setupCodeWrite(v)
+	v.Memory.WriteWord(0x8000, opcode)
+	v.Step()
+
+	// Expected: 0x80000001 - 0x80000001 = 0 (Z=1)
+	if !v.CPU.CPSR.Z {
+		t.Error("expected Z flag to be set (values equal)")
+	}
+}
+
+// ====== CMN with Register Shifts ======
+
+func TestCMN_RegisterShift_LSL(t *testing.T) {
+	// CMN R1, R2, LSL R3 (compare negative, R1 + shifted R2)
+	v := vm.NewVM()
+	v.CPU.R[1] = 100
+	v.CPU.R[2] = 10
+	v.CPU.R[3] = 2 // 10 << 2 = 40
+	v.CPU.PC = 0x8000
+
+	// CMN R1, R2, LSL R3
+	// Opcode: CMN (1011), S bit always 1, Rd ignored
+	opcode := uint32(0xE1710312) // 1110 0001 0111 0001 0000 0011 0001 0010
+	setupCodeWrite(v)
+	v.Memory.WriteWord(0x8000, opcode)
+	v.Step()
+
+	// Expected: 100 + 40 = 140 (positive, N=0, Z=0)
+	if v.CPU.CPSR.N {
+		t.Error("expected N flag to be clear")
+	}
+	if v.CPU.CPSR.Z {
+		t.Error("expected Z flag to be clear")
+	}
+}
+
+func TestCMN_RegisterShift_LSR(t *testing.T) {
+	// CMN R1, R2, LSR R3
+	v := vm.NewVM()
+	v.CPU.R[1] = 0xFFFFFFEC // -20
+	v.CPU.R[2] = 80
+	v.CPU.R[3] = 2 // 80 >> 2 = 20
+	v.CPU.PC = 0x8000
+
+	// CMN R1, R2, LSR R3
+	opcode := uint32(0xE1710332)
+	setupCodeWrite(v)
+	v.Memory.WriteWord(0x8000, opcode)
+	v.Step()
+
+	// Expected: -20 + 20 = 0 (Z=1)
+	if !v.CPU.CPSR.Z {
+		t.Error("expected Z flag to be set")
+	}
+}
+
+func TestCMN_RegisterShift_ASR(t *testing.T) {
+	// CMN R1, R2, ASR R3
+	v := vm.NewVM()
+	v.CPU.R[1] = 10
+	v.CPU.R[2] = 0xFFFFFFC0 // -64
+	v.CPU.R[3] = 2          // -64 ASR 2 = -16
+	v.CPU.PC = 0x8000
+
+	// CMN R1, R2, ASR R3
+	opcode := uint32(0xE1710352)
+	setupCodeWrite(v)
+	v.Memory.WriteWord(0x8000, opcode)
+	v.Step()
+
+	// Expected: 10 + (-16) = -6 (negative, N=1)
+	if !v.CPU.CPSR.N {
+		t.Error("expected N flag to be set (result is negative)")
+	}
+}
+
+func TestCMN_RegisterShift_ROR(t *testing.T) {
+	// CMN R1, R2, ROR R3
+	v := vm.NewVM()
+	v.CPU.R[1] = 0x7FFFFFFF
+	v.CPU.R[2] = 0x00000002
+	v.CPU.R[3] = 1 // 2 ROR 1 = 1
+	v.CPU.PC = 0x8000
+
+	// CMN R1, R2, ROR R3
+	opcode := uint32(0xE1710372)
+	setupCodeWrite(v)
+	v.Memory.WriteWord(0x8000, opcode)
+	v.Step()
+
+	// Expected: 0x7FFFFFFF + 1 = 0x80000000 (overflow, N=1, V=1)
+	if !v.CPU.CPSR.N {
+		t.Error("expected N flag to be set")
+	}
+	if !v.CPU.CPSR.V {
+		t.Error("expected V flag to be set (overflow)")
+	}
+}
+
+// ====== TST with Register Shifts ======
+
+func TestTST_RegisterShift_LSL(t *testing.T) {
+	// TST R1, R2, LSL R3 (test, R1 AND shifted R2)
+	v := vm.NewVM()
+	v.CPU.R[1] = 0xFF
+	v.CPU.R[2] = 0x0F
+	v.CPU.R[3] = 4 // 0x0F << 4 = 0xF0
+	v.CPU.PC = 0x8000
+
+	// TST R1, R2, LSL R3
+	// Opcode: TST (1000), S bit always 1, Rd ignored
+	opcode := uint32(0xE1110312) // 1110 0001 0001 0001 0000 0011 0001 0010
+	setupCodeWrite(v)
+	v.Memory.WriteWord(0x8000, opcode)
+	v.Step()
+
+	// Expected: 0xFF & 0xF0 = 0xF0 (non-zero, Z=0)
+	if v.CPU.CPSR.Z {
+		t.Error("expected Z flag to be clear (result non-zero)")
+	}
+}
+
+func TestTST_RegisterShift_LSR(t *testing.T) {
+	// TST R1, R2, LSR R3
+	v := vm.NewVM()
+	v.CPU.R[1] = 0x0F
+	v.CPU.R[2] = 0xF0
+	v.CPU.R[3] = 4 // 0xF0 >> 4 = 0x0F
+	v.CPU.PC = 0x8000
+
+	// TST R1, R2, LSR R3
+	opcode := uint32(0xE1110332)
+	setupCodeWrite(v)
+	v.Memory.WriteWord(0x8000, opcode)
+	v.Step()
+
+	// Expected: 0x0F & 0x0F = 0x0F (non-zero)
+	if v.CPU.CPSR.Z {
+		t.Error("expected Z flag to be clear")
+	}
+}
+
+func TestTST_RegisterShift_ASR(t *testing.T) {
+	// TST R1, R2, ASR R3
+	v := vm.NewVM()
+	v.CPU.R[1] = 0x00FFFFFF
+	v.CPU.R[2] = 0x80000000
+	v.CPU.R[3] = 4 // 0x80000000 ASR 4 = 0xF8000000
+	v.CPU.PC = 0x8000
+
+	// TST R1, R2, ASR R3
+	opcode := uint32(0xE1110352)
+	setupCodeWrite(v)
+	v.Memory.WriteWord(0x8000, opcode)
+	v.Step()
+
+	// Expected: 0x00FFFFFF & 0xF8000000 = 0 (Z=1)
+	if !v.CPU.CPSR.Z {
+		t.Error("expected Z flag to be set (result is zero)")
+	}
+}
+
+func TestTST_RegisterShift_ROR(t *testing.T) {
+	// TST R1, R2, ROR R3
+	v := vm.NewVM()
+	v.CPU.R[1] = 0x80000000
+	v.CPU.R[2] = 0x00000003
+	v.CPU.R[3] = 1 // 3 ROR 1 = 0x80000001
+	v.CPU.PC = 0x8000
+
+	// TST R1, R2, ROR R3
+	opcode := uint32(0xE1110372)
+	setupCodeWrite(v)
+	v.Memory.WriteWord(0x8000, opcode)
+	v.Step()
+
+	// Expected: 0x80000000 & 0x80000001 = 0x80000000 (N=1, Z=0)
+	if v.CPU.CPSR.Z {
+		t.Error("expected Z flag to be clear")
+	}
+	if !v.CPU.CPSR.N {
+		t.Error("expected N flag to be set")
+	}
+}
+
+// ====== TEQ with Register Shifts ======
+
+func TestTEQ_RegisterShift_LSL(t *testing.T) {
+	// TEQ R1, R2, LSL R3 (test equivalence, R1 XOR shifted R2)
+	v := vm.NewVM()
+	v.CPU.R[1] = 0xFF
+	v.CPU.R[2] = 0x0F
+	v.CPU.R[3] = 4 // 0x0F << 4 = 0xF0
+	v.CPU.PC = 0x8000
+
+	// TEQ R1, R2, LSL R3
+	// Opcode: TEQ (1001), S bit always 1, Rd ignored
+	opcode := uint32(0xE1310312) // 1110 0001 0011 0001 0000 0011 0001 0010
+	setupCodeWrite(v)
+	v.Memory.WriteWord(0x8000, opcode)
+	v.Step()
+
+	// Expected: 0xFF ^ 0xF0 = 0x0F (non-zero, Z=0)
+	if v.CPU.CPSR.Z {
+		t.Error("expected Z flag to be clear (result non-zero)")
+	}
+}
+
+func TestTEQ_RegisterShift_LSR(t *testing.T) {
+	// TEQ R1, R2, LSR R3
+	v := vm.NewVM()
+	v.CPU.R[1] = 0x0F
+	v.CPU.R[2] = 0xF0
+	v.CPU.R[3] = 4 // 0xF0 >> 4 = 0x0F
+	v.CPU.PC = 0x8000
+
+	// TEQ R1, R2, LSR R3
+	opcode := uint32(0xE1310332)
+	setupCodeWrite(v)
+	v.Memory.WriteWord(0x8000, opcode)
+	v.Step()
+
+	// Expected: 0x0F ^ 0x0F = 0 (Z=1, values equal)
+	if !v.CPU.CPSR.Z {
+		t.Error("expected Z flag to be set (values are equal)")
+	}
+}
+
+func TestTEQ_RegisterShift_ASR(t *testing.T) {
+	// TEQ R1, R2, ASR R3
+	v := vm.NewVM()
+	v.CPU.R[1] = 0xF8000000
+	v.CPU.R[2] = 0x80000000
+	v.CPU.R[3] = 4 // 0x80000000 ASR 4 = 0xF8000000
+	v.CPU.PC = 0x8000
+
+	// TEQ R1, R2, ASR R3
+	opcode := uint32(0xE1310352)
+	setupCodeWrite(v)
+	v.Memory.WriteWord(0x8000, opcode)
+	v.Step()
+
+	// Expected: 0xF8000000 ^ 0xF8000000 = 0 (Z=1)
+	if !v.CPU.CPSR.Z {
+		t.Error("expected Z flag to be set (values equal)")
+	}
+}
+
+func TestTEQ_RegisterShift_ROR(t *testing.T) {
+	// TEQ R1, R2, ROR R3
+	v := vm.NewVM()
+	v.CPU.R[1] = 0xFFFFFFFF
+	v.CPU.R[2] = 0x00000003
+	v.CPU.R[3] = 1 // 3 ROR 1 = 0x80000001
+	v.CPU.PC = 0x8000
+
+	// TEQ R1, R2, ROR R3
+	opcode := uint32(0xE1310372)
+	setupCodeWrite(v)
+	v.Memory.WriteWord(0x8000, opcode)
+	v.Step()
+
+	// Expected: 0xFFFFFFFF ^ 0x80000001 = 0x7FFFFFFE (non-zero)
+	if v.CPU.CPSR.Z {
+		t.Error("expected Z flag to be clear")
+	}
+}
