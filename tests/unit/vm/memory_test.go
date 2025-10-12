@@ -1340,3 +1340,372 @@ func TestLDM_DB_DecrementBefore(t *testing.T) {
 		t.Errorf("expected R2=0xAAAAAAAA, got R2=0x%X", v.CPU.R[2])
 	}
 }
+
+// ============================================================================
+// Priority 4, Section 10: Multi-Register Transfer Edge Cases
+// ============================================================================
+
+func TestLDM_SingleRegister(t *testing.T) {
+	// LDMIA R0, {R1} - load just one register
+	v := vm.NewVM()
+	v.CPU.R[0] = 0x10000
+	v.CPU.PC = 0x8000
+
+	setupCodeWrite(v)
+	v.Memory.WriteWord(0x10000, 0xDEADBEEF)
+
+	// LDMIA R0, {R1}
+	// Register list: bit 1 = 0x0002
+	opcode := uint32(0xE8900002) // LDMIA R0, {R1}
+	v.Memory.WriteWord(0x8000, opcode)
+	v.Step()
+
+	if v.CPU.R[1] != 0xDEADBEEF {
+		t.Errorf("expected R1=0xDEADBEEF, got R1=0x%X", v.CPU.R[1])
+	}
+}
+
+func TestLDM_NonContiguous(t *testing.T) {
+	// LDMIA R0, {R1, R3, R5} - non-contiguous register list
+	v := vm.NewVM()
+	v.CPU.R[0] = 0x10000
+	v.CPU.PC = 0x8000
+
+	setupCodeWrite(v)
+	v.Memory.WriteWord(0x10000, 0x11111111) // R1
+	v.Memory.WriteWord(0x10004, 0x33333333) // R3
+	v.Memory.WriteWord(0x10008, 0x55555555) // R5
+
+	// LDMIA R0, {R1, R3, R5}
+	// Register list: bits 1, 3, 5 = 0x002A
+	opcode := uint32(0xE890002A) // LDMIA R0, {R1, R3, R5}
+	v.Memory.WriteWord(0x8000, opcode)
+	v.Step()
+
+	if v.CPU.R[1] != 0x11111111 {
+		t.Errorf("expected R1=0x11111111, got R1=0x%X", v.CPU.R[1])
+	}
+	if v.CPU.R[3] != 0x33333333 {
+		t.Errorf("expected R3=0x33333333, got R3=0x%X", v.CPU.R[3])
+	}
+	if v.CPU.R[5] != 0x55555555 {
+		t.Errorf("expected R5=0x55555555, got R5=0x%X", v.CPU.R[5])
+	}
+}
+
+func TestLDM_AllRegisters(t *testing.T) {
+	// LDMIA R0, {R0-R15} - all registers (including base)
+	v := vm.NewVM()
+	v.CPU.R[0] = 0x10000
+	v.CPU.PC = 0x8000
+
+	setupCodeWrite(v)
+	// Write values for all 16 registers
+	for i := uint32(0); i < 16; i++ {
+		v.Memory.WriteWord(0x10000+i*4, 0x1000+i*0x100)
+	}
+
+	// LDMIA R0, {R0-R15}
+	// Register list: all bits set = 0xFFFF
+	opcode := uint32(0xE890FFFF) // LDMIA R0, {R0-R15}
+	v.Memory.WriteWord(0x8000, opcode)
+	v.Step()
+
+	// R0 should be loaded (ARM2 behavior: writeback before transfer)
+	if v.CPU.R[0] != 0x1000 {
+		t.Errorf("expected R0=0x1000, got R0=0x%X", v.CPU.R[0])
+	}
+	// R1-R14 should be loaded
+	if v.CPU.R[1] != 0x1100 {
+		t.Errorf("expected R1=0x1100, got R1=0x%X", v.CPU.R[1])
+	}
+	// R15 (PC) should be loaded
+	if v.CPU.PC != 0x1F00 {
+		t.Errorf("expected PC=0x1F00, got PC=0x%X", v.CPU.PC)
+	}
+}
+
+func TestLDM_IncludingPC_Return(t *testing.T) {
+	// LDMIA SP!, {R0-R3, PC} - common function return pattern
+	// This was tested in special_registers_test.go, but adding here for completeness
+	v := vm.NewVM()
+	v.CPU.R[13] = 0x10000 // SP
+	v.CPU.PC = 0x8000
+
+	setupCodeWrite(v)
+	v.Memory.WriteWord(0x10000, 0xAAAA0000) // R0
+	v.Memory.WriteWord(0x10004, 0xBBBB0001) // R1
+	v.Memory.WriteWord(0x10008, 0xCCCC0002) // R2
+	v.Memory.WriteWord(0x1000C, 0xDDDD0003) // R3
+	v.Memory.WriteWord(0x10010, 0x9000)     // PC
+
+	// LDMIA SP!, {R0-R3, PC}
+	// Register list: R0-R3, PC = 0x800F
+	opcode := uint32(0xE8BD800F) // LDMIA SP!, {R0-R3, PC}
+	v.Memory.WriteWord(0x8000, opcode)
+	v.Step()
+
+	if v.CPU.R[0] != 0xAAAA0000 {
+		t.Errorf("expected R0=0xAAAA0000, got R0=0x%X", v.CPU.R[0])
+	}
+	if v.CPU.PC != 0x9000 {
+		t.Errorf("expected PC=0x9000, got PC=0x%X", v.CPU.PC)
+	}
+	if v.CPU.R[13] != 0x10014 {
+		t.Errorf("expected SP=0x10014 (writeback), got SP=0x%X", v.CPU.R[13])
+	}
+}
+
+func TestLDM_BaseInList_Writeback(t *testing.T) {
+	// LDMIA R0!, {R0, R1} - base register in list with writeback
+	// ARM2 behavior: writeback happens AFTER loading, so R0 gets writeback value
+	v := vm.NewVM()
+	v.CPU.R[0] = 0x10000
+	v.CPU.PC = 0x8000
+
+	setupCodeWrite(v)
+	v.Memory.WriteWord(0x10000, 0xDEADBEEF) // R0 value
+	v.Memory.WriteWord(0x10004, 0xCAFEBABE) // R1 value
+
+	// LDMIA R0!, {R0, R1}
+	// Register list: bits 0, 1 = 0x0003
+	opcode := uint32(0xE8B00003) // LDMIA R0!, {R0, R1} with writeback
+	v.Memory.WriteWord(0x8000, opcode)
+	v.Step()
+
+	// Expected: R0 gets writeback value (0x10000 + 8), not loaded value
+	// This is ARM2 behavior: load happens first, then writeback overwrites
+	if v.CPU.R[0] != 0x10008 {
+		t.Errorf("expected R0=0x10008 (writeback), got R0=0x%X", v.CPU.R[0])
+	}
+	if v.CPU.R[1] != 0xCAFEBABE {
+		t.Errorf("expected R1=0xCAFEBABE, got R1=0x%X", v.CPU.R[1])
+	}
+}
+
+func TestSTM_ReverseOrder(t *testing.T) {
+	// Verify STM stores registers in order: lowest register to lowest address
+	v := vm.NewVM()
+	v.CPU.R[0] = 0x10000
+	v.CPU.R[1] = 0xAA
+	v.CPU.R[2] = 0xBB
+	v.CPU.R[3] = 0xCC
+	v.CPU.PC = 0x8000
+
+	setupCodeWrite(v)
+
+	// STMIA R0, {R1-R3}
+	// Register list: bits 1-3 = 0x000E
+	opcode := uint32(0xE880000E) // STMIA R0, {R1-R3}
+	v.Memory.WriteWord(0x8000, opcode)
+	v.Step()
+
+	// Verify order: R1 at lowest address, then R2, then R3
+	val1, _ := v.Memory.ReadWord(0x10000)
+	val2, _ := v.Memory.ReadWord(0x10004)
+	val3, _ := v.Memory.ReadWord(0x10008)
+
+	if val1 != 0xAA {
+		t.Errorf("expected [0x10000]=0xAA (R1), got 0x%X", val1)
+	}
+	if val2 != 0xBB {
+		t.Errorf("expected [0x10004]=0xBB (R2), got 0x%X", val2)
+	}
+	if val3 != 0xCC {
+		t.Errorf("expected [0x10008]=0xCC (R3), got 0x%X", val3)
+	}
+}
+
+func TestSTM_WithPC_And_LR(t *testing.T) {
+	// STMDB SP!, {R0-R3, LR, PC} - save registers and return address
+	v := vm.NewVM()
+	v.CPU.R[0] = 0xAAAA
+	v.CPU.R[1] = 0xBBBB
+	v.CPU.R[2] = 0xCCCC
+	v.CPU.R[3] = 0xDDDD
+	v.CPU.R[13] = 0x10020 // SP
+	v.CPU.R[14] = 0x8100  // LR
+	v.CPU.PC = 0x8000
+
+	setupCodeWrite(v)
+
+	// STMDB SP!, {R0-R3, LR, PC}
+	// Register list: R0-R3 (0x000F) + LR (bit 14) + PC (bit 15) = 0xC00F
+	opcode := uint32(0xE92DC00F) // STMDB SP!, {R0-R3, LR, PC}
+	v.Memory.WriteWord(0x8000, opcode)
+	v.Step()
+
+	// 6 registers * 4 bytes = 24 bytes
+	// SP should be decremented by 24
+	expectedSP := uint32(0x10020 - 24)
+	if v.CPU.R[13] != expectedSP {
+		t.Errorf("expected SP=0x%X, got SP=0x%X", expectedSP, v.CPU.R[13])
+	}
+
+	// Verify R0-R3 stored
+	val0, _ := v.Memory.ReadWord(expectedSP)
+	val1, _ := v.Memory.ReadWord(expectedSP + 4)
+
+	if val0 != 0xAAAA {
+		t.Errorf("expected [SP+0]=0xAAAA (R0), got 0x%X", val0)
+	}
+	if val1 != 0xBBBB {
+		t.Errorf("expected [SP+4]=0xBBBB (R1), got 0x%X", val1)
+	}
+
+	// Verify LR stored
+	valLR, _ := v.Memory.ReadWord(expectedSP + 16)
+	if valLR != 0x8100 {
+		t.Errorf("expected [SP+16]=0x8100 (LR), got 0x%X", valLR)
+	}
+
+	// Verify PC stored (PC+12 for STM in ARM2)
+	valPC, _ := v.Memory.ReadWord(expectedSP + 20)
+	if valPC != 0x800C {
+		t.Errorf("expected [SP+20]=0x800C (PC+12), got 0x%X", valPC)
+	}
+}
+
+// ============================================================================
+// Priority 4, Section 11: Alignment and Memory Protection Tests
+// ============================================================================
+
+func TestLDR_UnalignedWord(t *testing.T) {
+	// Test unaligned word access behavior
+	v := vm.NewVM()
+	v.CPU.R[1] = 0x10001 // Unaligned address (not multiple of 4)
+	v.CPU.PC = 0x8000
+
+	setupCodeWrite(v)
+	// Write test data
+	v.Memory.WriteWord(0x10000, 0x11223344)
+	v.Memory.WriteWord(0x10004, 0x55667788)
+
+	// LDR R0, [R1]
+	// On ARM2, unaligned word access is implementation-defined
+	// This emulator likely rotates the result or returns an error
+	opcode := uint32(0xE5910000) // LDR R0, [R1]
+	v.Memory.WriteWord(0x8000, opcode)
+
+	// This test just verifies it doesn't crash
+	// The behavior is implementation-specific
+	v.Step()
+
+	// Just verify some value was loaded (don't check specific value)
+	// This documents that unaligned access is handled somehow
+	t.Logf("Unaligned LDR result: R0=0x%X", v.CPU.R[0])
+}
+
+func TestLDRH_UnalignedHalfword(t *testing.T) {
+	// Test unaligned halfword access
+	v := vm.NewVM()
+	v.CPU.R[1] = 0x10001 // Odd address (not multiple of 2)
+	v.CPU.PC = 0x8000
+
+	setupCodeWrite(v)
+	v.Memory.WriteWord(0x10000, 0x11223344)
+
+	// LDRH R0, [R1]
+	// Unaligned halfword behavior is implementation-defined
+	opcode := uint32(0xE1D100B0) // LDRH R0, [R1]
+	v.Memory.WriteWord(0x8000, opcode)
+
+	v.Step()
+	t.Logf("Unaligned LDRH result: R0=0x%X", v.CPU.R[0])
+}
+
+func TestSTR_UnalignedWord(t *testing.T) {
+	// Test unaligned word store
+	v := vm.NewVM()
+	v.CPU.R[0] = 0xDEADBEEF
+	v.CPU.R[1] = 0x10002 // Unaligned address
+	v.CPU.PC = 0x8000
+
+	setupCodeWrite(v)
+
+	// STR R0, [R1]
+	opcode := uint32(0xE5810000) // STR R0, [R1]
+	v.Memory.WriteWord(0x8000, opcode)
+
+	v.Step()
+
+	// Just verify it doesn't crash
+	// Read back and log the result
+	val, err := v.Memory.ReadWord(0x10000)
+	if err == nil {
+		t.Logf("Memory after unaligned STR: [0x10000]=0x%X", val)
+	}
+}
+
+func TestSTRH_UnalignedHalfword(t *testing.T) {
+	// Test unaligned halfword store
+	v := vm.NewVM()
+	v.CPU.R[0] = 0xBEEF
+	v.CPU.R[1] = 0x10001 // Odd address
+	v.CPU.PC = 0x8000
+
+	setupCodeWrite(v)
+
+	// STRH R0, [R1]
+	opcode := uint32(0xE1C100B0) // STRH R0, [R1]
+	v.Memory.WriteWord(0x8000, opcode)
+
+	v.Step()
+	t.Logf("Unaligned STRH completed without crash")
+}
+
+func TestMemory_WriteProtection(t *testing.T) {
+	// Test writing to read-only memory segment
+	// This test documents the current behavior (may not have protection)
+	v := vm.NewVM()
+	v.CPU.R[0] = 0xDEADBEEF
+	v.CPU.R[1] = 0x0 // Try to write to address 0 (typically code segment)
+	v.CPU.PC = 0x8000
+
+	setupCodeWrite(v)
+
+	// STR R0, [R1]
+	opcode := uint32(0xE5810000) // STR R0, [R1]
+	v.Memory.WriteWord(0x8000, opcode)
+
+	// Currently the emulator may allow this
+	// This test documents the behavior
+	v.Step()
+	t.Logf("Write to address 0 completed (protection may not be implemented)")
+}
+
+func TestMemory_ExecuteProtection(t *testing.T) {
+	// Test executing from data segment
+	// ARM2 doesn't have NX protection, so this should work
+	v := vm.NewVM()
+	v.CPU.PC = 0x20000 // Data area
+
+	setupCodeWrite(v)
+
+	// Write a NOP instruction to data area
+	// MOV R0, R0 (NOP equivalent)
+	opcode := uint32(0xE1A00000)
+	v.Memory.WriteWord(0x20000, opcode)
+
+	v.Step()
+
+	// Should execute without error (ARM2 has no execute protection)
+	t.Logf("Execute from data segment completed (no NX protection in ARM2)")
+}
+
+func TestMemory_NoReadPermission(t *testing.T) {
+	// Test reading from invalid/unmapped memory
+	v := vm.NewVM()
+	v.CPU.R[1] = 0xFFFFFFFF // Very high address (likely unmapped)
+	v.CPU.PC = 0x8000
+
+	setupCodeWrite(v)
+
+	// LDR R0, [R1]
+	opcode := uint32(0xE5910000) // LDR R0, [R1]
+	v.Memory.WriteWord(0x8000, opcode)
+
+	// This should either return an error or wrap around
+	v.Step()
+	t.Logf("Read from high address: R0=0x%X (may be invalid or wrapped)", v.CPU.R[0])
+}

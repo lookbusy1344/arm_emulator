@@ -200,11 +200,11 @@ func TestImmediate_EdgeRotations(t *testing.T) {
 		value    uint32
 		expected uint32
 	}{
-		{0, 0xFF, 0xFF},         // No rotation
-		{1, 0xFF, 0xC000003F},   // 0xFF ROR 2
-		{2, 0xFF, 0xF000000F},   // 0xFF ROR 4
-		{15, 0xFF, 0x000003FC},  // 0xFF ROR 30
-		{8, 0x80, 0x00800000},   // 0x80 ROR 16
+		{0, 0xFF, 0xFF},        // No rotation
+		{1, 0xFF, 0xC000003F},  // 0xFF ROR 2
+		{2, 0xFF, 0xF000000F},  // 0xFF ROR 4
+		{15, 0xFF, 0x000003FC}, // 0xFF ROR 30
+		{8, 0x80, 0x00800000},  // 0x80 ROR 16
 	}
 
 	for _, tc := range testCases {
