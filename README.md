@@ -30,23 +30,23 @@ PROGRESS.md
 
 TODO.md
 
-Prompt for each phase: *"Let’s implement phase X from IMPLEMENTATION_PLAN.md considering PROGRESS.md, and implement appropriate tests. Anything that you cannot fix, note in TODO.md"*
+## Daily progress
 
-## Observations
+Day 1 - 8 Oct - Claude has written a specification, and a staged implemenation plan. It's made good progress with phases 1-5 completed. Prompt for each phase: *"Let’s implement phase X from IMPLEMENTATION_PLAN.md considering PROGRESS.md, and implement appropriate tests. Anything that you cannot fix, note in TODO.md"*
 
-Day 1 - Claude has written a specification, and a staged implemenation plan. It's made good progress with phases 1-5 completed.
+Day 2 - 9 Oct - Phases 6-10 completed. From the original plan the project should be essentially complete, but there is actually much more to do. Including the parser. I have directed Claude to note in TODO.md anything it cannot complete, as frequently it will truncate a complex task and then 'forget' about the more difficult features left unfinished.
 
-Day 2 - Phases 6-10 completed. From the original plan the project should be essentially complete, but there is actually much more to do. Including the parser. I have directed Claude to note in TODO.md anything it cannot complete, as frequently it will truncate a complex task and then 'forget' about the more difficult features left unfinished.
-
-Day 3 - 10th Oct - Go code is about 25,000 lines using command:
+Day 3 - 10 Oct - Go code is about 25,000 lines using command:
 
 ```
 find . -name "*.go" -type f -exec cat {} + | wc -l
 ```
 
-Day 4 - Whats becoming increasingly clear is that, although Claude is very impressive and has done great things in only 4 days (3 hours per day), it can get lost in the weeds. It has a tendency to 'fix' tests by removing them, or simplifying them. It sometimes loses sight of the big picture and currently several of the test programs to not operate correctly (but Claude hasn't noticed).
+Day 4 - 11 Oct - Whats becoming increasingly clear is that, although Claude is very impressive and has done great things in only 4 days (3 hours per day), it can get lost in the weeds. It has a tendency to 'fix' tests by removing them, or simplifying them. It sometimes loses sight of the big picture and currently several of the test programs to not operate correctly (but Claude hasn't noticed).
 
-Go code is 28,331 lines long at the end of day. Weekly Claude usages limits hit.
+Go code is 28,331 lines long at the end of day. Weekly Claude usages limits are being approached.
+
+Day 5 - 12 Oct - Asking Claude if any core ARM2 instructions are left to implement (apparently not), and to write comprehensive tests for all instructions. This has found several instructions that are malfunctioning, and it’s important to keep reminding Claude not to simplify or delete tests that fail, but to address the underlying issue. However the project is beginning to look impressive now, and has over 30,000 lines. I still haven't written or edited one line of Go here, just markdown files and prompts to Claude.
 
 ## Documentation
 
