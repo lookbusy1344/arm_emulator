@@ -241,12 +241,12 @@ func (vm *VM) Decode(opcode uint32) (*Instruction, error) {
 			// Multiply instruction pattern
 			inst.Type = InstMultiply
 		} else {
-			// Check for halfword load/store: bit 7 = 1, bit 4 = 1
-			// LDRH/STRH have bits [7:4] = 1011 (0xB) or other halfword patterns
-			// Also check bit 22 = 0 to distinguish from word transfers
+			// Check for halfword load/store: bit 25 = 0, bit 7 = 1, bit 4 = 1
+			// This distinguishes from data processing with immediate (bit 25 = 1)
+			bit25 := (opcode >> 25) & 1
 			bit7 := (opcode >> 7) & 1
 			bit4 := (opcode >> 4) & 1
-			if bit7 == 1 && bit4 == 1 {
+			if bit25 == 0 && bit7 == 1 && bit4 == 1 {
 				// This is a halfword/signed transfer (LDRH, STRH, LDRSB, LDRSH)
 				inst.Type = InstLoadStore
 			} else {
