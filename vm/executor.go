@@ -233,13 +233,26 @@ func (vm *VM) Decode(opcode uint32) (*Instruction, error) {
 	bits2726 := (opcode >> 26) & 0x3
 
 	switch bits2726 {
-	case 0: // 00 - Could be data processing, multiply, or load/store halfword
-		if (opcode & 0x0FC000F0) == 0x00000090 {
+	case 0: // 00 - Could be data processing, multiply, BX, or load/store halfword
+		// Check for BX (Branch and Exchange) first: bits [27:4] = 0x12FFF1
+		if (opcode & 0x0FFFFFF0) == 0x012FFF10 {
+			inst.Type = InstBranch
+		} else if (opcode & 0x0FC000F0) == 0x00000090 {
 			// Multiply instruction pattern
 			inst.Type = InstMultiply
 		} else {
-			// Data processing
-			inst.Type = InstDataProcessing
+			// Check for halfword load/store: bit 7 = 1, bit 4 = 1
+			// LDRH/STRH have bits [7:4] = 1011 (0xB) or other halfword patterns
+			// Also check bit 22 = 0 to distinguish from word transfers
+			bit7 := (opcode >> 7) & 1
+			bit4 := (opcode >> 4) & 1
+			if bit7 == 1 && bit4 == 1 {
+				// This is a halfword/signed transfer (LDRH, STRH, LDRSB, LDRSH)
+				inst.Type = InstLoadStore
+			} else {
+				// Data processing
+				inst.Type = InstDataProcessing
+			}
 		}
 
 	case 1: // 01 - Load/Store

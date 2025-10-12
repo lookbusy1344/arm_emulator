@@ -753,8 +753,9 @@ func TestCondition_ADD_EQ(t *testing.T) {
 	v.CPU.R[2] = 0
 	v.CPU.PC = 0x8000
 
-	// ADDEQ R2, R0, R1 (02810001)
-	opcode := uint32(0x02810001)
+	// ADDEQ R2, R0, R1
+	// cond=0(EQ), data_proc=00, I=0(reg), opcode=4(ADD), S=0, Rn=0, Rd=2, Rm=1
+	opcode := uint32(0x00802001)
 	setupCodeWrite(v)
 	v.Memory.WriteWord(0x8000, opcode)
 	v.Step()
@@ -773,8 +774,9 @@ func TestCondition_SUB_NE(t *testing.T) {
 	v.CPU.R[2] = 0
 	v.CPU.PC = 0x8000
 
-	// SUBNE R2, R0, R1 (12410001)
-	opcode := uint32(0x12410001)
+	// SUBNE R2, R0, R1
+	// cond=1(NE), data_proc=00, I=0(reg), opcode=2(SUB), S=0, Rn=0, Rd=2, Rm=1
+	opcode := uint32(0x10402001)
 	setupCodeWrite(v)
 	v.Memory.WriteWord(0x8000, opcode)
 	v.Step()
@@ -793,8 +795,9 @@ func TestCondition_AND_CS(t *testing.T) {
 	v.CPU.R[2] = 0
 	v.CPU.PC = 0x8000
 
-	// ANDCS R2, R0, R1 (22010001)
-	opcode := uint32(0x22010001)
+	// ANDCS R2, R0, R1
+	// cond=2(CS), data_proc=00, I=0(reg), opcode=0(AND), S=0, Rn=0, Rd=2, Rm=1
+	opcode := uint32(0x20002001)
 	setupCodeWrite(v)
 	v.Memory.WriteWord(0x8000, opcode)
 	v.Step()
@@ -813,8 +816,9 @@ func TestCondition_ORR_MI(t *testing.T) {
 	v.CPU.R[2] = 0
 	v.CPU.PC = 0x8000
 
-	// ORRMI R2, R0, R1 (41810001)
-	opcode := uint32(0x41810001)
+	// ORRMI R2, R0, R1
+	// cond=4(MI), data_proc=00, I=0(reg), opcode=12(ORR), S=0, Rn=0, Rd=2, Rm=1
+	opcode := uint32(0x41802001)
 	setupCodeWrite(v)
 	v.Memory.WriteWord(0x8000, opcode)
 	v.Step()
@@ -899,8 +903,9 @@ func TestCondition_EOR_VC(t *testing.T) {
 	v.CPU.R[2] = 0
 	v.CPU.PC = 0x8000
 
-	// EORVC R2, R0, R1 (72210001)
-	opcode := uint32(0x72210001)
+	// EORVC R2, R0, R1
+	// cond=7(VC), data_proc=00, I=0(reg), opcode=1(EOR), S=0, Rn=0, Rd=2, Rm=1
+	opcode := uint32(0x70202001)
 	setupCodeWrite(v)
 	v.Memory.WriteWord(0x8000, opcode)
 	v.Step()
@@ -920,8 +925,9 @@ func TestCondition_BIC_HI(t *testing.T) {
 	v.CPU.R[2] = 0
 	v.CPU.PC = 0x8000
 
-	// BICHI R2, R0, R1 (81C10001)
-	opcode := uint32(0x81C10001)
+	// BICHI R2, R0, R1
+	// cond=8(HI), data_proc=00, I=0(reg), opcode=14(BIC), S=0, Rn=0, Rd=2, Rm=1
+	opcode := uint32(0x81C02001)
 	setupCodeWrite(v)
 	v.Memory.WriteWord(0x8000, opcode)
 	v.Step()

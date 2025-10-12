@@ -7,32 +7,58 @@ import (
 // ExecuteLoadStore executes load/store instructions (LDR, STR, LDRB, STRB, LDRH, STRH)
 func ExecuteLoadStore(v *VM, inst *Instruction) error {
 	vm := v
-	load := (inst.Opcode >> 20) & 0x1             // L bit: 1=load, 0=store
-	byteTransfer := (inst.Opcode >> 22) & 0x1     // B bit: 1=byte, 0=word
-	writeBack := (inst.Opcode >> 21) & 0x1        // W bit: write address back to base
-	preIndexed := (inst.Opcode >> 24) & 0x1       // P bit: 1=pre-indexed, 0=post-indexed
-	addOffset := (inst.Opcode >> 23) & 0x1        // U bit: 1=add offset, 0=subtract
-	immediate := ((inst.Opcode >> 25) & 0x1) == 0 // I bit inverted: 0=immediate, 1=register
+	load := (inst.Opcode >> 20) & 0x1         // L bit: 1=load, 0=store
+	byteTransfer := (inst.Opcode >> 22) & 0x1 // B bit: 1=byte, 0=word
+	writeBack := (inst.Opcode >> 21) & 0x1    // W bit: write address back to base
+	preIndexed := (inst.Opcode >> 24) & 0x1   // P bit: 1=pre-indexed, 0=post-indexed
+	addOffset := (inst.Opcode >> 23) & 0x1    // U bit: 1=add offset, 0=subtract
 
 	rd := int((inst.Opcode >> 12) & 0xF) // Data register
 	rn := int((inst.Opcode >> 16) & 0xF) // Base register
 
 	baseAddr := vm.CPU.GetRegister(rn)
 
+	// Check for halfword transfer (ARM2a extension) first
+	// Identified by bit 7 = 1, bit 4 = 1
+	bit7 := (inst.Opcode >> 7) & 1
+	bit4 := (inst.Opcode >> 4) & 1
+	isHalfword := bit7 == 1 && bit4 == 1
+
 	// Calculate offset
 	var offset uint32
-	if immediate {
-		// Immediate offset
-		offset = inst.Opcode & 0xFFF
+	if isHalfword {
+		// Halfword instructions use different encoding
+		// I bit is at position 22 for halfword (1=immediate, 0=register)
+		immediate := (inst.Opcode >> 22) & 0x1
+
+		if immediate == 1 {
+			// Immediate offset: split into high[11:8] and low[3:0]
+			offsetHigh := (inst.Opcode >> 8) & 0xF
+			offsetLow := inst.Opcode & 0xF
+			offset = (offsetHigh << 4) | offsetLow
+		} else {
+			// Register offset
+			rm := int(inst.Opcode & 0xF)
+			offset = vm.CPU.GetRegister(rm)
+		}
 	} else {
-		// Register offset with optional shift
-		rm := int(inst.Opcode & 0xF)
-		offsetReg := vm.CPU.GetRegister(rm)
+		// Standard word/byte transfer
+		// I bit at position 25 (inverted: 0=immediate, 1=register)
+		immediate := ((inst.Opcode >> 25) & 0x1) == 0
 
-		shiftType := ShiftType((inst.Opcode >> 5) & 0x3)
-		shiftAmount := int((inst.Opcode >> 7) & 0x1F)
+		if immediate {
+			// Immediate offset
+			offset = inst.Opcode & 0xFFF
+		} else {
+			// Register offset with optional shift
+			rm := int(inst.Opcode & 0xF)
+			offsetReg := vm.CPU.GetRegister(rm)
 
-		offset = PerformShift(offsetReg, shiftAmount, shiftType, vm.CPU.CPSR.C)
+			shiftType := ShiftType((inst.Opcode >> 5) & 0x3)
+			shiftAmount := int((inst.Opcode >> 7) & 0x1F)
+
+			offset = PerformShift(offsetReg, shiftAmount, shiftType, vm.CPU.CPSR.C)
+		}
 	}
 
 	// Apply sign of offset
@@ -52,11 +78,6 @@ func ExecuteLoadStore(v *VM, inst *Instruction) error {
 		// Post-indexed: use base address
 		accessAddr = baseAddr
 	}
-
-	// Check for halfword transfer (ARM2a extension)
-	// Identified by bits [7:4] == 0b1011 (load) or 0b1001 (store) and bit 22 == 0
-	halfwordBits := (inst.Opcode >> 4) & 0xF
-	isHalfword := byteTransfer == 0 && (halfwordBits == 0xB || halfwordBits == 0x9)
 
 	// Perform load or store
 	if load == 1 {

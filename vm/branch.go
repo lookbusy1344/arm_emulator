@@ -4,6 +4,11 @@ import ()
 
 // ExecuteBranch executes branch instructions (B, BL, BX)
 func ExecuteBranch(vm *VM, inst *Instruction) error {
+	// Check for BX (Branch and Exchange): bits [27:4] = 0x12FFF1
+	if (inst.Opcode & 0x0FFFFFF0) == 0x012FFF10 {
+		return ExecuteBranchExchange(vm, inst)
+	}
+
 	link := (inst.Opcode >> 24) & 0x1 // L bit: 1=BL (branch with link), 0=B (branch)
 
 	// Extract 24-bit signed offset and sign-extend to 32 bits
