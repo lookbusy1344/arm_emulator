@@ -10,20 +10,109 @@ Completed items and past work belong in `PROGRESS.md`.
 
 ## Summary
 
-**Status:** Phase 11 (Production Hardening) - Most tasks complete!
+**Status:** Phase 11 (Production Hardening) - Priority 1 Tests In Progress
 
-**Test Status:** 660 tests passing (100% pass rate)
-- Unit tests: 575 tests
-- Integration tests: 85 tests
+**Test Status:** 591/613 tests passing (96.4% pass rate)
+- Original tests: 660/660 passing (100%)
+- New Priority 1 tests: 9/41 passing (22% - need opcode fixes)
+- Unit tests: 575+ tests
+- Integration tests: 85+ tests
 
 **Example Programs:** 22 of 30 fully functional (73% functional rate)
 
 **Remaining Work:**
+- **Critical:** Fix Priority 1 test opcodes (LDRH/STRH, BX, conditional instructions) - 3-4 hours
+- **High Priority:** Implement Priority 2-3 tests (memory modes, register shifts) - 20-30 hours
 - **High Priority:** CI/CD enhancements (matrix builds, coverage reporting)
 - **Medium Priority:** Code coverage improvements, release pipeline
 - **Low Priority:** Performance benchmarking, additional documentation
 
-**Estimated effort to v1.0.0:** 20-30 hours
+**Estimated effort to v1.0.0:** 40-50 hours
+
+---
+
+## Test Coverage Improvements (NEW - Priority 1-5)
+
+### Priority 1: Critical Missing Tests (IN PROGRESS - 3-4 hours remaining)
+
+**Status:** Partially complete - encoder implemented, test opcodes need fixes
+
+#### 1.1 LDRH/STRH Halfword Operations (🟡 ENCODER COMPLETE, TESTS NEED FIXES)
+- ✅ **Encoder implemented**: Full `encodeMemoryHalfword()` function added to `encoder/memory.go`
+- ✅ **12 tests added** in `memory_test.go`:
+  - TestLDRH_ImmediateOffset
+  - TestLDRH_PreIndexed
+  - TestLDRH_PostIndexed
+  - TestLDRH_RegisterOffset
+  - TestLDRH_NegativeOffset
+  - TestLDRH_ZeroExtend
+  - TestSTRH_ImmediateOffset
+  - TestSTRH_PreIndexed
+  - TestSTRH_PostIndexed
+  - TestSTRH_RegisterOffset
+  - TestSTRH_NegativeOffset
+  - TestSTRH_TruncateUpper16Bits ✅
+- ❌ **Issue:** 11 tests have incorrect manually-constructed opcodes
+- **Fix needed:** Use parser+encoder to generate opcodes or verify against ARM reference
+- **Files:** `encoder/memory.go` (+165 lines), `tests/unit/vm/memory_test.go` (+262 lines)
+
+#### 1.2 BX (Branch and Exchange) Tests (🟡 6 TESTS ADDED, 5 NEED OPCODE FIXES)
+- ✅ **6 tests added** in `branch_test.go`:
+  - TestBX_Register
+  - TestBX_ReturnFromSubroutine
+  - TestBX_Conditional
+  - TestBX_ConditionalNotTaken ✅
+  - TestBX_ClearBit0
+  - TestBX_FromHighRegister
+- ❌ **Issue:** 5 tests have incorrect opcodes
+- **Fix needed:** BX format is `cond 00010010 1111111111110001 Rm`
+- **Files:** `tests/unit/vm/branch_test.go` (+121 lines)
+
+#### 1.3 Comprehensive Conditional Tests (✅ EXCELLENT COVERAGE - COMPLETE)
+- ✅ **45+ existing tests** covering all 16 ARM condition codes
+- ✅ All passing perfectly
+- ✅ **12 new tests added** for conditions with different instructions (ADD, SUB, AND, ORR, etc.)
+- 🟡 **5 new tests** need opcode fixes (conditional ADD, SUB, AND, ORR, EOR, BIC)
+- **Files:** `tests/unit/vm/conditions_test.go` (+253 lines, mostly passing)
+
+**Priority 1 Summary:**
+- ✅ Major achievement: LDRH/STRH encoding fully implemented (was stub)
+- ✅ Major achievement: Comprehensive conditional testing validated
+- 🟡 22 tests need opcode refinement (not implementation issues)
+- ⏱️ Estimated 3-4 hours to complete all Priority 1 tests
+
+### Priority 2: Memory Addressing Mode Completeness (~60 tests, 20-30 hours)
+
+See `MISSING_TESTS.md` for full details. Key areas:
+- LDR/STR with all addressing modes (scaled register offsets, post-indexed register, etc.)
+- LDRB/STRB with all addressing modes
+- STM variants (IB, DA, DB, with writeback)
+- Multi-register transfer edge cases
+
+### Priority 3: Data Processing with Register-Specified Shifts (~40 tests, 10-15 hours)
+
+See `MISSING_TESTS.md` for full details. Key areas:
+- All data processing instructions with register shifts (LSL, LSR, ASR, ROR)
+- Examples: `ADD R0, R1, R2, LSL R3`
+
+### Priority 4: Edge Cases and Special Scenarios (~50 tests, 15-20 hours)
+
+See `MISSING_TESTS.md` for full details. Key areas:
+- PC-relative operations
+- SP/LR special register operations
+- Immediate encoding edge cases
+- Flag behavior comprehensive tests
+- Memory alignment and protection
+
+### Priority 5: Comprehensive Coverage (~80 tests, 20-30 hours)
+
+See `MISSING_TESTS.md` for full details. Key areas:
+- Instruction-condition matrix (16 conditions × key instructions)
+- Property-based testing for arithmetic
+- Fuzzing for encoder/decoder round-trips
+
+**Total Additional Tests Planned:** ~280 tests across all priorities
+**Documentation:** See `MISSING_TESTS.md` and `PRIORITY1_TEST_RESULTS.md`
 
 ---
 

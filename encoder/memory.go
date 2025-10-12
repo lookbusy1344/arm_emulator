@@ -278,10 +278,181 @@ func (e *Encoder) encodeLDRPseudo(inst *parser.Instruction, cond, rd uint32) (ui
 	return instruction, nil
 }
 
-// encodeMemoryHalfword encodes halfword load/store (simplified)
+// encodeMemoryHalfword encodes halfword load/store (LDRH/STRH)
+// ARM halfword format: cond 000P UBWL Rn Rd offsetH 1SH1 offsetL
+// P=1 for pre-indexed, P=0 for post-indexed
+// U=1 for add offset, U=0 for subtract offset
+// B=0 for halfword (always 0 for LDRH/STRH)
+// W=1 for writeback (pre-indexed only)
+// L=1 for load, L=0 for store
+// S=0, H=1 for unsigned halfword (bits[6:5] = 01)
+// bits[7:4] = 1011 for load, 1001 for store (actually controlled by S,H,L bits)
 func (e *Encoder) encodeMemoryHalfword(inst *parser.Instruction, cond, rd, lBit uint32) (uint32, error) {
-	// Simplified halfword encoding
-	// Format is different from word/byte
-	// For now, return an error as this is complex
-	return 0, fmt.Errorf("halfword operations not fully implemented yet")
+	if len(inst.Operands) < 2 {
+		return 0, fmt.Errorf("halfword instruction requires at least 2 operands")
+	}
+
+	// Parse addressing mode
+	addrMode := inst.Operands[1]
+
+	// Check for post-indexed: combine with third operand if present
+	if len(inst.Operands) > 2 && strings.HasSuffix(addrMode, "]") && !strings.HasSuffix(addrMode, "]!") {
+		addrMode = addrMode + "," + inst.Operands[2]
+	}
+
+	addrMode = strings.TrimSpace(addrMode)
+
+	// Check for post-indexed: [Rn], offset
+	postIndexed := strings.Contains(addrMode, "],")
+
+	// Check for pre-indexed with writeback: [Rn, offset]!
+	writeBack := strings.HasSuffix(addrMode, "]!")
+	if writeBack {
+		addrMode = strings.TrimSuffix(addrMode, "!")
+	}
+
+	// Extract base register and offset
+	if !strings.HasPrefix(addrMode, "[") {
+		return 0, fmt.Errorf("invalid addressing mode for halfword: %s", addrMode)
+	}
+
+	addrMode = strings.TrimPrefix(addrMode, "[")
+	addrMode = strings.TrimSuffix(addrMode, "]")
+
+	var rn uint32
+	var offset uint32
+	var uBit uint32 = 1 // Default to add
+	var isRegisterOffset bool
+
+	if postIndexed {
+		// Post-indexed: [Rn], offset
+		parts := strings.Split(addrMode, "],")
+		if len(parts) != 2 {
+			return 0, fmt.Errorf("invalid post-indexed addressing for halfword")
+		}
+
+		rnReg, err := e.parseRegister(strings.TrimSpace(parts[0]))
+		if err != nil {
+			return 0, err
+		}
+		rn = rnReg
+
+		offsetStr := strings.TrimSpace(parts[1])
+		if strings.HasPrefix(offsetStr, "#") || isNumeric(offsetStr) {
+			// Check if offset is negative
+			if strings.HasPrefix(offsetStr, "-") {
+				uBit = 0 // Subtract
+				offsetStr = strings.TrimPrefix(offsetStr, "-")
+			}
+			offsetVal, err := e.parseImmediate(offsetStr)
+			if err != nil {
+				return 0, err
+			}
+			offset = offsetVal
+		} else {
+			// Register offset
+			offsetReg, err := e.parseRegister(offsetStr)
+			if err != nil {
+				return 0, err
+			}
+			offset = offsetReg
+			isRegisterOffset = true
+		}
+	} else {
+		// Pre-indexed or simple: [Rn] or [Rn, offset]
+		parts := strings.Split(addrMode, ",")
+
+		rnReg, err := e.parseRegister(strings.TrimSpace(parts[0]))
+		if err != nil {
+			return 0, err
+		}
+		rn = rnReg
+
+		if len(parts) > 1 {
+			offsetStr := strings.TrimSpace(parts[1])
+			if strings.HasPrefix(offsetStr, "#") || isNumeric(offsetStr) {
+				// Check if offset is negative
+				if strings.HasPrefix(offsetStr, "-") {
+					uBit = 0 // Subtract
+					offsetStr = strings.TrimPrefix(offsetStr, "-")
+				}
+				offsetVal, err := e.parseImmediate(offsetStr)
+				if err != nil {
+					return 0, err
+				}
+				offset = offsetVal
+			} else {
+				// Register offset
+				offsetReg, err := e.parseRegister(offsetStr)
+				if err != nil {
+					return 0, err
+				}
+				offset = offsetReg
+				isRegisterOffset = true
+			}
+		}
+	}
+
+	// Build the instruction
+	// Format: cond 000P UBWL Rn Rd offsetH 1SH1 offsetL
+	// For LDRH/STRH: S=0, H=1 (bits[6:5] = 01), so bits[7:4] = ?0?1
+	// Combined with bits[7:4], we get 1011 for load, 1001 for store
+
+	pBit := uint32(1) // Pre-indexed by default
+	if postIndexed {
+		pBit = 0
+	}
+
+	wBit := uint32(0)
+	if writeBack {
+		wBit = 1
+	}
+
+	var opcode uint32
+
+	if isRegisterOffset {
+		// Register offset: bits[7:4] = 1001 for store, 1011 for load
+		// Rm in bits[3:0], offset high bits in [11:8]
+		hBit := uint32(1) // H=1 for halfword
+		sBit := uint32(0) // S=0 for unsigned halfword
+
+		opcode = (cond << 28) |
+			(pBit << 24) |
+			(uBit << 23) |
+			(wBit << 21) |
+			(lBit << 20) |
+			(rn << 16) |
+			(rd << 12) |
+			(hBit << 5) |
+			(sBit << 6) |
+			(1 << 7) | // Always 1 for halfword
+			offset // Rm in lower 4 bits
+	} else {
+		// Immediate offset: split into high (bits[11:8]) and low (bits[3:0])
+		if offset > 255 {
+			return 0, fmt.Errorf("halfword immediate offset too large: %d (max 255)", offset)
+		}
+
+		offsetHigh := (offset >> 4) & 0xF
+		offsetLow := offset & 0xF
+
+		hBit := uint32(1) // H=1 for halfword
+		sBit := uint32(0) // S=0 for unsigned halfword
+
+		opcode = (cond << 28) |
+			(pBit << 24) |
+			(uBit << 23) |
+			(1 << 22) | // I bit = 1 for immediate in halfword encoding
+			(wBit << 21) |
+			(lBit << 20) |
+			(rn << 16) |
+			(rd << 12) |
+			(offsetHigh << 8) |
+			(1 << 7) | // Always 1 for halfword misc
+			(hBit << 5) |
+			(sBit << 6) |
+			offsetLow
+	}
+
+	return opcode, nil
 }
