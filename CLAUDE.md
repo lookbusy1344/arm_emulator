@@ -159,3 +159,7 @@ Configuration files are stored in platform-specific locations:
 - **Windows:** `%APPDATA%\arm-emu\config.toml`
 
 See `config/config.go` for all available options.
+
+### Note
+
+Coreutils is installed on MacOS, so commands like `gtimeout` are available.
