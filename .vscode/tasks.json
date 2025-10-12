@@ -2,10 +2,14 @@
 	"version": "2.0.0",
 	"tasks": [
 		{
-			"type": "go",
-			"label": "go: build current file",
-			"command": "build",
-			"args": [],
+			"type": "shell",
+			"label": "go: build project",
+			"command": "go",
+			"args": [
+				"build",
+				"-o",
+				"arm-emulator"
+			],
 			"problemMatcher": [
 				"$go"
 			],
@@ -13,13 +17,16 @@
 				"kind": "build",
 				"isDefault": true
 			},
-			"detail": "go build ."
+			"detail": "go build -o arm-emulator"
 		},
 		{
 			"type": "shell",
 			"label": "go: format project",
 			"command": "go",
-			"args": ["fmt", "./..."],
+			"args": [
+				"fmt",
+				"./..."
+			],
 			"group": "build",
 			"presentation": {
 				"echo": true,
@@ -28,6 +35,82 @@
 				"panel": "shared"
 			},
 			"detail": "Format all Go files in the project"
+		},
+		{
+			"type": "shell",
+			"label": "go: test all",
+			"command": "go",
+			"args": [
+				"test",
+				"./..."
+			],
+			"group": {
+				"kind": "test",
+				"isDefault": true
+			},
+			"problemMatcher": [
+				"$go"
+			],
+			"presentation": {
+				"echo": true,
+				"reveal": "always",
+				"focus": false,
+				"panel": "shared"
+			},
+			"detail": "Run all tests in the project"
+		},
+		{
+			"type": "shell",
+			"label": "go: test all (verbose)",
+			"command": "go",
+			"args": [
+				"test",
+				"-v",
+				"./..."
+			],
+			"group": "test",
+			"problemMatcher": [
+				"$go"
+			],
+			"presentation": {
+				"echo": true,
+				"reveal": "always",
+				"focus": false,
+				"panel": "shared"
+			},
+			"detail": "Run all tests in the project with verbose output"
+		},
+		{
+			"type": "shell",
+			"label": "go: lint (golangci-lint)",
+			"command": "golangci-lint",
+			"args": [
+				"run",
+				"./..."
+			],
+			"group": "build",
+			"problemMatcher": [
+				{
+					"owner": "golangci-lint",
+					"pattern": [
+						{
+							"regexp": "^(.+?):(\\d+):(\\d+):\\s+(.+?)\\s+\\((.+?)\\)$",
+							"file": 1,
+							"line": 2,
+							"column": 3,
+							"message": 4,
+							"code": 5
+						}
+					]
+				}
+			],
+			"presentation": {
+				"echo": true,
+				"reveal": "always",
+				"focus": false,
+				"panel": "shared"
+			},
+			"detail": "Run golangci-lint on the project"
 		}
 	]
 }
