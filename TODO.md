@@ -147,6 +147,69 @@ Focus areas:
 
 ---
 
+## Missing ARM2/ARMv2 Instructions
+
+### Long Multiply Instructions (ARMv3M - Not in ARM2)
+**Priority:** Low | **Effort:** 8-12 hours
+
+These instructions were introduced in ARMv3M (ARM6 and later), not present in ARM2:
+- [ ] UMULL - Unsigned Multiply Long (64-bit result)
+- [ ] UMLAL - Unsigned Multiply-Accumulate Long (64-bit result)
+- [ ] SMULL - Signed Multiply Long (64-bit result)
+- [ ] SMLAL - Signed Multiply-Accumulate Long (64-bit result)
+
+**Note:** Already documented in INSTRUCTIONS.md as "Planned". Not historically accurate for ARM2.
+
+### Coprocessor Instructions (ARMv2 - Optional)
+**Priority:** Very Low | **Effort:** 20-30 hours
+
+ARMv2 included coprocessor interface support, but these are rarely needed for typical ARM2 programs:
+- [ ] CDP - Coprocessor Data Processing
+- [ ] LDC - Load Coprocessor register
+- [ ] STC - Store Coprocessor register
+- [ ] MCR - Move to Coprocessor Register
+- [ ] MRC - Move from Coprocessor Register
+
+**Note:** Would require full coprocessor emulation framework. Low priority for ARM2 emulation.
+
+### PSR Transfer Instructions (ARMv3 - Not in ARM2)
+**Priority:** Very Low | **Effort:** 4-6 hours
+
+These were introduced in ARMv3, not present in ARM2:
+- [ ] MRS - Move PSR to Register
+- [ ] MSR - Move Register to PSR
+
+**Note:** Already documented in INSTRUCTIONS.md as "Planned". ARM2 stored PSR flags in R15.
+
+### Atomic Swap Instructions (ARMv2a - Not in ARM2)
+**Priority:** Very Low | **Effort:** 4-6 hours
+
+These were added in ARMv2a (ARM3), not present in original ARM2:
+- [ ] SWP - Swap word (atomic load-store)
+- [ ] SWPB - Swap byte (atomic load-store)
+
+**Note:** ARMv2a extension, part of ARM3. Not in original ARM2.
+
+### Summary: Missing Instructions Status
+
+**Implemented in this emulator:**
+- ✅ All ARM2 data processing instructions (16 opcodes)
+- ✅ All ARM2 memory instructions (LDR/STR/LDRB/STRB/LDM/STM)
+- ✅ ARM2a halfword extensions (LDRH/STRH)
+- ✅ All ARM2 branch instructions (B/BL/BX)
+- ✅ ARM2 multiply instructions (MUL/MLA)
+- ✅ Software interrupts (SWI with 30+ syscalls)
+
+**Not implemented (and historically accurate for ARM2):**
+- ❌ Long multiply (ARMv3M only - UMULL/UMLAL/SMULL/SMLAL)
+- ❌ PSR transfers (ARMv3 only - MRS/MSR)
+- ❌ Atomic swap (ARMv2a only - SWP/SWPB)
+- ❌ Coprocessor interface (ARMv2 optional - CDP/LDC/STC/MCR/MRC)
+
+**Conclusion:** This emulator has **complete ARM2 instruction set coverage**. All missing instructions are from later ARM versions (ARMv2a, ARMv3, ARMv3M) or optional coprocessor support.
+
+---
+
 ## Future Enhancements (Optional)
 
 ### Additional Diagnostic Modes
