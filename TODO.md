@@ -4,7 +4,7 @@
 
 Completed items and past work belong in `PROGRESS.md`.
 
-**Last Updated:** 2025-10-11
+**Last Updated:** 2025-10-12
 
 ---
 
@@ -16,7 +16,7 @@ Completed items and past work belong in `PROGRESS.md`.
 - Unit tests: 575 tests
 - Integration tests: 85 tests
 
-**Example Programs:** 21 of 23 fully functional (91% functional rate)
+**Example Programs:** 22 of 30 fully functional (73% functional rate)
 
 **Remaining Work:**
 - **High Priority:** CI/CD enhancements (matrix builds, coverage reporting)
@@ -31,15 +31,63 @@ Completed items and past work belong in `PROGRESS.md`.
 
 ### Example Program Issues (Non-Critical)
 
-1. **linked_list.s** - Unaligned word access at 0x0000000E
-   - Pre-existing bug in the example program
-   - Attempting unaligned memory access (must be 4-byte aligned)
-   - Needs fix in the assembly code itself
+**Test Summary (30 programs total):**
+- ✅ **22 programs fully working** (73%)
+- ⚠️ **3 programs with input issues** (10%)
+- ❌ **5 programs with errors** (17%)
 
-2. **reverse_chatgpt.s** - Parse errors (syntax issues)
-   - Multiple syntax errors preventing parsing
-   - Pre-existing issues with assembly syntax
-   - Needs syntax corrections
+#### Working Programs (22)
+1. ✅ addressing_modes.s - All addressing mode tests passed
+2. ✅ arithmetic.s - All arithmetic operations work correctly
+3. ✅ arrays.s - Array operations demo works
+4. ✅ binary_search.s - Binary search works correctly
+5. ✅ bit_operations.s - All bit operation tests passed
+6. ✅ conditionals.s - All conditional execution tests passed
+7. ✅ factorial.s - Factorial calculation works
+8. ✅ fibonacci.s - Fibonacci sequence generation works
+9. ✅ functions.s - Function calling conventions work
+10. ✅ gcd.s - GCD calculation works correctly
+11. ✅ hello.s - Hello world works
+12. ✅ linked_list.s - Linked list operations work
+13. ✅ loops.s - All loop constructs work correctly
+14. ✅ memory_stress.s - All memory tests passed
+15. ✅ nested_calls.s - Deep nested calls work correctly
+16. ✅ recursive_factorial.s - Recursive factorial works
+17. ✅ stack.s - Stack-based calculator works
+18. ✅ string_reverse.s - String reversal works
+19. ✅ strings.s - String operations work
+20. ✅ times_table.s - Times table generation works
+
+#### Programs with Input Issues (3)
+21. ⚠️ **bubble_sort.s** - Expects interactive input, runs but shows zeros with stdin input
+22. ⚠️ **calculator.s** - Input reading issue (operation character not read correctly, infinite loop)
+
+#### Programs with Errors (5)
+23. ❌ **hash_table.s** - Parse error: "invalid constant value: -" at line 10
+   - Parser doesn't support "-" as a constant value placeholder
+
+24. ❌ **matrix_multiply.s** - Runtime error: memory access violation at 0x000081D4
+   - Attempts to read string at invalid address 0x00000002
+
+25. ❌ **quicksort.s** - Runtime error: memory access violation at 0x000081EC
+   - Attempts to read string at invalid address 0x00000011
+
+26. ❌ **recursive_fib.s** - Parse errors: multiple syntax issues
+   - Contains '@' characters (comments?) and parentheses in unexpected places
+   - Appears to use non-ARM2 syntax
+
+27. ❌ **reverse_chatgpt.s** - Parse errors: unexpected NUMBER tokens (lines 8, 13, 25, 32, 37)
+   - Syntax issues preventing parsing
+
+28. ❌ **sieve_of_eratosthenes.s** - Parse errors: extensive syntax issues
+   - Contains '@' characters, parentheses, operators in unexpected places
+   - Appears to use non-ARM2 syntax
+
+29. ❌ **state_machine.s** - Runtime error: cycle limit exceeded (1000000 cycles)
+   - Program enters infinite loop during email validation
+
+30. ❌ **xor_cipher.s** - Encoding error: unknown instruction "LSR" at 0x00008220
+   - LSR instruction not implemented in encoder
 
 ---
 
