@@ -739,3 +739,257 @@ func TestCondition_MultipleConditions(t *testing.T) {
 		t.Errorf("expected R3=0 after MOVNE (should not execute), got R3=%d", v.CPU.R[3])
 	}
 }
+
+// ============================================================================
+// Conditional execution with different instruction types
+// ============================================================================
+
+func TestCondition_ADD_EQ(t *testing.T) {
+	// Test ADD with EQ condition
+	v := vm.NewVM()
+	v.CPU.CPSR.Z = true // Equal condition
+	v.CPU.R[0] = 10
+	v.CPU.R[1] = 5
+	v.CPU.R[2] = 0
+	v.CPU.PC = 0x8000
+
+	// ADDEQ R2, R0, R1 (02810001)
+	opcode := uint32(0x02810001)
+	setupCodeWrite(v)
+	v.Memory.WriteWord(0x8000, opcode)
+	v.Step()
+
+	if v.CPU.R[2] != 15 {
+		t.Errorf("ADDEQ: expected R2=15, got R2=%d", v.CPU.R[2])
+	}
+}
+
+func TestCondition_SUB_NE(t *testing.T) {
+	// Test SUB with NE condition
+	v := vm.NewVM()
+	v.CPU.CPSR.Z = false // Not equal condition
+	v.CPU.R[0] = 20
+	v.CPU.R[1] = 7
+	v.CPU.R[2] = 0
+	v.CPU.PC = 0x8000
+
+	// SUBNE R2, R0, R1 (12410001)
+	opcode := uint32(0x12410001)
+	setupCodeWrite(v)
+	v.Memory.WriteWord(0x8000, opcode)
+	v.Step()
+
+	if v.CPU.R[2] != 13 {
+		t.Errorf("SUBNE: expected R2=13, got R2=%d", v.CPU.R[2])
+	}
+}
+
+func TestCondition_AND_CS(t *testing.T) {
+	// Test AND with CS (carry set) condition
+	v := vm.NewVM()
+	v.CPU.CPSR.C = true // Carry set
+	v.CPU.R[0] = 0xFF00
+	v.CPU.R[1] = 0x0FFF
+	v.CPU.R[2] = 0
+	v.CPU.PC = 0x8000
+
+	// ANDCS R2, R0, R1 (22010001)
+	opcode := uint32(0x22010001)
+	setupCodeWrite(v)
+	v.Memory.WriteWord(0x8000, opcode)
+	v.Step()
+
+	if v.CPU.R[2] != 0x0F00 {
+		t.Errorf("ANDCS: expected R2=0x0F00, got R2=0x%X", v.CPU.R[2])
+	}
+}
+
+func TestCondition_ORR_MI(t *testing.T) {
+	// Test ORR with MI (negative/minus) condition
+	v := vm.NewVM()
+	v.CPU.CPSR.N = true // Negative flag set
+	v.CPU.R[0] = 0xF000
+	v.CPU.R[1] = 0x000F
+	v.CPU.R[2] = 0
+	v.CPU.PC = 0x8000
+
+	// ORRMI R2, R0, R1 (41810001)
+	opcode := uint32(0x41810001)
+	setupCodeWrite(v)
+	v.Memory.WriteWord(0x8000, opcode)
+	v.Step()
+
+	if v.CPU.R[2] != 0xF00F {
+		t.Errorf("ORRMI: expected R2=0xF00F, got R2=0x%X", v.CPU.R[2])
+	}
+}
+
+func TestCondition_LDR_GT(t *testing.T) {
+	// Test LDR with GT (greater than) condition
+	v := vm.NewVM()
+	v.CPU.CPSR.Z = false
+	v.CPU.CPSR.N = false
+	v.CPU.CPSR.V = false // Z=0 and N=V (GT condition)
+	v.CPU.R[0] = 0
+	v.CPU.R[1] = 0x20000
+	v.CPU.PC = 0x8000
+
+	setupCodeWrite(v)
+	v.Memory.WriteWord(0x20000, 0xDEADBEEF)
+
+	// LDRGT R0, [R1] (C5910000)
+	opcode := uint32(0xC5910000)
+	v.Memory.WriteWord(0x8000, opcode)
+	v.Step()
+
+	if v.CPU.R[0] != 0xDEADBEEF {
+		t.Errorf("LDRGT: expected R0=0xDEADBEEF, got R0=0x%X", v.CPU.R[0])
+	}
+}
+
+func TestCondition_STR_LE(t *testing.T) {
+	// Test STR with LE (less or equal) condition
+	v := vm.NewVM()
+	v.CPU.CPSR.Z = true // LE satisfied with Z=1
+	v.CPU.R[0] = 0x12345678
+	v.CPU.R[1] = 0x20000
+	v.CPU.PC = 0x8000
+
+	setupCodeWrite(v)
+
+	// STRLE R0, [R1] (D5810000)
+	opcode := uint32(0xD5810000)
+	v.Memory.WriteWord(0x8000, opcode)
+	v.Step()
+
+	value, _ := v.Memory.ReadWord(0x20000)
+	if value != 0x12345678 {
+		t.Errorf("STRLE: expected memory=0x12345678, got 0x%X", value)
+	}
+}
+
+func TestCondition_CMP_AL(t *testing.T) {
+	// Test CMP with AL (always) condition - should always execute
+	v := vm.NewVM()
+	// Set random flags
+	v.CPU.CPSR.N = true
+	v.CPU.CPSR.Z = true
+	v.CPU.R[0] = 10
+	v.CPU.R[1] = 10
+	v.CPU.PC = 0x8000
+
+	// CMPAL R0, R1 (same as CMP) (E1500001)
+	opcode := uint32(0xE1500001)
+	setupCodeWrite(v)
+	v.Memory.WriteWord(0x8000, opcode)
+	v.Step()
+
+	// Should set Z flag since values are equal
+	if !v.CPU.CPSR.Z {
+		t.Error("CMPAL: expected Z flag to be set")
+	}
+}
+
+func TestCondition_EOR_VC(t *testing.T) {
+	// Test EOR with VC (overflow clear) condition
+	v := vm.NewVM()
+	v.CPU.CPSR.V = false // Overflow clear
+	v.CPU.R[0] = 0xAAAA
+	v.CPU.R[1] = 0x5555
+	v.CPU.R[2] = 0
+	v.CPU.PC = 0x8000
+
+	// EORVC R2, R0, R1 (72210001)
+	opcode := uint32(0x72210001)
+	setupCodeWrite(v)
+	v.Memory.WriteWord(0x8000, opcode)
+	v.Step()
+
+	if v.CPU.R[2] != 0xFFFF {
+		t.Errorf("EORVC: expected R2=0xFFFF, got R2=0x%X", v.CPU.R[2])
+	}
+}
+
+func TestCondition_BIC_HI(t *testing.T) {
+	// Test BIC with HI (unsigned higher) condition
+	v := vm.NewVM()
+	v.CPU.CPSR.C = true
+	v.CPU.CPSR.Z = false // C=1 and Z=0 (HI condition)
+	v.CPU.R[0] = 0xFFFF
+	v.CPU.R[1] = 0x00FF
+	v.CPU.R[2] = 0
+	v.CPU.PC = 0x8000
+
+	// BICHI R2, R0, R1 (81C10001)
+	opcode := uint32(0x81C10001)
+	setupCodeWrite(v)
+	v.Memory.WriteWord(0x8000, opcode)
+	v.Step()
+
+	if v.CPU.R[2] != 0xFF00 {
+		t.Errorf("BICHI: expected R2=0xFF00, got R2=0x%X", v.CPU.R[2])
+	}
+}
+
+func TestCondition_MUL_LS(t *testing.T) {
+	// Test MUL with LS (unsigned lower or same) condition
+	v := vm.NewVM()
+	v.CPU.CPSR.C = false // C=0 satisfies LS
+	v.CPU.R[0] = 0
+	v.CPU.R[1] = 5
+	v.CPU.R[2] = 6
+	v.CPU.PC = 0x8000
+
+	// MULLS R0, R1, R2 (90000291) - need different encoding for conditional
+	// MULS R0, R1, R2 with LS condition
+	opcode := uint32(0x90000291)
+	setupCodeWrite(v)
+	v.Memory.WriteWord(0x8000, opcode)
+	v.Step()
+
+	if v.CPU.R[0] != 30 {
+		t.Errorf("MULLS: expected R0=30, got R0=%d", v.CPU.R[0])
+	}
+}
+
+func TestCondition_RSB_GE(t *testing.T) {
+	// Test RSB (Reverse Subtract) with GE condition
+	v := vm.NewVM()
+	v.CPU.CPSR.N = false
+	v.CPU.CPSR.V = false // N=V (GE condition)
+	v.CPU.R[0] = 0
+	v.CPU.R[1] = 10
+	v.CPU.R[2] = 30
+	v.CPU.PC = 0x8000
+
+	// RSBGE R0, R1, R2 (A0610002)
+	opcode := uint32(0xA0610002)
+	setupCodeWrite(v)
+	v.Memory.WriteWord(0x8000, opcode)
+	v.Step()
+
+	// R0 = R2 - R1 = 30 - 10 = 20
+	if v.CPU.R[0] != 20 {
+		t.Errorf("RSBGE: expected R0=20, got R0=%d", v.CPU.R[0])
+	}
+}
+
+func TestCondition_MVN_LT(t *testing.T) {
+	// Test MVN (Move Not) with LT condition
+	v := vm.NewVM()
+	v.CPU.CPSR.N = true
+	v.CPU.CPSR.V = false // N!=V (LT condition)
+	v.CPU.R[0] = 0
+	v.CPU.R[1] = 0x0000FFFF
+	v.CPU.PC = 0x8000
+
+	// MVNLT R0, R1 (B1E00001)
+	opcode := uint32(0xB1E00001)
+	setupCodeWrite(v)
+	v.Memory.WriteWord(0x8000, opcode)
+	v.Step()
+
+	if v.CPU.R[0] != 0xFFFF0000 {
+		t.Errorf("MVNLT: expected R0=0xFFFF0000, got R0=0x%X", v.CPU.R[0])
+	}
+}

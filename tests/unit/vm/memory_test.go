@@ -241,3 +241,265 @@ func TestMemory_Bounds(t *testing.T) {
 		t.Error("expected error for out-of-bounds access")
 	}
 }
+
+// ============================================================================
+// LDRH (Load Halfword) instruction tests - ARM2a extension
+// ============================================================================
+
+func TestLDRH_ImmediateOffset(t *testing.T) {
+	// LDRH R0, [R1, #4] - load halfword from R1+4
+	v := vm.NewVM()
+	v.CPU.R[1] = 0x20000
+	v.CPU.PC = 0x8000
+
+	// Write test data to memory
+	setupCodeWrite(v)
+	v.Memory.WriteHalfword(0x20004, 0xABCD)
+
+	// LDRH R0, [R1, #4] - opcode pattern for halfword load
+	// Bits: cond=1110, 000P=0001, U=1, B=0, W=0, L=1, Rn=0001, Rd=0000, offset=0100, 1011, offset=0100
+	// Format: 1110 000P UBWL Rn Rd offsetH 1011 offsetL
+	// Pre-indexed (P=1), Add offset (U=1), No writeback (W=0), Load (L=1)
+	opcode := uint32(0xE1D100B4) // LDRH R0, [R1, #4]
+	setupCodeWrite(v)
+	v.Memory.WriteWord(0x8000, opcode)
+	v.Step()
+
+	if v.CPU.R[0] != 0xABCD {
+		t.Errorf("expected R0=0xABCD, got R0=0x%X", v.CPU.R[0])
+	}
+}
+
+func TestLDRH_PreIndexed(t *testing.T) {
+	// LDRH R0, [R1, #4]! - load halfword and update R1
+	v := vm.NewVM()
+	v.CPU.R[1] = 0x20000
+	v.CPU.PC = 0x8000
+
+	setupCodeWrite(v)
+	v.Memory.WriteHalfword(0x20004, 0x1234)
+
+	// LDRH R0, [R1, #4]! - with writeback (W=1)
+	opcode := uint32(0xE1F100B4)
+	setupCodeWrite(v)
+	v.Memory.WriteWord(0x8000, opcode)
+	v.Step()
+
+	if v.CPU.R[0] != 0x1234 {
+		t.Errorf("expected R0=0x1234, got R0=0x%X", v.CPU.R[0])
+	}
+	if v.CPU.R[1] != 0x20004 {
+		t.Errorf("expected R1=0x20004 (updated), got R1=0x%X", v.CPU.R[1])
+	}
+}
+
+func TestLDRH_PostIndexed(t *testing.T) {
+	// LDRH R0, [R1], #4 - load halfword then update R1
+	v := vm.NewVM()
+	v.CPU.R[1] = 0x20000
+	v.CPU.PC = 0x8000
+
+	setupCodeWrite(v)
+	v.Memory.WriteHalfword(0x20000, 0x5678)
+
+	// LDRH R0, [R1], #4 - post-indexed (P=0)
+	opcode := uint32(0xE0D100B4)
+	setupCodeWrite(v)
+	v.Memory.WriteWord(0x8000, opcode)
+	v.Step()
+
+	if v.CPU.R[0] != 0x5678 {
+		t.Errorf("expected R0=0x5678, got R0=0x%X", v.CPU.R[0])
+	}
+	if v.CPU.R[1] != 0x20004 {
+		t.Errorf("expected R1=0x20004 (updated), got R1=0x%X", v.CPU.R[1])
+	}
+}
+
+func TestLDRH_RegisterOffset(t *testing.T) {
+	// LDRH R0, [R1, R2] - load halfword with register offset
+	v := vm.NewVM()
+	v.CPU.R[1] = 0x20000
+	v.CPU.R[2] = 6
+	v.CPU.PC = 0x8000
+
+	setupCodeWrite(v)
+	v.Memory.WriteHalfword(0x20006, 0x9ABC)
+
+	// LDRH R0, [R1, R2] - register offset
+	opcode := uint32(0xE19100B2)
+	setupCodeWrite(v)
+	v.Memory.WriteWord(0x8000, opcode)
+	v.Step()
+
+	if v.CPU.R[0] != 0x9ABC {
+		t.Errorf("expected R0=0x9ABC, got R0=0x%X", v.CPU.R[0])
+	}
+}
+
+func TestLDRH_NegativeOffset(t *testing.T) {
+	// LDRH R0, [R1, #-4] - load halfword with negative offset
+	v := vm.NewVM()
+	v.CPU.R[1] = 0x20008
+	v.CPU.PC = 0x8000
+
+	setupCodeWrite(v)
+	v.Memory.WriteHalfword(0x20004, 0xFEDC)
+
+	// LDRH R0, [R1, #-4] - subtract offset (U=0)
+	opcode := uint32(0xE15100B4)
+	setupCodeWrite(v)
+	v.Memory.WriteWord(0x8000, opcode)
+	v.Step()
+
+	if v.CPU.R[0] != 0xFEDC {
+		t.Errorf("expected R0=0xFEDC, got R0=0x%X", v.CPU.R[0])
+	}
+}
+
+func TestLDRH_ZeroExtend(t *testing.T) {
+	// Verify LDRH zero-extends the loaded value
+	v := vm.NewVM()
+	v.CPU.R[0] = 0xFFFFFFFF // Pre-fill with all 1s
+	v.CPU.R[1] = 0x20000
+	v.CPU.PC = 0x8000
+
+	setupCodeWrite(v)
+	v.Memory.WriteHalfword(0x20000, 0x00FF)
+
+	// LDRH R0, [R1]
+	opcode := uint32(0xE1D100B0)
+	setupCodeWrite(v)
+	v.Memory.WriteWord(0x8000, opcode)
+	v.Step()
+
+	// Should be zero-extended to 0x000000FF, not sign-extended
+	if v.CPU.R[0] != 0x000000FF {
+		t.Errorf("expected R0=0x000000FF (zero-extended), got R0=0x%X", v.CPU.R[0])
+	}
+}
+
+// ============================================================================
+// STRH (Store Halfword) instruction tests - ARM2a extension
+// ============================================================================
+
+func TestSTRH_ImmediateOffset(t *testing.T) {
+	// STRH R0, [R1, #4] - store halfword to R1+4
+	v := vm.NewVM()
+	v.CPU.R[0] = 0x12345678
+	v.CPU.R[1] = 0x20000
+	v.CPU.PC = 0x8000
+
+	// STRH R0, [R1, #4] - store only lower 16 bits
+	opcode := uint32(0xE1C100B4)
+	setupCodeWrite(v)
+	v.Memory.WriteWord(0x8000, opcode)
+	v.Step()
+
+	value, _ := v.Memory.ReadHalfword(0x20004)
+	if value != 0x5678 {
+		t.Errorf("expected memory[0x20004]=0x5678, got 0x%X", value)
+	}
+}
+
+func TestSTRH_PreIndexed(t *testing.T) {
+	// STRH R0, [R1, #4]! - store halfword and update R1
+	v := vm.NewVM()
+	v.CPU.R[0] = 0xABCDEF01
+	v.CPU.R[1] = 0x20000
+	v.CPU.PC = 0x8000
+
+	// STRH R0, [R1, #4]! - with writeback (W=1)
+	opcode := uint32(0xE1E100B4)
+	setupCodeWrite(v)
+	v.Memory.WriteWord(0x8000, opcode)
+	v.Step()
+
+	value, _ := v.Memory.ReadHalfword(0x20004)
+	if value != 0xEF01 {
+		t.Errorf("expected memory[0x20004]=0xEF01, got 0x%X", value)
+	}
+	if v.CPU.R[1] != 0x20004 {
+		t.Errorf("expected R1=0x20004 (updated), got R1=0x%X", v.CPU.R[1])
+	}
+}
+
+func TestSTRH_PostIndexed(t *testing.T) {
+	// STRH R0, [R1], #4 - store halfword then update R1
+	v := vm.NewVM()
+	v.CPU.R[0] = 0x11223344
+	v.CPU.R[1] = 0x20000
+	v.CPU.PC = 0x8000
+
+	// STRH R0, [R1], #4 - post-indexed (P=0)
+	opcode := uint32(0xE0C100B4)
+	setupCodeWrite(v)
+	v.Memory.WriteWord(0x8000, opcode)
+	v.Step()
+
+	value, _ := v.Memory.ReadHalfword(0x20000)
+	if value != 0x3344 {
+		t.Errorf("expected memory[0x20000]=0x3344, got 0x%X", value)
+	}
+	if v.CPU.R[1] != 0x20004 {
+		t.Errorf("expected R1=0x20004 (updated), got R1=0x%X", v.CPU.R[1])
+	}
+}
+
+func TestSTRH_RegisterOffset(t *testing.T) {
+	// STRH R0, [R1, R2] - store halfword with register offset
+	v := vm.NewVM()
+	v.CPU.R[0] = 0x9999AAAA
+	v.CPU.R[1] = 0x20000
+	v.CPU.R[2] = 8
+	v.CPU.PC = 0x8000
+
+	// STRH R0, [R1, R2]
+	opcode := uint32(0xE18100B2)
+	setupCodeWrite(v)
+	v.Memory.WriteWord(0x8000, opcode)
+	v.Step()
+
+	value, _ := v.Memory.ReadHalfword(0x20008)
+	if value != 0xAAAA {
+		t.Errorf("expected memory[0x20008]=0xAAAA, got 0x%X", value)
+	}
+}
+
+func TestSTRH_NegativeOffset(t *testing.T) {
+	// STRH R0, [R1, #-4] - store halfword with negative offset
+	v := vm.NewVM()
+	v.CPU.R[0] = 0xBBBBCCCC
+	v.CPU.R[1] = 0x20008
+	v.CPU.PC = 0x8000
+
+	// STRH R0, [R1, #-4] - subtract offset (U=0)
+	opcode := uint32(0xE14100B4)
+	setupCodeWrite(v)
+	v.Memory.WriteWord(0x8000, opcode)
+	v.Step()
+
+	value, _ := v.Memory.ReadHalfword(0x20004)
+	if value != 0xCCCC {
+		t.Errorf("expected memory[0x20004]=0xCCCC, got 0x%X", value)
+	}
+}
+
+func TestSTRH_TruncateUpper16Bits(t *testing.T) {
+	// Verify STRH only stores lower 16 bits
+	v := vm.NewVM()
+	v.CPU.R[0] = 0xFFFF0000
+	v.CPU.R[1] = 0x20000
+	v.CPU.PC = 0x8000
+
+	// STRH R0, [R1]
+	opcode := uint32(0xE1C100B0)
+	setupCodeWrite(v)
+	v.Memory.WriteWord(0x8000, opcode)
+	v.Step()
+
+	value, _ := v.Memory.ReadHalfword(0x20000)
+	if value != 0x0000 {
+		t.Errorf("expected memory[0x20000]=0x0000 (lower 16 bits), got 0x%X", value)
+	}
+}
