@@ -19,10 +19,12 @@ func ExecuteLoadStore(v *VM, inst *Instruction) error {
 	baseAddr := vm.CPU.GetRegister(rn)
 
 	// Check for halfword transfer (ARM2a extension) first
-	// Identified by bit 7 = 1, bit 4 = 1
+	// LDRH/STRH: bits[27:25]=000, bit7=1, bit4=1
+	// LDR/STR:   bits[27:26]=01
+	bits27_25 := (inst.Opcode >> 25) & 0x7
 	bit7 := (inst.Opcode >> 7) & 1
 	bit4 := (inst.Opcode >> 4) & 1
-	isHalfword := bit7 == 1 && bit4 == 1
+	isHalfword := bits27_25 == 0 && bit7 == 1 && bit4 == 1
 
 	// Calculate offset
 	var offset uint32

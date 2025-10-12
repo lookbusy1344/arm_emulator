@@ -25,75 +25,75 @@ func makeCPSR(flags uint32) vm.CPSR {
 // MOV instruction tests with all condition codes
 func TestMOV_AllConditions(t *testing.T) {
 	tests := []struct {
-		name      string
-		cond      uint32 // Condition code (bits 31:28)
-		setupCPSR uint32 // CPSR value to set before execution
-		shouldExec bool  // Should instruction execute?
+		name       string
+		cond       uint32 // Condition code (bits 31:28)
+		setupCPSR  uint32 // CPSR value to set before execution
+		shouldExec bool   // Should instruction execute?
 	}{
 		// 0000 = EQ - Equal (Z set)
-		{"MOV_EQ_Taken", 0x0, 0x40000000, true},        // Z=1
-		{"MOV_EQ_NotTaken", 0x0, 0x00000000, false},    // Z=0
+		{"MOV_EQ_Taken", 0x0, 0x40000000, true},     // Z=1
+		{"MOV_EQ_NotTaken", 0x0, 0x00000000, false}, // Z=0
 
 		// 0001 = NE - Not equal (Z clear)
-		{"MOV_NE_Taken", 0x1, 0x00000000, true},        // Z=0
-		{"MOV_NE_NotTaken", 0x1, 0x40000000, false},    // Z=1
+		{"MOV_NE_Taken", 0x1, 0x00000000, true},     // Z=0
+		{"MOV_NE_NotTaken", 0x1, 0x40000000, false}, // Z=1
 
 		// 0010 = CS/HS - Carry set / unsigned higher or same (C set)
-		{"MOV_CS_Taken", 0x2, 0x20000000, true},        // C=1
-		{"MOV_CS_NotTaken", 0x2, 0x00000000, false},    // C=0
+		{"MOV_CS_Taken", 0x2, 0x20000000, true},     // C=1
+		{"MOV_CS_NotTaken", 0x2, 0x00000000, false}, // C=0
 
 		// 0011 = CC/LO - Carry clear / unsigned lower (C clear)
-		{"MOV_CC_Taken", 0x3, 0x00000000, true},        // C=0
-		{"MOV_CC_NotTaken", 0x3, 0x20000000, false},    // C=1
+		{"MOV_CC_Taken", 0x3, 0x00000000, true},     // C=0
+		{"MOV_CC_NotTaken", 0x3, 0x20000000, false}, // C=1
 
 		// 0100 = MI - Minus / negative (N set)
-		{"MOV_MI_Taken", 0x4, 0x80000000, true},        // N=1
-		{"MOV_MI_NotTaken", 0x4, 0x00000000, false},    // N=0
+		{"MOV_MI_Taken", 0x4, 0x80000000, true},     // N=1
+		{"MOV_MI_NotTaken", 0x4, 0x00000000, false}, // N=0
 
 		// 0101 = PL - Plus / positive or zero (N clear)
-		{"MOV_PL_Taken", 0x5, 0x00000000, true},        // N=0
-		{"MOV_PL_NotTaken", 0x5, 0x80000000, false},    // N=1
+		{"MOV_PL_Taken", 0x5, 0x00000000, true},     // N=0
+		{"MOV_PL_NotTaken", 0x5, 0x80000000, false}, // N=1
 
 		// 0110 = VS - Overflow set (V set)
-		{"MOV_VS_Taken", 0x6, 0x10000000, true},        // V=1
-		{"MOV_VS_NotTaken", 0x6, 0x00000000, false},    // V=0
+		{"MOV_VS_Taken", 0x6, 0x10000000, true},     // V=1
+		{"MOV_VS_NotTaken", 0x6, 0x00000000, false}, // V=0
 
 		// 0111 = VC - Overflow clear (V clear)
-		{"MOV_VC_Taken", 0x7, 0x00000000, true},        // V=0
-		{"MOV_VC_NotTaken", 0x7, 0x10000000, false},    // V=1
+		{"MOV_VC_Taken", 0x7, 0x00000000, true},     // V=0
+		{"MOV_VC_NotTaken", 0x7, 0x10000000, false}, // V=1
 
 		// 1000 = HI - Unsigned higher (C set and Z clear)
-		{"MOV_HI_Taken", 0x8, 0x20000000, true},        // C=1, Z=0
+		{"MOV_HI_Taken", 0x8, 0x20000000, true},             // C=1, Z=0
 		{"MOV_HI_NotTaken_NoCarry", 0x8, 0x00000000, false}, // C=0, Z=0
 		{"MOV_HI_NotTaken_Zero", 0x8, 0x60000000, false},    // C=1, Z=1
 
 		// 1001 = LS - Unsigned lower or same (C clear or Z set)
-		{"MOV_LS_Taken_NoCarry", 0x9, 0x00000000, true},     // C=0, Z=0
-		{"MOV_LS_Taken_Zero", 0x9, 0x60000000, true},        // C=1, Z=1
-		{"MOV_LS_NotTaken", 0x9, 0x20000000, false},         // C=1, Z=0
+		{"MOV_LS_Taken_NoCarry", 0x9, 0x00000000, true}, // C=0, Z=0
+		{"MOV_LS_Taken_Zero", 0x9, 0x60000000, true},    // C=1, Z=1
+		{"MOV_LS_NotTaken", 0x9, 0x20000000, false},     // C=1, Z=0
 
 		// 1010 = GE - Signed greater than or equal (N == V)
-		{"MOV_GE_Taken_BothSet", 0xA, 0x90000000, true},     // N=1, V=1
-		{"MOV_GE_Taken_BothClear", 0xA, 0x00000000, true},   // N=0, V=0
-		{"MOV_GE_NotTaken_NDiff", 0xA, 0x80000000, false},   // N=1, V=0
-		{"MOV_GE_NotTaken_VDiff", 0xA, 0x10000000, false},   // N=0, V=1
+		{"MOV_GE_Taken_BothSet", 0xA, 0x90000000, true},   // N=1, V=1
+		{"MOV_GE_Taken_BothClear", 0xA, 0x00000000, true}, // N=0, V=0
+		{"MOV_GE_NotTaken_NDiff", 0xA, 0x80000000, false}, // N=1, V=0
+		{"MOV_GE_NotTaken_VDiff", 0xA, 0x10000000, false}, // N=0, V=1
 
 		// 1011 = LT - Signed less than (N != V)
-		{"MOV_LT_Taken_NSet", 0xB, 0x80000000, true},        // N=1, V=0
-		{"MOV_LT_Taken_VSet", 0xB, 0x10000000, true},        // N=0, V=1
-		{"MOV_LT_NotTaken_BothSet", 0xB, 0x90000000, false}, // N=1, V=1
+		{"MOV_LT_Taken_NSet", 0xB, 0x80000000, true},          // N=1, V=0
+		{"MOV_LT_Taken_VSet", 0xB, 0x10000000, true},          // N=0, V=1
+		{"MOV_LT_NotTaken_BothSet", 0xB, 0x90000000, false},   // N=1, V=1
 		{"MOV_LT_NotTaken_BothClear", 0xB, 0x00000000, false}, // N=0, V=0
 
 		// 1100 = GT - Signed greater than (Z clear and N == V)
-		{"MOV_GT_Taken_Positive", 0xC, 0x00000000, true},    // Z=0, N=0, V=0
-		{"MOV_GT_Taken_Negative", 0xC, 0x90000000, true},    // Z=0, N=1, V=1
-		{"MOV_GT_NotTaken_Zero", 0xC, 0x40000000, false},    // Z=1, N=0, V=0
-		{"MOV_GT_NotTaken_LT", 0xC, 0x80000000, false},      // Z=0, N=1, V=0
+		{"MOV_GT_Taken_Positive", 0xC, 0x00000000, true}, // Z=0, N=0, V=0
+		{"MOV_GT_Taken_Negative", 0xC, 0x90000000, true}, // Z=0, N=1, V=1
+		{"MOV_GT_NotTaken_Zero", 0xC, 0x40000000, false}, // Z=1, N=0, V=0
+		{"MOV_GT_NotTaken_LT", 0xC, 0x80000000, false},   // Z=0, N=1, V=0
 
 		// 1101 = LE - Signed less than or equal (Z set or N != V)
-		{"MOV_LE_Taken_Zero", 0xD, 0x40000000, true},        // Z=1, N=0, V=0
-		{"MOV_LE_Taken_LT", 0xD, 0x80000000, true},          // Z=0, N=1, V=0
-		{"MOV_LE_NotTaken", 0xD, 0x00000000, false},         // Z=0, N=0, V=0
+		{"MOV_LE_Taken_Zero", 0xD, 0x40000000, true}, // Z=1, N=0, V=0
+		{"MOV_LE_Taken_LT", 0xD, 0x80000000, true},   // Z=0, N=1, V=0
+		{"MOV_LE_NotTaken", 0xD, 0x00000000, false},  // Z=0, N=0, V=0
 
 		// 1110 = AL - Always execute
 		{"MOV_AL_Always", 0xE, 0x00000000, true},
@@ -139,9 +139,9 @@ func TestMOV_AllConditions(t *testing.T) {
 // ADD instruction tests with all condition codes
 func TestADD_AllConditions(t *testing.T) {
 	tests := []struct {
-		name      string
-		cond      uint32
-		setupCPSR uint32
+		name       string
+		cond       uint32
+		setupCPSR  uint32
 		shouldExec bool
 	}{
 		// EQ - Equal (Z set)
@@ -244,9 +244,9 @@ func TestADD_AllConditions(t *testing.T) {
 // LDR instruction tests with all condition codes
 func TestLDR_AllConditions(t *testing.T) {
 	tests := []struct {
-		name      string
-		cond      uint32
-		setupCPSR uint32
+		name       string
+		cond       uint32
+		setupCPSR  uint32
 		shouldExec bool
 	}{
 		// EQ
@@ -312,7 +312,7 @@ func TestLDR_AllConditions(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			v := vm.NewVM()
-			addr := uint32(0x1000)
+			addr := uint32(0x20000) // Data segment start
 			setupDataWrite(v)
 			v.Memory.WriteWord(addr, 0xDEADBEEF)
 			v.CPU.R[1] = addr
@@ -352,9 +352,9 @@ func TestLDR_AllConditions(t *testing.T) {
 // STR instruction tests with all condition codes
 func TestSTR_AllConditions(t *testing.T) {
 	tests := []struct {
-		name      string
-		cond      uint32
-		setupCPSR uint32
+		name       string
+		cond       uint32
+		setupCPSR  uint32
 		shouldExec bool
 	}{
 		// EQ
@@ -420,7 +420,7 @@ func TestSTR_AllConditions(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			v := vm.NewVM()
-			addr := uint32(0x1000)
+			addr := uint32(0x20000) // Data segment start
 			setupDataWrite(v)
 			v.Memory.WriteWord(addr, 0xFFFFFFFF) // Pre-fill with pattern
 			v.CPU.R[0] = 0x12345678
@@ -464,9 +464,9 @@ func TestSTR_AllConditions(t *testing.T) {
 // B (Branch) instruction tests with all condition codes
 func TestB_AllConditions(t *testing.T) {
 	tests := []struct {
-		name      string
-		cond      uint32
-		setupCPSR uint32
+		name       string
+		cond       uint32
+		setupCPSR  uint32
 		shouldExec bool
 	}{
 		// EQ

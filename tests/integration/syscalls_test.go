@@ -76,7 +76,7 @@ func runAssembly(t *testing.T, code string) (stdout string, stderr string, exitC
 	return outBuf.String(), errBuf.String(), machine.ExitCode, execErr
 }
 
-// Helper function to load program into VM (copied from main.go)
+// Helper function to load program into VM (matches main.go implementation)
 func loadProgramIntoVM(machine *vm.VM, program *parser.Program, entryPoint uint32) error {
 	currentAddr := entryPoint
 
@@ -89,10 +89,18 @@ func loadProgramIntoVM(machine *vm.VM, program *parser.Program, entryPoint uint3
 
 	for _, inst := range program.Instructions {
 		addressMap[inst] = dataAddr
+
+		// Update symbol table with actual load address for instruction labels
+		if inst.Label != "" {
+			if err := program.SymbolTable.UpdateAddress(inst.Label, dataAddr); err != nil {
+				return err
+			}
+		}
+
 		dataAddr += 4 // Each instruction is 4 bytes
 	}
 
-	// Data directives go after instructions (original layout)
+	// Data directives go after instructions
 
 	// Process data directives
 	for _, directive := range program.Directives {
@@ -108,29 +116,24 @@ func loadProgramIntoVM(machine *vm.VM, program *parser.Program, entryPoint uint3
 			// .org directive is handled at parse time, skip it here
 			continue
 
-		case ".align":
-			// Align to power of 2 (e.g., .align 2 means align to 2^2 = 4 bytes)
+		case ".align", ".balign":
+			// Alignment directives don't write data, just advance dataAddr
 			if len(directive.Args) > 0 {
-				var alignPower uint32
-				_, err := parseValue(directive.Args[0], &alignPower)
+				var alignValue uint32
+				_, err := parseValue(directive.Args[0], &alignValue)
 				if err != nil {
 					return err
 				}
-				alignBytes := uint32(1 << alignPower) // 2^alignPower
-				mask := alignBytes - 1
-				dataAddr = (dataAddr + mask) & ^mask
-			}
-
-		case ".balign":
-			// Align to specified boundary
-			if len(directive.Args) > 0 {
-				var align uint32
-				_, err := parseValue(directive.Args[0], &align)
-				if err != nil {
-					return err
-				}
-				if dataAddr%align != 0 {
-					dataAddr += align - (dataAddr % align)
+				if directive.Name == ".align" {
+					// .align is power of 2
+					alignBytes := uint32(1 << alignValue)
+					mask := alignBytes - 1
+					dataAddr = (dataAddr + mask) & ^mask
+				} else {
+					// .balign is direct value
+					if dataAddr%alignValue != 0 {
+						dataAddr += alignValue - (dataAddr % alignValue)
+					}
 				}
 			}
 
@@ -138,7 +141,7 @@ func loadProgramIntoVM(machine *vm.VM, program *parser.Program, entryPoint uint3
 			// Write 32-bit words
 			for _, arg := range directive.Args {
 				var value uint32
-				// Check if it's a symbol first (labels are more common than numbers in .word)
+				// Check if it's a symbol first
 				if symValue, symErr := program.SymbolTable.Get(arg); symErr == nil {
 					value = symValue
 				} else {
@@ -195,9 +198,7 @@ func loadProgramIntoVM(machine *vm.VM, program *parser.Program, entryPoint uint3
 	// Set literal pool start address to after all data
 	// Align to 4-byte boundary
 	literalPoolStart := (dataAddr + 3) & ^uint32(3)
-	enc.LiteralPoolStart = literalPoolStart
-
-	// Encode and write instructions
+	enc.LiteralPoolStart = literalPoolStart // Encode and write instructions
 	for _, inst := range program.Instructions {
 		addr := addressMap[inst]
 
