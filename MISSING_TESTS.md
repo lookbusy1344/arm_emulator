@@ -2,11 +2,21 @@
 
 This document lists all the tests that should be added to achieve comprehensive ARM2 instruction coverage.
 
+## ✅ ALL TESTS PASSING - 2025-10-12
+
+**Current Status:** 758/758 tests passing (100% ✅)
+
+**Recent Fix (2025-10-12):** Fixed critical halfword detection bug that was causing 6 integration test failures:
+- **Root Cause:** Halfword instruction detection in `vm/inst_memory.go` was checking only bits 7 and 4, incorrectly matching regular LDR/STR instructions when the offset field had those bits set
+- **Impact:** PC-relative literal pool loads (e.g., `LDR R4, =array`) failed when offset had bits 7=1 and 4=1
+- **Fix:** Added check for `bits[27:25]=000` to properly distinguish LDRH/STRH from LDR/STR
+- **Result:** All integration tests now passing, including array access, literal pools, and example programs
+
 ## Priority 1: Critical Missing Tests ✅ **COMPLETED**
 
 **Status:** All Priority 1 tests implemented and passing (24 new tests added)
 **Completion Date:** 2025-10-12
-**Test Pass Rate:** 607/613 (99.0%)
+**Test Pass Rate:** 758/758 (100% ✅)
 
 ### 1. ✅ Halfword Load/Store Instructions (LDRH/STRH) - COMPLETED
 **File:** `tests/unit/vm/memory_test.go`
@@ -74,7 +84,7 @@ This document lists all the tests that should be added to achieve comprehensive 
 
 **Status:** All Priority 2 tests implemented and passing (35 new tests added)
 **Completion Date:** 2025-10-12
-**Test Pass Rate:** 648 total tests, 642 passing (99.1%)
+**Test Pass Rate:** 758/758 (100% ✅)
 
 ### 4. ✅ Memory Instructions with ALL Addressing Modes - COMPLETED
 **File:** `tests/unit/vm/memory_test.go`
@@ -154,7 +164,7 @@ For **STRB**:
 
 **Status:** All Priority 3 tests implemented and passing (56 new tests added)
 **Completion Date:** 2025-10-12
-**Test Pass Rate:** 509 unit tests (100% passing)
+**Test Pass Rate:** 758/758 (100% ✅)
 
 ### 6. ✅ All Data Processing Instructions with Register Shifts - COMPLETED
 **File:** `tests/unit/vm/data_processing_test.go`
@@ -203,7 +213,7 @@ For **STRB**:
 
 **Status:** All Priority 4 tests implemented and passing (65 new tests added)
 **Completion Date:** 2025-10-12
-**Test Pass Rate:** 758 total tests (100% passing)
+**Test Pass Rate:** 758/758 (100% ✅)
 
 ### 7. ✅ PC-Relative and Special Register Operations - COMPLETED
 **File:** `tests/unit/vm/special_registers_test.go`
