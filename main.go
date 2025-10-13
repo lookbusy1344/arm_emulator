@@ -114,7 +114,7 @@ func main() {
 	// Parse entry point
 	var entryAddr uint32
 	// If entry point is default and program has .org directive, use that
-	if *entryPoint == "0x8000" && program.Origin != 0 {
+	if *entryPoint == "0x8000" && program.OriginSet {
 		entryAddr = program.Origin
 		if *verboseMode {
 			fmt.Printf("Using .org directive address: 0x%08X\n", entryAddr)
@@ -559,6 +559,14 @@ func processEscapeSequences(s string) string {
 
 // loadProgramIntoVM loads a parsed program into the VM's memory
 func loadProgramIntoVM(machine *vm.VM, program *parser.Program, entryPoint uint32) error {
+	// Ensure memory segment exists for the entry point
+	// Check if entry point falls outside standard segments
+	if entryPoint < vm.CodeSegmentStart {
+		// Create a low memory segment for programs using .org 0x0000 or similar
+		segmentSize := uint32(vm.CodeSegmentStart) // Cover 0x0000 to 0x8000
+		machine.Memory.AddSegment("low-memory", 0, segmentSize, vm.PermRead|vm.PermWrite|vm.PermExecute)
+	}
+
 	currentAddr := entryPoint
 
 	// Create encoder

@@ -8,6 +8,61 @@
 
 ## Recent Updates
 
+### 2025-10-13: Fixed `.org 0x0000` Support - Programs with Low Memory Origin Now Work ✅
+**Action:** Fixed regression preventing programs with `.org 0x0000` from executing
+
+**Problem:**
+Programs using `.org 0x0000` (like `factorial.s`, `fibonacci.s`, `calculator.s`, `bubble_sort.s`) failed immediately with:
+```
+Runtime error at PC=0x000000A4: memory access violation: address 0x000000A4 is not mapped
+```
+
+The regression was introduced in commit 7736c60 (2025-10-13) when fixing standalone label parsing.
+
+**Root Cause - Two Issues:**
+
+1. **Entry Point Detection Logic Flaw:**
+   - In `main.go` line 117: `if *entryPoint == "0x8000" && program.Origin != 0`
+   - This checked `program.Origin != 0` to detect if `.org` directive was used
+   - When `.org 0x0000` is specified, `program.Origin = 0`, so the check failed
+   - The emulator used default entry point 0x8000 instead of 0x0000
+   - Code was loaded at 0x8000, but labels were calculated relative to 0x0000
+   - Result: All jumps/branches went to wrong addresses
+
+2. **Missing Memory Segment:**
+   - Standard memory layout starts at 0x8000 (CodeSegmentStart)
+   - No segment existed for addresses below 0x8000
+   - Even with correct entry point, execution would fail at first memory access
+
+**Solution:**
+
+**Part 1 - Track Origin Explicitly (`parser/parser.go`):**
+- Added `OriginSet bool` field to `Program` struct
+- Set this flag to `true` when `.org` directive is processed
+- Now can distinguish "no .org" from ".org 0x0000"
+
+**Part 2 - Fix Entry Point Detection (`main.go`):**
+- Changed check from `program.Origin != 0` to `program.OriginSet`
+- Now correctly uses 0x0000 when `.org 0x0000` is specified
+
+**Part 3 - Dynamic Low Memory Segment (`main.go`):**
+- Added check in `loadProgramIntoVM()` for entry points < 0x8000
+- Creates "low-memory" segment (0x0000-0x8000) when needed
+- Segment has read, write, and execute permissions
+
+**Testing:**
+- `factorial.s` ✅ - Now calculates 5! = 120 correctly
+- `fibonacci.s` ✅ - Generates Fibonacci sequence correctly  
+- `bubble_sort.s` - Starts (has unrelated hang issue)
+- `calculator.s` - Starts (has unrelated infinite loop)
+- All 1040 unit/integration tests still passing ✅
+
+**Impact:**
+- **Priority:** High (broke multiple example programs)
+- **Effort:** ~2 hours investigation + fix
+- **Complexity:** Moderate - required understanding of program loading and memory layout
+- **Risk:** Low - all tests pass, backward compatible (programs without `.org 0x0000` unaffected)
+
 ### 2025-10-13: Formatter and XRef Tools - Standalone Labels Fixed ✅
 **Action:** Fixed formatter and xref tools to properly handle standalone labels in source order
 

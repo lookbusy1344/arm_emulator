@@ -37,6 +37,7 @@ type Program struct {
 	SymbolTable  *SymbolTable
 	MacroTable   *MacroTable
 	Origin       uint32 // Current assembly address (.org)
+	OriginSet    bool   // Whether .org directive was explicitly used
 }
 
 // Parser parses ARM assembly language
@@ -254,6 +255,7 @@ func (p *Parser) handleDirective(d *Directive, program *Program) {
 				// Set program origin if this is the first .org directive
 				if !p.originSet {
 					program.Origin = addr
+					program.OriginSet = true
 					p.originSet = true
 				}
 			} else {
