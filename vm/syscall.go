@@ -13,6 +13,12 @@ import (
 // Global stdin reader for consistent input handling across syscalls
 var stdinReader = bufio.NewReader(os.Stdin)
 
+// ResetStdinReader resets the global stdin reader to read from os.Stdin
+// This is useful for testing when os.Stdin has been redirected
+func ResetStdinReader() {
+	stdinReader = bufio.NewReader(os.Stdin)
+}
+
 // SWI (Software Interrupt) syscall numbers
 const (
 	// Console I/O

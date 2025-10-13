@@ -8,6 +8,79 @@
 
 ## Recent Updates
 
+### 2025-10-13: Enhanced Integration Test Framework with Stdin Support and Table-Driven Tests ✅
+**Action:** Built comprehensive integration test framework for example programs with stdin input support
+
+**Problem:**
+- No systematic way to test example programs end-to-end
+- Tests required writing full functions with hardcoded expectations
+- No support for programs requiring interactive input (like `times_table.s`)
+- Difficult to add new tests or maintain expected outputs
+
+**Solution:**
+
+**Part 1 - Table-Driven Test Framework (`tests/integration/example_programs_test.go`):**
+- Created `TestExamplePrograms()` with simple struct-based test table
+- Each test entry specifies:
+  - `name`: Test name (appears in test output)
+  - `programFile`: Assembly file in `examples/` directory
+  - `expectedOutput`: Expected output file in `expected_outputs/` directory
+  - `stdin`: (Optional) Input to pipe into the program
+- All test logic unified in one function using Go sub-tests
+
+**Part 2 - Stdin Input Support (`tests/integration/syscalls_test.go` & `vm/syscall.go`):**
+- Added `runAssemblyWithInput()` function to accept stdin string
+- Created `vm.ResetStdinReader()` to reset global stdin reader after redirection
+- Properly pipes stdin to running program and restores after test
+- Modified `runAssembly()` to delegate to `runAssemblyWithInput()` with empty stdin
+
+**Part 3 - Externalized Expected Outputs:**
+- Created `tests/integration/expected_outputs/` directory
+- Expected outputs stored as `.txt` files (one per program)
+- Easy to view, update, and verify expected results
+- Byte-for-byte comparison with clear error messages
+
+**Part 4 - Fixed Critical Bug in Test Harness:**
+- Test harness wasn't processing escape sequences in `.asciz` strings
+- Strings like `"Hello\n"` were written as 6 characters (`\` and `n`) instead of 5 (newline byte)
+- Added `processEscapeSequences()` function to `syscalls_test.go`
+- Now handles `\n`, `\t`, `\r`, `\\`, `\0`, etc. correctly
+- Also added missing `.space`/`.skip` directive support
+- Fixed entry point detection to use `program.Origin` when `program.OriginSet` is true
+- Added low-memory segment creation for programs with entry points < 0x8000
+
+**Testing:**
+Current test suite includes:
+- **Quicksort** (`quicksort.s`) - Validates sorting algorithm with array verification ✅
+- **Division** (`division.s`) - Validates 6 division test cases ✅
+- **Times Table** (`times_table.s`) - Interactive program with stdin input "7" ✅
+
+Adding a new test is simple:
+```go
+{
+    name:           "Fibonacci",
+    programFile:    "fibonacci.s",
+    expectedOutput: "fibonacci.txt",
+    stdin:          "10\n",  // Optional stdin input
+},
+```
+
+**Documentation:**
+- Created `tests/integration/expected_outputs/README.md`
+- Documents convention and provides examples
+- Explains how to add tests with and without stdin
+
+**Impact:**
+- **Priority:** High - Enables systematic testing of all example programs
+- **Effort:** ~2 hours (framework + stdin support + bug fixes)
+- **Complexity:** Medium - Required VM stdin handling and test harness updates
+- **Risk:** Low - All 67 integration tests passing ✅
+- **Benefits:**
+  - Can test interactive programs requiring user input
+  - Adding new tests reduced from ~30 lines to 4 lines
+  - Expected outputs easy to view and update
+  - Better error messages with byte-level comparison
+
 ### 2025-10-13: Fixed `.text` and `.global` Directive Support ✅
 **Action:** Added proper handling for standard assembler directives `.text`, `.data`, and `.global`
 

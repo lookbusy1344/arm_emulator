@@ -14,11 +14,32 @@ import (
 
 // Helper function to run assembly code and capture stdout
 func runAssembly(t *testing.T, code string) (stdout string, stderr string, exitCode int32, err error) {
+	return runAssemblyWithInput(t, code, "")
+}
+
+// runAssemblyWithInput runs assembly code with optional stdin input
+func runAssemblyWithInput(t *testing.T, code string, stdin string) (stdout string, stderr string, exitCode int32, err error) {
 	t.Helper()
 
-	// Capture stdout and stderr
+	// Capture stdin, stdout and stderr
+	oldStdin := os.Stdin
 	oldStdout := os.Stdout
 	oldStderr := os.Stderr
+
+	// Set up stdin if provided
+	if stdin != "" {
+		rIn, wIn, _ := os.Pipe()
+		os.Stdin = rIn
+		go func() {
+			wIn.Write([]byte(stdin))
+			wIn.Close()
+		}()
+		defer func() {
+			os.Stdin = oldStdin
+			vm.ResetStdinReader() // Reset after restoring stdin
+		}()
+	}
+
 	rOut, wOut, _ := os.Pipe()
 	rErr, wErr, _ := os.Pipe()
 	os.Stdout = wOut
@@ -36,7 +57,8 @@ func runAssembly(t *testing.T, code string) (stdout string, stderr string, exitC
 		return "", "", -1, err
 	}
 
-	// Create VM
+	// Create VM after setting stdin so the reader uses the redirected stdin
+	vm.ResetStdinReader()
 	machine := vm.NewVM()
 	machine.CycleLimit = 1000000
 

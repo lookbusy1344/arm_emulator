@@ -13,6 +13,7 @@ func TestExamplePrograms(t *testing.T) {
 		name           string // Test name
 		programFile    string // Assembly file in examples/ directory
 		expectedOutput string // Expected output file in expected_outputs/ directory
+		stdin          string // Optional stdin input for the program
 	}{
 		{
 			name:           "Quicksort",
@@ -23,6 +24,12 @@ func TestExamplePrograms(t *testing.T) {
 			name:           "Division",
 			programFile:    "division.s",
 			expectedOutput: "division.txt",
+		},
+		{
+			name:           "TimesTable",
+			programFile:    "times_table.s",
+			expectedOutput: "times_table.txt",
+			stdin:          "7\n",
 		},
 	}
 
@@ -39,7 +46,7 @@ func TestExamplePrograms(t *testing.T) {
 				t.Fatalf("failed to read %s: %v", tt.programFile, err)
 			}
 
-			stdout, _, exitCode, err := runAssembly(t, string(code))
+			stdout, _, exitCode, err := runAssemblyWithInput(t, string(code), tt.stdin)
 			if err != nil {
 				t.Fatalf("execution failed: %v", err)
 			}
