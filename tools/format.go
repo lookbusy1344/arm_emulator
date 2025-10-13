@@ -2,6 +2,7 @@ package tools
 
 import (
 	"fmt"
+	"sort"
 	"strings"
 
 	"github.com/lookbusy1344/arm-emulator/parser"
@@ -140,6 +141,11 @@ func (f *Formatter) formatProgram() {
 			}
 		}
 	}
+
+	// Sort standalone labels by line number to ensure deterministic order
+	sort.Slice(standaloneLabels, func(i, j int) bool {
+		return standaloneLabels[i].line < standaloneLabels[j].line
+	})
 
 	// Interleave instructions, directives, and standalone labels in source order
 	instructions := make([]*parser.Instruction, len(f.program.Instructions))
