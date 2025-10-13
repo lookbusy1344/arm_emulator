@@ -196,15 +196,10 @@ func (e *Encoder) encodeLDRPseudo(inst *parser.Instruction, cond, rd uint32) (ui
 		return 0, fmt.Errorf("empty pseudo-instruction value in operand: '%s'", inst.Operands[1])
 	}
 
-	// Try to resolve as symbol
-	if sym, exists := e.symbolTable.Lookup(valueStr); exists && sym.Defined {
-		value = sym.Value
-	} else {
-		// Parse as immediate
-		value, err = e.parseImmediate(valueStr)
-		if err != nil {
-			return 0, fmt.Errorf("invalid pseudo-instruction value '%s': %w", valueStr, err)
-		}
+	// Evaluate the expression (handles both simple symbols and expressions like "label+12")
+	value, err = e.evaluateExpression(valueStr)
+	if err != nil {
+		return 0, fmt.Errorf("invalid pseudo-instruction value '%s': %w", valueStr, err)
 	}
 
 	// Try to encode as MOV Rd, #value if it fits

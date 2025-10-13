@@ -312,3 +312,51 @@ func (e *Encoder) parseShift(shift string) (shiftType, shiftAmount uint32, shift
 		return shiftType, 0, int32(reg), nil // #nosec G115 -- register is 0-15
 	}
 }
+
+// evaluateExpression evaluates a constant expression like "label+12" or "symbol-4"
+// Returns the evaluated value or an error if the expression is invalid
+func (e *Encoder) evaluateExpression(expr string) (uint32, error) {
+	expr = strings.TrimSpace(expr)
+
+	// Look for + or - operators (scanning from left to right, skip first char for potential minus)
+	for i := 1; i < len(expr); i++ {
+		if expr[i] == '+' || expr[i] == '-' {
+			left := strings.TrimSpace(expr[:i])
+			right := strings.TrimSpace(expr[i+1:])
+			op := expr[i]
+
+			// Evaluate left side
+			leftVal, err := e.evaluateTerm(left)
+			if err != nil {
+				return 0, err
+			}
+
+			// Evaluate right side
+			rightVal, err := e.evaluateTerm(right)
+			if err != nil {
+				return 0, err
+			}
+
+			// Perform operation
+			if op == '+' {
+				return leftVal + rightVal, nil
+			} else {
+				return leftVal - rightVal, nil
+			}
+		}
+	}
+
+	// No operator found, evaluate as single term
+	return e.evaluateTerm(expr)
+} // evaluateTerm evaluates a single term (symbol or number)
+func (e *Encoder) evaluateTerm(term string) (uint32, error) {
+	term = strings.TrimSpace(term)
+
+	// Try to resolve as symbol first
+	if sym, exists := e.symbolTable.Lookup(term); exists && sym.Defined {
+		return sym.Value, nil
+	}
+
+	// Otherwise parse as immediate number
+	return e.parseImmediate(term)
+}

@@ -460,12 +460,30 @@ func (p *Parser) parseOperand() string {
 
 	case TokenEqual:
 		// Handle =label or =value for pseudo-instructions like LDR Rd, =label
+		// Now also supports constant expressions: =label + 12, =label - 4
 		parts = append(parts, "=")
 		p.nextToken()
-		// Get the identifier or number after =
+
+		// Get the first identifier or number after =
 		if p.currentToken.Type == TokenIdentifier || p.currentToken.Type == TokenNumber {
 			parts = append(parts, p.currentToken.Literal)
 			p.nextToken()
+
+			// Check for arithmetic operators to form expressions
+			for p.currentToken.Type == TokenPlus || p.currentToken.Type == TokenMinus {
+				// Append the operator
+				parts = append(parts, p.currentToken.Literal)
+				p.nextToken()
+
+				// Append the operand (number or identifier)
+				if p.currentToken.Type == TokenNumber || p.currentToken.Type == TokenIdentifier {
+					parts = append(parts, p.currentToken.Literal)
+					p.nextToken()
+				} else {
+					// Invalid expression
+					break
+				}
+			}
 		}
 		// Return without joining with spaces for =value
 		return strings.Join(parts, "")
