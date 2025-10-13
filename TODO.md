@@ -167,6 +167,48 @@ Key actionable issues identified:
 ### Example Program Fixes
 **Priority:** Medium | **Effort:** 8-12 hours
 
+**Important Note:** The low success rate (43%) was not detected earlier because **only 4 of 35 example programs have automated tests**:
+- `hello.s` ✅ (TestExamplePrograms_Hello)
+- `arithmetic.s` ✅ (TestExamplePrograms_Arithmetic)
+- `loops.s` ✅ (TestExamplePrograms_Loops)
+- `conditionals.s` ✅ (TestExamplePrograms_Conditionals)
+
+All 4 tested programs are in the "working" category. The remaining 31 programs (89%) have no automated verification, allowing regressions to go undetected. The previous claim of "22/30 working" appears unverified and likely inaccurate.
+
+**Recommendation:** Before fixing individual programs, add comprehensive integration tests for all examples to:
+1. Prevent future regressions
+2. Provide a baseline for measuring improvements
+3. Enable CI/CD to catch breaking changes
+
+#### Comprehensive Example Program Testing (PREREQUISITE)
+**Priority:** HIGH | **Effort:** 6-8 hours
+
+**Rationale:** Currently only 4/35 (11%) of example programs have automated tests. This allowed the low success rate to go undetected and makes it impossible to track improvements or prevent regressions.
+
+**Tasks:**
+- [ ] **Create integration test suite for all 35 example programs**
+  - Add `tests/integration/examples_test.go` with test for each program
+  - For working programs: verify exit code 0 and expected output
+  - For failing programs: mark as `t.Skip()` with failure reason (e.g., "Known issue: LSR instruction")
+  - For parse errors: verify specific error message
+  
+- [ ] **Document expected behavior**
+  - Create `tests/integration/testdata/expected_outputs.json` with:
+    - Expected exit code
+    - Expected stdout (substring matching for non-deterministic output)
+    - Known issues/skip reasons
+  
+- [ ] **CI/CD Integration**
+  - Add example tests to CI pipeline
+  - Configure to fail on newly broken examples
+  - Generate test coverage report for examples
+
+**Benefits:**
+- Track exact regression when changes break examples
+- Measure progress as failures are fixed (e.g., "17/35 working" → "18/35 working")
+- Prevent future breaking changes
+- Document expected behavior formally
+
 #### Critical Instructions Missing
 - [ ] **Implement LSR/LSL/ASR/ROR as standalone instructions**
   - Currently only work as shift modifiers (e.g., `MOV r0, r1, LSR #2`)
