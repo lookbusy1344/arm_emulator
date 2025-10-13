@@ -18,27 +18,18 @@ To add a test for a new example program:
    ./arm-emulator examples/yourprogram.s > tests/integration/expected_outputs/yourprogram.txt
    ```
 
-2. Add a test function in `example_programs_test.go`:
+2. Add an entry to the test table in `example_programs_test.go`:
    ```go
-   func TestExampleProgram_YourProgram(t *testing.T) {
-       stdout, _, exitCode, err := runExampleProgram(t, "yourprogram.s")
-       if err != nil {
-           t.Fatalf("execution failed: %v", err)
-       }
-       
-       if exitCode != 0 {
-           t.Errorf("expected exit code 0, got %d", exitCode)
-       }
-       
-       expected := loadExpectedOutput(t, "yourprogram")
-       if stdout != expected {
-           t.Errorf("output mismatch\nExpected (%d bytes):\n%q\nGot (%d bytes):\n%q", 
-               len(expected), expected, len(stdout), stdout)
-       }
-   }
+   {
+       name:           "YourProgram",
+       programFile:    "yourprogram.s",
+       expectedOutput: "yourprogram.txt",
+   },
    ```
 
 3. Run the test to verify:
    ```bash
-   go test ./tests/integration -run TestExampleProgram_YourProgram -v
+   go test ./tests/integration -run TestExamplePrograms/YourProgram -v
    ```
+
+That's it! The test framework automatically handles loading, running, and comparing outputs.
