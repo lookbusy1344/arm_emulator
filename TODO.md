@@ -124,16 +124,7 @@ All of these fail with "memory access violation: address 0xXXXX is not mapped" -
 #### Programs with Runtime Errors - Memory Access Violations (15/35)
 All of these fail with "memory access violation: address 0xXXXX is not mapped" - the PC attempts to execute from an unmapped memory region, suggesting control flow issues (bad function returns, stack corruption, or missing code sections).
 
-20. ❌ **bubble_sort.s** - Starts but hangs (unrelated to .org fix)
-21. ❌ **calculator.s** - Starts but infinite loop (unrelated to .org fix)
-22. ❌ **division.s** - PC=0x00000188 not mapped
-23. ❌ **matrix_multiply.s** - PC=0x000001D0 not mapped
-24. ❌ **quicksort.s** - PC=0x000001E8 not mapped
 25. ❌ **standalone_labels.s** - PC=0x00000004 not mapped
-26. ❌ **state_machine.s** - PC=0x0000025C not mapped
-27. ❌ **string_reverse.s** - PC=0x000000B4 not mapped
-28. ❌ **test_const_expr.s** - PC=0x00000058 not mapped (after register dump)
-29. ❌ **times_table.s** - PC=0x00000060 not mapped
 
 #### Programs with Parse/Encoding Errors (5/35)
 30. ❌ **hash_table.s** - Parse error: "invalid constant value: -" at line 10
@@ -154,15 +145,6 @@ All of these fail with "memory access violation: address 0xXXXX is not mapped" -
 34. ❌ **xor_cipher.s** - Encoding error: "unknown instruction: LSR" at 0x00008220
    - LSR instruction not implemented in encoder (logical shift right)
    - This is a standard ARM2 instruction that should be supported
-
-#### Programs with Infinite Loop (1/35)
-35. ⏱️ **gcd.s** - Timeout after 2 seconds (exit code 124)
-   - Program enters infinite loop, exceeds execution time limit
-
-#### Programs Awaiting Input (2/35)
-Note: These programs may work correctly with proper stdin input but cannot be tested non-interactively.
-- ⌛ Programs that require user input but hang when run without stdin
-- May work correctly if piped with appropriate input data
 
 ---
 
