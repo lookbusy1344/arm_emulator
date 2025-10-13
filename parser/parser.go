@@ -165,8 +165,11 @@ func (p *Parser) firstPass(program *Program) error {
 				p.errors.AddError(NewError(p.currentToken.Pos, ErrorDuplicateLabel, err.Error()))
 			}
 
-			// Skip whitespace/newlines after label
-			p.skipNewlines()
+			// NOTE: Don't skip newlines here. The lexer has already skipped horizontal whitespace.
+			// If there's a directive/instruction on the same line, it will be in currentToken.
+			// If the label is standalone, currentToken will be a newline, which will be handled
+			// by the skipNewlines() at the end of the loop. This prevents the bug where standalone
+			// labels cause the next line's label to be consumed as an instruction mnemonic.
 		}
 
 		// After processing label, check what comes next

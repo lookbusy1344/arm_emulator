@@ -331,6 +331,9 @@ _start:
 		t.Fatalf("Format error: %v", err)
 	}
 
+	// Debug output
+	t.Logf("Formatted result:\n%s", result)
+
 	// Should preserve label
 	if !strings.Contains(result, "_start:") {
 		t.Error("Expected _start label")
