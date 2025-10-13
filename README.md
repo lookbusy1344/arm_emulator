@@ -56,6 +56,10 @@ It's important to have clear daily (or at least progressive) goals, so we can ke
 
 **Day 6 - 13 Oct** - Switched to Sonnet 4.5 in Copilot now, with VSCode, because Claude Code weekly limits have been reached. I'm not sure the overall experience is quite as good as CC. While making progress, several more example programs are failing without detection from Copilot. The automated tests are clearly not thorough enough.
 
+I've been working through the failing example programs, and getting them to run without Copilot editing out the parts that don't work. This is a slow process, but I'm making progress.
+
+Go code is 34,493 lines.
+
 ## Documentation
 
 ### Project Documentation
