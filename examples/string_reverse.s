@@ -2,7 +2,7 @@
 ; Reads a string and prints it in reverse order
 ; Example: "Hello" becomes "olleH"
 
-.org 0x0000
+.org 0x8000
 
 main:
     ; Print prompt

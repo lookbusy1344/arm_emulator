@@ -3,7 +3,7 @@
 ; Tests: Hash functions, modulo operations, collision handling, dynamic lookups
 ; Non-interactive: Uses predefined key-value pairs for automated testing
 
-.org 0x0000
+.org 0x8000
 
 ; Hash table constants
 .equ TABLE_SIZE, 16         ; Power of 2 for efficient modulo

@@ -2,7 +2,7 @@
 ; Performs basic arithmetic operations: +, -, *, /
 ; Example: "15 + 7" produces "22"
 
-.org 0x0000
+.org 0x8000
 
 main:
     ; Print welcome message

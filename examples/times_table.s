@@ -2,7 +2,7 @@
 ; Reads a number from input and displays its multiplication table (1-12)
 ; Example: Input 5 produces 5x1=5, 5x2=10, ..., 5x12=60
 
-.org 0x0000
+.org 0x8000
 
 main:
     ; Print prompt message

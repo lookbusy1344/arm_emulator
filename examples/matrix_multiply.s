@@ -3,7 +3,7 @@
 ; Tests: 2D array indexing, nested loops, multiply-accumulate operations
 ; Non-interactive: Uses predefined matrices for automated testing
 
-.org 0x0000
+.org 0x8000
 
 main:
     ; Print header

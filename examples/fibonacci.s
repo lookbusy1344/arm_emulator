@@ -2,7 +2,7 @@
 ; Generates the first N fibonacci numbers
 ; Example: Input 10 produces 0, 1, 1, 2, 3, 5, 8, 13, 21, 34
 
-.org 0x0000
+.org 0x8000
 
 main:
     ; Print prompt

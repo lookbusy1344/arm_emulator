@@ -3,7 +3,7 @@
 ; Tests: Jump tables, state transitions, character classification, pattern matching
 ; Non-interactive: Uses predefined test strings for automated testing
 
-.org 0x0000
+.org 0x8000
 
 ; State definitions
 .equ STATE_START, 0         ; Initial state

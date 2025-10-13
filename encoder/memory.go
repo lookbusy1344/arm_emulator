@@ -217,29 +217,41 @@ func (e *Encoder) encodeLDRPseudo(inst *parser.Instruction, cond, rd uint32) (ui
 	}
 
 	// Need to use literal pool - generate PC-relative LDR
-	// Place literals after all code and data
-	// If LiteralPoolStart is set (by loadProgramIntoVM), use it
-	// Otherwise fall back to the old behavior (for compatibility with tests)
+	// Check if this value already exists in the literal pool (deduplication)
 	var literalAddr uint32
-	if e.LiteralPoolStart > 0 {
-		// Use the start address set by the loader, plus offset for each literal
-		poolSize, err := vm.SafeIntToUint32(len(e.LiteralPool) * 4)
-		if err != nil {
-			return 0, fmt.Errorf("literal pool too large: %v", err)
+	var found bool
+	for addr, val := range e.LiteralPool {
+		if val == value {
+			literalAddr = addr
+			found = true
+			break
 		}
-		literalAddr = e.LiteralPoolStart + poolSize
-	} else {
-		// Fallback: place literals at a fixed offset
-		poolSize, err := vm.SafeIntToUint32(len(e.LiteralPool) * 4)
-		if err != nil {
-			return 0, fmt.Errorf("literal pool too large: %v", err)
-		}
-		literalOffset := 0x1000 + poolSize
-		literalAddr = (e.currentAddr & 0xFFFFF000) + literalOffset
 	}
 
-	// Store value in literal pool
-	e.LiteralPool[literalAddr] = value
+	if !found {
+		// Place literals after all code and data
+		// If LiteralPoolStart is set (by loadProgramIntoVM), use it
+		// Otherwise fall back to the old behavior (for compatibility with tests)
+		if e.LiteralPoolStart > 0 {
+			// Use the start address set by the loader, plus offset for each literal
+			poolSize, err := vm.SafeIntToUint32(len(e.LiteralPool) * 4)
+			if err != nil {
+				return 0, fmt.Errorf("literal pool too large: %v", err)
+			}
+			literalAddr = e.LiteralPoolStart + poolSize
+		} else {
+			// Fallback: place literals at a fixed offset
+			poolSize, err := vm.SafeIntToUint32(len(e.LiteralPool) * 4)
+			if err != nil {
+				return 0, fmt.Errorf("literal pool too large: %v", err)
+			}
+			literalOffset := 0x1000 + poolSize
+			literalAddr = (e.currentAddr & 0xFFFFF000) + literalOffset
+		}
+
+		// Store value in literal pool
+		e.LiteralPool[literalAddr] = value
+	}
 
 	// Calculate PC-relative offset
 	// PC = current instruction + 8

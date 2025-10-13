@@ -3,7 +3,7 @@
 ; Tests: Bitwise operations, string manipulation, encryption/decryption symmetry
 ; Non-interactive: Uses predefined plaintext and key for automated testing
 
-.org 0x0000
+.org 0x8000
 
 main:
     ; Print header

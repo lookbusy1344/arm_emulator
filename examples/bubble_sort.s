@@ -2,7 +2,7 @@
 ; Sorts an array of integers in ascending order
 ; Demonstrates nested loops, array access, and comparison operations
 
-.org 0x0000
+.org 0x8000
 
 main:
     ; Print prompt

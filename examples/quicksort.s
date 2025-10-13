@@ -3,7 +3,7 @@
 ; Tests: Recursive partitioning, stack usage, in-place sorting
 ; Non-interactive: Uses a predefined array for automated testing
 
-.org 0x0000
+.org 0x8000
 
 main:
     ; Print header

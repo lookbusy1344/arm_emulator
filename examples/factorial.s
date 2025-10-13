@@ -2,7 +2,7 @@
 ; Computes the factorial of a number using recursion
 ; Example: Input 5 produces 120 (5! = 5*4*3*2*1)
 
-.org 0x0000
+.org 0x8000
 
 main:
     ; Print prompt
