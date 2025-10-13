@@ -18,7 +18,11 @@ Completed items and past work belong in `PROGRESS.md`.
 - Tool tests: 24 added (including 4 new standalone label tests)
 - Comprehensive ARM2 instruction coverage achieved
 
-**Example Programs:** 22 of 30 fully functional (73% functional rate)
+**Example Programs:** 15 of 35 fully functional (43% functional rate)
+- 15 working programs ✅
+- 17 failing programs ❌
+- 1 timeout (infinite loop) ⏱️
+- 2 hanging (awaiting input) ⌛
 
 **Recent Completion (2025-10-12):**
 - ✅ **All Test Priorities Complete:** 1016/1016 tests passing
@@ -72,67 +76,125 @@ Completed items and past work belong in `PROGRESS.md`.
 
 ### Example Program Issues (Non-Critical)
 
-**Test Summary (30 programs total):**
-- ✅ **22 programs fully working** (73%)
-- ⚠️ **3 programs with input issues** (10%)
-- ❌ **5 programs with errors** (17%)
+**Test Summary (35 programs total):**
+- ✅ **15 programs fully working** (43%)
+- ❌ **17 programs with runtime errors** (49%) - Memory access violations
+- ⏱️ **1 program timeout** (3%) - Infinite loop
+- ⌛ **2 programs hang awaiting input** (6%) - Need stdin piping
 
-#### Working Programs (22)
+#### Working Programs (15/35)
 1. ✅ addressing_modes.s - All addressing mode tests passed
 2. ✅ arithmetic.s - All arithmetic operations work correctly
 3. ✅ arrays.s - Array operations demo works
 4. ✅ binary_search.s - Binary search works correctly
 5. ✅ bit_operations.s - All bit operation tests passed
 6. ✅ conditionals.s - All conditional execution tests passed
-7. ✅ factorial.s - Factorial calculation works
-8. ✅ fibonacci.s - Fibonacci sequence generation works
-9. ✅ functions.s - Function calling conventions work
-10. ✅ gcd.s - GCD calculation works correctly
-11. ✅ hello.s - Hello world works
-12. ✅ linked_list.s - Linked list operations work
-13. ✅ loops.s - All loop constructs work correctly
-14. ✅ memory_stress.s - All memory tests passed
-15. ✅ nested_calls.s - Deep nested calls work correctly
-16. ✅ recursive_factorial.s - Recursive factorial works
-17. ✅ stack.s - Stack-based calculator works
-18. ✅ string_reverse.s - String reversal works
-19. ✅ strings.s - String operations work
-20. ✅ times_table.s - Times table generation works
+7. ✅ const_expressions.s - Constant expression evaluation works
+8. ✅ functions.s - Function calling conventions work
+9. ✅ hello.s - Hello world works
+10. ✅ linked_list.s - Linked list operations work
+11. ✅ loops.s - All loop constructs work correctly
+12. ✅ memory_stress.s - All memory tests passed
+13. ✅ nested_calls.s - Deep nested calls work correctly
+14. ✅ recursive_factorial.s - Recursive factorial works
+15. ✅ stack.s - Stack-based calculator works
+16. ✅ strings.s - String operations work
+17. ✅ test_expr.s - Expression evaluation tests pass
 
-#### Programs with Input Issues (3)
-21. ⚠️ **bubble_sort.s** - Expects interactive input, runs but shows zeros with stdin input
-22. ⚠️ **calculator.s** - Input reading issue (operation character not read correctly, infinite loop)
+#### Programs with Runtime Errors - Memory Access Violations (17/35)
+All of these fail with "memory access violation: address 0xXXXX is not mapped" - the PC attempts to execute from an unmapped memory region, suggesting control flow issues (bad function returns, stack corruption, or missing code sections).
 
-#### Programs with Errors (5)
-23. ❌ **hash_table.s** - Parse error: "invalid constant value: -" at line 10
-   - Parser doesn't support "-" as a constant value placeholder
+18. ❌ **bubble_sort.s** - PC=0x00000148 not mapped
+19. ❌ **calculator.s** - PC=0x000001BC not mapped
+20. ❌ **division.s** - PC=0x00000188 not mapped
+21. ❌ **factorial.s** - PC=0x000000A4 not mapped
+22. ❌ **fibonacci.s** - PC=0x000000D8 not mapped
+23. ❌ **matrix_multiply.s** - PC=0x000001D0 not mapped
+24. ❌ **quicksort.s** - PC=0x000001E8 not mapped
+25. ❌ **standalone_labels.s** - PC=0x00000004 not mapped
+26. ❌ **state_machine.s** - PC=0x0000025C not mapped
+27. ❌ **string_reverse.s** - PC=0x000000B4 not mapped
+28. ❌ **test_const_expr.s** - PC=0x00000058 not mapped (after register dump)
+29. ❌ **times_table.s** - PC=0x00000060 not mapped
 
-24. ❌ **matrix_multiply.s** - Runtime error: memory access violation at 0x000081D4
-   - Attempts to read string at invalid address 0x00000002
+#### Programs with Parse/Encoding Errors (5/35)
+30. ❌ **hash_table.s** - Parse error: "invalid constant value: -" at line 10
+   - `.equ EMPTY_KEY, -1` not supported - parser rejects negative constant values
 
-25. ❌ **quicksort.s** - Runtime error: memory access violation at 0x000081EC
-   - Attempts to read string at invalid address 0x00000011
+31. ❌ **recursive_fib.s** - Parse errors: unexpected '@' characters throughout
+   - Uses GNU assembler syntax with '@' for comments instead of ';'
+   - Also has syntax issues with parentheses and other non-ARM2 constructs
 
-26. ❌ **recursive_fib.s** - Parse errors: multiple syntax issues
-   - Contains '@' characters (comments?) and parentheses in unexpected places
-   - Appears to use non-ARM2 syntax
+32. ❌ **reverse_chatgpt.s** - Parse errors: unexpected NUMBER tokens (lines 8, 13, 25, 32, 37)
+   - Uses AREA directive and & prefix for syscall numbers (Acorn/RISC OS syntax)
+   - Not compatible with current parser
 
-27. ❌ **reverse_chatgpt.s** - Parse errors: unexpected NUMBER tokens (lines 8, 13, 25, 32, 37)
-   - Syntax issues preventing parsing
+33. ❌ **sieve_of_eratosthenes.s** - Parse errors: extensive syntax issues
+   - Uses GNU assembler syntax with '@' for comments
+   - Multiple syntax incompatibilities
 
-28. ❌ **sieve_of_eratosthenes.s** - Parse errors: extensive syntax issues
-   - Contains '@' characters, parentheses, operators in unexpected places
-   - Appears to use non-ARM2 syntax
+34. ❌ **xor_cipher.s** - Encoding error: "unknown instruction: LSR" at 0x00008220
+   - LSR instruction not implemented in encoder (logical shift right)
+   - This is a standard ARM2 instruction that should be supported
 
-29. ❌ **state_machine.s** - Runtime error: cycle limit exceeded (1000000 cycles)
-   - Program enters infinite loop during email validation
+#### Programs with Infinite Loop (1/35)
+35. ⏱️ **gcd.s** - Timeout after 2 seconds (exit code 124)
+   - Program enters infinite loop, exceeds execution time limit
 
-30. ❌ **xor_cipher.s** - Encoding error: unknown instruction "LSR" at 0x00008220
-   - LSR instruction not implemented in encoder
+#### Programs Awaiting Input (2/35)
+Note: These programs may work correctly with proper stdin input but cannot be tested non-interactively.
+- ⌛ Programs that require user input but hang when run without stdin
+- May work correctly if piped with appropriate input data
+
+---
+
+**Analysis Summary:**
+
+The majority of failures (17/35 = 49%) are memory access violations where the PC jumps to unmapped memory regions. This pattern suggests:
+1. **Stack/Return Address Issues** - Functions may not be preserving/restoring LR correctly
+2. **Missing Code Sections** - Programs may be organized with `.text`/`.data` sections that aren't being loaded properly
+3. **Incorrect Branch Targets** - Label resolution or branch encoding issues causing jumps to wrong addresses
+
+Key actionable issues identified:
+- **LSR/LSL/ASR/ROR as standalone instructions** - Currently only supported as shift modifiers (e.g., `MOV r0, r1, LSR #2`), not as standalone instructions (e.g., `LSR r0, r1, #2`). Affects xor_cipher.s
+- **Negative constants not supported** - Parser rejects `.equ SYMBOL, -1` (affects hash_table.s)
+- **Alternative syntax support** - Several programs use GNU assembler or RISC OS syntax (@ comments, AREA directive, & syscalls)
 
 ---
 
 ## Outstanding Tasks
+
+### Example Program Fixes
+**Priority:** Medium | **Effort:** 8-12 hours
+
+#### Critical Instructions Missing
+- [ ] **Implement LSR/LSL/ASR/ROR as standalone instructions**
+  - Currently only work as shift modifiers (e.g., `MOV r0, r1, LSR #2`)
+  - Need to support standalone form (e.g., `LSR r0, r1, #2`)
+  - These are aliases that should expand to `MOV Rd, Rm, SHIFT #n`
+  - Required by xor_cipher.s (line 256: `LSR r0, r0, #4`)
+  - ARM documentation shows these as pseudo-instructions that expand to MOV
+
+#### Parser Enhancements  
+- [ ] **Support negative constant values** in `.equ` directives
+  - Currently rejects `.equ EMPTY_KEY, -1`
+  - Affects hash_table.s and potentially other programs
+  
+- [ ] **Support alternative comment syntax** (optional)
+  - GNU assembler uses '@' for comments (we use ';')
+  - Affects recursive_fib.s, sieve_of_eratosthenes.s
+  - Low priority - can document syntax requirements instead
+
+#### Memory Access Violation Investigation
+- [ ] **Debug control flow issues** causing PC jumps to unmapped memory
+  - Affects 17 programs with similar failure pattern
+  - May indicate systemic issue with:
+    - Function return address handling
+    - Stack frame management
+    - Section loading (.text/.data organization)
+  - Recommend debugging one representative case (e.g., factorial.s, times_table.s)
+
+---
 
 ### Phase 11: Production Hardening
 
