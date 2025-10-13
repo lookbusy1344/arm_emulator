@@ -8,6 +8,49 @@
 
 ## Recent Updates
 
+### 2025-10-13: Fixed `.text` and `.global` Directive Support ✅
+**Action:** Added proper handling for standard assembler directives `.text`, `.data`, and `.global`
+
+**Problem:**
+The `examples/division.s` program crashed with:
+```
+Runtime error at PC=0x00000188: memory access violation: address 0x00000188 is not mapped
+```
+
+Programs using `.text` and `.global _start` (instead of `.org 0x0000`) failed because these directives were recognized but not processed, leaving the origin unset.
+
+**Root Cause:**
+- Parser's `handleDirective()` function had cases for `.org`, `.word`, `.align`, etc.
+- `.text`, `.data`, and `.global` were parsed but had no handling code
+- Without explicit origin, address calculations for function calls and returns were incorrect
+- `BL` (Branch with Link) saved wrong return addresses
+- `MOV PC, LR` returns jumped to unmapped memory
+
+**Solution:**
+
+Added directive handling in `parser/parser.go`:
+- **`.text`** - Sets origin to 0 if not already set (marks code section)
+- **`.data`** - Noted for data section (continues at current address)
+- **`.global`** - Noted for symbol export (no special handling needed in emulator)
+
+The `.text` directive now ensures programs have a proper origin (0x0000) even without explicit `.org`.
+
+**Testing:**
+- Created comprehensive test suite: `tests/unit/parser/text_directive_test.go`
+  - Tests `.text` sets origin to 0
+  - Tests interaction between `.text` and `.org`
+  - Tests `.global` and `.data` directives
+  - 5 test cases, all passing ✅
+- Verified `examples/division.s` now works correctly (6 division test cases)
+- Confirmed existing examples still work (`functions.s`, `factorial.s`)
+- All 1040 unit and integration tests passing ✅
+
+**Impact:**
+- **Priority:** High (examples using standard directives now work)
+- **Effort:** ~1 hour investigation + fix + tests
+- **Complexity:** Low - straightforward directive handling
+- **Risk:** Minimal - all tests pass, improves compatibility with standard assembly syntax
+
 ### 2025-10-13: Fixed `.org 0x0000` Support - Programs with Low Memory Origin Now Work ✅
 **Action:** Fixed regression preventing programs with `.org 0x0000` from executing
 

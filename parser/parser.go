@@ -247,6 +247,24 @@ func (p *Parser) parseDirective() *Directive {
 // handleDirective processes directives that affect assembly state
 func (p *Parser) handleDirective(d *Directive, program *Program) {
 	switch d.Name {
+	case ".text":
+		// Text section - ensure origin is set to 0 if not already set
+		if !p.originSet {
+			p.currentAddress = 0
+			program.Origin = 0
+			program.OriginSet = true
+			p.originSet = true
+		}
+
+	case ".data":
+		// Data section - for now, just continue at current address
+		// In a more sophisticated assembler, this would switch to a separate data segment
+
+	case ".global":
+		// Global symbol declaration - mark symbol as global (exported)
+		// For now, we just note it but don't need special handling in a simple emulator
+		// In a linker, this would make the symbol visible to other modules
+
 	case ".org":
 		// Set origin address
 		if len(d.Args) > 0 {
