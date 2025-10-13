@@ -140,7 +140,7 @@ func (x *XRefGenerator) collectDefinitions() {
 		}
 	}
 
-	// Collect from symbol table (.equ, .set)
+	// Collect from symbol table (.equ, .set, and standalone labels)
 	if x.program.SymbolTable != nil {
 		for name, sym := range x.program.SymbolTable.GetAllSymbols() {
 			if _, exists := x.symbols[name]; !exists {
@@ -150,8 +150,19 @@ func (x *XRefGenerator) collectDefinitions() {
 					References: make([]*Reference, 0),
 				}
 			}
-			x.symbols[name].IsConstant = true
-			x.symbols[name].Value = sym.Value
+			// Add definition if not already set and symbol is a label
+			if x.symbols[name].Definition == nil && sym.Type == parser.SymbolLabel {
+				x.symbols[name].Definition = &Reference{
+					Type:   RefDefinition,
+					Line:   sym.Pos.Line,
+					Column: sym.Pos.Column,
+					Source: "",
+				}
+			}
+			if sym.Type == parser.SymbolConstant {
+				x.symbols[name].IsConstant = true
+				x.symbols[name].Value = sym.Value
+			}
 		}
 	}
 }

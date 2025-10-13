@@ -110,6 +110,30 @@ func (f *Formatter) Format(input, filename string) (string, error) {
 
 // formatProgram formats the entire program
 func (f *Formatter) formatProgram() {
+	// Collect labels already attached to instructions/directives
+	attachedLabels := make(map[string]bool)
+	for _, inst := range f.program.Instructions {
+		if inst.Label != "" {
+			attachedLabels[inst.Label] = true
+		}
+	}
+	for _, dir := range f.program.Directives {
+		if dir.Label != "" {
+			attachedLabels[dir.Label] = true
+		}
+	}
+
+	// Output standalone labels from symbol table
+	if f.program.SymbolTable != nil {
+		allSymbols := f.program.SymbolTable.GetAllSymbols()
+		for name, sym := range allSymbols {
+			if !attachedLabels[name] && sym.Type == parser.SymbolLabel {
+				f.output.WriteString(name)
+				f.output.WriteString(":\n")
+			}
+		}
+	}
+
 	// Interleave instructions and directives in source order
 	instructions := make([]*parser.Instruction, len(f.program.Instructions))
 	copy(instructions, f.program.Instructions)
