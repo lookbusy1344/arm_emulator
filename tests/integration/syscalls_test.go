@@ -44,8 +44,14 @@ func runAssembly(t *testing.T, code string) (stdout string, stderr string, exitC
 	stackTop := uint32(vm.StackSegmentStart + vm.StackSegmentSize)
 	machine.InitializeStack(stackTop)
 
+	// Determine entry point: use .org if set, otherwise default to 0x8000
+	entryPoint := uint32(0x8000)
+	if program.OriginSet {
+		entryPoint = program.Origin
+	}
+
 	// Load program
-	err = loadProgramIntoVM(machine, program, 0x8000)
+	err = loadProgramIntoVM(machine, program, entryPoint)
 	if err != nil {
 		return "", "", -1, err
 	}
@@ -78,32 +84,58 @@ func runAssembly(t *testing.T, code string) (stdout string, stderr string, exitC
 
 // Helper function to load program into VM (matches main.go implementation)
 func loadProgramIntoVM(machine *vm.VM, program *parser.Program, entryPoint uint32) error {
+	// Ensure memory segment exists for the entry point
+	// Check if entry point falls outside standard segments
+	if entryPoint < vm.CodeSegmentStart {
+		// Create a low memory segment for programs using .org 0x0000 or similar
+		segmentSize := uint32(vm.CodeSegmentStart) // Cover 0x0000 to 0x8000
+		machine.Memory.AddSegment("low-memory", 0, segmentSize, vm.PermRead|vm.PermWrite|vm.PermExecute)
+	}
+
 	currentAddr := entryPoint
 
 	// Create encoder
 	enc := encoder.NewEncoder(program.SymbolTable)
 
-	// Build address map for instructions
+	// Build address map for instructions using parser-calculated addresses
+	// Track the maximum address used for literal pool placement
 	addressMap := make(map[*parser.Instruction]uint32)
-	dataAddr := currentAddr
+	maxAddr := currentAddr
 
 	for _, inst := range program.Instructions {
-		addressMap[inst] = dataAddr
-
-		// Update symbol table with actual load address for instruction labels
-		if inst.Label != "" {
-			if err := program.SymbolTable.UpdateAddress(inst.Label, dataAddr); err != nil {
-				return err
+		// Use parser-calculated address if available
+		if inst.Address != 0 {
+			addressMap[inst] = inst.Address
+			instEnd := inst.Address + 4
+			if instEnd > maxAddr {
+				maxAddr = instEnd
+			}
+		} else {
+			addressMap[inst] = currentAddr
+			currentAddr += 4
+			if currentAddr > maxAddr {
+				maxAddr = currentAddr
 			}
 		}
 
-		dataAddr += 4 // Each instruction is 4 bytes
+		// Update symbol table with actual load address for instruction labels
+		if inst.Label != "" {
+			if err := program.SymbolTable.UpdateAddress(inst.Label, addressMap[inst]); err != nil {
+				return err
+			}
+		}
 	}
 
 	// Data directives go after instructions
 
 	// Process data directives
 	for _, directive := range program.Directives {
+		// Use parser-calculated address if available
+		dataAddr := maxAddr
+		if directive.Address != 0 {
+			dataAddr = directive.Address
+		}
+
 		// Update label address in symbol table if this directive has a label
 		if directive.Label != "" {
 			if err := program.SymbolTable.UpdateAddress(directive.Label, dataAddr); err != nil {
@@ -136,6 +168,9 @@ func loadProgramIntoVM(machine *vm.VM, program *parser.Program, entryPoint uint3
 					}
 				}
 			}
+			if dataAddr > maxAddr {
+				maxAddr = dataAddr
+			}
 
 		case ".word":
 			// Write 32-bit words
@@ -156,6 +191,9 @@ func loadProgramIntoVM(machine *vm.VM, program *parser.Program, entryPoint uint3
 				}
 				dataAddr += 4
 			}
+			if dataAddr > maxAddr {
+				maxAddr = dataAddr
+			}
 
 		case ".byte":
 			// Write bytes
@@ -169,6 +207,9 @@ func loadProgramIntoVM(machine *vm.VM, program *parser.Program, entryPoint uint3
 					return err
 				}
 				dataAddr++
+			}
+			if dataAddr > maxAddr {
+				maxAddr = dataAddr
 			}
 
 		case ".asciz", ".string":
@@ -192,12 +233,35 @@ func loadProgramIntoVM(machine *vm.VM, program *parser.Program, entryPoint uint3
 				}
 				dataAddr++
 			}
+			if dataAddr > maxAddr {
+				maxAddr = dataAddr
+			}
+
+		case ".space", ".skip":
+			// Allocate space (zero-filled or just reserved)
+			if len(directive.Args) > 0 {
+				var size uint32
+				_, err := parseValue(directive.Args[0], &size)
+				if err != nil {
+					return err
+				}
+				// Write zeros to reserve the space
+				for i := uint32(0); i < size; i++ {
+					if err := machine.Memory.WriteByteUnsafe(dataAddr, 0); err != nil {
+						return err
+					}
+					dataAddr++
+				}
+			}
+			if dataAddr > maxAddr {
+				maxAddr = dataAddr
+			}
 		}
 	}
 
 	// Set literal pool start address to after all data
 	// Align to 4-byte boundary
-	literalPoolStart := (dataAddr + 3) & ^uint32(3)
+	literalPoolStart := (maxAddr + 3) & ^uint32(3)
 	enc.LiteralPoolStart = literalPoolStart // Encode and write instructions
 	for _, inst := range program.Instructions {
 		addr := addressMap[inst]
