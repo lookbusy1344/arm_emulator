@@ -2,11 +2,76 @@
 
 **Last Updated:** 2025-10-13
 **Current Phase:** Phase 11 Complete - All Tests Passing ✅
-**Test Suite:** 1023/1023 tests passing (100% ✅)
+**Test Suite:** 1040/1040 tests passing (100% ✅)
 
 ---
 
 ## Recent Updates
+
+### 2025-10-13: Formatter and XRef Tools - Standalone Labels Fixed ✅
+**Action:** Fixed formatter and xref tools to properly handle standalone labels in source order
+
+**Problem:**
+When the parser was fixed to correctly handle standalone labels (earlier on 2025-10-13), it revealed a pre-existing limitation in the tools:
+1. **Formatter Issue:** The formatter was outputting all standalone labels at the beginning of the file instead of maintaining their source order
+2. **XRef Issue:** While xref was collecting standalone labels, comprehensive testing was needed
+
+**Root Cause:**
+The formatter's `formatProgram()` function was:
+1. Collecting standalone labels from the symbol table
+2. Outputting them all at the beginning
+3. Then interleaving instructions and directives
+
+This meant standalone labels appeared out of order.
+
+**Solution:**
+
+**Formatter Fix (`tools/format.go`):**
+- Modified `formatProgram()` to track standalone labels with their line numbers from the symbol table
+- Implemented proper three-way interleaving of instructions, directives, and standalone labels based on source line numbers
+- Standalone labels now appear in their correct position in the output
+
+**XRef Verification:**
+- The xref tool was already handling standalone labels correctly through the symbol table
+- Added comprehensive tests to verify proper tracking of standalone label definitions and references
+
+**Testing:**
+- **Unit Tests:** 4 new comprehensive tests added
+  - `TestFormat_StandaloneLabel` - Verifies a single standalone label is positioned correctly
+  - `TestFormat_MultipleStandaloneLabels` - Tests multiple standalone labels in source order
+  - `TestXRef_StandaloneLabel` - Confirms xref tracks standalone label definitions and references
+  - `TestXRef_MultipleStandaloneLabels` - Tests xref with multiple standalone labels
+- All 64 tool tests passing ✅
+- All 1040 total tests passing ✅
+
+**Example:**
+```assembly
+_start:
+        MOV R0, #0
+
+; Standalone label on its own line
+loop1:
+        ADD R0, R0, #1
+        CMP R0, #5
+        BNE loop1
+
+loop2:
+        SUB R0, R0, #1
+        CMP R0, #0
+        BNE loop2
+
+done:
+        SWI #0
+```
+
+The formatter now correctly outputs each label at its proper position in source order.
+
+**Impact:**
+- **Priority:** Low (edge case)
+- **Effort:** ~2 hours
+- **Complexity:** Moderate - required understanding of symbol table and source ordering
+- **Risk:** Low - well-tested, no impact on existing functionality
+- Created `examples/standalone_labels.s` demonstrating the fix
 
 ### 2025-10-13: Standalone Label Parser Bug Fixed ✅
 **Action:** Fixed parser bug where standalone labels caused next line's label to be misparsed
