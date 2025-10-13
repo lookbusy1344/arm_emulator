@@ -94,6 +94,65 @@ _start:
 `,
 			wantErr: false,
 		},
+		{
+			name: "Multi-digit offset addition",
+			input: `
+.data
+numbuf: .space 12
+.text
+_start:
+    LDR r3, =numbuf + 11
+    LDR r4, =numbuf + 7
+    LDR r5, =numbuf + 123
+    MOV pc, lr
+`,
+			wantErr: false,
+		},
+		{
+			name: "Multi-digit offset subtraction",
+			input: `
+.data
+buffer: .space 256
+.text
+_start:
+    LDR r0, =buffer + 255
+    LDR r1, =buffer + 255 - 17
+    LDR r2, =buffer + 100 - 33
+    MOV pc, lr
+`,
+			wantErr: false,
+		},
+		{
+			name: "Various non-power-of-2 offsets",
+			input: `
+.data
+data: .space 50
+.text
+_start:
+    LDR r0, =data + 3
+    LDR r1, =data + 7
+    LDR r2, =data + 13
+    LDR r3, =data + 19
+    LDR r4, =data + 31
+    MOV pc, lr
+`,
+			wantErr: false,
+		},
+		{
+			name: "Subtraction with various values",
+			input: `
+.text
+marker:
+    .word 0
+_start:
+    LDR r0, =marker - 1
+    LDR r1, =marker - 5
+    LDR r2, =marker - 11
+    LDR r3, =marker - 23
+    MOV pc, lr
+`,
+			wantErr: false,
+		},
 	}
 
 	for _, tt := range tests {
