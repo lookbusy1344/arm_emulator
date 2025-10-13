@@ -82,6 +82,50 @@ func runAssembly(t *testing.T, code string) (stdout string, stderr string, exitC
 	return outBuf.String(), errBuf.String(), machine.ExitCode, execErr
 }
 
+// processEscapeSequences processes escape sequences in strings (matching main.go)
+func processEscapeSequences(s string) string {
+	result := make([]byte, 0, len(s))
+	i := 0
+	for i < len(s) {
+		if s[i] == '\\' && i+1 < len(s) {
+			// Process escape sequence
+			switch s[i+1] {
+			case 'n':
+				result = append(result, '\n')
+			case 't':
+				result = append(result, '\t')
+			case 'r':
+				result = append(result, '\r')
+			case '\\':
+				result = append(result, '\\')
+			case '0':
+				result = append(result, '\x00')
+			case '"':
+				result = append(result, '"')
+			case '\'':
+				result = append(result, '\'')
+			case 'a':
+				result = append(result, '\a')
+			case 'b':
+				result = append(result, '\b')
+			case 'f':
+				result = append(result, '\f')
+			case 'v':
+				result = append(result, '\v')
+			default:
+				// Unknown escape sequence, keep as is
+				result = append(result, s[i])
+				result = append(result, s[i+1])
+			}
+			i += 2
+		} else {
+			result = append(result, s[i])
+			i++
+		}
+	}
+	return string(result)
+}
+
 // Helper function to load program into VM (matches main.go implementation)
 func loadProgramIntoVM(machine *vm.VM, program *parser.Program, entryPoint uint32) error {
 	// Ensure memory segment exists for the entry point
@@ -220,9 +264,11 @@ func loadProgramIntoVM(machine *vm.VM, program *parser.Program, entryPoint uint3
 				if len(str) >= 2 && (str[0] == '"' || str[0] == '\'') {
 					str = str[1 : len(str)-1]
 				}
+				// Process escape sequences
+				processedStr := processEscapeSequences(str)
 				// Write string bytes
-				for i := 0; i < len(str); i++ {
-					if err := machine.Memory.WriteByteUnsafe(dataAddr, str[i]); err != nil {
+				for i := 0; i < len(processedStr); i++ {
+					if err := machine.Memory.WriteByteUnsafe(dataAddr, processedStr[i]); err != nil {
 						return err
 					}
 					dataAddr++

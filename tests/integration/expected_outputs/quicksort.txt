@@ -1,0 +1,6 @@
+Quicksort Algorithm
+
+Original array: 42, 17, 93, 8, 55, 31, 76, 12, 68, 25, 89, 4, 61, 38, 14
+Sorted array:   4, 8, 12, 14, 17, 25, 31, 38, 42, 55, 61, 68, 76, 89, 93
+
+Verification: Array is correctly sorted!
