@@ -46,6 +46,92 @@ subroutine:
 	}
 }
 
+func TestXRef_StandaloneLabel(t *testing.T) {
+	// Test standalone labels (labels on their own line with no instruction)
+	source := `
+		MOV R0, #1
+loop:
+		ADD R0, R0, #1
+		CMP R0, #10
+		BNE loop
+	`
+
+	gen := NewXRefGenerator()
+	symbols, err := gen.Generate(source, "test.s")
+
+	if err != nil {
+		t.Fatalf("Generate error: %v", err)
+	}
+
+	// Should have loop symbol
+	loop, exists := symbols["loop"]
+	if !exists {
+		t.Fatal("Expected loop symbol")
+	}
+
+	// Should have definition for standalone label
+	if loop.Definition == nil {
+		t.Error("Expected loop to have definition")
+	}
+
+	// Should have reference (BNE loop)
+	if len(loop.References) == 0 {
+		t.Error("Expected loop to have at least one reference")
+	}
+}
+
+func TestXRef_MultipleStandaloneLabels(t *testing.T) {
+	// Test multiple standalone labels
+	source := `
+start:
+		MOV R0, #0
+loop1:
+		ADD R0, R0, #1
+		CMP R0, #5
+		BNE loop1
+loop2:
+		SUB R0, R0, #1
+		CMP R0, #0
+		BNE loop2
+end:
+		SWI #0
+	`
+
+	gen := NewXRefGenerator()
+	symbols, err := gen.Generate(source, "test.s")
+
+	if err != nil {
+		t.Fatalf("Generate error: %v", err)
+	}
+
+	// Verify all standalone labels are found
+	for _, name := range []string{"start", "loop1", "loop2", "end"} {
+		sym, exists := symbols[name]
+		if !exists {
+			t.Errorf("Expected symbol %s", name)
+			continue
+		}
+
+		// Should have definitions
+		if sym.Definition == nil {
+			t.Errorf("Expected %s to have definition", name)
+		}
+	}
+
+	// loop1 and loop2 should have references
+	if loop1 := symbols["loop1"]; loop1 != nil {
+		if len(loop1.References) == 0 {
+			t.Error("Expected loop1 to have references")
+		}
+	}
+
+	if loop2 := symbols["loop2"]; loop2 != nil {
+		if len(loop2.References) == 0 {
+			t.Error("Expected loop2 to have references")
+		}
+	}
+}
+
 func TestXRef_UndefinedSymbol(t *testing.T) {
 	source := `
 _start:	B undefined_label

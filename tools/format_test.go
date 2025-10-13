@@ -340,6 +340,117 @@ _start:
 	}
 }
 
+func TestFormat_StandaloneLabel(t *testing.T) {
+	// This tests the standalone label fix - label on its own line
+	source := `
+		MOV R0, #1
+loop:
+		ADD R0, R0, #1
+		CMP R0, #10
+		BNE loop
+	`
+
+	formatter := NewFormatter(DefaultFormatOptions())
+	result, err := formatter.Format(source, "test.s")
+
+	if err != nil {
+		t.Fatalf("Format error: %v", err)
+	}
+
+	// Debug output
+	t.Logf("Formatted result:\n%s", result)
+
+	// Should preserve standalone label
+	if !strings.Contains(result, "loop:") {
+		t.Error("Expected loop label")
+	}
+
+	// Check that loop label appears BEFORE ADD instruction (since it's on the line before ADD)
+	lines := strings.Split(strings.TrimSpace(result), "\n")
+	var movLine, loopLine, addLine int = -1, -1, -1
+	for i, line := range lines {
+		line = strings.TrimSpace(line)
+		if strings.Contains(line, "MOV") {
+			movLine = i
+		} else if strings.HasPrefix(line, "loop:") {
+			loopLine = i
+		} else if strings.Contains(line, "ADD") {
+			addLine = i
+		}
+	}
+
+	if movLine == -1 || loopLine == -1 || addLine == -1 {
+		t.Fatalf("Could not find all expected instructions/labels. MOV=%d, loop=%d, ADD=%d", movLine, loopLine, addLine)
+	}
+
+	// loop should be between MOV and ADD
+	if !(movLine < loopLine && loopLine < addLine) {
+		t.Errorf("Label order incorrect: MOV at line %d, loop at line %d, ADD at line %d", movLine, loopLine, addLine)
+	}
+}
+
+func TestFormat_MultipleStandaloneLabels(t *testing.T) {
+	// Test multiple standalone labels in source order
+	source := `
+start:
+		MOV R0, #0
+loop1:
+		ADD R0, R0, #1
+		CMP R0, #5
+		BNE loop1
+loop2:
+		SUB R0, R0, #1
+		CMP R0, #0
+		BNE loop2
+end:
+		SWI #0
+	`
+
+	formatter := NewFormatter(DefaultFormatOptions())
+	result, err := formatter.Format(source, "test.s")
+
+	if err != nil {
+		t.Fatalf("Format error: %v", err)
+	}
+
+	// Debug output
+	t.Logf("Formatted result:\n%s", result)
+
+	// Check all labels are present
+	for _, label := range []string{"start:", "loop1:", "loop2:", "end:"} {
+		if !strings.Contains(result, label) {
+			t.Errorf("Expected label %s", label)
+		}
+	}
+
+	// Verify ordering
+	lines := strings.Split(strings.TrimSpace(result), "\n")
+	positions := make(map[string]int)
+	for i, line := range lines {
+		line = strings.TrimSpace(line)
+		if strings.HasPrefix(line, "start:") {
+			positions["start"] = i
+		} else if strings.HasPrefix(line, "loop1:") {
+			positions["loop1"] = i
+		} else if strings.HasPrefix(line, "loop2:") {
+			positions["loop2"] = i
+		} else if strings.HasPrefix(line, "end:") {
+			positions["end"] = i
+		}
+	}
+
+	// Verify all labels found
+	if len(positions) != 4 {
+		t.Fatalf("Expected to find 4 labels, found %d: %v", len(positions), positions)
+	}
+
+	// Verify correct ordering
+	if !(positions["start"] < positions["loop1"] && positions["loop1"] < positions["loop2"] && positions["loop2"] < positions["end"]) {
+		t.Errorf("Label order incorrect: start=%d, loop1=%d, loop2=%d, end=%d",
+			positions["start"], positions["loop1"], positions["loop2"], positions["end"])
+	}
+}
+
 func TestFormat_DirectiveWithLabel(t *testing.T) {
 	source := `data: .word 42`
 

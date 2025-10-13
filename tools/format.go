@@ -123,18 +123,25 @@ func (f *Formatter) formatProgram() {
 		}
 	}
 
-	// Output standalone labels from symbol table
+	// Collect standalone labels from symbol table with their positions
+	type standaloneLabel struct {
+		name string
+		line int
+	}
+	var standaloneLabels []standaloneLabel
 	if f.program.SymbolTable != nil {
 		allSymbols := f.program.SymbolTable.GetAllSymbols()
 		for name, sym := range allSymbols {
 			if !attachedLabels[name] && sym.Type == parser.SymbolLabel {
-				f.output.WriteString(name)
-				f.output.WriteString(":\n")
+				standaloneLabels = append(standaloneLabels, standaloneLabel{
+					name: name,
+					line: sym.Pos.Line,
+				})
 			}
 		}
 	}
 
-	// Interleave instructions and directives in source order
+	// Interleave instructions, directives, and standalone labels in source order
 	instructions := make([]*parser.Instruction, len(f.program.Instructions))
 	copy(instructions, f.program.Instructions)
 	directives := make([]*parser.Directive, len(f.program.Directives))
@@ -142,29 +149,36 @@ func (f *Formatter) formatProgram() {
 
 	instIdx := 0
 	dirIdx := 0
+	labelIdx := 0
 
-	for instIdx < len(instructions) || dirIdx < len(directives) {
-		// Determine which comes first
-		if instIdx >= len(instructions) {
-			// Only directives left
-			f.formatDirective(directives[dirIdx])
-			dirIdx++
-		} else if dirIdx >= len(directives) {
-			// Only instructions left
+	for instIdx < len(instructions) || dirIdx < len(directives) || labelIdx < len(standaloneLabels) {
+		// Determine which comes first by comparing line numbers
+		var nextInstLine, nextDirLine, nextLabelLine int = 1<<31 - 1, 1<<31 - 1, 1<<31 - 1
+
+		if instIdx < len(instructions) {
+			nextInstLine = instructions[instIdx].Pos.Line
+		}
+		if dirIdx < len(directives) {
+			nextDirLine = directives[dirIdx].Pos.Line
+		}
+		if labelIdx < len(standaloneLabels) {
+			nextLabelLine = standaloneLabels[labelIdx].line
+		}
+
+		// Output whichever comes first
+		if nextLabelLine <= nextInstLine && nextLabelLine <= nextDirLine {
+			// Standalone label comes first
+			f.output.WriteString(standaloneLabels[labelIdx].name)
+			f.output.WriteString(":\n")
+			labelIdx++
+		} else if nextInstLine <= nextDirLine {
+			// Instruction comes first
 			f.formatInstruction(instructions[instIdx])
 			instIdx++
 		} else {
-			// Compare positions
-			instLine := instructions[instIdx].Pos.Line
-			dirLine := directives[dirIdx].Pos.Line
-
-			if instLine <= dirLine {
-				f.formatInstruction(instructions[instIdx])
-				instIdx++
-			} else {
-				f.formatDirective(directives[dirIdx])
-				dirIdx++
-			}
+			// Directive comes first
+			f.formatDirective(directives[dirIdx])
+			dirIdx++
 		}
 	}
 }

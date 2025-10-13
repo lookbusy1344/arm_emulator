@@ -12,9 +12,10 @@ Completed items and past work belong in `PROGRESS.md`.
 
 **Status:** Phase 11 (Production Hardening) - All Test Priorities Complete ✅
 
-**Test Status:** 1023/1023 tests passing (100% ✅)
+**Test Status:** 1040/1040 tests passing (100% ✅)
 - Baseline tests: 660 passing
 - Priority 1-5 tests: 356 added (all passing)
+- Tool tests: 24 added (including 4 new standalone label tests)
 - Comprehensive ARM2 instruction coverage achieved
 
 **Example Programs:** 22 of 30 fully functional (73% functional rate)
@@ -29,6 +30,18 @@ Completed items and past work belong in `PROGRESS.md`.
   - **See MISSING_TESTS.md for full details**
 
 **Recent Additions (2025-10-13):**
+- ✅ **Formatter and XRef Tools - Standalone Labels Fixed:** Tools now correctly handle labels on their own line
+  - **Status:** FIXED - Both formatter and xref tools properly process standalone labels
+  - Bug: Formatter was outputting all standalone labels at beginning of file instead of in source order
+  - Bug: Both tools were collecting standalone labels but not interleaving them properly with instructions/directives
+  - Fix: Modified `tools/format.go` to interleave standalone labels from symbol table in proper source order based on line numbers
+  - XRef was already working correctly but added comprehensive tests to verify
+  - 4 new comprehensive unit tests added:
+    - `TestFormat_StandaloneLabel` - single standalone label positioning
+    - `TestFormat_MultipleStandaloneLabels` - multiple standalone labels in order
+    - `TestXRef_StandaloneLabel` - xref tracking of standalone label
+    - `TestXRef_MultipleStandaloneLabels` - xref tracking of multiple standalone labels
+  - All 1040 tests passing (64 tool tests, 976 other tests)
 - ✅ **Standalone Label Parser Bug Fixed:** Parser now correctly handles labels on their own line
   - **Status:** FIXED - All labels now parsed correctly
   - Bug: When a standalone label (nothing after it on the line) was followed by another labeled directive, the second label would be misparsed as an instruction
@@ -56,20 +69,6 @@ Completed items and past work belong in `PROGRESS.md`.
 ---
 
 ## Known Issues
-
-### Tool Limitations (Non-Critical)
-
-**Formatter and XRef Tools - Standalone Labels**
-- **Status:** Pre-existing limitation, revealed by parser fix
-- **Description:** The formatter (`tools/format.go`) and xref (`tools/xref.go`) tools don't handle standalone labels (labels on their own line with no directive/instruction)
-- **Impact:** 
-  - Formatter may not output standalone labels
-  - XRef may not properly track standalone label definitions
-  - 2 tool tests now fail: `TestFormat_LabelOnly`, `TestXRef_BasicProgram`
-- **Root cause:** Tools only process labels attached to instructions/directives, not labels in symbol table
-- **Note:** This limitation existed before but was masked by the parser bug (standalone labels were incorrectly attached to next line's content)
-- **Priority:** Low - edge case, most assembly code doesn't use standalone labels
-- **Fix effort:** 2-3 hours to update tools to handle standalone labels from symbol table
 
 ### Example Program Issues (Non-Critical)
 
