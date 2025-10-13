@@ -1,12 +1,76 @@
 # ARM2 Emulator Implementation Progress
 
-**Last Updated:** 2025-10-12
+**Last Updated:** 2025-10-13
 **Current Phase:** Phase 11 Complete - All Tests Passing ✅
 **Test Suite:** 1016/1016 tests passing (100% ✅)
 
 ---
 
 ## Recent Updates
+
+### 2025-10-13: Constant Expression Support Added ✅
+**Action:** Implemented arithmetic expressions in pseudo-instructions (e.g., `LDR r0, =label + 12`)
+
+**Implementation:**
+- **Parser Enhancement** (`parser/parser.go`):
+  - Modified `parseOperand()` to handle `+` and `-` operators after `=`
+  - Builds expression string from tokens: `=label+12`, `=symbol-4`, etc.
+  - Properly consumes all tokens in the expression chain
+  
+- **Expression Evaluator** (`encoder/encoder.go`):
+  - Added `evaluateExpression()` function to parse and compute expressions
+  - Added `evaluateTerm()` helper to resolve symbols or parse immediates
+  - Supports both symbols and numeric literals in expressions
+  - Handles decimal and hex values: `=buffer + 12`, `=base + 0x10`
+
+- **Memory Pseudo-Instruction** (`encoder/memory.go`):
+  - Updated `encodeLDRPseudo()` to use expression evaluator
+  - Replaces simple symbol lookup with full expression evaluation
+
+**Features:**
+- ✅ Addition: `LDR r0, =label + 12`
+- ✅ Subtraction: `LDR r1, =symbol - 4`
+- ✅ Hex offsets: `LDR r2, =base + 0x0C`
+- ✅ Immediate expressions: `LDR r3, =0x8000 + 16`
+- ✅ Symbol resolution: Automatically looks up symbols in expressions
+
+**Testing:**
+- **Unit Tests:** `tests/unit/parser/constant_expressions_test.go`
+  - 5 comprehensive test cases covering all expression types
+  - All tests passing ✅
+- **Real-world Validation:**
+  - `LDR r0, =buffer` gives 0x8014
+  - `LDR r1, =buffer + 4` gives 0x8018 (correct: 0x8014 + 4)
+  - Verified with register dumps
+
+**Known Limitation:**
+- ⚠️ Labels after `.space` directives may have incorrect base addresses (separate bug)
+- This affects expressions like `=label_after_space + offset`
+- The expression evaluation itself works correctly
+
+**Example Programs:**
+- `examples/division.s` - Software division implementation (ARM2 lacks hardware divide)
+- `examples/test_const_expr.s` - Comprehensive constant expression tests
+- `examples/test_expr.s` - Simple expression validation
+
+### 2025-10-13: High Priority Bug Discovered ❌
+**Issue:** Labels after `.space` directives get incorrect addresses
+
+**Description:**
+When a label immediately follows a `.space` directive with no intervening directive/instruction, the label is assigned the address BEFORE the space allocation, not after it.
+
+**Example:**
+```assembly
+buffer:     .space 12
+buffer_end:            ; Gets address of buffer, not buffer+12!
+```
+
+**Impact:**
+- Breaks programs relying on end-of-space markers
+- Affects constant expressions using these labels
+- Symbol table contains incorrect addresses
+
+**Status:** Documented in TODO.md as high-priority bug requiring investigation
 
 ### 2025-10-12: Priority 5 Tests Completed ✅
 **Action:** Completed comprehensive instruction-condition matrix testing (final priority from MISSING_TESTS.md)
