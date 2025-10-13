@@ -1,3 +1,12 @@
+## CRITICAL REGRESSION: Example Programs Broken After 715390c5bb9143f75d87eebf7b166f25f55e57b7
+
+- Multiple example programs that previously worked in commit 17cafc7b8c79bce40ced5fa5ae410bd11ceff04b now fail with memory access violations or unmapped PC errors.
+- Affected: fibonacci.s, calculator.s, factorial.s, bubble_sort.s, and likely others.
+- Symptoms: PC jumps to unmapped memory (e.g., PC=0x000000D8 not mapped), stack/return address issues, program halts unexpectedly.
+- Root cause is likely a regression in control flow, stack handling, or section mapping logic introduced in 715390c5bb9143f75d87eebf7b166f25f55e57b7.
+- **Priority: CRITICAL** — Must bisect, diagnose, and fix before further development.
+- Do not modify example programs to "work around" this; fix the emulator logic.
+- See also: Known Issues section and integration test failures for details.
 # ARM2 Emulator TODO List
 
 **IMPORTANT:** This file tracks outstanding tasks and known issues. After completing any work, update this file to reflect the current status.
@@ -74,7 +83,9 @@ Completed items and past work belong in `PROGRESS.md`.
 
 ## Known Issues
 
-### Example Program Issues (Non-Critical)
+### Example Program Issues CRITICAL - Must Fix Before Further Development
+
+Something broke several example programs in 715390c5bb9143f75d87eebf7b166f25f55e57b7, they worked in 17cafc7b8c79bce40ced5fa5ae410bd11ceff04b. They continue to fail in the current branch. Eg: fibonacci.s, calculator.s, factorial.s, bubble_sort.s
 
 **Test Summary (35 programs total):**
 - ✅ **15 programs fully working** (43%)
@@ -181,7 +192,7 @@ All 4 tested programs are in the "working" category. The remaining 31 programs (
 3. Enable CI/CD to catch breaking changes
 
 #### Comprehensive Example Program Testing (PREREQUISITE)
-**Priority:** HIGH | **Effort:** 6-8 hours
+**Priority:** CRITICAL | **Effort:** 6-8 hours
 
 **Rationale:** Currently only 4/35 (11%) of example programs have automated tests. This allowed the low success rate to go undetected and makes it impossible to track improvements or prevent regressions.
 
