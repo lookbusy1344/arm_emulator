@@ -50,20 +50,9 @@ Go code is 28,331 lines long at the end of day. Weekly Claude usages limits are 
 
 Today I have focused on asking Claude to write challanging example programs, but not at this stage getting them to run (to avoid issues with Claude just deleting things that don't work). I have also asked it to write comprehensive tests for all instructions, again without focusing too much on whether they pass.
 
-Go code is 33,458 lines. Weekly Claude usage limits reached, can resume again on Thursday 16 Oct.
+Go code is 33,461 lines. Weekly Claude usage limits reached, can resume again on Thursday 16 Oct. In the interim I will use Sonnet 4.5 with Copilot.
 
 It's important to have clear daily (or at least progressive) goals, so we can keep Claude focused on them.
-
-**Day 6 - 12 Oct** - Comprehensive test suite completed. All 5 priorities from MISSING_TESTS.md have been implemented:
-- Priority 1: Critical missing tests (LDRH/STRH, BX, conditionals) - 24 tests
-- Priority 2: Memory addressing modes (complete coverage) - 35 tests  
-- Priority 3: Data processing with register shifts - 56 tests
-- Priority 4: Edge cases (special registers, immediates, flags) - 65 tests
-- Priority 5: Instruction-condition matrix (all instructions × all condition codes) - 160 tests
-
-Total test suite grew from 660 baseline to **1016 tests** (56% increase), all passing. The project now has comprehensive ARM2 instruction set coverage with systematic testing of all condition codes, addressing modes, and edge cases.
-
-Go code is 35,200+ lines at the end of day 6.
 
 ## Documentation
 
