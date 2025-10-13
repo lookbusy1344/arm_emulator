@@ -1,0 +1,9 @@
+Bit Operations Test Suite
+
+Test 1: Count bits in 0xF0F0F0F0  Bits set: 16 (expected 16)
+Test 2: Reverse byte 0b10110010  Reversed: 0b1001101 (expected 0b01001101)
+Test 3: Is 64 a power of 2? PASS
+Test 4: Find first set bit in 0b10110000  Position: 4 (expected 4)
+Test 5: Rotate 0b00000001 left by 4  Result: 0b10000 (expected 0b00010000)
+Test 6: Extract bits [15:8] from 0x12345678  Extracted: 0x56
+All bit operation tests completed!

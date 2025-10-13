@@ -1,0 +1,6 @@
+Bubble Sort Demo
+Enter array size (2-20): 
+Enter array elements:
+Element 1: Element 2: Element 3: Element 4: Element 5: Element 6: Element 7: 
+Original array: 5, 1, 4, 2, 8, 3, 6
+Sorted array:   1, 2, 3, 4, 5, 6, 8

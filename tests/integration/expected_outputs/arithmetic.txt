@@ -1,0 +1,4 @@
+Addition: 15 + 7 = 22
+Subtraction: 20 - 8 = 12
+Multiplication: 6 * 7 = 42
+Division: 35 / 5 = 7

@@ -1,0 +1,3 @@
+Testing ARM Addressing Modes...
+
+All addressing mode tests passed!

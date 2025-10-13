@@ -58,7 +58,9 @@ It's important to have clear daily (or at least progressive) goals, so we can ke
 
 I've been working through the failing example programs, and getting them to run without Copilot editing out the parts that don't work. This is a slow process, but I'm making progress.
 
-Go code is 34,493 lines.
+Last step of the day was to take more detailed control, and tell Copilot to include integration tests that run whole example programs, comparing the output to expected output files. This is a good way to catch problems that unit tests miss (although some example programs are still failing). This is the first code I have actually looked at in detail and directed more closely, eg 9262a29b2373970592ad3a9fdca6792901d72bae.
+
+Go code now is 34,735 lines.
 
 ## Documentation
 

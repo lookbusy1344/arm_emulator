@@ -1,0 +1,2 @@
+Searching for value 25 in sorted array [5, 10, 15, 20, 25, 30, 35, 40, 45, 50]
+Value found at index 4

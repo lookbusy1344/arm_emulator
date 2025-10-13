@@ -1,0 +1,5 @@
+Array Operations Demo
+Array: 10, 25, 5, 42, 18, 33, 7, 50, 12, 3
+Minimum value: 3
+Maximum value: 50
+Sum of all elements: 205

@@ -31,6 +31,37 @@ func TestExamplePrograms(t *testing.T) {
 			expectedOutput: "times_table.txt",
 			stdin:          "7\n",
 		},
+		{
+			name:           "BubbleSort",
+			programFile:    "bubble_sort.s",
+			expectedOutput: "bubble_sort.txt",
+			stdin:          "7\n5\n1\n4\n2\n8\n3\n6\n",
+		},
+		{
+			name:           "BitOperations",
+			programFile:    "bit_operations.s",
+			expectedOutput: "bit_operations.txt",
+		},
+		{
+			name:           "BinarySearch",
+			programFile:    "binary_search.s",
+			expectedOutput: "binary_search.txt",
+		},
+		{
+			name:           "Arrays",
+			programFile:    "arrays.s",
+			expectedOutput: "arrays.txt",
+		},
+		{
+			name:           "Arithmetic",
+			programFile:    "arithmetic.s",
+			expectedOutput: "arithmetic.txt",
+		},
+		{
+			name:           "AddressingModes",
+			programFile:    "addressing_modes.s",
+			expectedOutput: "addressing_modes.txt",
+		},
 	}
 
 	for _, tt := range tests {
