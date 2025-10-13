@@ -23,6 +23,7 @@ golangci-lint run ./...
 ## Test Command
 
 ```bash
+go clean -testcache
 go test ./...
 ```
 
@@ -54,7 +55,7 @@ go test ./...
 - Update the status of related tasks
 - Note outstanding work and issues in `TODO.md`
 
-**IMPORTANT:** Always run `go fmt ./...`, `golangci-lint run ./...`, and `go test ./...` after making changes to ensure code quality and correctness.
+**IMPORTANT:** Always run `go fmt ./...`, `golangci-lint run ./...`, `go clean -testcache` and `go test ./...` after making changes to ensure code quality and correctness.
 
 **IMPORTANT:** Do not delete tests without explicit instructions. Do not simplify tests because they fail. If you think a test is malfunctioning, think about it carefully and ask me before making any changes to the tests.
 

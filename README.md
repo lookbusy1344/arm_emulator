@@ -264,6 +264,7 @@ go fmt ./...
 ### Testing
 
 ```bash
+go clean -testcache
 go test ./...
 ```
 

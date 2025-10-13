@@ -1521,6 +1521,7 @@ func TestSyscall_ErrorHandling(t *testing.T)
 
 **Tools**:
 ```bash
+go clean -testcache
 go test -cover ./...
 go test -coverprofile=coverage.out ./...
 go tool cover -html=coverage.out -o coverage.html
