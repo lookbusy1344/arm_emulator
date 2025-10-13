@@ -10,3 +10,4 @@
 - Don’t ever downgrade Go or language version without being explicitly instructed.
 - Don't delete or simplify tests just to make them work. If tests fail, this usually shows a malfunction in the code, not in the test.
 - To ensure tests are up to date, recompile and clear the test cache before running tests: `go build -o arm-emulator && go clean -testcache && go test ./...`
+- Take account instructions in ../CLAUDE.md
