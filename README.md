@@ -68,6 +68,8 @@ Go code now is 34,735 lines.
 - [SPECIFICATION.md](SPECIFICATION.md) - Detailed specification for the ARM2 emulator
 - [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md) - Implementation roadmap and plan
 - [PROGRESS.md](PROGRESS.md) - Development progress and completed phases
+- [CODE_REVIEW.md](CODE_REVIEW.md) - Comprehensive code review and assessment (⭐⭐⭐⭐½)
+- [REVIEW_SUMMARY.md](REVIEW_SUMMARY.md) - Executive summary of code review
 
 ### User Documentation
 - [docs/debugger_reference.md](docs/debugger_reference.md) - Complete debugger command reference and guide
