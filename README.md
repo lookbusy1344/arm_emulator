@@ -54,6 +54,8 @@ Go code is 33,461 lines. Weekly Claude usage limits reached, can resume again on
 
 It's important to have clear daily (or at least progressive) goals, so we can keep Claude focused on them.
 
+**Day 6 - 13 Oct** - Switched to Sonnet 4.5 in Copilot now, with VSCode, because Claude Code weekly limits have been reached. I'm not sure the overall experience is quite as good as CC. While making progress, several more example programs are failing without detection from Copilot. The automated tests are clearly not thorough enough.
+
 ## Documentation
 
 ### Project Documentation
