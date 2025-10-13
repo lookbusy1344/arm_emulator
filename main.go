@@ -567,40 +567,28 @@ func loadProgramIntoVM(machine *vm.VM, program *parser.Program, entryPoint uint3
 		machine.Memory.AddSegment("low-memory", 0, segmentSize, vm.PermRead|vm.PermWrite|vm.PermExecute)
 	}
 
-	currentAddr := entryPoint
-
 	// Create encoder
 	enc := encoder.NewEncoder(program.SymbolTable)
 
-	// Build address map for instructions and directives
-	// First pass: calculate addresses
+	// Track the maximum address used for literal pool placement
+	maxAddr := entryPoint
+
+	// Build address map for instructions using parser-calculated addresses
+	// The parser has already correctly calculated addresses accounting for
+	// the interleaved layout of instructions and directives
 	addressMap := make(map[*parser.Instruction]uint32)
-	dataAddr := currentAddr
 
 	for _, inst := range program.Instructions {
-		addressMap[inst] = dataAddr
-
-		// Update symbol table with actual load address for instruction labels
-		if inst.Label != "" {
-			if err := program.SymbolTable.UpdateAddress(inst.Label, dataAddr); err != nil {
-				return fmt.Errorf("failed to update instruction label %s address: %w", inst.Label, err)
-			}
+		addressMap[inst] = inst.Address
+		instEnd := inst.Address + 4
+		if instEnd > maxAddr {
+			maxAddr = instEnd
 		}
-
-		dataAddr += 4 // Each instruction is 4 bytes
 	}
 
-	// Data directives go after instructions (original layout)
-	// We'll place the literal pool after all data
-
-	// Process data directives
+	// Process data directives using parser-calculated addresses
 	for _, directive := range program.Directives {
-		// Update label address in symbol table if this directive has a label
-		if directive.Label != "" {
-			if err := program.SymbolTable.UpdateAddress(directive.Label, dataAddr); err != nil {
-				return fmt.Errorf("failed to update label %s address: %w", directive.Label, err)
-			}
-		}
+		dataAddr := directive.Address
 
 		switch directive.Name {
 		case ".org":
@@ -608,32 +596,12 @@ func loadProgramIntoVM(machine *vm.VM, program *parser.Program, entryPoint uint3
 			continue
 
 		case ".align":
-			// Align to power of 2 (e.g., .align 2 means align to 2^2 = 4 bytes)
-			if len(directive.Args) > 0 {
-				var alignPower uint32
-				if _, err := fmt.Sscanf(directive.Args[0], "0x%x", &alignPower); err != nil {
-					if _, err := fmt.Sscanf(directive.Args[0], "%d", &alignPower); err != nil {
-						return fmt.Errorf("invalid .align value: %s", directive.Args[0])
-					}
-				}
-				alignBytes := uint32(1 << alignPower) // 2^alignPower
-				mask := alignBytes - 1
-				dataAddr = (dataAddr + mask) & ^mask
-			}
+			// Alignment is already handled by parser in directive.Address
+			continue
 
 		case ".balign":
-			// Align to specified boundary
-			if len(directive.Args) > 0 {
-				var align uint32
-				if _, err := fmt.Sscanf(directive.Args[0], "0x%x", &align); err != nil {
-					if _, err := fmt.Sscanf(directive.Args[0], "%d", &align); err != nil {
-						return fmt.Errorf("invalid .balign value: %s", directive.Args[0])
-					}
-				}
-				if dataAddr%align != 0 {
-					dataAddr += align - (dataAddr % align)
-				}
-			}
+			// Alignment is already handled by parser in directive.Address
+			continue
 
 		case ".word":
 			// Write 32-bit words
@@ -655,6 +623,9 @@ func loadProgramIntoVM(machine *vm.VM, program *parser.Program, entryPoint uint3
 				}
 				dataAddr += 4
 			}
+			if dataAddr > maxAddr {
+				maxAddr = dataAddr
+			}
 
 		case ".byte":
 			// Write bytes
@@ -669,6 +640,9 @@ func loadProgramIntoVM(machine *vm.VM, program *parser.Program, entryPoint uint3
 					return err
 				}
 				dataAddr++
+			}
+			if dataAddr > maxAddr {
+				maxAddr = dataAddr
 			}
 
 		case ".asciz", ".string":
@@ -694,12 +668,30 @@ func loadProgramIntoVM(machine *vm.VM, program *parser.Program, entryPoint uint3
 				}
 				dataAddr++
 			}
+			if dataAddr > maxAddr {
+				maxAddr = dataAddr
+			}
+
+		case ".space", ".skip":
+			// Space is reserved but not written - just track the address
+			if len(directive.Args) > 0 {
+				var size uint32
+				if _, err := fmt.Sscanf(directive.Args[0], "0x%x", &size); err != nil {
+					if _, err := fmt.Sscanf(directive.Args[0], "%d", &size); err == nil {
+						// Successfully parsed
+					}
+				}
+				endAddr := dataAddr + size
+				if endAddr > maxAddr {
+					maxAddr = endAddr
+				}
+			}
 		}
 	}
 
 	// Set literal pool start address to after all data
 	// Align to 4-byte boundary
-	literalPoolStart := (dataAddr + 3) & ^uint32(3)
+	literalPoolStart := (maxAddr + 3) & ^uint32(3)
 	enc.LiteralPoolStart = literalPoolStart
 
 	// Second pass: encode and write instructions

@@ -17,7 +17,8 @@ type Instruction struct {
 	Comment    string
 	Pos        Position
 	RawLine    string
-	EncodedLen int // Length in bytes (4 for ARM instructions)
+	EncodedLen int    // Length in bytes (4 for ARM instructions)
+	Address    uint32 // Address where this instruction should be placed
 }
 
 // Directive represents an assembler directive
@@ -28,6 +29,7 @@ type Directive struct {
 	RawLine string
 	Label   string // Optional label before directive
 	Comment string
+	Address uint32 // Address where this directive's data should be placed
 }
 
 // Program represents a parsed assembly program
@@ -183,6 +185,7 @@ func (p *Parser) firstPass(program *Program) error {
 			directive := p.parseDirective()
 			if directive != nil {
 				directive.Label = label
+				directive.Address = p.currentAddress // Record address before processing
 				program.Directives = append(program.Directives, directive)
 				p.handleDirective(directive, program)
 			}
@@ -191,7 +194,8 @@ func (p *Parser) firstPass(program *Program) error {
 			inst := p.parseInstruction()
 			if inst != nil {
 				inst.Label = label
-				inst.EncodedLen = 4 // ARM instructions are 4 bytes
+				inst.EncodedLen = 4             // ARM instructions are 4 bytes
+				inst.Address = p.currentAddress // Record address
 				program.Instructions = append(program.Instructions, inst)
 				// Safe: EncodedLen is always 4 for ARM instructions
 				p.currentAddress += uint32(inst.EncodedLen) // #nosec G115 -- EncodedLen is always 4
