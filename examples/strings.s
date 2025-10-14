@@ -42,6 +42,8 @@ _start:
         SWI     #0x02           ; WRITE_STRING
         LDR     R0, =buffer
         SWI     #0x02           ; WRITE_STRING
+        LDR     R0, =msg_quote
+        SWI     #0x02           ; WRITE_STRING
         SWI     #0x07           ; WRITE_NEWLINE
         SWI     #0x07           ; WRITE_NEWLINE
 
@@ -100,6 +102,8 @@ str_cmp_done:
         LDR     R0, =msg_concat
         SWI     #0x02           ; WRITE_STRING
         LDR     R0, =concat_buf
+        SWI     #0x02           ; WRITE_STRING
+        LDR     R0, =msg_quote
         SWI     #0x02           ; WRITE_STRING
         SWI     #0x07           ; WRITE_NEWLINE
 
@@ -229,6 +233,8 @@ msg_greater:
         .asciz  "first string is greater"
 msg_concat:
         .asciz  "Concatenated: \""
+msg_quote:
+        .asciz  "\""
 
 str1:
         .asciz  "Hello"
