@@ -17,6 +17,44 @@ This file tracks outstanding work only. Completed items are in `PROGRESS.md`.
 ---
 
 ## High Priority Tasks
+### HIGH PRIORITY: File I/O example failure / CMP & conditional branch anomaly
+
+Context: `examples/file_io.s` continues to report FAIL during write verification despite correct byte count written (64) and preserved flags. Investigation uncovered multiple defects and remaining unresolved issues.
+
+Findings:
+- Initial failure due to incomplete file syscall layer (READ/WRITE ignored fd). Implemented fd table and real syscalls.
+- SWI handler originally clobbered CPSR flags; added save/restore in `ExecuteSWI`.
+- CMP instruction caused infinite loop because PC not incremented when Rd field encoded as R15 for flag-only ops (CMP/TST/TEQ/CMN). Fixed by always incrementing PC for these opcodes (data_processing.go).
+- After fixes, CMP sets result=0 (op1==op2==64) and eventually Z=1 appears in debug logs, yet BNE still taken in `write_file` length check.
+- Debug output shows multiple CMP executions at same address prior to fix; resolved loop but logical compare still failing path.
+- Current instrumentation shows:
+  - R6 (saved write length) = 64
+  - Immediate LENGTH = 64
+  - CMP result = 0
+  - Z flag transitions to true, but failure branch path executed (suggests conditional branch evaluation mismatch or stale flag read for that specific branch instruction instance).
+
+Hypotheses:
+1. Assembler encodes `BNE` with incorrect condition code bits (e.g., using condition before flag update due to PC pipeline offset mishandling in branching logic) — need to disassemble instruction word for offending BNE.
+2. Race in execution order: branch instruction condition evaluated using flags before CMP flags visible (would require two sequential CMPs; not supported by current pipeline model but logs show delayed Z true occurrence).
+3. Flag update logic correct; EvaluateCondition returns expected value, but decoded condition on BNE instruction not mapping to CondNE (e.g., mis-decoding opcode bits 31:28).
+4. Memory corruption overwriting CPSR between CMP and branch (less likely after SWI fixes—no SWI in between now).
+
+Required Diagnostics / Actions:
+- [ ] Add disassembly / dump of instruction word at failing BNE PC (capture PC, opcode, decoded condition) when write_file length check executes.
+- [ ] Instrument `EvaluateCondition` to log cond, current flags, and decision for that specific branch only.
+- [ ] Confirm assembler output for `CMP R6,#LENGTH` (check Rd bits, ensure not accidentally writing to PC).
+- [ ] Verify that after CMP execution, next fetched instruction address matches expected sequential PC (no accidental re-fetch of CMP due to write-to-PC detection).
+- [ ] Create minimal reproduction assembly: MOV R0,#64; MOV R6,R0; CMP R6,#64; BNE fail; PASS: ... and verify pass inside same build (baseline already passes in cmp_test.s) — compare encoded BNE against failing one.
+- [ ] After diagnostics, remove temporary debug code added to examples and VM.
+- [ ] Add regression test covering CMP with Rd bits=15 case and conditional branch immediately following (ensuring PC increment and correct condition evaluation).
+
+Blocking Release: Yes (affects correctness of conditional execution and example reliability).
+
+Owner: TBD
+Priority: HIGH
+ETA: 2-4 hours (diagnostics + fix + tests)
+
+
 
 ### Enhanced CI/CD Pipeline
 **Effort:** 4-6 hours

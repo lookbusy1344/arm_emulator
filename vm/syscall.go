@@ -91,6 +91,9 @@ func (vm *VM) closeFD(fd uint32) error {
 
 // ExecuteSWI executes a software interrupt (system call)
 func ExecuteSWI(vm *VM, inst *Instruction) error {
+	// Preserve CPSR flags across SWI (syscalls shouldn't alter condition codes)
+	saved := vm.CPU.CPSR
+	var err error
 	// Extract the syscall number from the immediate value (bottom 24 bits)
 	// ARM2 traditional convention: SWI #num
 	swiNum := inst.Opcode & 0x00FFFFFF
@@ -98,81 +101,86 @@ func ExecuteSWI(vm *VM, inst *Instruction) error {
 	switch swiNum {
 	// Console I/O
 	case SWI_EXIT:
-		return handleExit(vm)
+		err = handleExit(vm)
 	case SWI_WRITE_CHAR:
-		return handleWriteChar(vm)
+		err = handleWriteChar(vm)
 	case SWI_WRITE_STRING:
-		return handleWriteString(vm)
+		err = handleWriteString(vm)
 	case SWI_WRITE_INT:
-		return handleWriteInt(vm)
+		err = handleWriteInt(vm)
 	case SWI_READ_CHAR:
-		return handleReadChar(vm)
+		err = handleReadChar(vm)
 	case SWI_READ_STRING:
-		return handleReadString(vm)
+		err = handleReadString(vm)
 	case SWI_READ_INT:
-		return handleReadInt(vm)
+		err = handleReadInt(vm)
 	case SWI_WRITE_NEWLINE:
 		fmt.Println()
 		vm.CPU.IncrementPC()
-		return nil
 
 	// File Operations
 	case SWI_OPEN:
-		return handleOpen(vm)
+		err = handleOpen(vm)
 	case SWI_CLOSE:
-		return handleClose(vm)
+		err = handleClose(vm)
 	case SWI_READ:
-		return handleRead(vm)
+		err = handleRead(vm)
 	case SWI_WRITE:
-		return handleWrite(vm)
+		err = handleWrite(vm)
 	case SWI_SEEK:
-		return handleSeek(vm)
+		err = handleSeek(vm)
 	case SWI_TELL:
-		return handleTell(vm)
+		err = handleTell(vm)
 	case SWI_FILE_SIZE:
-		return handleFileSize(vm)
+		err = handleFileSize(vm)
 
 	// Memory Operations
 	case SWI_ALLOCATE:
-		return handleAllocate(vm)
+		err = handleAllocate(vm)
 	case SWI_FREE:
-		return handleFree(vm)
+		err = handleFree(vm)
 	case SWI_REALLOCATE:
-		return handleReallocate(vm)
+		err = handleReallocate(vm)
 
 	// System Information
 	case SWI_GET_TIME:
-		return handleGetTime(vm)
+		err = handleGetTime(vm)
 	case SWI_GET_RANDOM:
-		return handleGetRandom(vm)
+		err = handleGetRandom(vm)
 	case SWI_GET_ARGUMENTS:
-		return handleGetArguments(vm)
+		err = handleGetArguments(vm)
 	case SWI_GET_ENVIRONMENT:
-		return handleGetEnvironment(vm)
+		err = handleGetEnvironment(vm)
 
 	// Error Handling
 	case SWI_GET_ERROR:
-		return handleGetError(vm)
+		err = handleGetError(vm)
 	case SWI_SET_ERROR:
-		return handleSetError(vm)
+		err = handleSetError(vm)
 	case SWI_PRINT_ERROR:
-		return handlePrintError(vm)
+		err = handlePrintError(vm)
 
 	// Debugging Support
 	case SWI_DEBUG_PRINT:
-		return handleDebugPrint(vm)
+		err = handleDebugPrint(vm)
 	case SWI_BREAKPOINT:
-		return handleBreakpoint(vm)
+		err = handleBreakpoint(vm)
 	case SWI_DUMP_REGISTERS:
-		return handleDumpRegisters(vm)
+		err = handleDumpRegisters(vm)
 	case SWI_DUMP_MEMORY:
-		return handleDumpMemory(vm)
+		err = handleDumpMemory(vm)
 	case SWI_ASSERT:
-		return handleAssert(vm)
+		err = handleAssert(vm)
 
 	default:
-		return fmt.Errorf("unimplemented SWI: 0x%06X", swiNum)
+		err = fmt.Errorf("unimplemented SWI: 0x%06X", swiNum)
 	}
+	// Restore flags
+	vm.CPU.CPSR.N = saved.N
+	vm.CPU.CPSR.Z = saved.Z
+	vm.CPU.CPSR.C = saved.C
+	vm.CPU.CPSR.V = saved.V
+	return err
 }
 
 // Console I/O handlers
@@ -515,7 +523,7 @@ func handleOpen(vm *VM) error {
 	case 0:
 		file, err = os.Open(s)
 	case 1:
-		file, err = os.OpenFile(s, os.O_CREATE|os.O_TRUNC|os.O_RDWR, 0644)
+		file, err = os.OpenFile(s, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0644)
 	case 2:
 		file, err = os.OpenFile(s, os.O_CREATE|os.O_APPEND|os.O_RDWR, 0644)
 	default:
@@ -596,6 +604,10 @@ func handleWrite(vm *VM) error {
 		vm.CPU.SetRegister(0, 0xFFFFFFFF)
 	} else {
 		vm.CPU.SetRegister(0, uint32(n))
+	}
+	// TEMP debug: if short write print diagnostic
+	if uint32(n) != length {
+		fmt.Fprintf(os.Stderr, "[DEBUG write] requested=%d wrote=%d\n", length, n)
 	}
 	vm.CPU.IncrementPC()
 	return nil

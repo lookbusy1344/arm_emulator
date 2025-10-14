@@ -2,6 +2,7 @@ package vm
 
 import (
 	"fmt"
+	"os"
 )
 
 // Data processing operation codes
@@ -156,6 +157,9 @@ func ExecuteDataProcessing(vm *VM, inst *Instruction) error {
 		overflow = CalculateSubOverflow(op1, op2, result)
 		writeResult = false
 		updateFlags = true // CMP always sets flags
+		if op1 == 64 && op2 == 64 {
+			fmt.Fprintf(os.Stderr, "[CMP DEBUG] pre-flags Z=%v N=%v result=0x%08X\n", vm.CPU.CPSR.Z, vm.CPU.CPSR.N, result)
+		}
 
 	case OpCMN:
 		result = op1 + op2
@@ -208,8 +212,8 @@ func ExecuteDataProcessing(vm *VM, inst *Instruction) error {
 		}
 	}
 
-	// Increment PC (unless we wrote to PC)
-	if rd != 15 {
+	// Increment PC (CMP/TST/TEQ/CMN never write result so always advance)
+	if rd != 15 || opcode == OpCMP || opcode == OpCMN || opcode == OpTST || opcode == OpTEQ {
 		vm.CPU.IncrementPC()
 	}
 

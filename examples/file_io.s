@@ -19,15 +19,23 @@ _start:
         BL      build_pattern
         BL      write_file
         CMP     R0, #0
-        BNE     fail
+        BNE     fail_write
         BL      read_file
         CMP     R0, #0
-        BNE     fail
+        BNE     fail_read
         BL      verify_buffers
         CMP     R0, #0
         BNE     fail
         LDR     R0, =msg_pass
         SWI     #0x02
+fail_write:
+        LDR     R0, =msg_fail_write
+        SWI     #0x02
+        B       fail
+fail_read:
+        LDR     R0, =msg_fail_read
+        SWI     #0x02
+        B       fail
         B       done
 fail:
         LDR     R0, =msg_fail
@@ -41,18 +49,20 @@ done:
 
 ; build_pattern: fill write_buf with ascending bytes
 build_pattern:
-        STMFD   SP!, {R1-R4, LR}
-        LDR     R1, =write_buf
-        MOV     R2, #0
+        STMFD   SP!, {R1-R6, LR}
+        LDR     R1, =write_buf    ; base
+        MOV     R2, #0            ; value counter
+        MOV     R3, R1            ; current pointer
 bp_loop:
         CMP     R2, #LENGTH
         BGE     bp_done
-        STRB    R2, [R1, R2]
-        ADD     R2, R2, #1
+        STRB    R2, [R3]          ; store byte
+        ADD     R3, R3, #1        ; advance pointer
+        ADD     R2, R2, #1        ; next value
         B       bp_loop
 bp_done:
         MOV     R0, #0
-        LDMFD   SP!, {R1-R4, PC}
+        LDMFD   SP!, {R1-R6, PC}
 
 ; write_file: open + write pattern
 ; Returns R0=0 on success else 1
@@ -67,8 +77,18 @@ write_file:
         LDR     R1, =write_buf
         MOV     R2, #LENGTH
         MOV     R0, R4
-        SWI     #0x13             ; Write
-        CMP     R0, #LENGTH
+        SWI     #0x13             ; Write (R0=bytes written)
+        MOV     R6, R0            ; preserve result across any future calls
+        ; DEBUG: show R6 and expected
+        MOV     R0, R6
+        MOV     R1, #10
+        SWI     #0x03
+        SWI     #0x07
+        MOV     R0, #LENGTH
+        MOV     R1, #10
+        SWI     #0x03
+        SWI     #0x07
+        CMP     R6, #LENGTH
         BNE     wf_err
         ; (seek not required before close)
         ; Close
@@ -128,16 +148,33 @@ vb_pass:
         MOV     R0, #0
         B       vb_done
 vb_fail:
+        ; On fail print index and values
+        MOV     R0, R3
+        MOV     R1, #10
+        SWI     #0x03           ; print index
+        MOV     R0, R4
+        MOV     R1, #16
+        SWI     #0x03           ; expected byte
+        MOV     R0, R5
+        MOV     R1, #16
+        SWI     #0x03           ; actual byte
+        SWI     #0x07
         MOV     R0, #1
 vb_done:
         LDMFD   SP!, {R1-R5, PC}
 
+; msg_sep removed
+
 ; Data ------------------------------------------------------------------
 
 filename:       .asciz  "test_io.txt"
+        .align 4
 write_buf:      .space  LENGTH
+        .align 4
 read_buf:       .space  LENGTH
 
 msg_intro:      .asciz  "[file_io] File I/O round-trip test starting"
 msg_pass:       .asciz  "[file_io] PASS"
 msg_fail:       .asciz  "[file_io] FAIL"
+msg_fail_write: .asciz  "[file_io] FAIL during write"
+msg_fail_read:  .asciz  "[file_io] FAIL during read"
