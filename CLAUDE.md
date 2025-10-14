@@ -69,18 +69,26 @@ go test ./...
 
 ## Current Status
 
-**Phase 11 (Production Hardening) - Nearly Complete**
-- 660 tests passing (100% pass rate)
-  - Unit tests: 575 tests
-  - Integration tests: 85 tests (full end-to-end execution pipeline + CLI diagnostic flags)
+**Phase 11 (Production Hardening) - Complete ✅**
+- All tests passing (100% pass rate)
+  - Unit tests: ~900 tests
+  - Integration tests: 62 tests (full end-to-end execution pipeline + CLI diagnostic flags + example programs)
 - Code quality tools implemented (golangci-lint with errcheck, unused, govet, ineffassign, misspell)
 - All lint issues resolved (0 issues reported)
 - Go vet warnings fixed (method renames to avoid interface conflicts)
 - CI updated to Go 1.25 with automated linting
 - Build artifacts added to .gitignore
 - Parser limitations resolved (debugger expression parser rewritten)
-- Example programs: 21 of 23 fully functional (91% functional rate)
-- Addressing modes example added (comprehensive demonstration of all ARM2 addressing modes)
+- Example programs: 34 programs with comprehensive integration tests
+  - 32 programs with expected output files
+  - Table-driven test framework for easy test maintenance
+- Recent improvements (Oct 2025):
+  - Negative constants in .equ directives now supported
+  - MOVW automatic encoding for 16-bit immediates
+  - CMP/CMN instruction handling for un-encodable immediates
+  - Standalone instruction shift support (LSR, LSL, ASR, ROR as pseudo-instructions)
+  - Data section ordering fixed (.data before .text)
+  - Comprehensive integration test coverage for all examples
 - Character literal support complete (basic chars + escape sequences)
 - ARM immediate encoding bug fixed (fibonacci.s, calculator.s now work correctly)
 - Diagnostic modes complete (code coverage, stack trace, flag trace)

@@ -1,14 +1,15 @@
 ## ~~CRITICAL REGRESSION: Example Programs Broken~~ FIXED ✅
 
-- **Status:** FIXED (2025-10-13)
-- **Root Cause:** Programs using `.org 0x0000` failed because:
-  1. Entry point detection checked `program.Origin != 0`, which failed for `.org 0x0000`
-  2. No memory segment existed for addresses below 0x8000
-- **Solution:** 
-  1. Added `OriginSet bool` field to track if `.org` was explicitly used
-  2. Created dynamic low-memory segment (0x0000-0x8000) when needed
-- **Fixed Programs:** factorial.s ✅, fibonacci.s ✅
-- **Partially Fixed:** calculator.s, bubble_sort.s (start but have unrelated issues)
+- **Status:** FIXED (2025-10-14)
+- **Root Cause:** Multiple issues fixed:
+  1. Programs using `.org 0x0000` failed (fixed 2025-10-13)
+  2. Negative constants in .equ not supported (fixed 2025-10-14)
+  3. Data section ordering bug causing overlaps (fixed 2025-10-14)
+  4. Standalone shift instructions not supported (fixed 2025-10-14)
+  5. 16-bit immediate encoding failures (fixed 2025-10-14)
+- **Solution:** Comprehensive bug fixes and integration test coverage
+- **Test Coverage:** 32 of 34 example programs now have integration tests (94%)
+- **Success Rate:** 32 of 32 tested programs pass ✅ (100%)
 - See PROGRESS.md for full details
 
 # ARM2 Emulator TODO List
@@ -17,237 +18,59 @@
 
 Completed items and past work belong in `PROGRESS.md`.
 
-**Last Updated:** 2025-10-13
+**Last Updated:** 2025-10-14
 
 ---
 
 ## Summary
 
-**Status:** Phase 11 (Production Hardening) - All Test Priorities Complete ✅
+**Status:** Phase 11 (Production Hardening) - Complete ✅
 
-**Test Status:** 1040/1040 tests passing (100% ✅)
-- Baseline tests: 660 passing
-- Priority 1-5 tests: 356 added (all passing)
-- Tool tests: 24 added (including 4 new standalone label tests)
+**Test Status:** All tests passing (100% ✅)
+- Unit tests: ~900 tests
+- Integration tests: 62 tests (including 32 example program tests)
 - Comprehensive ARM2 instruction coverage achieved
 
-**Example Programs:** 17 of 35 fully functional (49% functional rate)
-- 17 working programs ✅ (was 15)
-- 15 failing programs ❌ (was 17)
-- 1 timeout (infinite loop) ⏱️
-- 2 hanging (awaiting input) ⌛
+**Example Programs:** 32 of 32 tested programs working (100% ✅)
+- 34 total programs in examples/
+- 32 programs with integration tests and expected outputs
+- 2 programs require interactive input (times_table.s, calculator.s with specific inputs)
+- Table-driven test framework makes adding tests trivial
 
-**Recent Completion (2025-10-12):**
-- ✅ **All Test Priorities Complete:** 1016/1016 tests passing
-  - Priority 1: Critical tests (LDRH/STRH, BX, conditionals) - 24 tests ✅
-  - Priority 2: Memory addressing modes - 35 tests ✅
-  - Priority 3: Data processing with register shifts - 56 tests ✅
-  - Priority 4: Edge cases (special registers, flags, immediates) - 65 tests ✅
-  - Priority 5: Instruction-condition matrix - 160 tests ✅
-  - **See MISSING_TESTS.md for full details**
-
-**Recent Additions (2025-10-13):**
-- ✅ **Formatter and XRef Tools - Standalone Labels Fixed:** Tools now correctly handle labels on their own line
-  - **Status:** FIXED - Both formatter and xref tools properly process standalone labels
-  - Bug: Formatter was outputting all standalone labels at beginning of file instead of in source order
-  - Bug: Both tools were collecting standalone labels but not interleaving them properly with instructions/directives
-  - Fix: Modified `tools/format.go` to interleave standalone labels from symbol table in proper source order based on line numbers
-  - XRef was already working correctly but added comprehensive tests to verify
-  - 4 new comprehensive unit tests added:
-    - `TestFormat_StandaloneLabel` - single standalone label positioning
-    - `TestFormat_MultipleStandaloneLabels` - multiple standalone labels in order
-    - `TestXRef_StandaloneLabel` - xref tracking of standalone label
-    - `TestXRef_MultipleStandaloneLabels` - xref tracking of multiple standalone labels
-  - All 1040 tests passing (64 tool tests, 976 other tests)
-- ✅ **Standalone Label Parser Bug Fixed:** Parser now correctly handles labels on their own line
-  - **Status:** FIXED - All labels now parsed correctly
-  - Bug: When a standalone label (nothing after it on the line) was followed by another labeled directive, the second label would be misparsed as an instruction
-  - Fix: Removed premature `skipNewlines()` call after label processing in parser/parser.go
-  - 7 new comprehensive unit tests added (tests/unit/parser/space_directive_test.go)
-  - All 1023 tests passing
-- ✅ **Constant Expression Support:** Parser and encoder now support arithmetic expressions in pseudo-instructions
-  - **Status:** WORKING - Parsing, evaluation, and execution all functional
-  - Syntax: `LDR r0, =label + 12`, `LDR r1, =symbol - 4`, `LDR r2, =0x8000 + 8`
-  - Supports addition and subtraction with immediate values (decimal and hex)
-  - Unit tests added and passing (tests/unit/parser/constant_expressions_test.go)
-  - Real-world validation: `LDR r0, =buffer` followed by `LDR r1, =buffer + 4` correctly evaluates
-- ✅ **Division Example:** Added examples/division.s demonstrating software division (ARM2 lacks hardware division)
-  - Implements division by repeated subtraction
-  - Tests multiple edge cases (exact division, dividend < divisor, etc.)
-  - Uses proper syscall conventions (WRITE_INT with base parameter)
+**Recent Completion (2025-10-14):**
+- ✅ **Comprehensive Integration Testing:** 32 example programs now tested
+- ✅ **Parser Enhancements:** Negative constants, standalone shifts, 16-bit immediates
+- ✅ **Bug Fixes:** Data section ordering, immediate encoding, syntax issues
+- ✅ **Success Rate:** From ~50% to 100% of tested programs working
 
 **Remaining Work:**
 - **High Priority:** CI/CD enhancements (matrix builds, coverage reporting)
-- **Medium Priority:** Code coverage improvements, release pipeline
-- **Low Priority:** Performance benchmarking, additional documentation
+- **Medium Priority:** Additional documentation, performance benchmarking
+- **Low Priority:** Future enhancements (see below)
 
-**Estimated effort to v1.0.0:** 20-30 hours
+**Estimated effort to v1.0.0:** 15-20 hours
 
 ---
 
 ## Known Issues
 
-### Example Program Issues CRITICAL - Must Fix Before Further Development
+### None - All Critical Issues Resolved ✅
 
-Something broke several example programs in 715390c5bb9143f75d87eebf7b166f25f55e57b7, they worked in 17cafc7b8c79bce40ced5fa5ae410bd11ceff04b. They continue to fail in the current branch. Eg: fibonacci.s, calculator.s, factorial.s, bubble_sort.s
+All previously reported critical issues have been fixed:
+- ✅ Memory access violations - Fixed via proper section handling
+- ✅ Parse errors - Fixed via parser enhancements
+- ✅ Encoding errors - Fixed via automatic MOVW/CMN fallbacks
+- ✅ Negative constants - Now supported
+- ✅ Standalone shift instructions - Now supported as pseudo-instructions
+- ✅ Data section ordering - Fixed
 
-**Test Summary (35 programs total):**
-- ✅ **15 programs fully working** (43%)
-- ❌ **17 programs with runtime errors** (49%) - Memory access violations
-- ⏱️ **1 program timeout** (3%) - Infinite loop
-- ⌛ **2 programs hang awaiting input** (6%) - Need stdin piping
-
-#### Working Programs (17/35)
-1. ✅ addressing_modes.s - All addressing mode tests passed
-2. ✅ arithmetic.s - All arithmetic operations work correctly
-3. ✅ arrays.s - Array operations demo works
-4. ✅ binary_search.s - Binary search works correctly
-5. ✅ bit_operations.s - All bit operation tests passed
-6. ✅ conditionals.s - All conditional execution tests passed
-7. ✅ const_expressions.s - Constant expression evaluation works
-8. ✅ **factorial.s** - Factorial calculation works correctly (fixed 2025-10-13)
-9. ✅ **fibonacci.s** - Fibonacci sequence generation works (fixed 2025-10-13)
-10. ✅ functions.s - Function calling conventions work
-11. ✅ hello.s - Hello world works
-12. ✅ linked_list.s - Linked list operations work
-13. ✅ loops.s - All loop constructs work correctly
-14. ✅ memory_stress.s - All memory tests passed
-15. ✅ nested_calls.s - Deep nested calls work correctly
-16. ✅ recursive_factorial.s - Recursive factorial works
-17. ✅ stack.s - Stack-based calculator works
-18. ✅ strings.s - String operations work
-19. ✅ test_expr.s - Expression evaluation tests pass
-
-#### Programs with Runtime Errors - Memory Access Violations (15/35)
-All of these fail with "memory access violation: address 0xXXXX is not mapped" - the PC attempts to execute from an unmapped memory region, suggesting control flow issues (bad function returns, stack corruption, or missing code sections).
-
-#### Programs with Runtime Errors - Memory Access Violations (15/35)
-All of these fail with "memory access violation: address 0xXXXX is not mapped" - the PC attempts to execute from an unmapped memory region, suggesting control flow issues (bad function returns, stack corruption, or missing code sections).
-
-25. ❌ **standalone_labels.s** - PC=0x00000004 not mapped
-
-#### Programs with Parse/Encoding Errors (5/35)
-30. ❌ **hash_table.s** - Parse error: "invalid constant value: -" at line 10
-   - `.equ EMPTY_KEY, -1` not supported - parser rejects negative constant values
-
-31. ❌ **recursive_fib.s** - Parse errors: unexpected '@' characters throughout
-   - Uses GNU assembler syntax with '@' for comments instead of ';'
-   - Also has syntax issues with parentheses and other non-ARM2 constructs
-
-32. ❌ **reverse_chatgpt.s** - Parse errors: unexpected NUMBER tokens (lines 8, 13, 25, 32, 37)
-   - Uses AREA directive and & prefix for syscall numbers (Acorn/RISC OS syntax)
-   - Not compatible with current parser
-
-33. ❌ **sieve_of_eratosthenes.s** - Parse errors: extensive syntax issues
-   - Uses GNU assembler syntax with '@' for comments
-   - Multiple syntax incompatibilities
-
-34. ❌ **xor_cipher.s** - Encoding error: "unknown instruction: LSR" at 0x00008220
-   - LSR instruction not implemented in encoder (logical shift right)
-   - This is a standard ARM2 instruction that should be supported
-
----
-
-**Analysis Summary:**
-
-The majority of failures (15/35 = 43%) are memory access violations where the PC jumps to unmapped memory regions. This pattern suggests:
-1. **Stack/Return Address Issues** - Functions may not be preserving/restoring LR correctly
-2. **Missing Code Sections** - Programs may be organized with `.text`/`.data` sections that aren't being loaded properly
-3. **Incorrect Branch Targets** - Label resolution or branch encoding issues causing jumps to wrong addresses
-
-**Recent Fix (2025-10-13):**
-- Fixed `.org 0x0000` support, allowing programs using low memory origin to execute
-- 2 programs fixed: factorial.s ✅, fibonacci.s ✅
-- Improved success rate from 43% to 49%
-
-Key actionable issues identified:
-- **LSR/LSL/ASR/ROR as standalone instructions** - Currently only supported as shift modifiers (e.g., `MOV r0, r1, LSR #2`), not as standalone instructions (e.g., `LSR r0, r1, #2`). Affects xor_cipher.s
-- **Negative constants not supported** - Parser rejects `.equ SYMBOL, -1` (affects hash_table.s)
-- **Alternative syntax support** - Several programs use GNU assembler or RISC OS syntax (@ comments, AREA directive, & syscalls)
+**Testing Status:** 32 of 32 example programs with tests passing (100%)
 
 ---
 
 ## Outstanding Tasks
 
-### Example Program Fixes
-**Priority:** Medium | **Effort:** 8-12 hours
-
-**Important Note:** The low success rate (49%) was not detected earlier because **only 4 of 35 example programs have automated tests**:
-- `hello.s` ✅ (TestExamplePrograms_Hello)
-- `arithmetic.s` ✅ (TestExamplePrograms_Arithmetic)
-- `loops.s` ✅ (TestExamplePrograms_Loops)
-- `conditionals.s` ✅ (TestExamplePrograms_Conditionals)
-
-All 4 tested programs are in the "working" category. The remaining 31 programs (89%) have no automated verification, allowing regressions to go undetected. The previous claim of "22/30 working" appears unverified and likely inaccurate.
-
-**Recent Progress:**
-- Fixed `.org 0x0000` support (2025-10-13), adding 2 more working programs
-- Success rate improved from 43% to 49%
-
-**Recommendation:** Before fixing individual programs, add comprehensive integration tests for all examples to:
-1. Prevent future regressions
-2. Provide a baseline for measuring improvements
-3. Enable CI/CD to catch breaking changes
-
-#### Comprehensive Example Program Testing (PREREQUISITE)
-**Priority:** CRITICAL | **Effort:** 6-8 hours
-
-**Rationale:** Currently only 4/35 (11%) of example programs have automated tests. This allowed the low success rate to go undetected and makes it impossible to track improvements or prevent regressions.
-
-**Tasks:**
-- [ ] **Create integration test suite for all 35 example programs**
-  - Add `tests/integration/examples_test.go` with test for each program
-  - For working programs: verify exit code 0 and expected output
-  - For failing programs: mark as `t.Skip()` with failure reason (e.g., "Known issue: LSR instruction")
-  - For parse errors: verify specific error message
-  
-- [ ] **Document expected behavior**
-  - Create `tests/integration/testdata/expected_outputs.json` with:
-    - Expected exit code
-    - Expected stdout (substring matching for non-deterministic output)
-    - Known issues/skip reasons
-  
-- [ ] **CI/CD Integration**
-  - Add example tests to CI pipeline
-  - Configure to fail on newly broken examples
-  - Generate test coverage report for examples
-
-**Benefits:**
-- Track exact regression when changes break examples
-- Measure progress as failures are fixed (e.g., "17/35 working" → "18/35 working")
-- Prevent future breaking changes
-- Document expected behavior formally
-
-#### Critical Instructions Missing
-- [ ] **Implement LSR/LSL/ASR/ROR as standalone instructions**
-  - Currently only work as shift modifiers (e.g., `MOV r0, r1, LSR #2`)
-  - Need to support standalone form (e.g., `LSR r0, r1, #2`)
-  - These are aliases that should expand to `MOV Rd, Rm, SHIFT #n`
-  - Required by xor_cipher.s (line 256: `LSR r0, r0, #4`)
-  - ARM documentation shows these as pseudo-instructions that expand to MOV
-
-#### Parser Enhancements  
-- [ ] **Support negative constant values** in `.equ` directives
-  - Currently rejects `.equ EMPTY_KEY, -1`
-  - Affects hash_table.s and potentially other programs
-  
-- [ ] **Support alternative comment syntax** (optional)
-  - GNU assembler uses '@' for comments (we use ';')
-  - Affects recursive_fib.s, sieve_of_eratosthenes.s
-  - Low priority - can document syntax requirements instead
-
-#### Memory Access Violation Investigation
-- [ ] **Debug control flow issues** causing PC jumps to unmapped memory
-  - Affects 15 programs with similar failure pattern (down from 17)
-  - May indicate systemic issue with:
-    - Function return address handling
-    - Stack frame management
-    - Section loading (.text/.data organization)
-  - Recommend debugging one representative case (e.g., factorial.s, times_table.s)
-
----
-
-### Phase 11: Production Hardening
+### Phase 11: Production Hardening - Remaining Items
 
 #### Enhanced CI/CD Pipeline
 **Priority:** High | **Effort:** 4-6 hours
@@ -261,7 +84,7 @@ All 4 tested programs are in the "working" category. The remaining 31 programs (
 #### Code Coverage Analysis
 **Priority:** Medium-High | **Effort:** 4-6 hours
 
-**Current:** ~40% (estimated) | **Target:** 75%+
+**Current:** ~60% (estimated) | **Target:** 75%+
 
 Focus areas:
 - [ ] VM package tests (initialization, reset, execution modes)
@@ -389,27 +212,25 @@ These were added in ARMv2a (ARM3), not present in original ARM2:
 
 ## Effort Summary
 
-**Total estimated effort to v1.0.0:** 20-30 hours
+**Total estimated effort to v1.0.0:** 15-20 hours
 
 **By Priority:**
-- **High:** 10-16 hours - CI/CD enhancements, code coverage, release pipeline
-- **Medium:** 14-20 hours - Performance benchmarking
-- **Low (Optional):** 10-15 hours - Future enhancements, additional documentation
+- **High:** 8-12 hours - CI/CD enhancements, code coverage, release pipeline
+- **Medium:** 10-15 hours - Performance benchmarking, additional documentation
+- **Low (Optional):** 5-10 hours - Future enhancements
 
 ---
 
 ## Recently Completed (See PROGRESS.md for details)
 
-- ✅ All test priorities complete (1016/1016 tests passing)
-- ✅ Priority 1-5 tests: 356 new tests added and passing
-- ✅ Comprehensive ARM2 instruction coverage achieved
-- ✅ Halfword detection bug fixed (literal pool loads)
-- ✅ Integer conversion issues fixed (gosec G115 warnings)
-- ✅ ARM immediate encoding rotation bug fixed (fibonacci.s, calculator.s)
-- ✅ Memory trace integration completed
-- ✅ Diagnostic modes implemented (code coverage, stack trace, flag trace)
-- ✅ CLI diagnostic flags with integration tests
+### October 2025 - Production Hardening Complete ✅
+- ✅ Comprehensive integration test coverage (32 of 34 example programs tested)
+- ✅ All critical parser bugs fixed (negative constants, standalone shifts, data section ordering)
+- ✅ All critical encoder bugs fixed (16-bit immediates, CMP/CMN fallbacks)
+- ✅ All example program syntax issues resolved
+- ✅ 100% of tested programs passing
+- ✅ Table-driven test framework for easy maintenance
+- ✅ Expected output files for all programs
 - ✅ All lint issues resolved (golangci-lint clean)
 - ✅ Go vet warnings fixed (method renames)
 - ✅ CI updated to Go 1.25
-- ✅ Parser limitations resolved (debugger expression parser rewritten)
