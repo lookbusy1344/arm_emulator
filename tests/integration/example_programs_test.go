@@ -97,6 +97,11 @@ func TestExamplePrograms(t *testing.T) {
 			programFile:    "standalone_labels.s",
 			expectedOutput: "standalone_labels.txt",
 		},
+		{
+			name:           "XORCipher",
+			programFile:    "xor_cipher.s",
+			expectedOutput: "xor_cipher.txt",
+		},
 	}
 
 	for _, tt := range tests {

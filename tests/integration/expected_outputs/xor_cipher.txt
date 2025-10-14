@@ -1,0 +1,13 @@
+XOR Cipher - Symmetric Encryption
+
+Plaintext:  ARM Assembly is powerful and efficient!
+Key:        SECRET
+Encrypted:  12 17 0E 72 04 27 20 20 2E 30 29 2D 73 2C 30 72 35 3B 24 20 31 34 30 38 73 24 2D 36 65 31 35 23 2A 31 2C 31 3D 31 62 
+Decrypted:  ARM Assembly is powerful and efficient!
+
+Advanced Operations:
+Key rotation (3 positions): RETSEC
+Frequency analysis:
+  Printable characters: 39
+
+Encryption/Decryption cycle verified!
