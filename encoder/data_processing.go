@@ -207,6 +207,13 @@ func (e *Encoder) encodeOperand2(cond, opcode, rn, rd, sBit uint32, operand stri
 					// Use MVN instead of MOV
 					opcode = opMVN
 					encoded = invertedEncoded
+				} else if value <= 0xFFFF {
+					// Use MOVW encoding for 16-bit immediates
+					// Format: cccc 0011 0000 iiii dddd iiii iiii iiii
+					// imm16 is split: imm4 (bits 16-19) and imm12 (bits 0-11)
+					imm4 := (value >> 12) & 0xF
+					imm12 := value & 0xFFF
+					return (cond << 28) | (0x30 << 20) | (imm4 << 16) | (rd << 12) | imm12, nil
 				} else {
 					return 0, fmt.Errorf("immediate value 0x%08X cannot be encoded as ARM immediate (tried MOV and MVN)", value)
 				}
@@ -220,6 +227,28 @@ func (e *Encoder) encodeOperand2(cond, opcode, rn, rd, sBit uint32, operand stri
 					encoded = invertedEncoded
 				} else {
 					return 0, fmt.Errorf("immediate value 0x%08X cannot be encoded as ARM immediate (tried MVN and MOV)", value)
+				}
+			} else if opcode == opCMP {
+				// If CMP fails, try converting to CMN with negated value
+				// CMP Rn, #imm  ->  CMN Rn, #-imm
+				negatedValue := uint32(-int32(value))
+				if negatedEncoded, negatedOk := e.encodeImmediate(negatedValue); negatedOk {
+					// Use CMN instead of CMP
+					opcode = opCMN
+					encoded = negatedEncoded
+				} else {
+					return 0, fmt.Errorf("immediate value 0x%08X cannot be encoded as ARM immediate (tried CMP and CMN)", value)
+				}
+			} else if opcode == opCMN {
+				// If CMN fails, try converting to CMP with negated value
+				// CMN Rn, #imm  ->  CMP Rn, #-imm
+				negatedValue := uint32(-int32(value))
+				if negatedEncoded, negatedOk := e.encodeImmediate(negatedValue); negatedOk {
+					// Use CMP instead of CMN
+					opcode = opCMP
+					encoded = negatedEncoded
+				} else {
+					return 0, fmt.Errorf("immediate value 0x%08X cannot be encoded as ARM immediate (tried CMN and CMP)", value)
 				}
 			} else {
 				return 0, fmt.Errorf("immediate value 0x%08X cannot be encoded as ARM immediate", value)
