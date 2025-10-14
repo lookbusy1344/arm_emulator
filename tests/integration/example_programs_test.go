@@ -92,6 +92,11 @@ func TestExamplePrograms(t *testing.T) {
 			programFile:    "sieve_of_eratosthenes.s",
 			expectedOutput: "sieve_of_eratosthenes.txt",
 		},
+		{
+			name:           "StandaloneLabels",
+			programFile:    "standalone_labels.s",
+			expectedOutput: "standalone_labels.txt",
+		},
 	}
 
 	for _, tt := range tests {
