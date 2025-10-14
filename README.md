@@ -64,7 +64,7 @@ Go code now is 34,735 lines.
 
 **Day 7 - 14 Oct - Copilot CLI** - 14 Oct - Today I’m trying Copilot CLI. https://github.com/github/copilot-cli with the default Sonnet 4.5 model, from commit c3d1c0ada6fbf073e0e6ce54371dbb9b3c63119e. Not quite as slick as Claude Code, but close (well the model is the same!).
 
-7e73c4ad6b6ab630d60823459b64ea6ef7cd3df8 breaks integration tests (the script runs fine by hand), and Sonnet 4.5 completely fails to fix it.
+f19616250600ed4ed98839de2ad14bfac3774e92 breaks integration tests (the script runs fine by hand), and Sonnet 4.5 completely failed to fix it. Switching to GPT-5 however seemed to fixed very elegantly, although it is highly uncommunicative.
 
 
 ## Documentation

@@ -2,6 +2,7 @@ package integration_test
 
 import (
 	"bytes"
+	"fmt"
 	"io"
 	"os"
 	"strings"
@@ -337,7 +338,7 @@ func parseHex(s string, out *uint32) (int, error) {
 		} else if c >= 'A' && c <= 'F' {
 			val += uint32(c-'A') + 10
 		} else {
-			return 0, nil
+			return 0, fmt.Errorf("invalid hex digit: %q", c)
 		}
 	}
 	*out = val
@@ -350,7 +351,7 @@ func parseInt(s string, out *uint32) (int, error) {
 		if c >= '0' && c <= '9' {
 			val = val*10 + uint32(c-'0')
 		} else {
-			return 0, nil
+			return 0, fmt.Errorf("invalid decimal digit: %q", c)
 		}
 	}
 	*out = val
