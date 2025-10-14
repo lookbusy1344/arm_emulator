@@ -64,7 +64,7 @@ Go code now is 34,735 lines.
 
 **Day 7 - 14 Oct - Copilot CLI** - 14 Oct - Today I’m trying Copilot CLI. https://github.com/github/copilot-cli with the default Sonnet 4.5 model, from commit c3d1c0ada6fbf073e0e6ce54371dbb9b3c63119e. Not quite as slick as Claude Code, but close (well the model is the same!).
 
-f19616250600ed4ed98839de2ad14bfac3774e92 breaks integration tests (the script runs fine by hand), and Sonnet 4.5 completely failed to fix it. Switching to GPT-5 however seemed to fixed very elegantly, although it is very slow and uncommunicative.
+f19616250600ed4ed98839de2ad14bfac3774e92 breaks integration tests (the script runs fine by hand), and Sonnet 4.5 completely failed to fix it. Switching to GPT-5 however seemed to fixed very elegantly, although it is slow and uncommunicative.
 
 By 2001523f91760431f078e4f0fd6932f736cad770 we have all the example programs fixed, and running as integration tests. Something I've closely pushed for in the latest phase of development.
 
@@ -306,8 +306,6 @@ This emulator provides **complete ARM2 instruction set coverage** as implemented
 - PSR transfer instructions (MRS/MSR) - introduced in ARMv3, not ARM2
 - Atomic swap instructions (SWP/SWPB) - introduced in ARMv2a (ARM3), not original ARM2
 - Coprocessor instructions (CDP/LDC/STC/MCR/MRC) - optional in ARMv2, rarely used
-
-For detailed analysis, see the "Missing ARM2/ARMv2 Instructions" section in [TODO.md](TODO.md).
 
 ## License
 
