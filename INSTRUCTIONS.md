@@ -15,9 +15,10 @@ This document details the ARM assembly instructions implemented and planned for 
 3. [Branch Instructions](#branch-instructions)
 4. [Multiply Instructions](#multiply-instructions)
 5. [System Instructions](#system-instructions)
-6. [Condition Codes](#condition-codes)
-7. [Addressing Modes](#addressing-modes)
-8. [Shift Operations](#shift-operations)
+6. [Assembler Directives](#assembler-directives)
+7. [Condition Codes](#condition-codes)
+8. [Addressing Modes](#addressing-modes)
+9. [Shift Operations](#shift-operations)
 
 ---
 
@@ -703,6 +704,264 @@ MSR CPSR, R0          ; CPSR = R0
 
 ---
 
+## Assembler Directives
+
+Assembler directives control how the assembler processes your source code. They don't generate instructions but affect memory layout, symbol definitions, and code organization.
+
+### Section Directives ✅
+
+#### .text
+**Description:** Marks the beginning of the code section
+
+**Syntax:** `.text`
+
+**Example:**
+```arm
+.text
+.global _start
+_start:
+    MOV R0, #1
+```
+
+#### .data
+**Description:** Marks the beginning of the data section for initialized data
+
+**Syntax:** `.data`
+
+**Example:**
+```arm
+.data
+counter:    .word 0
+message:    .asciz "Hello"
+```
+
+**Note:** In this emulator, `.data` and `.text` sections can be interleaved. The assembler tracks addresses sequentially regardless of section.
+
+### Symbol Directives ✅
+
+#### .global
+**Description:** Declares a symbol as global (visible to other modules)
+
+**Syntax:** `.global symbol_name`
+
+**Example:**
+```arm
+.global _start
+.global my_function
+```
+
+#### .equ / .set
+**Description:** Defines a constant value for a symbol
+
+**Syntax:** `.equ symbol, value` or `.set symbol, value`
+
+**Example:**
+```arm
+.equ BUFFER_SIZE, 256
+.equ MAX_COUNT, 100
+.set STACK_SIZE, 0x1000
+```
+
+### Memory Allocation Directives ✅
+
+#### .org
+**Description:** Sets the assembly origin address
+
+**Syntax:** `.org address`
+
+**Example:**
+```arm
+.org 0x8000        ; Start code at address 0x8000
+```
+
+#### .word
+**Description:** Allocates and initializes 32-bit words (4 bytes each)
+
+**Syntax:** `.word value1, value2, ...`
+
+**Example:**
+```arm
+array:      .word 10, 20, 30, 40
+table:      .word 0x12345678, 0xABCDEF00
+```
+
+#### .half
+**Description:** Allocates and initializes 16-bit halfwords (2 bytes each)
+
+**Syntax:** `.half value1, value2, ...`
+
+**Example:**
+```arm
+shorts:     .half 100, 200, 300
+```
+
+#### .byte
+**Description:** Allocates and initializes 8-bit bytes (1 byte each)
+
+**Syntax:** `.byte value1, value2, ...`
+
+**Example:**
+```arm
+bytes:      .byte 0x01, 0x02, 0x03, 0xFF
+flags:      .byte 'A', 'B', 'C'
+```
+
+#### .ascii
+**Description:** Allocates a string without null terminator
+
+**Syntax:** `.ascii "string"`
+
+**Example:**
+```arm
+msg:        .ascii "Hello"        ; 5 bytes, no null
+```
+
+#### .asciz / .string
+**Description:** Allocates a null-terminated string (C-style)
+
+**Syntax:** `.asciz "string"` or `.string "string"`
+
+**Example:**
+```arm
+msg:        .asciz "Hello"        ; 6 bytes, includes null
+prompt:     .string "Enter name: "
+```
+
+**Escape Sequences:** Both `.ascii` and `.asciz` support standard escape sequences:
+- `\n` - Newline (0x0A)
+- `\r` - Carriage return (0x0D)
+- `\t` - Tab (0x09)
+- `\b` - Backspace (0x08)
+- `\\` - Backslash
+- `\"` - Double quote
+- `\'` - Single quote
+- `\0` - Null character
+
+**Example:**
+```arm
+greeting:   .asciz "Hello\nWorld\n"
+path:       .asciz "C:\\Users\\Name"
+```
+
+#### .space / .skip
+**Description:** Reserves specified number of bytes (initialized to zero)
+
+**Syntax:** `.space size` or `.skip size`
+
+**Example:**
+```arm
+buffer:     .space 256        ; Reserve 256 bytes
+stack:      .skip 0x1000      ; Reserve 4KB
+```
+
+### Character Literals ✅
+
+Character literals can be used anywhere an immediate value is expected. They are enclosed in single quotes and evaluate to the ASCII/Unicode value of the character.
+
+**Syntax:** `'c'` where c is any character
+
+**Supported in:**
+- Immediate operands in data processing instructions
+- `.byte` directive values
+- `.equ` constant definitions
+- Comparison values
+
+**Example:**
+```arm
+MOV R0, #'A'           ; R0 = 65 (ASCII value of 'A')
+CMP R1, #'0'           ; Compare R1 with 48 (ASCII '0')
+SUB R2, R2, #' '       ; Subtract space character (32)
+
+.equ NEWLINE, '\n'     ; Define constant from character
+.byte 'H', 'i', 0      ; Byte array with characters
+```
+
+**Escape Sequences:** Character literals support the same escape sequences as strings:
+```arm
+MOV R0, #'\n'          ; Newline (10)
+MOV R1, #'\t'          ; Tab (9)
+MOV R2, #'\\'          ; Backslash (92)
+MOV R3, #'\''          ; Single quote (39)
+```
+
+### Alignment Directives ✅
+
+#### .align
+**Description:** Aligns to 2^n bytes boundary
+
+**Syntax:** `.align n`
+
+**Example:**
+```arm
+.align 2          ; Align to 4-byte boundary (2^2)
+.align 3          ; Align to 8-byte boundary (2^3)
+```
+
+#### .balign
+**Description:** Aligns to specified byte boundary
+
+**Syntax:** `.balign boundary`
+
+**Example:**
+```arm
+.balign 4         ; Align to 4-byte boundary
+.balign 16        ; Align to 16-byte boundary
+```
+
+### Directive Usage Examples
+
+**Complete program structure:**
+```arm
+; Constants and symbols
+.equ BUFFER_SIZE, 256
+.equ EXIT_SYSCALL, 0x00
+
+; Code section
+.text
+.org 0x8000
+.global _start
+
+_start:
+    .align 4
+    LDR R0, =message
+    BL print_string
+    SWI #EXIT_SYSCALL
+
+print_string:
+    ; Function implementation
+    MOV PC, LR
+
+; Data section
+.data
+.align 4
+message:    .asciz "Hello, World!\n"
+counter:    .word 0
+array:      .word 1, 2, 3, 4, 5
+
+; Uninitialized data
+buffer:     .space BUFFER_SIZE
+temp:       .word 0
+```
+
+**Mixed code and data:**
+```arm
+.text
+function:
+    MOV R0, R1
+    MOV PC, LR
+
+.data
+value:      .word 42
+
+.text
+another_fn:
+    LDR R0, =value
+    LDR R0, [R0]
+    MOV PC, LR
+```
+
+---
+
 ## Condition Codes
 
 All instructions can be conditionally executed based on CPSR flags. ✅
@@ -941,21 +1200,33 @@ Pseudo-instructions are assembler conveniences that map to real instructions. �
 
 - **ARM2 Compatibility:** This emulator targets the ARM2 instruction set with select ARM2a extensions (halfword load/store)
 
-- **Phase 11 In Progress (2025-10-10):**
-  - Production hardening and code quality improvements
-  - 518 total tests (100% pass rate)
-  - Go vet warnings fixed (method renames to avoid interface conflicts)
-  - CI pipeline updated to Go 1.25
-  - Parser limitations resolved (debugger expression parser rewritten)
-  - All example programs working (16 of 17 fully functional, 1 interactive by design)
-  - Character literal support complete (basic chars + escape sequences)
+- **Current Status (2025-10-14):**
+  - Production hardening and comprehensive testing complete
+  - 784 total tests (100% pass rate)
+  - All 23 example programs fully tested with expected output verification
+  - Integration test framework covers entire example suite
+  - All core ARM2 instructions implemented and tested
+
+- **Phase 11 Complete (2025-10-14):**
+  - Comprehensive integration testing for all example programs
+  - Expected output files for systematic regression testing
+  - Fixed negative constant support in .equ directives
+  - Fixed data section ordering bug
+  - Added standalone shift instruction support (LSL, LSR, ASR, ROR)
+  - Fixed 16-bit immediate encoding edge cases
 
 - **Phase 10 Complete (2025-10-09):**
   - Cross-platform configuration management (config/) with TOML support
   - Execution and memory tracing (vm/trace.go) with register filtering
   - Performance statistics tracking (vm/statistics.go) with JSON/CSV/HTML export
   - Command-line flags: -trace, -mem-trace, -stats with file and format options
-  - 493 total tests passing (29 new tests for Phase 10)
+
+- **Assembler Features:**
+  - Full directive support: `.text`, `.data`, `.bss`, `.global`, `.equ`, `.set`
+  - Memory allocation: `.word`, `.half`, `.byte`, `.ascii`, `.asciz`, `.space`
+  - Alignment directives: `.align`, `.balign`
+  - Character literals with escape sequences
+  - Immediate value support in multiple formats (decimal, hex, binary)
 
 - **Recent Fixes (2025-10-09):**
   - PC Pipeline Handling: GetRegister() now returns PC+8 when reading R15 to simulate ARM pipeline effect
@@ -965,11 +1236,13 @@ Pseudo-instructions are assembler conveniences that map to real instructions. �
   - RRX Carry Calculation: Fixed carry flag handling for rotate right extended operations
   - Debugger Run Command: Fixed to preserve program memory using ResetRegisters() instead of Reset()
 
-- **Implementation Status:** 518 unit tests (100% pass rate) covering all implemented instructions:
+- **Test Coverage:** 784 unit and integration tests (100% pass rate) covering:
   - Debugger tests: 60 tests
   - Parser tests: 74 tests (including 39 character literal tests)
-  - VM/Integration tests: 400 tests
+  - VM/Unit tests: 400 tests
   - Tools tests: 73 tests (linter: 25, formatter: 27, xref: 21)
+  - Integration tests: 32 tests (complete example suite)
+  - Config tests: 12 tests
   - Encoder tests: included in integration tests
 
 - **Development Tools:**
