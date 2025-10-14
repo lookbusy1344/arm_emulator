@@ -1,0 +1,5 @@
+Linked List Operations
+List: 50 -> 40 -> 30 -> 20 -> 10
+Element count: 5
+Deleting value 30...
+List: 50 -> 40 -> 20 -> 10

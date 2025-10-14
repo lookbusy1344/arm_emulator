@@ -1,0 +1,9 @@
+Function Calling Conventions Demo
+
+Example 1: Adding 15 + 7Result: 22
+
+Example 2: Sum of 10, 20, 30, 40Result: 100
+
+Example 3: Hypotenuse of 3 and 4Result: 5
+
+Example 4: Swapping 100 and 200After swap: 200, 100

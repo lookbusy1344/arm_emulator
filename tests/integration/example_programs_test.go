@@ -62,6 +62,39 @@ func TestExamplePrograms(t *testing.T) {
 			programFile:    "addressing_modes.s",
 			expectedOutput: "addressing_modes.txt",
 		},
+		{
+			name:           "Calculator",
+			programFile:    "calculator.s",
+			expectedOutput: "calculator.txt",
+			stdin:          "15\n+\n7\n0\nq\n",
+		},
+		{
+			name:           "Conditionals",
+			programFile:    "conditionals.s",
+			expectedOutput: "conditionals.txt",
+		},
+		{
+			name:           "LinkedList",
+			programFile:    "linked_list.s",
+			expectedOutput: "linked_list.txt",
+		},
+		{
+			name:           "Factorial",
+			programFile:    "factorial.s",
+			expectedOutput: "factorial.txt",
+			stdin:          "5\n",
+		},
+		{
+			name:           "Fibonacci",
+			programFile:    "fibonacci.s",
+			expectedOutput: "fibonacci.txt",
+			stdin:          "10\n",
+		},
+		{
+			name:           "Functions",
+			programFile:    "functions.s",
+			expectedOutput: "functions.txt",
+		},
 	}
 
 	for _, tt := range tests {

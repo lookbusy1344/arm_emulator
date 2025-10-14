@@ -1,0 +1,7 @@
+=== Simple Calculator ===
+
+Enter calculation (or 'q' to quit):
+First number: Operation (+, -, *, /): Second number: Result: 15 + 7 = 22
+Enter calculation (or 'q' to quit):
+First number: Operation (+, -, *, /): 
+Goodbye!

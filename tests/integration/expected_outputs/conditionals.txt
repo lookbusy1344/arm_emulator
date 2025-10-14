@@ -1,0 +1,9 @@
+Conditional Execution Demo
+
+Example 1: Simple if/else (15 > 10?)15 is greater than 10
+
+Example 2: Grade calculator (score = 75)Grade: C
+
+Example 3: Nested conditions (age=25, has_license=yes)Can drive
+
+Example 4: Switch/case (day 3): Wednesday
