@@ -67,6 +67,11 @@ func TestExamplePrograms(t *testing.T) {
 			programFile:    "nested_calls.s",
 			expectedOutput: "nested_calls.txt",
 		},
+		{
+			name:           "HashTable",
+			programFile:    "hash_table.s",
+			expectedOutput: "hash_table.txt",
+		},
 	}
 
 	for _, tt := range tests {
