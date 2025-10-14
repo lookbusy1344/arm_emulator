@@ -1,0 +1,2 @@
+GCD Calculator (Euclidean Algorithm)
+Enter first number: Enter second number: GCD of 48 and 18 is 6

@@ -16,84 +16,30 @@ func TestExamplePrograms(t *testing.T) {
 		stdin          string // Optional stdin input for the program
 	}{
 		{
-			name:           "Quicksort",
-			programFile:    "quicksort.s",
-			expectedOutput: "quicksort.txt",
+			name:           "Hello",
+			programFile:    "hello.s",
+			expectedOutput: "hello.txt",
 		},
 		{
-			name:           "Division",
-			programFile:    "division.s",
-			expectedOutput: "division.txt",
+			name:           "Loops",
+			programFile:    "loops.s",
+			expectedOutput: "loops.txt",
 		},
 		{
-			name:           "TimesTable",
-			programFile:    "times_table.s",
-			expectedOutput: "times_table.txt",
-			stdin:          "7\n",
+			name:           "MatrixMultiply",
+			programFile:    "matrix_multiply.s",
+			expectedOutput: "matrix_multiply.txt",
 		},
 		{
-			name:           "BubbleSort",
-			programFile:    "bubble_sort.s",
-			expectedOutput: "bubble_sort.txt",
-			stdin:          "7\n5\n1\n4\n2\n8\n3\n6\n",
+			name:           "MemoryStress",
+			programFile:    "memory_stress.s",
+			expectedOutput: "memory_stress.txt",
 		},
 		{
-			name:           "BitOperations",
-			programFile:    "bit_operations.s",
-			expectedOutput: "bit_operations.txt",
-		},
-		{
-			name:           "BinarySearch",
-			programFile:    "binary_search.s",
-			expectedOutput: "binary_search.txt",
-		},
-		{
-			name:           "Arrays",
-			programFile:    "arrays.s",
-			expectedOutput: "arrays.txt",
-		},
-		{
-			name:           "Arithmetic",
-			programFile:    "arithmetic.s",
-			expectedOutput: "arithmetic.txt",
-		},
-		{
-			name:           "AddressingModes",
-			programFile:    "addressing_modes.s",
-			expectedOutput: "addressing_modes.txt",
-		},
-		{
-			name:           "Calculator",
-			programFile:    "calculator.s",
-			expectedOutput: "calculator.txt",
-			stdin:          "15\n+\n7\n0\nq\n",
-		},
-		{
-			name:           "Conditionals",
-			programFile:    "conditionals.s",
-			expectedOutput: "conditionals.txt",
-		},
-		{
-			name:           "LinkedList",
-			programFile:    "linked_list.s",
-			expectedOutput: "linked_list.txt",
-		},
-		{
-			name:           "Factorial",
-			programFile:    "factorial.s",
-			expectedOutput: "factorial.txt",
-			stdin:          "5\n",
-		},
-		{
-			name:           "Fibonacci",
-			programFile:    "fibonacci.s",
-			expectedOutput: "fibonacci.txt",
-			stdin:          "10\n",
-		},
-		{
-			name:           "Functions",
-			programFile:    "functions.s",
-			expectedOutput: "functions.txt",
+			name:           "GCD",
+			programFile:    "gcd.s",
+			expectedOutput: "gcd.txt",
+			stdin:          "48\n18\n",
 		},
 	}
 

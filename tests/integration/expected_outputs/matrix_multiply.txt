@@ -1,0 +1,19 @@
+Matrix Multiplication: C = A × B
+
+Matrix A (3×4):
+1  2  3  4  
+5  6  7  8  
+9  10  11  12  
+
+Matrix B (4×2):
+1  2  
+3  4  
+5  6  
+7  8  
+
+Result C = A × B (3×2):
+50  60  
+114  140  
+178  220  
+
+Multiplication complete!

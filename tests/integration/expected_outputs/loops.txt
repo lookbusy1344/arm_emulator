@@ -1,0 +1,13 @@
+Loop Constructs Demo
+
+Example 1: For loop (1 to 5): 1 2 3 4 5 
+
+Example 2: While loop (sum 1 to 10)Sum = 55
+
+Example 3: Do-while loop (5!)5! = 120
+
+Example 4: Nested loops (3x3 multiplication table):1	2	3	
+2	4	6	
+3	6	9	
+
+Example 5: Break/continue (find first even number)Found even number at index 5 with value 18
