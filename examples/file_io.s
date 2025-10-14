@@ -70,11 +70,7 @@ write_file:
         SWI     #0x13             ; Write
         CMP     R0, #LENGTH
         BNE     wf_err
-        ; Seek to start
-        MOV     R0, R4
-        MOV     R1, #0            ; offset
-        MOV     R2, #SEEK_SET
-        SWI     #0x14             ; Seek
+        ; (seek not required before close)
         ; Close
         MOV     R0, R4
         SWI     #0x11             ; Close

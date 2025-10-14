@@ -2,11 +2,13 @@ package vm
 
 import (
 	"bufio"
+	"errors"
 	"fmt"
 	"math/rand"
 	"os"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -63,6 +65,29 @@ const (
 	SWI_DUMP_MEMORY    = 0xF3
 	SWI_ASSERT         = 0xF4
 )
+
+// FD table helpers
+var fdMu sync.Mutex
+
+func (vm *VM) getFile(fd uint32) (*os.File, error) {
+	fdMu.Lock(); defer fdMu.Unlock()
+	if int(fd) < 0 || int(fd) >= len(vm.files) { return nil, errors.New("bad fd") }
+	f := vm.files[fd]
+	if f == nil { return nil, errors.New("bad fd") }
+	return f, nil
+}
+func (vm *VM) allocFD(f *os.File) uint32 {
+	fdMu.Lock(); defer fdMu.Unlock()
+	for i := 3; i < len(vm.files); i++ { if vm.files[i] == nil { vm.files[i] = f; return uint32(i) } }
+	vm.files = append(vm.files, f)
+	return uint32(len(vm.files)-1)
+}
+func (vm *VM) closeFD(fd uint32) error {
+	fdMu.Lock(); defer fdMu.Unlock()
+	if int(fd) < 0 || int(fd) >= len(vm.files) || vm.files[fd] == nil { return errors.New("bad fd") }
+	_ = vm.files[fd].Close(); vm.files[fd] = nil; return nil
+}
+
 
 // ExecuteSWI executes a software interrupt (system call)
 func ExecuteSWI(vm *VM, inst *Instruction) error {
@@ -474,9 +499,7 @@ func handleOpen(vm *VM) error {
 			vm.CPU.IncrementPC()
 			return nil
 		}
-		if b == 0 {
-			break
-		}
+		if b == 0 { break }
 		filename = append(filename, b)
 		addr++
 		if len(filename) > 1024 {
@@ -485,78 +508,63 @@ func handleOpen(vm *VM) error {
 			return nil
 		}
 	}
-
 	var file *os.File
 	var err error
-
+	s := string(filename)
 	switch mode {
-	case 0: // Read
-		file, err = os.Open(string(filename))
-	case 1: // Write
-		file, err = os.Create(string(filename))
-	case 2: // Append
-		file, err = os.OpenFile(string(filename), os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0600)
+	case 0:
+		file, err = os.Open(s)
+	case 1:
+		file, err = os.OpenFile(s, os.O_CREATE|os.O_TRUNC|os.O_RDWR, 0644)
+	case 2:
+		file, err = os.OpenFile(s, os.O_CREATE|os.O_APPEND|os.O_RDWR, 0644)
 	default:
-		vm.CPU.SetRegister(0, 0xFFFFFFFF)
-		vm.CPU.IncrementPC()
-		return nil
+		err = errors.New("bad mode")
 	}
-
 	if err != nil {
 		vm.CPU.SetRegister(0, 0xFFFFFFFF)
 	} else {
-		// Store file descriptor (using file pointer as fd for simplicity)
-		// In a real implementation, we'd maintain a file descriptor table
-		fd := uint32(file.Fd())
+		fd := vm.allocFD(file)
 		vm.CPU.SetRegister(0, fd)
 	}
-
 	vm.CPU.IncrementPC()
 	return nil
 }
 
 func handleClose(vm *VM) error {
-	// Note: This is a simplified implementation
-	// A full implementation would maintain a file descriptor table
-	vm.CPU.SetRegister(0, 0) // Success
+	fd := vm.CPU.GetRegister(0)
+	if err := vm.closeFD(fd); err != nil {
+		vm.CPU.SetRegister(0, 0xFFFFFFFF)
+	} else {
+		vm.CPU.SetRegister(0, 0)
+	}
 	vm.CPU.IncrementPC()
 	return nil
 }
 
 func handleRead(vm *VM) error {
-	// fd := vm.CPU.GetRegister(0)
+	fd := vm.CPU.GetRegister(0)
 	bufferAddr := vm.CPU.GetRegister(1)
 	length := vm.CPU.GetRegister(2)
-
-	// Simplified: read from stdin
-	data := make([]byte, length)
-	n, err := os.Stdin.Read(data)
+	f, err := vm.getFile(fd)
 	if err != nil {
 		vm.CPU.SetRegister(0, 0xFFFFFFFF)
 		vm.CPU.IncrementPC()
 		return nil
 	}
-
-	// Write to memory
-	for i := 0; i < n; i++ {
-		// Validate offset won't overflow
-		if i < 0 || i > int(^uint32(0)) {
-			vm.CPU.SetRegister(0, 0xFFFFFFFF)
-			vm.CPU.IncrementPC()
-			return nil
-		}
-		if err := vm.Memory.WriteByteAt(bufferAddr+uint32(i), data[i]); err != nil {
-			vm.CPU.SetRegister(0, 0xFFFFFFFF)
-			vm.CPU.IncrementPC()
-			return nil
-		}
-	}
-
-	// Validate n fits in uint32
-	if n < 0 || n > int(^uint32(0)) {
+	data := make([]byte, length)
+	n, err := f.Read(data)
+	if err != nil && n == 0 {
 		vm.CPU.SetRegister(0, 0xFFFFFFFF)
 		vm.CPU.IncrementPC()
 		return nil
+	}
+	for i := 0; i < n; i++ {
+		if err2 := vm.Memory.WriteByteAt(bufferAddr+uint32(i), data[i]); err2 != nil {
+			vm.CPU.SetRegister(0, 0xFFFFFFFF)
+			vm.CPU.IncrementPC()
+			return nil
+		}
 	}
 	vm.CPU.SetRegister(0, uint32(n))
 	vm.CPU.IncrementPC()
@@ -564,57 +572,91 @@ func handleRead(vm *VM) error {
 }
 
 func handleWrite(vm *VM) error {
-	// fd := vm.CPU.GetRegister(0)
+	fd := vm.CPU.GetRegister(0)
 	bufferAddr := vm.CPU.GetRegister(1)
 	length := vm.CPU.GetRegister(2)
-
-	// Read data from memory
+	f, err := vm.getFile(fd)
+	if err != nil {
+		vm.CPU.SetRegister(0, 0xFFFFFFFF)
+		vm.CPU.IncrementPC()
+		return nil
+	}
 	data := make([]byte, length)
 	for i := uint32(0); i < length; i++ {
-		b, err := vm.Memory.ReadByteAt(bufferAddr + i)
-		if err != nil {
+		b, err2 := vm.Memory.ReadByteAt(bufferAddr + i)
+		if err2 != nil {
 			vm.CPU.SetRegister(0, 0xFFFFFFFF)
 			vm.CPU.IncrementPC()
 			return nil
 		}
 		data[i] = b
 	}
-
-	// Simplified: write to stdout
-	n, err := os.Stdout.Write(data)
+	n, err := f.Write(data)
 	if err != nil {
 		vm.CPU.SetRegister(0, 0xFFFFFFFF)
 	} else {
-		// Validate n fits in uint32
-		if n < 0 || n > int(^uint32(0)) {
-			vm.CPU.SetRegister(0, 0xFFFFFFFF)
-		} else {
-			vm.CPU.SetRegister(0, uint32(n))
-		}
+		vm.CPU.SetRegister(0, uint32(n))
 	}
-	_ = os.Stdout.Sync() // Ignore sync errors
-
 	vm.CPU.IncrementPC()
 	return nil
 }
 
 func handleSeek(vm *VM) error {
-	// Simplified implementation - not fully functional
-	vm.CPU.SetRegister(0, 0) // Return 0 for success
+	fd := vm.CPU.GetRegister(0)
+	offset := int64(vm.CPU.GetRegister(1))
+	whence := int(vm.CPU.GetRegister(2))
+	f, err := vm.getFile(fd)
+	if err != nil {
+		vm.CPU.SetRegister(0, 0xFFFFFFFF)
+		vm.CPU.IncrementPC()
+		return nil
+	}
+	npos, err := f.Seek(offset, whence)
+	if err != nil {
+		vm.CPU.SetRegister(0, 0xFFFFFFFF)
+	} else {
+		vm.CPU.SetRegister(0, uint32(npos))
+	}
 	vm.CPU.IncrementPC()
 	return nil
 }
 
 func handleTell(vm *VM) error {
-	// Simplified implementation - not fully functional
-	vm.CPU.SetRegister(0, 0) // Return position 0
+	fd := vm.CPU.GetRegister(0)
+	f, err := vm.getFile(fd)
+	if err != nil {
+		vm.CPU.SetRegister(0, 0xFFFFFFFF)
+		vm.CPU.IncrementPC()
+		return nil
+	}
+	pos, err := f.Seek(0, 1) // current position (io.SeekCurrent)
+	if err != nil {
+		vm.CPU.SetRegister(0, 0xFFFFFFFF)
+	} else {
+		vm.CPU.SetRegister(0, uint32(pos))
+	}
 	vm.CPU.IncrementPC()
 	return nil
 }
 
 func handleFileSize(vm *VM) error {
-	// Simplified implementation - not fully functional
-	vm.CPU.SetRegister(0, 0) // Return size 0
+	fd := vm.CPU.GetRegister(0)
+	f, err := vm.getFile(fd)
+	if err != nil {
+		vm.CPU.SetRegister(0, 0xFFFFFFFF)
+		vm.CPU.IncrementPC()
+		return nil
+	}
+	pos, _ := f.Seek(0, 1) // save current
+	end, err := f.Seek(0, 2) // seek end
+	if err != nil {
+		vm.CPU.SetRegister(0, 0xFFFFFFFF)
+		_, _ = f.Seek(pos, 0)
+		vm.CPU.IncrementPC()
+		return nil
+	}
+	_, _ = f.Seek(pos, 0) // restore
+	vm.CPU.SetRegister(0, uint32(end))
 	vm.CPU.IncrementPC()
 	return nil
 }

@@ -2,6 +2,7 @@ package vm
 
 import (
 	"fmt"
+	"os"
 )
 
 // ExecutionMode represents the execution mode of the VM
@@ -76,6 +77,9 @@ type VM struct {
 	CodeCoverage *CodeCoverage
 	StackTrace   *StackTrace
 	FlagTrace    *FlagTrace
+
+	// File descriptor table (simple)
+	files []*os.File
 }
 
 // NewVM creates a new virtual machine instance
@@ -91,6 +95,7 @@ func NewVM() *VM {
 		EntryPoint:       CodeSegmentStart,
 		ProgramArguments: make([]string, 0),
 		ExitCode:         0,
+		files:            make([]*os.File, 3), // reserve 0,1,2 for stdin/out/err
 	}
 }
 
