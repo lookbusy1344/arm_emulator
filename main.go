@@ -651,6 +651,28 @@ func loadProgramIntoVM(machine *vm.VM, program *parser.Program, entryPoint uint3
 				maxAddr = dataAddr
 			}
 
+		case ".ascii":
+			// Write string without null terminator
+			if len(directive.Args) > 0 {
+				str := directive.Args[0]
+				// Remove quotes (parser may have already removed them)
+				if len(str) >= 2 && (str[0] == '"' || str[0] == '\'') {
+					str = str[1 : len(str)-1]
+				}
+				// Process escape sequences
+				processedStr := processEscapeSequences(str)
+				// Write string bytes
+				for i := 0; i < len(processedStr); i++ {
+					if err := machine.Memory.WriteByteUnsafe(dataAddr, processedStr[i]); err != nil {
+						return fmt.Errorf(".ascii write failed at 0x%08X: %w", dataAddr, err)
+					}
+					dataAddr++
+				}
+			}
+			if dataAddr > maxAddr {
+				maxAddr = dataAddr
+			}
+
 		case ".asciz", ".string":
 			// Write null-terminated string
 			if len(directive.Args) > 0 {

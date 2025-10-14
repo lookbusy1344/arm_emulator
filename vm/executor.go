@@ -95,7 +95,7 @@ func NewVM() *VM {
 		EntryPoint:       CodeSegmentStart,
 		ProgramArguments: make([]string, 0),
 		ExitCode:         0,
-		files:            make([]*os.File, 3), // reserve 0,1,2 for stdin/out/err
+		files:            make([]*os.File, 3), // Will be lazily initialized to stdin/stdout/stderr
 	}
 }
 

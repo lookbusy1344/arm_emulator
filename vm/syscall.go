@@ -70,10 +70,27 @@ const (
 var fdMu sync.Mutex
 
 func (vm *VM) getFile(fd uint32) (*os.File, error) {
-	fdMu.Lock(); defer fdMu.Unlock()
-	if int(fd) < 0 || int(fd) >= len(vm.files) { return nil, errors.New("bad fd") }
+	fdMu.Lock()
+	defer fdMu.Unlock()
+	if int(fd) < 0 || int(fd) >= len(vm.files) {
+		return nil, errors.New("bad fd")
+	}
 	f := vm.files[fd]
-	if f == nil { return nil, errors.New("bad fd") }
+	// Lazily initialize standard file descriptors
+	if f == nil && fd < 3 {
+		switch fd {
+		case 0:
+			vm.files[0] = os.Stdin
+		case 1:
+			vm.files[1] = os.Stdout
+		case 2:
+			vm.files[2] = os.Stderr
+		}
+		f = vm.files[fd]
+	}
+	if f == nil {
+		return nil, errors.New("bad fd")
+	}
 	return f, nil
 }
 func (vm *VM) allocFD(f *os.File) uint32 {
