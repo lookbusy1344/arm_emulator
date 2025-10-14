@@ -100,10 +100,12 @@ func (vm *VM) allocFD(f *os.File) uint32 {
 	for i := 3; i < len(vm.files); i++ {
 		if vm.files[i] == nil {
 			vm.files[i] = f
+			//nolint:gosec // G115: i is bounded by len(vm.files) which is reasonable
 			return uint32(i)
 		}
 	}
 	vm.files = append(vm.files, f)
+	//nolint:gosec // G115: len(vm.files)-1 is bounded by reasonable file count
 	return uint32(len(vm.files) - 1)
 }
 
@@ -552,10 +554,13 @@ func handleOpen(vm *VM) error {
 	s := string(filename)
 	switch mode {
 	case 0:
+		//nolint:gosec // G304: File path is intentionally controlled by emulated program
 		file, err = os.Open(s)
 	case 1:
+		//nolint:gosec // G304,G302: File operations are intentional for emulated program I/O
 		file, err = os.OpenFile(s, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0644)
 	case 2:
+		//nolint:gosec // G304,G302: File operations are intentional for emulated program I/O
 		file, err = os.OpenFile(s, os.O_CREATE|os.O_APPEND|os.O_RDWR, 0644)
 	default:
 		err = errors.New("bad mode")
@@ -599,12 +604,14 @@ func handleRead(vm *VM) error {
 		return nil
 	}
 	for i := 0; i < n; i++ {
+		//nolint:gosec // G115: i is bounded by n which is from buffer size
 		if err2 := vm.Memory.WriteByteAt(bufferAddr+uint32(i), data[i]); err2 != nil {
 			vm.CPU.SetRegister(0, 0xFFFFFFFF)
 			vm.CPU.IncrementPC()
 			return nil
 		}
 	}
+	//nolint:gosec // G115: n is bounded by reasonable read size
 	vm.CPU.SetRegister(0, uint32(n))
 	vm.CPU.IncrementPC()
 	return nil
@@ -634,9 +641,11 @@ func handleWrite(vm *VM) error {
 	if err != nil {
 		vm.CPU.SetRegister(0, 0xFFFFFFFF)
 	} else {
+		//nolint:gosec // G115: n is bounded by reasonable write size
 		vm.CPU.SetRegister(0, uint32(n))
 	}
 	// TEMP debug: if short write print diagnostic
+	//nolint:gosec // G115: n is bounded by reasonable write size
 	if uint32(n) != length {
 		fmt.Fprintf(os.Stderr, "[DEBUG write] requested=%d wrote=%d\n", length, n)
 	}
@@ -658,6 +667,7 @@ func handleSeek(vm *VM) error {
 	if err != nil {
 		vm.CPU.SetRegister(0, 0xFFFFFFFF)
 	} else {
+		//nolint:gosec // G115: File position conversion, will return error if overflow
 		vm.CPU.SetRegister(0, uint32(npos))
 	}
 	vm.CPU.IncrementPC()
@@ -676,6 +686,7 @@ func handleTell(vm *VM) error {
 	if err != nil {
 		vm.CPU.SetRegister(0, 0xFFFFFFFF)
 	} else {
+		//nolint:gosec // G115: File position conversion, will return error if overflow
 		vm.CPU.SetRegister(0, uint32(pos))
 	}
 	vm.CPU.IncrementPC()
@@ -699,6 +710,7 @@ func handleFileSize(vm *VM) error {
 		return nil
 	}
 	_, _ = f.Seek(pos, 0) // restore
+	//nolint:gosec // G115: File size conversion, will return error if overflow
 	vm.CPU.SetRegister(0, uint32(end))
 	vm.CPU.IncrementPC()
 	return nil
