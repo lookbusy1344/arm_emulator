@@ -72,6 +72,11 @@ func TestExamplePrograms(t *testing.T) {
 			programFile:    "hash_table.s",
 			expectedOutput: "hash_table.txt",
 		},
+		{
+			name:           "ConstExpressions",
+			programFile:    "const_expressions.s",
+			expectedOutput: "const_expressions.txt",
+		},
 	}
 
 	for _, tt := range tests {

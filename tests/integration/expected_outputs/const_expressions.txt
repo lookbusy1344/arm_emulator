@@ -1,0 +1,15 @@
+Buffer base: 0
+Buffer + 11: b
+Buffer + 33: 21
+Buffer + 67: 43
+Buffer + 99: 63
+Buffer - 7: fffffff9
+Array base: c0
+Array + 12 (numbers[3]): cc -> value: 40
+Array + 28 (numbers[7]): dc -> value: 80
+Array + 36 (numbers[9]): e4 -> value: 100
+Array base: 34
+end_marker - 13: 143
+end_marker - 47: 121
+end_marker - 91: f5
+Array base: 34
