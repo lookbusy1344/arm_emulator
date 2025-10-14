@@ -1,0 +1,4 @@
+Deep Nested Function Call Test
+Nested call depth reached: 10
+Sum(1..100) = 5050
+Stack depth test passed!

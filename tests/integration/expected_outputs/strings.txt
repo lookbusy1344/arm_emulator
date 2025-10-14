@@ -1,0 +1,9 @@
+String Operations Demo
+
+Test 1: String LengthString: "Hello" has length 5
+
+Test 2: String CopyCopied string: "World
+
+Test 3: String CompareComparing "Hello" with "World": first string is less
+
+Test 4: String ConcatenationConcatenated: "ARM Assembly

@@ -41,6 +41,32 @@ func TestExamplePrograms(t *testing.T) {
 			expectedOutput: "gcd.txt",
 			stdin:          "48\n18\n",
 		},
+		{
+			name:           "StateMachine",
+			programFile:    "state_machine.s",
+			expectedOutput: "state_machine.txt",
+		},
+		{
+			name:           "StringReverse",
+			programFile:    "string_reverse.s",
+			expectedOutput: "string_reverse.txt",
+			stdin:          "Hello World\n",
+		},
+		{
+			name:           "Strings",
+			programFile:    "strings.s",
+			expectedOutput: "strings.txt",
+		},
+		{
+			name:           "Stack",
+			programFile:    "stack.s",
+			expectedOutput: "stack.txt",
+		},
+		{
+			name:           "NestedCalls",
+			programFile:    "nested_calls.s",
+			expectedOutput: "nested_calls.txt",
+		},
 	}
 
 	for _, tt := range tests {

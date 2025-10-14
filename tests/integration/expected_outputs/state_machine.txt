@@ -1,0 +1,27 @@
+Email Validator - State Machine
+
+Test 1: 'user@example.com'
+  Result: VALID
+
+Test 2: 'john.doe@company.co.uk'
+  Result: VALID
+
+Test 3: 'invalid@@example.com'
+  Result: INVALID
+
+Test 4: 'missing_at.com'
+  Result: INVALID
+
+Test 5: 'user@no_tld'
+  Result: INVALID
+
+Test 6: 'a@b.c'
+  Result: VALID
+
+Test 7: '@example.com'
+  Result: INVALID
+
+Test 8: 'user@.com'
+  Result: INVALID
+
+All tests completed!
