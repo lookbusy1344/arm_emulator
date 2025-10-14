@@ -6,18 +6,18 @@
 .global _start
 
 _start:
-    ; Calculate fib(10)
-    MOV R0, #10
+    ; Calculate fib(20)
+    MOV R0, #20
     BL fibonacci
 
     ; Print result
-    MOV R1, R0
-    MOV R0, #1
-    SWI #4          ; Write syscall
+    MOV R1, #10
+    SWI #0x03       ; Write int syscall
+    SWI #0x07       ; Write newline
 
     ; Exit
     MOV R0, #0
-    SWI #1
+    SWI #0x00
 
 ; Fibonacci function
 ; Input: R0 = n
