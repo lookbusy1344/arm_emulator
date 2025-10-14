@@ -93,18 +93,30 @@ func (vm *VM) getFile(fd uint32) (*os.File, error) {
 	}
 	return f, nil
 }
+
 func (vm *VM) allocFD(f *os.File) uint32 {
-	fdMu.Lock(); defer fdMu.Unlock()
-	for i := 3; i < len(vm.files); i++ { if vm.files[i] == nil { vm.files[i] = f; return uint32(i) } }
+	fdMu.Lock()
+	defer fdMu.Unlock()
+	for i := 3; i < len(vm.files); i++ {
+		if vm.files[i] == nil {
+			vm.files[i] = f
+			return uint32(i)
+		}
+	}
 	vm.files = append(vm.files, f)
-	return uint32(len(vm.files)-1)
-}
-func (vm *VM) closeFD(fd uint32) error {
-	fdMu.Lock(); defer fdMu.Unlock()
-	if int(fd) < 0 || int(fd) >= len(vm.files) || vm.files[fd] == nil { return errors.New("bad fd") }
-	_ = vm.files[fd].Close(); vm.files[fd] = nil; return nil
+	return uint32(len(vm.files) - 1)
 }
 
+func (vm *VM) closeFD(fd uint32) error {
+	fdMu.Lock()
+	defer fdMu.Unlock()
+	if int(fd) < 0 || int(fd) >= len(vm.files) || vm.files[fd] == nil {
+		return errors.New("bad fd")
+	}
+	_ = vm.files[fd].Close()
+	vm.files[fd] = nil
+	return nil
+}
 
 // ExecuteSWI executes a software interrupt (system call)
 func ExecuteSWI(vm *VM, inst *Instruction) error {
@@ -524,7 +536,9 @@ func handleOpen(vm *VM) error {
 			vm.CPU.IncrementPC()
 			return nil
 		}
-		if b == 0 { break }
+		if b == 0 {
+			break
+		}
 		filename = append(filename, b)
 		addr++
 		if len(filename) > 1024 {
@@ -676,7 +690,7 @@ func handleFileSize(vm *VM) error {
 		vm.CPU.IncrementPC()
 		return nil
 	}
-	pos, _ := f.Seek(0, 1) // save current
+	pos, _ := f.Seek(0, 1)   // save current
 	end, err := f.Seek(0, 2) // seek end
 	if err != nil {
 		vm.CPU.SetRegister(0, 0xFFFFFFFF)
