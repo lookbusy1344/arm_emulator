@@ -82,6 +82,11 @@ func TestExamplePrograms(t *testing.T) {
 			programFile:    "recursive_factorial.s",
 			expectedOutput: "recursive_factorial.txt",
 		},
+		{
+			name:           "RecursiveFibonacci",
+			programFile:    "recursive_fib.s",
+			expectedOutput: "recursive_fib.txt",
+		},
 	}
 
 	for _, tt := range tests {
