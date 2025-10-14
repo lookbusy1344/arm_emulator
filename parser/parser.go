@@ -235,13 +235,13 @@ func (p *Parser) parseDirective() *Directive {
 		}
 
 		arg := p.currentToken.Literal
-		
+
 		// Handle negative numbers by combining minus sign with following number
 		if p.currentToken.Type == TokenMinus && p.peekToken.Type == TokenNumber {
 			p.nextToken() // consume minus
 			arg = "-" + p.currentToken.Literal
 		}
-		
+
 		directive.Args = append(directive.Args, arg)
 		p.nextToken()
 	}

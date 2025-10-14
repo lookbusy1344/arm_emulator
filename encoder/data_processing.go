@@ -231,6 +231,7 @@ func (e *Encoder) encodeOperand2(cond, opcode, rn, rd, sBit uint32, operand stri
 			} else if opcode == opCMP {
 				// If CMP fails, try converting to CMN with negated value
 				// CMP Rn, #imm  ->  CMN Rn, #-imm
+				// #nosec G115 - intentional overflow for two's complement negation
 				negatedValue := uint32(-int32(value))
 				if negatedEncoded, negatedOk := e.encodeImmediate(negatedValue); negatedOk {
 					// Use CMN instead of CMP
@@ -242,6 +243,7 @@ func (e *Encoder) encodeOperand2(cond, opcode, rn, rd, sBit uint32, operand stri
 			} else if opcode == opCMN {
 				// If CMN fails, try converting to CMP with negated value
 				// CMN Rn, #imm  ->  CMP Rn, #-imm
+				// #nosec G115 - intentional overflow for two's complement negation
 				negatedValue := uint32(-int32(value))
 				if negatedEncoded, negatedOk := e.encodeImmediate(negatedValue); negatedOk {
 					// Use CMP instead of CMN
