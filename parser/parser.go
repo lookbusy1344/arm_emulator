@@ -259,17 +259,30 @@ func (p *Parser) parseDirective() *Directive {
 func (p *Parser) handleDirective(d *Directive, program *Program) {
 	switch d.Name {
 	case ".text":
-		// Text section - ensure origin is set to 0 if not already set
+		// Text section - if currentAddress is 0 and origin not set,
+		// this is the first section, so set origin to 0.
+		// If currentAddress > 0 (data came first), keep the current address.
 		if !p.originSet {
-			p.currentAddress = 0
+			if p.currentAddress == 0 {
+				// First section is .text
+				p.currentAddress = 0
+			}
+			// else: data came first, keep current address which has data
+			program.Origin = p.currentAddress
+			program.OriginSet = true
+			p.originSet = true
+		}
+		// If .text appears after data, currentAddress is already positioned after data
+
+	case ".data":
+		// Data section - if origin isn't set yet and currentAddress is 0,
+		// set origin to 0 for data segment
+		if !p.originSet && p.currentAddress == 0 {
 			program.Origin = 0
 			program.OriginSet = true
 			p.originSet = true
 		}
-
-	case ".data":
-		// Data section - for now, just continue at current address
-		// In a more sophisticated assembler, this would switch to a separate data segment
+		// Continue at current address (interleaved with code if that's the layout)
 
 	case ".global":
 		// Global symbol declaration - mark symbol as global (exported)

@@ -113,8 +113,14 @@ func main() {
 
 	// Parse entry point
 	var entryAddr uint32
-	// If entry point is default and program has .org directive, use that
-	if *entryPoint == "0x8000" && program.OriginSet {
+	// First, try to use _start symbol if it exists
+	if startSym, exists := program.SymbolTable.Lookup("_start"); exists && startSym.Defined {
+		entryAddr = startSym.Value
+		if *verboseMode {
+			fmt.Printf("Using _start symbol address: 0x%08X\n", entryAddr)
+		}
+	} else if *entryPoint == "0x8000" && program.OriginSet {
+		// If entry point is default and program has .org directive, use that
 		entryAddr = program.Origin
 		if *verboseMode {
 			fmt.Printf("Using .org directive address: 0x%08X\n", entryAddr)
