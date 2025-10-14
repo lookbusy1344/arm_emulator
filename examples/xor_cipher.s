@@ -252,8 +252,7 @@ hex_loop:
     LDRB r7, [r4, r6]
 
     ; Print high nibble
-    MOV r0, r7
-    LSR r0, r0, #4
+    MOV r0, r7, LSR #4
     BL print_hex_digit
 
     ; Print low nibble
