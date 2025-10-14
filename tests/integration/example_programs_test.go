@@ -87,6 +87,11 @@ func TestExamplePrograms(t *testing.T) {
 			programFile:    "recursive_fib.s",
 			expectedOutput: "recursive_fib.txt",
 		},
+		{
+			name:           "SieveOfEratosthenes",
+			programFile:    "sieve_of_eratosthenes.s",
+			expectedOutput: "sieve_of_eratosthenes.txt",
+		},
 	}
 
 	for _, tt := range tests {
