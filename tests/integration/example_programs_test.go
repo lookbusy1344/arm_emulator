@@ -77,6 +77,11 @@ func TestExamplePrograms(t *testing.T) {
 			programFile:    "const_expressions.s",
 			expectedOutput: "const_expressions.txt",
 		},
+		{
+			name:           "RecursiveFactorial",
+			programFile:    "recursive_factorial.s",
+			expectedOutput: "recursive_factorial.txt",
+		},
 	}
 
 	for _, tt := range tests {
