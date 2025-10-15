@@ -362,11 +362,11 @@ The `.text` directive now ensures programs have a proper origin (0x0000) even wi
 - **Complexity:** Low - straightforward directive handling
 - **Risk:** Minimal - all tests pass, improves compatibility with standard assembly syntax
 
-### 2025-10-13: Fixed `.org 0x0000` Support - Programs with Low Memory Origin Now Work ✅
-**Action:** Fixed regression preventing programs with `.org 0x0000` from executing
+### 2025-10-13: Fixed Entry Point Detection for Programs with Explicit `.org` Directive ✅
+**Action:** Fixed regression in entry point detection when programs explicitly set origin address
 
 **Problem:**
-Programs using `.org 0x0000` (like `factorial.s`, `fibonacci.s`, `calculator.s`, `bubble_sort.s`) failed immediately with:
+Programs using explicit `.org` directives failed immediately with:
 ```
 Runtime error at PC=0x000000A4: memory access violation: address 0x000000A4 is not mapped
 ```
@@ -379,8 +379,8 @@ The regression was introduced in commit 7736c60 (2025-10-13) when fixing standal
    - In `main.go` line 117: `if *entryPoint == "0x8000" && program.Origin != 0`
    - This checked `program.Origin != 0` to detect if `.org` directive was used
    - When `.org 0x0000` is specified, `program.Origin = 0`, so the check failed
-   - The emulator used default entry point 0x8000 instead of 0x0000
-   - Code was loaded at 0x8000, but labels were calculated relative to 0x0000
+   - The emulator used default entry point 0x8000 instead of the specified origin
+   - Code was loaded at wrong address relative to labels
    - Result: All jumps/branches went to wrong addresses
 
 2. **Missing Memory Segment:**
@@ -397,7 +397,7 @@ The regression was introduced in commit 7736c60 (2025-10-13) when fixing standal
 
 **Part 2 - Fix Entry Point Detection (`main.go`):**
 - Changed check from `program.Origin != 0` to `program.OriginSet`
-- Now correctly uses 0x0000 when `.org 0x0000` is specified
+- Now correctly uses any explicitly set origin (including 0x0000)
 
 **Part 3 - Dynamic Low Memory Segment (`main.go`):**
 - Added check in `loadProgramIntoVM()` for entry points < 0x8000
@@ -405,17 +405,21 @@ The regression was introduced in commit 7736c60 (2025-10-13) when fixing standal
 - Segment has read, write, and execute permissions
 
 **Testing:**
-- `factorial.s` ✅ - Now calculates 5! = 120 correctly
-- `fibonacci.s` ✅ - Generates Fibonacci sequence correctly  
-- `bubble_sort.s` - Starts (has unrelated hang issue)
-- `calculator.s` - Starts (has unrelated infinite loop)
+- `factorial.s` ✅ - Now calculates 5! = 120 correctly (uses `.org 0x8000`)
+- `fibonacci.s` ✅ - Generates Fibonacci sequence correctly (uses `.org 0x8000`)
+- `bubble_sort.s` - Starts (uses `.org 0x8000`, has unrelated hang issue)
+- `calculator.s` - Starts (uses `.org 0x8000`, has unrelated infinite loop)
 - All 1040 unit/integration tests still passing ✅
+
+**Note:** The example programs listed above all use `.org 0x8000`, NOT `.org 0x0000`. The fix enabled proper detection of ANY explicit origin, including 0x0000, but the programs that were broken used 0x8000.
+
+**Known Limitation Identified:** Programs using `.org 0x0000` with many `LDR Rd, =constant` pseudo-instructions may exceed the ±4095 byte PC-relative addressing range for literal pool access. This is now documented in TODO.md as a high-priority issue requiring `.ltorg` directive support.
 
 **Impact:**
 - **Priority:** High (broke multiple example programs)
 - **Effort:** ~2 hours investigation + fix
 - **Complexity:** Moderate - required understanding of program loading and memory layout
-- **Risk:** Low - all tests pass, backward compatible (programs without `.org 0x0000` unaffected)
+- **Risk:** Low - all tests pass, backward compatible
 
 ### 2025-10-13: Formatter and XRef Tools - Standalone Labels Fixed ✅
 **Action:** Fixed formatter and xref tools to properly handle standalone labels in source order

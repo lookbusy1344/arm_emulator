@@ -10,13 +10,65 @@ This file tracks outstanding work only. Completed items are in `PROGRESS.md`.
 
 **Current Phase:** Phase 11 (Production Hardening) - Core Complete
 
-**Status:** Project is production-ready with comprehensive test coverage and all critical features implemented. ADR pseudo-instruction verified working. Remaining work focuses on release engineering, CI/CD improvements, and optional enhancements.
+**Status:** Project is production-ready with comprehensive test coverage and all critical features implemented. ADR pseudo-instruction verified working. One high-priority limitation identified: literal pool addressing range with low memory origins requires `.ltorg` directive support. Remaining work focuses on this fix, release engineering, CI/CD improvements, and optional enhancements.
 
-**Estimated effort to v1.0.0:** 15-20 hours
+**Estimated effort to v1.0.0:** 21-28 hours (includes `.ltorg` implementation)
 
 ---
 
 ## High Priority Tasks
+
+### Literal Pool Addressing Range Limitation with Low Memory Origins
+**Effort:** 6-8 hours
+**Priority:** HIGH - Affects programs using `.org 0x0000` or low addresses with many constants
+
+**Problem:**
+Programs using `.org 0x0000` (or other low memory origins) with many `LDR Rd, =constant` pseudo-instructions can fail with "literal pool offset too large" errors. This is NOT a bug in the assembly programs - it's a limitation in the emulator's literal pool placement strategy.
+
+**Root Cause:**
+1. The emulator places all literal pool entries after code and data (`literalPoolStart = maxAddr`)
+2. ARM's PC-relative addressing has a ±4095 byte range (12-bit offset)
+3. With `.org 0x0000`, early instructions (e.g., PC=0x0008) may be >4095 bytes away from literals
+4. Example: Code at 0x0000-0x1000, data at 0x1000-0x2000, literals start at 0x2000
+   - Instruction at PC=0x0008 needs literal at 0x2000: offset = 0x2000 - 0x0008 - 8 = 8184 bytes
+   - This exceeds ARM's 4095 byte maximum offset
+
+**Examples Affected:**
+- `bubble_sort.s` originally used `.org 0x0000` (now uses `.org 0x8000`)
+- Any program with `.org <low address>` and multiple literal pool entries
+- Large programs (>4KB code+data) using low memory origins
+
+**Current Workaround:**
+Programs use `.org 0x8000` to ensure adequate addressing range.
+
+**Proposed Solution Options:**
+
+**Option 1: Implement `.ltorg` Directive (Recommended)**
+- Add parser support for `.ltorg` directive to force literal pool emission
+- Allow programmers to manually place literal pools within 4095 bytes of usage
+- Update encoder to support multiple literal pool regions
+- Estimated effort: 6-8 hours
+
+**Option 2: Automatic Literal Pool Insertion**
+- Automatically insert literal pools when offset would exceed 4095 bytes
+- Requires tracking forward references during encoding
+- More complex implementation, may affect instruction addresses
+- Estimated effort: 12-15 hours
+
+**Option 3: Document Limitation (Current State)**
+- Keep current implementation, document the limitation
+- Recommend using `.org 0x8000` for programs with many literals
+- Simplest but limits user flexibility
+
+**Recommended:** Implement Option 1 (`.ltorg` directive) for compatibility with standard ARM assemblers.
+
+**Files to Modify:**
+- `parser/parser.go` - Add `.ltorg` directive parsing
+- `parser/types.go` - Add `.ltorg` to directive types
+- `encoder/memory.go` - Support multiple literal pool regions
+- `main.go` - Handle `.ltorg` directive during program loading
+- `tests/integration/literal_pool_test.go` - Add tests for `.ltorg`
+- `docs/assembly_reference.md` - Document `.ltorg` directive
 
 ### Enhanced CI/CD Pipeline
 **Effort:** 4-6 hours
@@ -114,8 +166,8 @@ These are **not** part of ARM2 but could be added for broader compatibility:
 
 ## Effort Summary
 
-**Total estimated effort to v1.0.0:** 15-20 hours
+**Total estimated effort to v1.0.0:** 21-28 hours
 
-- **High Priority:** 12-18 hours (CI/CD, release engineering)
+- **High Priority:** 18-26 hours (`.ltorg` directive, CI/CD, release engineering)
 - **Medium Priority:** 18-27 hours (coverage, benchmarking, documentation)
 - **Low Priority:** Variable (optional enhancements)
