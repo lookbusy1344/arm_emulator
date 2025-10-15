@@ -326,7 +326,7 @@ func (e *Encoder) encodeADR(inst *parser.Instruction, cond uint32) (uint32, erro
 	// Calculate PC-relative offset
 	// PC is 8 bytes ahead (current instruction + 8)
 	pcValue := e.currentAddr + 8
-	offset := int32(targetAddr) - int32(pcValue)
+	offset := int32(targetAddr - pcValue) // #nosec G115 -- controlled address arithmetic
 
 	// Try to encode as ADD or SUB with immediate
 	var opcode uint32
