@@ -157,6 +157,20 @@ The emulator includes a powerful debugger with both command-line and TUI (Text U
 
 For complete debugger documentation including conditional breakpoints, watchpoints, memory examination, and expression syntax, see [docs/debugger_reference.md](docs/debugger_reference.md).
 
+### Symbol Table Dump
+
+Inspect the parsed symbols from your assembly program:
+
+```bash
+# Dump symbol table to stdout
+./arm-emulator --dump-symbols program.s
+
+# Save symbol table to a file
+./arm-emulator --dump-symbols --symbols-file symbols.txt program.s
+```
+
+The symbol dump displays all labels, constants, and variables with their addresses, types, and definition status. This is useful for understanding program layout and debugging symbol resolution issues.
+
 ### Performance Analysis
 
 The emulator includes built-in tracing and statistics capabilities:

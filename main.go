@@ -50,6 +50,10 @@ func main() {
 		enableFlagTrace  = flag.Bool("flag-trace", false, "Enable CPSR flag change tracing")
 		flagTraceFile    = flag.String("flag-trace-file", "", "Flag trace output file (default: flag_trace.txt)")
 		flagTraceFormat  = flag.String("flag-trace-format", "text", "Flag trace format (text, json)")
+
+		// Symbol dump options
+		dumpSymbols = flag.Bool("dump-symbols", false, "Dump symbol table and exit")
+		symbolsFile = flag.String("symbols-file", "", "Symbol dump output file (default: stdout)")
 	)
 
 	flag.Parse()
@@ -169,6 +173,15 @@ func main() {
 		fmt.Printf("Stack: 0x%08X - 0x%08X (%d bytes)\n",
 			vm.StackSegmentStart, stackTop, *stackSize)
 		fmt.Printf("Symbols: %d labels defined\n", len(symbols))
+	}
+
+	// Handle symbol dump if requested
+	if *dumpSymbols {
+		if err := dumpSymbolTable(program.SymbolTable, *symbolsFile); err != nil {
+			fmt.Fprintf(os.Stderr, "Error dumping symbols: %v\n", err)
+			os.Exit(1)
+		}
+		os.Exit(0)
 	}
 
 	// Setup tracing and statistics (Phase 10)
@@ -774,6 +787,10 @@ Options:
   -entry ADDR        Set entry point address (default: 0x8000)
   -verbose           Enable verbose output
 
+Symbol Options:
+  -dump-symbols      Dump symbol table and exit
+  -symbols-file FILE Symbol dump output file (default: stdout)
+
 Tracing & Performance Options:
   -trace             Enable execution trace
   -trace-file FILE   Trace output file (default: trace.log in log dir)
@@ -826,6 +843,10 @@ Examples:
   # Run with flag trace to debug conditional logic
   arm-emulator -flag-trace program.s
 
+  # Dump symbol table
+  arm-emulator -dump-symbols program.s
+  arm-emulator -dump-symbols -symbols-file symbols.txt program.s
+
 Debugger Commands (when in -debug mode):
   run, r             Start/restart program execution
   continue, c        Continue execution
@@ -838,4 +859,86 @@ Debugger Commands (when in -debug mode):
 
 For more information, see the README.md file.
 `, version, vm.StackSegmentSize)
+}
+
+// dumpSymbolTable outputs the symbol table in a readable format
+func dumpSymbolTable(st *parser.SymbolTable, filename string) error {
+	var writer *os.File
+	var err error
+
+	if filename == "" {
+		writer = os.Stdout
+	} else {
+		writer, err = os.Create(filename) // #nosec G304 -- user-specified symbol output path
+		if err != nil {
+			return fmt.Errorf("failed to create symbol file: %w", err)
+		}
+		defer func() {
+			if cerr := writer.Close(); cerr != nil {
+				fmt.Fprintf(os.Stderr, "Warning: failed to close symbol file: %v\n", cerr)
+			}
+		}()
+	}
+
+	allSymbols := st.GetAllSymbols()
+	if len(allSymbols) == 0 {
+		_, _ = fmt.Fprintln(writer, "No symbols defined")
+		return nil
+	}
+
+	// Print header
+	_, _ = fmt.Fprintln(writer, "Symbol Table")
+	_, _ = fmt.Fprintln(writer, "============")
+	_, _ = fmt.Fprintln(writer)
+	_, _ = fmt.Fprintf(writer, "%-30s %-12s %-10s %s\n", "Name", "Type", "Address", "Status")
+	_, _ = fmt.Fprintln(writer, "--------------------------------------------------------------------------------")
+
+	// Sort symbols by address for easier reading
+	type symbolEntry struct {
+		name   string
+		symbol *parser.Symbol
+	}
+	entries := make([]symbolEntry, 0, len(allSymbols))
+	for name, sym := range allSymbols {
+		entries = append(entries, symbolEntry{name, sym})
+	}
+
+	// Simple bubble sort by address
+	for i := 0; i < len(entries); i++ {
+		for j := i + 1; j < len(entries); j++ {
+			if entries[i].symbol.Value > entries[j].symbol.Value {
+				entries[i], entries[j] = entries[j], entries[i]
+			}
+		}
+	}
+
+	// Print each symbol
+	for _, entry := range entries {
+		name := entry.name
+		sym := entry.symbol
+
+		var symType string
+		switch sym.Type {
+		case parser.SymbolLabel:
+			symType = "Label"
+		case parser.SymbolConstant:
+			symType = "Constant"
+		case parser.SymbolVariable:
+			symType = "Variable"
+		default:
+			symType = "Unknown"
+		}
+
+		status := "Defined"
+		if !sym.Defined {
+			status = "Undefined"
+		}
+
+		_, _ = fmt.Fprintf(writer, "%-30s %-12s 0x%08X %s\n", name, symType, sym.Value, status)
+	}
+
+	_, _ = fmt.Fprintln(writer)
+	_, _ = fmt.Fprintf(writer, "Total symbols: %d\n", len(allSymbols))
+
+	return nil
 }
