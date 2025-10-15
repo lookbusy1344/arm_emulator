@@ -42,6 +42,16 @@ This file tracks outstanding work only. Completed items are in `PROGRESS.md`.
 
 ## Medium Priority Tasks
 
+### Re-enable TUI Automated Tests
+**Effort:** 2-3 hours
+
+- [ ] Refactor `NewTUI` to accept optional `tcell.Screen` parameter for testing
+- [ ] Use `tcell.SimulationScreen` in tests instead of real terminal
+- [ ] Re-enable `tui_manual_test.go.disabled` as `tui_test.go`
+- [ ] Verify tests run without hanging in CI/CD
+
+**Context:** Current TUI tests are disabled because `tview.NewApplication()` tries to initialize a real terminal, causing hangs during `go test`. Using tcell's SimulationScreen allows testing without a terminal.
+
 ### Code Coverage Improvements
 **Effort:** 4-6 hours
 

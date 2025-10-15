@@ -16,6 +16,49 @@
 
 ## Recent Updates
 
+### 2025-10-15: Literal Pool Implementation - No .ltorg Directive Needed ✅
+**Decision:** Documented that explicit `.ltorg` directive is not needed for this emulator
+
+**Background:**
+The ARM assembler `.ltorg` directive forces the emission of literal pool data at a specific location in the code. Traditional assemblers need this because the PC-relative offset from an `LDR Rd, =constant` pseudo-instruction to its literal value is limited to ±4095 bytes (12-bit offset). Without `.ltorg`, large programs might exceed this reach.
+
+**Current Implementation:**
+Our encoder automatically handles literal pools for `LDR Rd, =constant`:
+1. **Automatic Placement:** Literals are placed after all code and data sections
+2. **Deduplication:** Same constant values share a single literal pool entry
+3. **Range Checking:** Offset validation ensures ±4095 byte limit is respected
+4. **Error Reporting:** Clear error if offset exceeds maximum reach
+
+**Justification for Not Implementing .ltorg:**
+1. **Educational Focus:** This is a teaching tool, not a production assembler
+2. **Sufficient for Test Suite:** All 34 example programs work without manual literal placement
+3. **Automatic Works Better:** Less cognitive load on learners than manual pool management
+4. **Simpler Implementation:** Single end-of-program placement vs. multiple scattered pools
+5. **Forward Compatibility:** Can add `.ltorg` later if programs exceed 4KB reach
+
+**Technical Details:**
+- File: `encoder/memory.go` lines 219-286
+- Literal pool structure: `map[uint32]uint32` (address → value)
+- Placement: `LiteralPoolStart` set by loader after all program sections
+- Maximum reach: 4095 bytes from PC to literal (checked at encode time)
+
+**When .ltorg Would Be Needed:**
+- Programs with >4KB of code between a constant load and literal pool
+- Multiple distant code sections that each need literals
+- Precise control over code layout for timing/alignment
+
+**Future Enhancement:**
+If needed, `.ltorg` could be added to:
+- Force literal emission at specific program points
+- Support multiple literal pools in very large programs
+- Allow finer control over memory layout
+
+**Files:**
+- `encoder/memory.go` - Literal pool implementation
+- `encoder/encoder.go` - LiteralPool and LiteralPoolStart fields
+- `main.go` - Sets LiteralPoolStart after parsing
+- `tests/integration/literal_pool_bug_test.go` - Tests literal pool behavior
+
 ### 2025-10-15: File I/O Example Fixed - Parser Bug with .space Directive ✅
 **Action:** Fixed `examples/file_io.s` which was failing due to parser not resolving symbol constants in .space directives, causing memory overlap
 
