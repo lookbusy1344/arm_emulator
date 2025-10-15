@@ -112,6 +112,11 @@ func TestExamplePrograms(t *testing.T) {
 			programFile:    "multi_precision_arith.s",
 			expectedOutput: "multi_precision_arith.txt",
 		},
+		{
+			name:           "TaskScheduler",
+			programFile:    "task_scheduler.s",
+			expectedOutput: "task_scheduler.txt",
+		},
 	}
 
 	for _, tt := range tests {

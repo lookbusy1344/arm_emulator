@@ -345,6 +345,30 @@ func loadProgramIntoVM(machine *vm.VM, program *parser.Program, entryPoint uint3
 // Helper to parse immediate values
 func parseValue(s string, out *uint32) (int, error) {
 	var val uint32
+	// Handle character literals like 'A'
+	if len(s) >= 3 && s[0] == '\'' && s[len(s)-1] == '\'' {
+		// Extract character (handle basic escape sequences if needed)
+		char := s[1]
+		if char == '\\' && len(s) >= 4 {
+			// Handle escape sequences like '\n', '\t', etc.
+			switch s[2] {
+			case 'n':
+				char = '\n'
+			case 't':
+				char = '\t'
+			case 'r':
+				char = '\r'
+			case '\\':
+				char = '\\'
+			case '\'':
+				char = '\''
+			default:
+				return 0, fmt.Errorf("unsupported escape sequence: %q", s)
+			}
+		}
+		*out = uint32(char)
+		return 0, nil
+	}
 	if strings.HasPrefix(s, "0x") || strings.HasPrefix(s, "0X") {
 		_, err := parseHex(s[2:], &val)
 		*out = val
