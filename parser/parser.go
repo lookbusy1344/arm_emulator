@@ -351,9 +351,21 @@ func (p *Parser) handleDirective(d *Directive, program *Program) {
 	case ".space", ".skip":
 		// Reserve specified number of bytes
 		if len(d.Args) > 0 {
-			if size, err := parseNumber(d.Args[0]); err == nil {
-				p.currentAddress += size
+			var size uint32
+			var err error
+
+			// Try to parse as number first
+			size, err = parseNumber(d.Args[0])
+			if err != nil {
+				// If not a number, try to resolve as symbol (e.g., .equ constant)
+				size, err = p.symbolTable.Get(d.Args[0])
+				if err != nil {
+					p.errors.AddError(NewError(d.Pos, ErrorInvalidOperand,
+						fmt.Sprintf("invalid size for .space: %s", d.Args[0])))
+					return
+				}
 			}
+			p.currentAddress += size
 		}
 
 	case ".align":

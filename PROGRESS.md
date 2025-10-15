@@ -6,7 +6,51 @@
 
 ---
 
+# ARM2 Emulator Implementation Progress
+
+**Last Updated:** 2025-10-15
+**Current Phase:** Phase 11 Complete - Production Ready ✅
+**Test Suite:** All tests passing (100% ✅)
+
+---
+
 ## Recent Updates
+
+### 2025-10-15: File I/O Example Fixed - Parser Bug with .space Directive ✅
+**Action:** Fixed `examples/file_io.s` which was failing due to parser not resolving symbol constants in .space directives, causing memory overlap
+
+**Root Causes Identified:**
+
+1. **Parser Bug: .space Directive Symbol Resolution**
+   - Problem: `.space LENGTH` (where LENGTH is a .equ constant) wasn't being resolved
+   - The parser's `parseNumber()` only handled numeric literals, not symbols
+   - This caused .space to advance currentAddress by 0, making all subsequent labels overlap at the same address
+   - Result: write_buf, read_buf, and msg_intro all got the same base address (0x81E0)
+   - Writing to write_buf overwrote the message strings, causing garbage output
+
+   - Fix: Modified parser.go handleDirective() to try symbol lookup if parseNumber fails:
+     ```go
+     size, err = parseNumber(d.Args[0])
+     if err != nil {
+         size, err = p.symbolTable.Get(d.Args[0])
+     }
+     ```
+   - File: `parser/parser.go` lines 356-368
+   - Impact: All .space and .skip directives now properly handle symbolic constants
+
+2. **Assembly Bug: Missing Branch After Success**
+   - Problem: After printing "[file_io] PASS", code fell through to fail_write label
+   - This caused all three messages (PASS, FAIL during write, FAIL) to print
+   - Fix: Added `B done` after line 30 (SWI #0x02 for msg_pass)
+   - File: `examples/file_io.s` line 31
+   - Also removed unreachable `B done` at line 39 (after fail_read's `B fail`)
+
+**Testing:**
+- file_io.s now correctly prints "[file_io] PASS"
+- All existing tests continue to pass
+- Memory layout verified: write_buf, read_buf, and messages now at distinct addresses
+
+**Note:** The diagnostic notes in TODO.md initially suspected CMP/branch evaluation issues, but deep investigation revealed the actual problem was memory corruption from overlapping labels, not CPU execution logic.
 
 ### 2025-10-14: Comprehensive Example Program Integration Testing ✅
 **Action:** Massive expansion of integration test coverage for all example programs

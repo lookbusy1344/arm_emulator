@@ -179,7 +179,9 @@ func (vm *VM) Step() error {
 	}
 
 	// Check condition code
-	if !vm.CPU.CPSR.EvaluateCondition(decoded.Condition) {
+	condResult := vm.CPU.CPSR.EvaluateCondition(decoded.Condition)
+
+	if !condResult {
 		// Condition not met, skip instruction
 		vm.CPU.IncrementPC()
 		vm.CPU.IncrementCycles(1)

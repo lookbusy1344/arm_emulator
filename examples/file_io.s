@@ -28,6 +28,7 @@ _start:
         BNE     fail
         LDR     R0, =msg_pass
         SWI     #0x02
+        B       done
 fail_write:
         LDR     R0, =msg_fail_write
         SWI     #0x02
@@ -36,7 +37,6 @@ fail_read:
         LDR     R0, =msg_fail_read
         SWI     #0x02
         B       fail
-        B       done
 fail:
         LDR     R0, =msg_fail
         SWI     #0x02
