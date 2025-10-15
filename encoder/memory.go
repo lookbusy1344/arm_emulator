@@ -508,7 +508,8 @@ func (e *Encoder) findNearestLiteralPoolLocation(pc uint32, value uint32) uint32
 				// Count how many literals are already assigned to this pool
 				literalsAtPool := e.countLiteralsAtPool(poolLoc)
 				// Calculate where this literal would go
-				candidateAddr := poolLoc + uint32(literalsAtPool*4)
+				// #nosec G115 -- literalsAtPool is bounded by pool capacity, safe conversion
+				candidateAddr := poolLoc + uint32(literalsAtPool)*4
 				// Check if it's still within range from PC
 				if candidateAddr > pc && candidateAddr-pc <= 4095 {
 					bestAddr = candidateAddr
@@ -521,7 +522,8 @@ func (e *Encoder) findNearestLiteralPoolLocation(pc uint32, value uint32) uint32
 				// For backward references, we need to be more careful
 				// Count existing literals
 				literalsAtPool := e.countLiteralsAtPool(poolLoc)
-				candidateAddr := poolLoc + uint32(literalsAtPool*4)
+				// #nosec G115 -- literalsAtPool is bounded by pool capacity, safe conversion
+				candidateAddr := poolLoc + uint32(literalsAtPool)*4
 				// Check distance from PC to candidate address
 				if candidateAddr <= pc && pc-candidateAddr <= 4095 {
 					bestAddr = candidateAddr
