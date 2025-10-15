@@ -43,6 +43,7 @@ This document details the ARM assembly instructions implemented and planned for 
 ADD R0, R1, R2        ; R0 = R1 + R2
 ADDS R3, R3, #1       ; R3 = R3 + 1, update flags
 ADDEQ R4, R5, R6, LSL #2  ; If equal, R4 = R5 + (R6 << 2)
+ADDNE R0, R0, #1      ; If not equal, R0 = R0 + 1
 ```
 
 #### ADC - Add with Carry ✅
@@ -79,6 +80,7 @@ ADCS R3, R3, #0       ; R3 = R3 + C, update flags (for multi-precision)
 ```arm
 SUB R0, R1, R2        ; R0 = R1 - R2
 SUBS R3, R3, #1       ; R3 = R3 - 1, update flags
+SUBGE R4, R5, #10     ; If greater or equal, R4 = R5 - 10
 ```
 
 #### SBC - Subtract with Carry ✅
@@ -115,6 +117,7 @@ SBCS R3, R3, #0       ; For multi-precision subtraction
 ```arm
 RSB R0, R1, #10       ; R0 = 10 - R1
 RSBS R2, R2, #0       ; R2 = -R2 (negate)
+RSBLT R3, R4, #100    ; If less than, R3 = 100 - R4
 ```
 
 #### RSC - Reverse Subtract with Carry ✅
@@ -170,6 +173,7 @@ ANDS R3, R3, #0xFF    ; R3 = R3 & 0xFF, update flags
 ```arm
 ORR R0, R1, R2        ; R0 = R1 | R2
 ORRS R3, R3, #0x80    ; Set bit 7, update flags
+ORRNE R4, R5, #1      ; If not equal, R4 = R5 | 1
 ```
 
 #### EOR - Logical Exclusive OR ✅
@@ -228,6 +232,12 @@ MOV R0, R1            ; R0 = R1
 MOV R2, #100          ; R2 = 100
 MOV R3, R4, LSL #2    ; R3 = R4 << 2
 MOVS PC, LR           ; Return from subroutine with flag restore
+MOVEQ R5, #1          ; If equal, R5 = 1
+MOVNE R6, #0          ; If not equal, R6 = 0
+MOVGT R7, R8          ; If greater than, R7 = R8
+MOVLT R9, #-1         ; If less than, R9 = -1
+MOVGE R10, #5         ; If greater or equal, R10 = 5
+MOVLE R11, #0         ; If less or equal, R11 = 0
 ```
 
 #### MVN - Move NOT ✅
@@ -446,7 +456,10 @@ STRH R2, [R3, #6]     ; [R3 + 6] = R2[15:0]
 ```arm
 LDMIA R13!, {R0-R3}   ; Load R0-R3 from stack, increment R13
 LDMFD SP!, {R4-R6, PC}  ; Pop R4-R6 and return
+LDMIA R0, {R1-R4}     ; Load R1-R4 from memory at R0
 ```
+
+**Usage Note:** `LDMFD SP!` (Load Multiple Full Descending) is the standard way to pop registers from the stack.
 
 #### STM - Store Multiple ✅
 
@@ -464,7 +477,10 @@ LDMFD SP!, {R4-R6, PC}  ; Pop R4-R6 and return
 ```arm
 STMDB SP!, {R0-R3, LR}  ; Push R0-R3 and LR to stack
 STMFD SP!, {R4-R11}   ; Push R4-R11 to stack
+STMIA R0!, {R1-R4}    ; Store R1-R4 to memory at R0, increment R0
 ```
+
+**Usage Note:** `STMFD SP!` (Store Multiple Full Descending) is the standard way to push registers onto the stack.
 
 ---
 
@@ -487,6 +503,12 @@ STMFD SP!, {R4-R11}   ; Push R4-R11 to stack
 B loop                ; Branch to loop
 BEQ equal_case        ; Branch if equal
 BNE not_zero          ; Branch if not zero
+BGT greater           ; Branch if greater than
+BLT less_than         ; Branch if less than
+BGE greater_equal     ; Branch if greater or equal
+BLE less_equal        ; Branch if less or equal
+BCS carry_set         ; Branch if carry set
+BMI minus             ; Branch if minus/negative
 ```
 
 #### BL - Branch with Link ✅
@@ -521,6 +543,22 @@ BLEQ conditional_fn   ; Call if equal
 ```arm
 BX LR                 ; Return from subroutine
 BX R0                 ; Branch to address in R0
+```
+
+#### BLX - Branch with Link and Exchange ✅
+
+**Status:** Implemented
+
+**Syntax:** `BLX{cond} Rm`
+
+**Description:** Branches to address in register and saves return address (ARM/Thumb interworking)
+
+**Operation:** `LR = PC + 4, PC = Rm & 0xFFFFFFFE` (bit 0 would indicate Thumb mode in later ARM)
+
+**Example:**
+```arm
+BLX R7                ; Call function at address in R7
+BLX R0                ; Call function at address in R0
 ```
 
 ---
@@ -1062,7 +1100,10 @@ MOVGT R5, #1          ; Move if greater than
 4. **Pre-indexed with Scaled Register Offset**
    ```arm
    LDR R0, [R1, R2, LSL #2]  ; R0 = [R1 + (R2 << 2)]
+   STR R3, [R4, R5, LSL #2]  ; [R4 + (R5 << 2)] = R3
+   LDR R6, [R7, R8, LSR #1]  ; R6 = [R7 + (R8 >> 1)]
    ```
+   **Note:** This is commonly used for array indexing, e.g., `LDR R0, [R1, R2, LSL #2]` accesses `array[R2]` when R1 points to a word array.
 
 5. **Pre-indexed with Writeback**
    ```arm
@@ -1171,15 +1212,49 @@ The Current Program Status Register (CPSR) contains condition flags. ✅
 
 ## Pseudo-Instructions
 
-Pseudo-instructions are assembler conveniences that map to real instructions. ⏸️
+Pseudo-instructions are assembler conveniences that map to real instructions.
 
-| Pseudo | Real Instruction | Description |
-|--------|------------------|-------------|
-| NOP | MOV R0, R0 | No operation |
-| LDR Rd, =value | LDR Rd, [PC, #offset] | Load 32-bit constant |
-| ADR Rd, label | ADD Rd, PC, #offset | Load address |
-| PUSH {regs} | STMDB SP!, {regs} | Push registers |
-| POP {regs} | LDMIA SP!, {regs} | Pop registers |
+### ADR - Load PC-Relative Address ✅
+
+**Status:** Implemented
+
+**Syntax:** `ADR{cond} Rd, label`
+
+**Description:** Loads a PC-relative address into a register (pseudo-instruction that generates ADD or SUB)
+
+**Operation:** `Rd = PC + offset` (generates ADD or SUB instruction based on offset sign)
+
+**Range:** Offset must be encodable as an ARM immediate value
+
+**Example:**
+```arm
+ADR R0, message       ; R0 = address of message
+ADR R1, data_table    ; R1 = address of data_table
+ADR R2, function      ; R2 = address of function
+```
+
+**Note:** This is a true pseudo-instruction. The assembler converts it to `ADD Rd, PC, #offset` or `SUB Rd, PC, #offset` based on whether the offset is positive or negative.
+
+### Other Pseudo-Instructions
+
+| Pseudo | Real Instruction | Status | Description |
+|--------|------------------|--------|-------------|
+| NOP | MOV R0, R0 | ⏸️ | No operation |
+| LDR Rd, =value | LDR Rd, [PC, #offset] | ⏸️ | Load 32-bit constant |
+| PUSH {regs} | STMDB SP!, {regs} | ✅ | Push registers to stack |
+| POP {regs} | LDMIA SP!, {regs} | ✅ | Pop registers from stack |
+
+**PUSH Example:**
+```arm
+PUSH {R0-R3, LR}      ; Push R0-R3 and LR to stack
+PUSH {R4-R11}         ; Push R4-R11 to stack
+```
+
+**POP Example:**
+```arm
+POP {R0-R3, PC}       ; Pop R0-R3 and return (PC=LR)
+POP {R4-R11}          ; Pop R4-R11 from stack
+```
 
 ---
 

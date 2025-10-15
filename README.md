@@ -68,6 +68,10 @@ f19616250600ed4ed98839de2ad14bfac3774e92 breaks integration tests (the script ru
 
 By 2001523f91760431f078e4f0fd6932f736cad770 we have all the example programs fixed, and running as integration tests. Something I've closely pushed for in the latest phase of development.
 
+**Day 8 - 15 Oct - Copilot CLI** - Got the new example programs working and integrated into tests. Updating the documents. Although not as polished as Claude, Copilot has the choice of models which can be useful.
+
+Go code now is 35,206 lines.
+
 ## Documentation
 
 ### Project Documentation
