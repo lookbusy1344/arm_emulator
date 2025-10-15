@@ -22,16 +22,19 @@ The ADR (Address to Register) pseudo-instruction loads a PC-relative address int
 3. **Immediate Range:** Limited to valid ARM immediate values (rotated 8-bit)
 
 **Test Coverage:**
-- `tests/integration/adr_test.go` - 4 comprehensive tests:
+- `tests/integration/adr_test.go` - 4 comprehensive unit tests:
   1. `TestADRBasic` - Forward reference to label
   2. `TestADRBackward` - Backward reference to data
   3. `TestADRMultiple` - Multiple ADR instructions with different targets
   4. `TestADRLoadAndDereference` - ADR followed by LDR to access data
+- `tests/integration/example_programs_test.go` - Integration test for adr_demo.s
+- `examples/adr_demo.s` - Comprehensive demo program showing 4 ADR use cases
 
-**Files Modified:**
-- Encoder: `encoder/data_processing.go:305-354` (encodeADR function)
+**Files Added/Modified:**
 - Tests: `tests/integration/adr_test.go` (new file, 4 tests)
-- Documentation: `INSTRUCTIONS.md` already marked as ✅
+- Demo: `examples/adr_demo.s` (new file)
+- Integration: Added ADRDemo to example_programs_test.go
+- Expected output: `tests/integration/expected_outputs/adr_demo.txt`
 
 **Verification:**
 ```bash
@@ -44,6 +47,11 @@ $ go test ./tests/integration -run TestADR -v
 --- PASS: TestADRMultiple (0.00s)
 === RUN   TestADRLoadAndDereference
 --- PASS: TestADRLoadAndDereference (0.00s)
+PASS
+
+$ go test ./tests/integration -run TestExamplePrograms/ADRDemo -v
+=== RUN   TestExamplePrograms/ADRDemo
+--- PASS: TestExamplePrograms/ADRDemo (0.00s)
 PASS
 ```
 

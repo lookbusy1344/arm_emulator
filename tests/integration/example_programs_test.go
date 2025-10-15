@@ -117,6 +117,11 @@ func TestExamplePrograms(t *testing.T) {
 			programFile:    "task_scheduler.s",
 			expectedOutput: "task_scheduler.txt",
 		},
+		{
+			name:           "ADRDemo",
+			programFile:    "adr_demo.s",
+			expectedOutput: "adr_demo.txt",
+		},
 	}
 
 	for _, tt := range tests {

@@ -133,4 +133,3 @@ data:	.word 0xCAFEBABE
 		t.Errorf("Expected output to contain 'cafebabe', got: %q", stdout)
 	}
 }
-
