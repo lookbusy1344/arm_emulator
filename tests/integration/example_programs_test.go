@@ -102,6 +102,11 @@ func TestExamplePrograms(t *testing.T) {
 			programFile:    "xor_cipher.s",
 			expectedOutput: "xor_cipher.txt",
 		},
+		{
+			name:           "FileIO",
+			programFile:    "file_io.s",
+			expectedOutput: "file_io.txt",
+		},
 	}
 
 	for _, tt := range tests {

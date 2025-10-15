@@ -1,0 +1,4 @@
+[file_io] File I/O round-trip test starting
+64
+64
+[file_io] PASS

@@ -290,9 +290,15 @@ func loadProgramIntoVM(machine *vm.VM, program *parser.Program, entryPoint uint3
 			// Space is reserved but not written - just track the address
 			if len(directive.Args) > 0 {
 				var size uint32
+				// Try to parse as a number first
 				_, err := parseValue(directive.Args[0], &size)
 				if err != nil {
-					return err
+					// If not a number, try to resolve as symbol
+					if sym, exists := program.SymbolTable.Lookup(directive.Args[0]); exists && sym.Defined {
+						size = sym.Value
+					} else {
+						return fmt.Errorf("cannot resolve size for .space: %s", directive.Args[0])
+					}
 				}
 				endAddr := dataAddr + size
 				if endAddr > maxAddr {

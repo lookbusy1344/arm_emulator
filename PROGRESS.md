@@ -49,6 +49,9 @@
 - file_io.s now correctly prints "[file_io] PASS"
 - All existing tests continue to pass
 - Memory layout verified: write_buf, read_buf, and messages now at distinct addresses
+- **Added file_io.s to integration test suite** (tests/integration/example_programs_test.go)
+- Created expected output file (tests/integration/expected_outputs/file_io.txt)
+- Fixed duplicate bug in test helper loadProgramIntoVM that also couldn't resolve symbols in .space directives
 
 **Note:** The diagnostic notes in TODO.md initially suspected CMP/branch evaluation issues, but deep investigation revealed the actual problem was memory corruption from overlapping labels, not CPU execution logic.
 
