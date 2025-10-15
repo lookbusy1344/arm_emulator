@@ -240,6 +240,9 @@ func (p *Parser) parseDirective() *Directive {
 		if p.currentToken.Type == TokenMinus && p.peekToken.Type == TokenNumber {
 			p.nextToken() // consume minus
 			arg = "-" + p.currentToken.Literal
+		} else if p.currentToken.Type == TokenString {
+			// Preserve quotes for character literals
+			arg = "'" + p.currentToken.Literal + "'"
 		}
 
 		directive.Args = append(directive.Args, arg)

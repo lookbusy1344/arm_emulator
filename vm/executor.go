@@ -240,9 +240,12 @@ func (vm *VM) Decode(opcode uint32) (*Instruction, error) {
 	bits2726 := (opcode >> 26) & 0x3
 
 	switch bits2726 {
-	case 0: // 00 - Could be data processing, multiply, BX, or load/store halfword
+	case 0: // 00 - Could be data processing, multiply, BX, BLX, or load/store halfword
 		// Check for BX (Branch and Exchange) first: bits [27:4] = 0x12FFF1
 		if (opcode & 0x0FFFFFF0) == 0x012FFF10 {
+			inst.Type = InstBranch
+		} else if (opcode & 0x0FFFFFF0) == 0x012FFF30 {
+			// BLX register form: bits [27:4] = 0x12FFF3
 			inst.Type = InstBranch
 		} else if (opcode & 0x0FC000F0) == 0x00000090 {
 			// Multiply instruction pattern

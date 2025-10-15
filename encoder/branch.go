@@ -16,9 +16,17 @@ func (e *Encoder) encodeBranch(inst *parser.Instruction, cond uint32) (uint32, e
 
 	mnemonic := strings.ToUpper(inst.Mnemonic)
 
-	// BX is different - it's encoded as a special data processing instruction
+	// BX and BLX (register) are different - they're encoded as special data processing instructions
 	if mnemonic == "BX" {
 		return e.encodeBX(inst, cond)
+	}
+	if mnemonic == "BLX" {
+		// Check if operand is a register (BLX Rm) or label (BLX label)
+		operand := strings.TrimSpace(inst.Operands[0])
+		if strings.HasPrefix(strings.ToUpper(operand), "R") {
+			return e.encodeBLX(inst, cond)
+		}
+		// Otherwise fall through to handle as branch with link
 	}
 
 	// Get target address
@@ -94,6 +102,24 @@ func (e *Encoder) encodeBX(inst *parser.Instruction, cond uint32) (uint32, error
 
 	// BX format: cccc 0001 0010 1111 1111 1111 0001 mmmm
 	instruction := (cond << 28) | (0x12FFF1 << 4) | rm
+
+	return instruction, nil
+}
+
+// encodeBLX encodes BLX (Branch with Link and Exchange) register form
+func (e *Encoder) encodeBLX(inst *parser.Instruction, cond uint32) (uint32, error) {
+	if len(inst.Operands) < 1 {
+		return 0, fmt.Errorf("BLX requires 1 operand, got %d", len(inst.Operands))
+	}
+
+	// Parse register
+	rm, err := e.parseRegister(inst.Operands[0])
+	if err != nil {
+		return 0, err
+	}
+
+	// BLX format: cccc 0001 0010 1111 1111 1111 0011 mmmm
+	instruction := (cond << 28) | (0x12FFF3 << 4) | rm
 
 	return instruction, nil
 }

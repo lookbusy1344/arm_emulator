@@ -39,18 +39,19 @@ _start:
 
 ; init_tasks: initialize task control blocks and stacks
 init_tasks:
-        STMFD   SP!, {R4-R7, LR}
+        STMFD   SP!, {R4-R8, LR}
         LDR     R4, =tcb
-        LDR     R5, =task_stacks_top
+        LDR     R5, =task_stacks
         MOV     R6, #0
 init_loop:
         CMP     R6, #NUM_TASKS
         BGE     init_done
-        ; stack pointer for task = task_stacks_top + offset
-        ; Pre-sized stacks (STACK_SIZE per task)
-        LDR     R7, =STACK_SIZE
-        MUL     R7, R6, R7
-        ADD     R7, R5, R7        ; top address (empty stack)
+        ; Calculate: task_stacks + (task_index + 1) * STACK_SIZE
+        ; Each task's SP points to the top of its allocated stack region
+        ADD     R7, R6, #1           ; task_index + 1
+        LDR     R8, =STACK_SIZE
+        MUL     R7, R8, R7           ; STACK_SIZE * (task_index + 1)
+        ADD     R7, R5, R7           ; task_stacks + offset = top of this task's stack
         ; Write initial SP
         STR     R7, [R4]          ; tcb[i].sp
         ; Entry function pointer
@@ -69,7 +70,7 @@ store_entry:
         ADD     R6, R6, #1
         B       init_loop
 init_done:
-        LDMFD   SP!, {R4-R7, PC}
+        LDMFD   SP!, {R4-R8, PC}
 
 ; run_scheduler: simple round-robin
 run_scheduler:
@@ -85,8 +86,8 @@ sched_round:
         BGE     next_round
         ; Load TCB base = tcb + i*12
         LDR     R4, =tcb
-        MOV     R5, R10, LSL #2
-        ADD     R5, R5, R10, LSL #1   ; *12 (i*8 + i*4)
+        MOV     R5, R10, LSL #2      ; R5 = i * 4
+        ADD     R5, R5, R10, LSL #3  ; R5 = i*4 + i*8 = i*12
         ADD     R4, R4, R5
         ; Load SP and entry
         LDR     R6, [R4]         ; saved SP
@@ -209,16 +210,17 @@ print_summaries:
 ; Data & control blocks ------------------------------------------------
 
 .equ STACK_SIZE, 128
+.equ TCB_SIZE, 36          ; NUM_TASKS * 12 = 3 * 12
+.equ STACKS_SIZE, 384      ; NUM_TASKS * STACK_SIZE = 3 * 128
         .align 4
 
 ; TCB array: NUM_TASKS * 12 bytes (sp, entry, state)
-tcb:    .space  NUM_TASKS * 12
+tcb:    .space  TCB_SIZE
 
 ; Stacks (simple blob). Provide contiguous region.
         .align 4
  task_stacks:
-        .space  NUM_TASKS * STACK_SIZE
- task_stacks_top:
+        .space  STACKS_SIZE
 
 ; Task private data
         .align 4

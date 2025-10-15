@@ -302,6 +302,57 @@ func (e *Encoder) encodeOperand2(cond, opcode, rn, rd, sBit uint32, operand stri
 	return instruction, nil
 }
 
+// encodeADR encodes the ADR pseudo-instruction
+// ADR Rd, label - loads PC-relative address into Rd
+// Encoded as ADD Rd, PC, #offset or SUB Rd, PC, #offset
+func (e *Encoder) encodeADR(inst *parser.Instruction, cond uint32) (uint32, error) {
+	if len(inst.Operands) != 2 {
+		return 0, fmt.Errorf("ADR requires 2 operands (Rd, label), got %d", len(inst.Operands))
+	}
+
+	// Get destination register
+	rd, err := e.parseRegister(inst.Operands[0])
+	if err != nil {
+		return 0, err
+	}
+
+	// Get target address from label
+	labelStr := strings.TrimSpace(inst.Operands[1])
+	targetAddr, err := e.symbolTable.Get(labelStr)
+	if err != nil {
+		return 0, fmt.Errorf("ADR: label %s not found: %w", labelStr, err)
+	}
+
+	// Calculate PC-relative offset
+	// PC is 8 bytes ahead (current instruction + 8)
+	pcValue := e.currentAddr + 8
+	offset := int32(targetAddr) - int32(pcValue)
+
+	// Try to encode as ADD or SUB with immediate
+	var opcode uint32
+	var absOffset uint32
+	if offset >= 0 {
+		opcode = opADD
+		absOffset = uint32(offset)
+	} else {
+		opcode = opSUB
+		absOffset = uint32(-offset)
+	}
+
+	// Check if offset can be encoded as ARM immediate
+	rotated, ok := e.encodeImmediate(absOffset)
+	if !ok {
+		return 0, fmt.Errorf("ADR: offset %d cannot be encoded as ARM immediate", offset)
+	}
+
+	// Encode as: ADD/SUB Rd, PC, #offset
+	// Format: cond | 00 | I | opcode | S | Rn | Rd | operand2
+	// I=1 (immediate), S=0, Rn=15 (PC)
+	instruction := (cond << 28) | (1 << 25) | (opcode << 21) | (15 << 16) | (rd << 12) | rotated
+
+	return instruction, nil
+}
+
 // isNumeric checks if a string looks like a number
 func isNumeric(s string) bool {
 	s = strings.TrimSpace(s)

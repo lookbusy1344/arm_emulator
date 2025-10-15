@@ -52,7 +52,7 @@ func (e *Encoder) EncodeInstruction(inst *parser.Instruction, address uint32) (u
 		return e.encodeMemory(inst, cond)
 
 	// Branch instructions
-	case "B", "BL", "BX":
+	case "B", "BL", "BX", "BLX":
 		return e.encodeBranch(inst, cond)
 
 	// Multiply instructions
@@ -77,6 +77,10 @@ func (e *Encoder) EncodeInstruction(inst *parser.Instruction, address uint32) (u
 	// Software interrupt
 	case "SWI", "SVC": // SVC is ARM7+ name for SWI
 		return e.encodeSWI(inst, cond)
+
+	// ADR pseudo-instruction
+	case "ADR":
+		return e.encodeADR(inst, cond)
 
 	default:
 		return 0, fmt.Errorf("unknown instruction: %s", mnemonic)

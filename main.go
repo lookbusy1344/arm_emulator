@@ -637,7 +637,15 @@ func loadProgramIntoVM(machine *vm.VM, program *parser.Program, entryPoint uint3
 			// Write bytes
 			for _, arg := range directive.Args {
 				var value uint32
-				if _, err := fmt.Sscanf(arg, "0x%x", &value); err != nil {
+				// Check for character literal: 'A'
+				if len(arg) >= 3 && arg[0] == '\'' && arg[len(arg)-1] == '\'' {
+					// Character literal
+					if len(arg) == 3 {
+						value = uint32(arg[1])
+					} else {
+						return fmt.Errorf("invalid .byte character literal: %s", arg)
+					}
+				} else if _, err := fmt.Sscanf(arg, "0x%x", &value); err != nil {
 					if _, err := fmt.Sscanf(arg, "%d", &value); err != nil {
 						return fmt.Errorf("invalid .byte value: %s", arg)
 					}
