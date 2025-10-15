@@ -589,6 +589,10 @@ func loadProgramIntoVM(machine *vm.VM, program *parser.Program, entryPoint uint3
 	// Create encoder
 	enc := encoder.NewEncoder(program.SymbolTable)
 
+	// Pass literal pool locations from parser to encoder
+	enc.LiteralPoolLocs = make([]uint32, len(program.LiteralPoolLocs))
+	copy(enc.LiteralPoolLocs, program.LiteralPoolLocs)
+
 	// Track the maximum address used for literal pool placement
 	maxAddr := entryPoint
 
@@ -735,11 +739,19 @@ func loadProgramIntoVM(machine *vm.VM, program *parser.Program, entryPoint uint3
 					maxAddr = endAddr
 				}
 			}
+
+		case ".ltorg":
+			// Literal pool directive - space will be reserved during encoding
+			// The parser has already recorded this location in program.LiteralPoolLocs
+			// We don't know yet how many literals will be placed here, so we can't
+			// reserve space now. This will be handled after encoding.
+			continue
 		}
 	}
 
 	// Set literal pool start address to after all data
 	// Align to 4-byte boundary
+	// This is used as a fallback if no .ltorg directives are specified
 	literalPoolStart := (maxAddr + 3) & ^uint32(3)
 	enc.LiteralPoolStart = literalPoolStart
 

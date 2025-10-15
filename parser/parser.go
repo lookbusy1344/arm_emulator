@@ -34,12 +34,13 @@ type Directive struct {
 
 // Program represents a parsed assembly program
 type Program struct {
-	Instructions []*Instruction
-	Directives   []*Directive
-	SymbolTable  *SymbolTable
-	MacroTable   *MacroTable
-	Origin       uint32 // Current assembly address (.org)
-	OriginSet    bool   // Whether .org directive was explicitly used
+	Instructions    []*Instruction
+	Directives      []*Directive
+	SymbolTable     *SymbolTable
+	MacroTable      *MacroTable
+	Origin          uint32   // Current assembly address (.org)
+	OriginSet       bool     // Whether .org directive was explicitly used
+	LiteralPoolLocs []uint32 // Addresses where .ltorg directives appear
 }
 
 // Parser parses ARM assembly language
@@ -390,6 +391,17 @@ func (p *Parser) handleDirective(d *Directive, program *Program) {
 				}
 			}
 		}
+
+	case ".ltorg":
+		// Literal pool directive - mark this location for literal pool emission
+		// Align to 4-byte boundary
+		if p.currentAddress%4 != 0 {
+			p.currentAddress += 4 - (p.currentAddress % 4)
+		}
+		// Record this location as a literal pool position
+		program.LiteralPoolLocs = append(program.LiteralPoolLocs, p.currentAddress)
+		// Note: Actual space reservation happens during encoding when we know
+		// how many literals need to be placed here
 	}
 }
 

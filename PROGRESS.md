@@ -8,6 +8,89 @@
 
 ## Recent Updates
 
+### 2025-10-15: `.ltorg` Directive Implementation - Literal Pool Management ✅
+**Status:** Fully implemented and tested
+
+**Problem Solved:**
+Programs using `.org 0x0000` or other low memory origins with many `LDR Rd, =constant` pseudo-instructions could fail with "literal pool offset too large" errors when literals were placed too far from the instructions that reference them (>4095 bytes, the limit of ARM's 12-bit PC-relative offset).
+
+**Solution:**
+Implemented the `.ltorg` (literal pool organization) directive to allow manual placement of literal pools within the ±4095 byte addressing range of instructions that need them.
+
+**Implementation Details:**
+
+1. **Parser Enhancement (`parser/parser.go`):**
+   - Added `.ltorg` directive handling in `handleDirective()`
+   - Records `.ltorg` locations in `Program.LiteralPoolLocs` slice
+   - Automatically aligns `.ltorg` locations to 4-byte boundaries
+   - Lines 393-403
+
+2. **Encoder Enhancement (`encoder/encoder.go`, `encoder/memory.go`):**
+   - Added `LiteralPoolLocs []uint32` and `pendingLiterals map[uint32]uint32` fields
+   - Implemented `findNearestLiteralPoolLocation()` to find the closest pool within range
+   - Implemented `countLiteralsAtPool()` to track literal allocation per pool
+   - Modified `encodeLDRPseudo()` to use nearest pool when `.ltorg` is specified
+   - Falls back to end-of-program placement if no `.ltorg` directives exist
+   - Lines 17-18, 469-555
+
+3. **Loader Enhancement (`main.go`):**
+   - Copies `program.LiteralPoolLocs` to encoder during initialization
+   - Added handling for `.ltorg` directive (continues without writing data)
+   - Lines 593-596, 742-747
+
+**Features:**
+- ✅ Multiple `.ltorg` directives supported (multiple literal pools)
+- ✅ Automatic 4-byte alignment of pools
+- ✅ Literal deduplication (same value shared across pools)
+- ✅ Nearest pool selection (finds closest pool within ±4095 bytes)
+- ✅ Backward compatibility (falls back if no `.ltorg` specified)
+- ✅ Works with `.org 0x0000` and low memory origins
+
+**Testing:**
+- **5 comprehensive integration tests:**
+  - `TestLtorgDirective_Basic` - Single `.ltorg` directive
+  - `TestLtorgDirective_MultiplePools` - Multiple `.ltorg` directives
+  - `TestLtorgDirective_LowMemoryOrigin` - `.org 0x0000` with `.ltorg`
+  - `TestLtorgDirective_Alignment` - 4-byte alignment verification
+  - `TestLtorgDirective_NoLtorg` - Fallback behavior without `.ltorg`
+- **Example program:** `examples/test_ltorg.s` demonstrating usage
+- All tests passing ✅
+
+**Usage Example:**
+```asm
+.org 0x0000
+
+main:
+    LDR R0, =0x12345678     ; Large constant needs literal pool
+    LDR R1, =0xDEADBEEF
+    ADD R2, R0, R1
+    B   next_section
+    
+    .ltorg                  ; Place literals here (within 4095 bytes)
+
+next_section:
+    ; Code far from main...
+    LDR R3, =0x11111111
+    
+    .ltorg                  ; Another pool for distant code
+```
+
+**Documentation:**
+- Updated `docs/assembly_reference.md` with `.ltorg` directive documentation
+- Explains why `.ltorg` is needed and when to use it
+- Includes examples and best practices
+
+**Impact:**
+- **Priority:** HIGH - Solves literal pool addressing limitation
+- **Effort:** 6 hours (implementation + tests + documentation)
+- **Complexity:** Moderate - Multi-pool management with range checking
+- **Risk:** Low - All tests passing, backward compatible
+- **Benefits:**
+  - Programs with `.org 0x0000` now work with many constants
+  - Standard ARM assembler compatibility
+  - Gives programmers control over literal placement
+  - No breaking changes (`.ltorg` is optional)
+
 ### 2025-10-15: ADR Pseudo-Instruction Verification ✅
 **Status:** Fully implemented and tested
 

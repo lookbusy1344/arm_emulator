@@ -523,6 +523,50 @@ data:   .word   42
 .balign 4                   ; Align to 4-byte boundary
 ```
 
+### .ltorg - Literal Pool
+```asm
+.ltorg
+```
+
+Forces emission of the literal pool at the current location. Literals are values loaded using the `LDR Rd, =constant` pseudo-instruction that cannot be encoded as immediate values.
+
+**Why Use .ltorg:**
+- ARM PC-relative addressing has a ±4095 byte range
+- Programs with `.org 0x0000` or many constants may exceed this range
+- `.ltorg` places literals within reachable distance
+
+**Alignment:**
+- Automatically aligns to 4-byte boundary
+- Space is reserved for accumulated literals
+
+**Example:**
+```asm
+.org 0x0000
+
+main:
+    LDR R0, =0x12345678     ; Large constant needs literal pool
+    LDR R1, =0xDEADBEEF
+    LDR R2, =0xCAFEBABE
+    ADD R3, R0, R1
+    ADD R3, R3, R2
+    B   next_section
+    
+    .ltorg                  ; Place literals here (within 4095 bytes)
+
+next_section:
+    ; More code far from main...
+    LDR R4, =0x11111111
+    LDR R5, =0x22222222
+    
+    .ltorg                  ; Another pool for distant code
+```
+
+**Notes:**
+- Multiple `.ltorg` directives allowed
+- Literals automatically deduplicated (same value reused)
+- If no `.ltorg` specified, literals placed at end of program
+- For programs using `.org 0x8000`, `.ltorg` is usually unnecessary
+
 ## Condition Codes
 
 All instructions can be conditionally executed by appending a condition code.

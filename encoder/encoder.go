@@ -16,13 +16,17 @@ type Encoder struct {
 	currentAddr      uint32
 	LiteralPool      map[uint32]uint32 // address -> value for literal pool (exported)
 	LiteralPoolStart uint32            // Start address for literal pool (set externally)
+	LiteralPoolLocs  []uint32          // Addresses of .ltorg directives (multiple pools)
+	pendingLiterals  map[uint32]uint32 // value -> preferred address mapping for dedup
 }
 
 // NewEncoder creates a new encoder instance
 func NewEncoder(symbolTable *parser.SymbolTable) *Encoder {
 	return &Encoder{
-		symbolTable: symbolTable,
-		LiteralPool: make(map[uint32]uint32),
+		symbolTable:     symbolTable,
+		LiteralPool:     make(map[uint32]uint32),
+		LiteralPoolLocs: make([]uint32, 0),
+		pendingLiterals: make(map[uint32]uint32),
 	}
 }
 

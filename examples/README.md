@@ -344,6 +344,7 @@ These examples collectively demonstrate:
 - `.space` - Reserve space
 - `.align` - Align to boundary
 - `.equ` - Define constant
+- `.ltorg` - Place literal pool (see `test_ltorg.s`)
 
 ### Condition Codes
 - `EQ` (Equal), `NE` (Not Equal)

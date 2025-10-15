@@ -229,28 +229,32 @@ func (e *Encoder) encodeLDRPseudo(inst *parser.Instruction, cond, rd uint32) (ui
 	}
 
 	if !found {
-		// Place literals after all code and data
-		// If LiteralPoolStart is set (by loadProgramIntoVM), use it
-		// Otherwise fall back to the old behavior (for compatibility with tests)
-		if e.LiteralPoolStart > 0 {
-			// Use the start address set by the loader, plus offset for each literal
-			poolSize, err := vm.SafeIntToUint32(len(e.LiteralPool) * 4)
-			if err != nil {
-				return 0, fmt.Errorf("literal pool too large: %v", err)
+		// Find the nearest literal pool location that's within ±4095 bytes
+		pc := e.currentAddr + 8 // PC = current instruction + 8
+		literalAddr = e.findNearestLiteralPoolLocation(pc, value)
+
+		if literalAddr == 0 {
+			// No suitable pool found - this shouldn't happen if .ltorg is properly placed
+			// Fall back to old behavior
+			if e.LiteralPoolStart > 0 {
+				poolSize, err := vm.SafeIntToUint32(len(e.LiteralPool) * 4)
+				if err != nil {
+					return 0, fmt.Errorf("literal pool too large: %v", err)
+				}
+				literalAddr = e.LiteralPoolStart + poolSize
+			} else {
+				poolSize, err := vm.SafeIntToUint32(len(e.LiteralPool) * 4)
+				if err != nil {
+					return 0, fmt.Errorf("literal pool too large: %v", err)
+				}
+				literalOffset := 0x1000 + poolSize
+				literalAddr = (e.currentAddr & 0xFFFFF000) + literalOffset
 			}
-			literalAddr = e.LiteralPoolStart + poolSize
-		} else {
-			// Fallback: place literals at a fixed offset
-			poolSize, err := vm.SafeIntToUint32(len(e.LiteralPool) * 4)
-			if err != nil {
-				return 0, fmt.Errorf("literal pool too large: %v", err)
-			}
-			literalOffset := 0x1000 + poolSize
-			literalAddr = (e.currentAddr & 0xFFFFF000) + literalOffset
 		}
 
 		// Store value in literal pool
 		e.LiteralPool[literalAddr] = value
+		e.pendingLiterals[value] = literalAddr
 	}
 
 	// Calculate PC-relative offset
@@ -462,4 +466,83 @@ func (e *Encoder) encodeMemoryHalfword(inst *parser.Instruction, cond, rd, lBit 
 	}
 
 	return opcode, nil
+}
+
+// findNearestLiteralPoolLocation finds the nearest literal pool location within ±4095 bytes
+// Returns 0 if no suitable location is found
+func (e *Encoder) findNearestLiteralPoolLocation(pc uint32, value uint32) uint32 {
+	// If no .ltorg directives specified, return 0 to use fallback behavior
+	if len(e.LiteralPoolLocs) == 0 {
+		return 0
+	}
+
+	// Check if this value already has a pending location
+	if addr, ok := e.pendingLiterals[value]; ok {
+		// Verify it's still within range
+		if addr > pc {
+			if addr-pc > 4095 {
+				// Out of range, need to find a new location
+				delete(e.pendingLiterals, value)
+			} else {
+				return addr
+			}
+		} else {
+			if pc-addr > 4095 {
+				// Out of range, need to find a new location
+				delete(e.pendingLiterals, value)
+			} else {
+				return addr
+			}
+		}
+	}
+
+	// Find nearest pool location within ±4095 bytes
+	var bestAddr uint32
+	var bestDistance uint32 = 0xFFFFFFFF
+
+	for _, poolLoc := range e.LiteralPoolLocs {
+		var distance uint32
+		if poolLoc > pc {
+			distance = poolLoc - pc
+			if distance <= 4095 && distance < bestDistance {
+				// Count how many literals are already assigned to this pool
+				literalsAtPool := e.countLiteralsAtPool(poolLoc)
+				// Calculate where this literal would go
+				candidateAddr := poolLoc + uint32(literalsAtPool*4)
+				// Check if it's still within range from PC
+				if candidateAddr > pc && candidateAddr-pc <= 4095 {
+					bestAddr = candidateAddr
+					bestDistance = distance
+				}
+			}
+		} else {
+			distance = pc - poolLoc
+			if distance <= 4095 && distance < bestDistance {
+				// For backward references, we need to be more careful
+				// Count existing literals
+				literalsAtPool := e.countLiteralsAtPool(poolLoc)
+				candidateAddr := poolLoc + uint32(literalsAtPool*4)
+				// Check distance from PC to candidate address
+				if candidateAddr <= pc && pc-candidateAddr <= 4095 {
+					bestAddr = candidateAddr
+					bestDistance = distance
+				}
+			}
+		}
+	}
+
+	return bestAddr
+}
+
+// countLiteralsAtPool counts how many literals are already assigned to start at or near a pool location
+func (e *Encoder) countLiteralsAtPool(poolLoc uint32) int {
+	count := 0
+	// Check all assigned literals to see how many are in this pool region
+	// Literals within 1024 bytes of the pool location are considered part of the same pool
+	for addr := range e.LiteralPool {
+		if addr >= poolLoc && addr < poolLoc+1024 {
+			count++
+		}
+	}
+	return count
 }
