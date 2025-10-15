@@ -1,6 +1,6 @@
 # ARM2 Emulator TODO List
 
-**Last Updated:** 2025-10-14
+**Last Updated:** 2025-10-15
 
 This file tracks outstanding work only. Completed items are in `PROGRESS.md`.
 
@@ -10,7 +10,7 @@ This file tracks outstanding work only. Completed items are in `PROGRESS.md`.
 
 **Current Phase:** Phase 11 (Production Hardening) - Core Complete
 
-**Status:** Project is production-ready with comprehensive test coverage and all critical features implemented. Remaining work focuses on release engineering, CI/CD improvements, and optional enhancements.
+**Status:** Project is production-ready with comprehensive test coverage and all critical features implemented. ADR pseudo-instruction verified working. Remaining work focuses on release engineering, CI/CD improvements, and optional enhancements.
 
 **Estimated effort to v1.0.0:** 15-20 hours
 

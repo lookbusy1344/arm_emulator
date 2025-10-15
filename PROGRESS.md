@@ -1,13 +1,5 @@
 # ARM2 Emulator Implementation Progress
 
-**Last Updated:** 2025-10-14
-**Current Phase:** Phase 11 Complete - Production Ready ✅
-**Test Suite:** All tests passing (100% ✅)
-
----
-
-# ARM2 Emulator Implementation Progress
-
 **Last Updated:** 2025-10-15
 **Current Phase:** Phase 11 Complete - Production Ready ✅
 **Test Suite:** All tests passing (100% ✅)
@@ -15,6 +7,53 @@
 ---
 
 ## Recent Updates
+
+### 2025-10-15: ADR Pseudo-Instruction Verification ✅
+**Status:** Fully implemented and tested
+
+**Implementation:**
+The ADR (Address to Register) pseudo-instruction loads a PC-relative address into a register. It's essential for position-independent code and accessing data labels.
+
+**How It Works:**
+1. **Encoding:** ADR is translated to ADD or SUB with PC as base register
+   - `ADR Rd, label` becomes `ADD Rd, PC, #offset` (if offset positive)
+   - Or `SUB Rd, PC, #offset` (if offset negative)
+2. **PC-Relative:** Offset calculated from PC+8 (ARM pipeline effect)
+3. **Immediate Range:** Limited to valid ARM immediate values (rotated 8-bit)
+
+**Test Coverage:**
+- `tests/integration/adr_test.go` - 4 comprehensive tests:
+  1. `TestADRBasic` - Forward reference to label
+  2. `TestADRBackward` - Backward reference to data
+  3. `TestADRMultiple` - Multiple ADR instructions with different targets
+  4. `TestADRLoadAndDereference` - ADR followed by LDR to access data
+
+**Files Modified:**
+- Encoder: `encoder/data_processing.go:305-354` (encodeADR function)
+- Tests: `tests/integration/adr_test.go` (new file, 4 tests)
+- Documentation: `INSTRUCTIONS.md` already marked as ✅
+
+**Verification:**
+```bash
+$ go test ./tests/integration -run TestADR -v
+=== RUN   TestADRBasic
+--- PASS: TestADRBasic (0.00s)
+=== RUN   TestADRBackward
+--- PASS: TestADRBackward (0.00s)
+=== RUN   TestADRMultiple
+--- PASS: TestADRMultiple (0.00s)
+=== RUN   TestADRLoadAndDereference
+--- PASS: TestADRLoadAndDereference (0.00s)
+PASS
+```
+
+**Usage Example:**
+```asm
+        ADR R0, message         ; Load address of message into R0
+        LDR R1, [R0]            ; Load value at that address
+message:
+        .word 0xDEADBEEF
+```
 
 ### 2025-10-15: Literal Pool Implementation - No .ltorg Directive Needed ✅
 **Decision:** Documented that explicit `.ltorg` directive is not needed for this emulator
