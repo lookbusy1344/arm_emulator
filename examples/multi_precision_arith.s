@@ -40,6 +40,13 @@ _start:
 
         BL      add128            ; SUM = A + B
         BL      verify_sum_ab
+        CMP     R0, #0
+        BNE     test1_fail
+        LDR     R0, =msg_test1_pass
+        SWI     #0x02
+        SWI     #0x07
+        MOV     R0, #0
+test1_fail:
         ORR     R10, R10, R0      ; accumulate failures
 
         ; DIFF = SUM - B -> should recover A
@@ -48,6 +55,13 @@ _start:
         LDR     R2, =diff
         BL      sub128            ; DIFF = SUM - B
         BL      verify_diff_recovers_a
+        CMP     R0, #0
+        BNE     test2_fail
+        LDR     R0, =msg_test2_pass
+        SWI     #0x02
+        SWI     #0x07
+        MOV     R0, #0
+test2_fail:
         ORR     R10, R10, R0
 
         ; SUM2 = SUM + C
@@ -56,6 +70,13 @@ _start:
         LDR     R2, =sum2
         BL      add128_generic
         BL      verify_sum2
+        CMP     R0, #0
+        BNE     test3_fail
+        LDR     R0, =msg_test3_pass
+        SWI     #0x02
+        SWI     #0x07
+        MOV     R0, #0
+test3_fail:
         ORR     R10, R10, R0
 
         ; Shift SUM left by 1 bit -> SHIFTED
@@ -63,6 +84,13 @@ _start:
         LDR     R1, =shifted
         BL      shl128_1
         BL      verify_shifted
+        CMP     R0, #0
+        BNE     test4_fail
+        LDR     R0, =msg_test4_pass
+        SWI     #0x02
+        SWI     #0x07
+        MOV     R0, #0
+test4_fail:
         ORR     R10, R10, R0
 
         ; Final result
@@ -85,18 +113,27 @@ done:
 ; Clobbers R0-R3,R8, flags
 add128:
         STMFD   SP!, {R4-R8, LR}
-        MOV     R8, #0
-        MOV     R3, #0            ; carry = 0
-add128_loop:
-        CMP     R8, #4
-        BGE     add128_done
-        LDR     R0, [R4, R8, LSL #2]
-        LDR     R1, [R5, R8, LSL #2]
-        ADCS    R2, R0, R1        ; add with carry from prior iteration
-        STR     R2, [R7, R8, LSL #2]
-        ADD     R8, R8, #1
-        B       add128_loop
-add128_done:
+        ; Unrolled loop to preserve carry flag between ADCS
+        LDR     R0, [R4, #0]
+        LDR     R1, [R5, #0]
+        ADDS    R2, R0, R1        ; First add, clear carry
+        STR     R2, [R7, #0]
+        
+        LDR     R0, [R4, #4]
+        LDR     R1, [R5, #4]
+        ADCS    R2, R0, R1        ; Add with carry
+        STR     R2, [R7, #4]
+        
+        LDR     R0, [R4, #8]
+        LDR     R1, [R5, #8]
+        ADCS    R2, R0, R1        ; Add with carry
+        STR     R2, [R7, #8]
+        
+        LDR     R0, [R4, #12]
+        LDR     R1, [R5, #12]
+        ADCS    R2, R0, R1        ; Add with carry
+        STR     R2, [R7, #12]
+        
         ; Final carry in C flag (ignored)
         MOV     R0, #0
         LDMFD   SP!, {R4-R8, PC}
@@ -104,36 +141,55 @@ add128_done:
 ; add128_generic: R0=ptr X, R1=ptr Y, R2=dest -> dest = X + Y
 add128_generic:
         STMFD   SP!, {R3-R8, LR}
-        MOV     R8, #0
-        MOV     R3, #0
-addg_loop:
-        CMP     R8, #4
-        BGE     addg_done
-        LDR     R4, [R0, R8, LSL #2]
-        LDR     R5, [R1, R8, LSL #2]
-        ADCS    R6, R4, R5
-        STR     R6, [R2, R8, LSL #2]
-        ADD     R8, R8, #1
-        B       addg_loop
-addg_done:
+        ; Unrolled loop to preserve carry flag
+        LDR     R4, [R0, #0]
+        LDR     R5, [R1, #0]
+        ADDS    R6, R4, R5        ; First add
+        STR     R6, [R2, #0]
+        
+        LDR     R4, [R0, #4]
+        LDR     R5, [R1, #4]
+        ADCS    R6, R4, R5        ; Add with carry
+        STR     R6, [R2, #4]
+        
+        LDR     R4, [R0, #8]
+        LDR     R5, [R1, #8]
+        ADCS    R6, R4, R5        ; Add with carry
+        STR     R6, [R2, #8]
+        
+        LDR     R4, [R0, #12]
+        LDR     R5, [R1, #12]
+        ADCS    R6, R4, R5        ; Add with carry
+        STR     R6, [R2, #12]
+        
         MOV     R0, #0
         LDMFD   SP!, {R3-R8, PC}
 
 ; sub128: R0=ptr X, R1=ptr Y, R2=dest -> dest = X - Y
 sub128:
         STMFD   SP!, {R3-R8, LR}
-        MOV     R8, #0
-        MOV     R3, #0
-sub_loop:
-        CMP     R8, #4
-        BGE     sub_done
-        LDR     R4, [R0, R8, LSL #2]
-        LDR     R5, [R1, R8, LSL #2]
-        SBCS    R6, R4, R5        ; subtract with carry as NOT borrow
-        STR     R6, [R2, R8, LSL #2]
-        ADD     R8, R8, #1
-        B       sub_loop
-sub_done:
+        ; Unrolled loop to preserve carry flag
+        ; For subtraction, C=1 means no borrow
+        LDR     R4, [R0, #0]
+        LDR     R5, [R1, #0]
+        SUBS    R6, R4, R5        ; First subtract, sets carry
+        STR     R6, [R2, #0]
+        
+        LDR     R4, [R0, #4]
+        LDR     R5, [R1, #4]
+        SBCS    R6, R4, R5        ; Subtract with borrow
+        STR     R6, [R2, #4]
+        
+        LDR     R4, [R0, #8]
+        LDR     R5, [R1, #8]
+        SBCS    R6, R4, R5        ; Subtract with borrow
+        STR     R6, [R2, #8]
+        
+        LDR     R4, [R0, #12]
+        LDR     R5, [R1, #12]
+        SBCS    R6, R4, R5        ; Subtract with borrow
+        STR     R6, [R2, #12]
+        
         MOV     R0, #0
         LDMFD   SP!, {R3-R8, PC}
 
@@ -233,6 +289,10 @@ expect_shifted: ; (opA+opB) << 1
         ; limb3: 0x00000002<<1 = 0x00000004
         .word   0x0000000C, 0x0000000A, 0x00000004, 0x00000004
 
-msg_intro:      .asciz  "[multi_precision_arith] Multi-precision arithmetic tests running"
+msg_intro:              .asciz  "[multi_precision_arith] Multi-precision arithmetic tests running"
+msg_test1_pass:         .asciz  "[multi_precision_arith] Test 1 PASSED: A + B"
+msg_test2_pass: .asciz  "[multi_precision_arith] Test 2 PASSED: (A+B) - B = A"
+msg_test3_pass: .asciz  "[multi_precision_arith] Test 3 PASSED: (A+B) + C"
+msg_test4_pass: .asciz  "[multi_precision_arith] Test 4 PASSED: Shift"
 msg_all_pass:   .asciz  "[multi_precision_arith] ALL TESTS PASSED"
 msg_any_fail:   .asciz  "[multi_precision_arith] ONE OR MORE TESTS FAILED"
