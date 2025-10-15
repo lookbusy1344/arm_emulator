@@ -107,6 +107,11 @@ func TestExamplePrograms(t *testing.T) {
 			programFile:    "file_io.s",
 			expectedOutput: "file_io.txt",
 		},
+		{
+			name:           "MultiPrecisionArith",
+			programFile:    "multi_precision_arith.s",
+			expectedOutput: "multi_precision_arith.txt",
+		},
 	}
 
 	for _, tt := range tests {

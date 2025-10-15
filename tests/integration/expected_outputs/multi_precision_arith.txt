@@ -1,0 +1,6 @@
+[multi_precision_arith] Multi-precision arithmetic tests running
+[multi_precision_arith] Test 1 PASSED: A + B
+[multi_precision_arith] Test 2 PASSED: (A+B) - B = A
+[multi_precision_arith] Test 3 PASSED: (A+B) + C
+[multi_precision_arith] Test 4 PASSED: Shift
+[multi_precision_arith] ALL TESTS PASSED
