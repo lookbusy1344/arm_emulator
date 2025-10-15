@@ -122,6 +122,16 @@ func TestExamplePrograms(t *testing.T) {
 			programFile:    "adr_demo.s",
 			expectedOutput: "adr_demo.txt",
 		},
+		{
+			name:           "TestLtorg",
+			programFile:    "test_ltorg.s",
+			expectedOutput: "test_ltorg.txt",
+		},
+		{
+			name:           "TestOrg0WithLtorg",
+			programFile:    "test_org_0_with_ltorg.s",
+			expectedOutput: "test_org_0_with_ltorg.txt",
+		},
 	}
 
 	for _, tt := range tests {
