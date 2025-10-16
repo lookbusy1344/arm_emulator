@@ -1,6 +1,6 @@
 # ARM2 Emulator TODO List
 
-**Last Updated:** 2025-10-15
+**Last Updated:** 2025-10-16
 
 This file tracks outstanding work only. Completed items are in `PROGRESS.md`.
 
@@ -8,64 +8,50 @@ This file tracks outstanding work only. Completed items are in `PROGRESS.md`.
 
 ## Summary
 
-**Current Phase:** Phase 11 (Production Hardening) - Core Complete
+**Current Phase:** Phase 11 (Production Hardening) - Core Complete + ARMv3 Extensions
 
-**Status:** Project is production-ready with comprehensive test coverage and all critical features implemented. ADR pseudo-instruction verified working. `.ltorg` directive implemented and tested. Remaining work focuses on release engineering, CI/CD improvements, and optional enhancements.
+**Status:** Project is production-ready with comprehensive test coverage and all critical features implemented. All planned ARMv3/ARMv3M instruction extensions have been completed (long multiply, PSR transfer, NOP, LDR Rd, =value). Remaining work focuses on release engineering, CI/CD improvements, and optional enhancements.
 
-**Estimated effort to v1.0.0:** 35-50 hours (includes planned instruction extensions)
+**Test Status:** 1106 tests, 100% pass rate, 0 lint issues
+
+**Estimated effort to v1.0.0:** 12-18 hours (CI/CD and release engineering only)
 
 ---
 
 ## High Priority Tasks
 
-### Planned ARM2 Instruction Extensions
-**Effort:** 20-30 hours
+### ✅ ~~Planned ARM2 Instruction Extensions~~ - COMPLETED (2025-10-16)
+**Actual Effort:** ~6 hours total
 
-From INSTRUCTIONS.md - these instructions are documented but not yet implemented:
+**All planned instructions have been implemented and tested:**
 
-#### ARMv3M Long Multiply Instructions (8-12 hours)
-- [ ] **UMULL** - Unsigned Multiply Long (`UMULL{cond}{S} RdLo, RdHi, Rm, Rs`)
-  - Multiplies two 32-bit unsigned values producing 64-bit result
-  - Operation: `RdHi:RdLo = Rm * Rs`
-  - INSTRUCTIONS.md lines 612-620
+#### ✅ ARMv3M Long Multiply Instructions - COMPLETED
+- [x] **UMULL** - Unsigned Multiply Long (vm/multiply.go)
+- [x] **UMLAL** - Unsigned Multiply-Accumulate Long
+- [x] **SMULL** - Signed Multiply Long
+- [x] **SMLAL** - Signed Multiply-Accumulate Long
+- **Tests:** 14 unit tests in tests/unit/vm/multiply_test.go
+- **Status:** All tests passing
 
-- [ ] **UMLAL** - Unsigned Multiply-Accumulate Long (`UMLAL{cond}{S} RdLo, RdHi, Rm, Rs`)
-  - Unsigned multiply and accumulate with 64-bit result
-  - Operation: `RdHi:RdLo = (Rm * Rs) + RdHi:RdLo`
-  - INSTRUCTIONS.md lines 622-630
+#### ✅ ARMv3 PSR Transfer Instructions - COMPLETED
+- [x] **MRS** - Move PSR to Register (vm/psr.go)
+- [x] **MSR** - Move Register to PSR (supports register and immediate forms)
+- **Tests:** 13 unit tests in tests/unit/vm/psr_test.go
+- **Status:** All tests passing
 
-- [ ] **SMULL** - Signed Multiply Long (`SMULL{cond}{S} RdLo, RdHi, Rm, Rs`)
-  - Multiplies two 32-bit signed values producing 64-bit result
-  - Operation: `RdHi:RdLo = Rm * Rs (signed)`
-  - INSTRUCTIONS.md lines 632-640
+#### ✅ Pseudo-Instructions - COMPLETED
+- [x] **NOP** - No operation (encoder/other.go:encodeNOP)
+- [x] **LDR Rd, =value** - Load 32-bit constant (already implemented)
+  - Smart encoding: MOV/MVN for small values, literal pool for large values
+  - Automatic value deduplication
+  - Multiple pool support via `.ltorg` directive
+- [x] **`.ltorg` directive** - Literal pool placement (already implemented)
+- **Tests:** 5 integration tests in tests/integration/ltorg_test.go
+- **Status:** All tests passing
 
-- [ ] **SMLAL** - Signed Multiply-Accumulate Long (`SMLAL{cond}{S} RdLo, RdHi, Rm, Rs`)
-  - Signed multiply and accumulate with 64-bit result
-  - Operation: `RdHi:RdLo = (Rm * Rs) + RdHi:RdLo (signed)`
-  - INSTRUCTIONS.md lines 642-650
+**Note:** These instructions extend beyond core ARM2 into ARMv3/ARMv3M territory, but are useful for enhanced compatibility. See PROGRESS.md for full implementation details.
 
-#### ARMv3 PSR Transfer Instructions (4-6 hours)
-- [ ] **MRS** - Move PSR to Register (`MRS{cond} Rd, PSR`)
-  - Moves CPSR or SPSR to a register
-  - Example: `MRS R0, CPSR` (R0 = CPSR)
-  - INSTRUCTIONS.md lines 717-728
-
-- [ ] **MSR** - Move Register to PSR (`MSR{cond} PSR, Rm`)
-  - Moves a register or immediate to CPSR or SPSR
-  - Example: `MSR CPSR, R0` (CPSR = R0)
-  - INSTRUCTIONS.md lines 730-741
-
-#### Pseudo-Instructions (4-6 hours)
-- [ ] **NOP** - No operation (pseudo-instruction)
-  - Maps to: `MOV R0, R0`
-  - INSTRUCTIONS.md line 1242
-
-- [ ] **LDR Rd, =value** - Load 32-bit constant (pseudo-instruction)
-  - Maps to: `LDR Rd, [PC, #offset]` with literal pool
-  - Allows loading any 32-bit constant value
-  - INSTRUCTIONS.md line 1243
-
-**Note:** These are documented in INSTRUCTIONS.md as planned but not yet implemented. They extend beyond core ARM2 into ARMv3/ARMv3M territory.
+**Documentation:** INSTRUCTIONS.md updated with complete syntax, examples, and usage notes for all new instructions.
 
 ### Enhanced CI/CD Pipeline
 **Effort:** 4-6 hours
@@ -157,10 +143,12 @@ These are **not** part of ARM2 but could be added for broader compatibility:
 
 ## Effort Summary
 
-**Total estimated effort to v1.0.0:** 35-50 hours
+**Total estimated effort to v1.0.0:** 12-18 hours
 
-- **High Priority:** 32-48 hours (planned instructions, CI/CD, release engineering)
-  - Planned instruction extensions: 20-30 hours
+- **High Priority:** 12-18 hours (CI/CD and release engineering only)
+  - ~~Planned instruction extensions: 20-30 hours~~ ✅ COMPLETED
   - CI/CD and release engineering: 12-18 hours
 - **Medium Priority:** 18-27 hours (coverage, benchmarking, documentation)
 - **Low Priority:** Variable (optional enhancements)
+
+**Completed in this session (2025-10-16):** ARMv3/ARMv3M instruction extensions (~6 hours actual vs 20-30 hours estimated)

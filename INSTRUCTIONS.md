@@ -609,9 +609,9 @@ MLA R0, R1, R2, R3    ; R0 = R1 * R2 + R3
 MLAS R4, R5, R6, R7   ; R4 = R5 * R6 + R7, update flags
 ```
 
-#### UMULL - Unsigned Multiply Long ⏸️
+#### UMULL - Unsigned Multiply Long ✅
 
-**Status:** Planned
+**Status:** Implemented (ARMv3M)
 
 **Syntax:** `UMULL{cond}{S} RdLo, RdHi, Rm, Rs`
 
@@ -619,9 +619,19 @@ MLAS R4, R5, R6, R7   ; R4 = R5 * R6 + R7, update flags
 
 **Operation:** `RdHi:RdLo = Rm * Rs`
 
-#### UMLAL - Unsigned Multiply-Accumulate Long ⏸️
+**Flags:** Updates N, Z when S bit is set (C, V unaffected)
 
-**Status:** Planned
+**Restrictions:** RdHi, RdLo, and Rm must all be different registers, R15 (PC) cannot be used
+
+**Example:**
+```arm
+UMULL R0, R1, R2, R3   ; R1:R0 = R2 * R3 (unsigned)
+UMULLS R4, R5, R6, R7  ; R5:R4 = R6 * R7, update flags
+```
+
+#### UMLAL - Unsigned Multiply-Accumulate Long ✅
+
+**Status:** Implemented (ARMv3M)
 
 **Syntax:** `UMLAL{cond}{S} RdLo, RdHi, Rm, Rs`
 
@@ -629,9 +639,19 @@ MLAS R4, R5, R6, R7   ; R4 = R5 * R6 + R7, update flags
 
 **Operation:** `RdHi:RdLo = (Rm * Rs) + RdHi:RdLo`
 
-#### SMULL - Signed Multiply Long ⏸️
+**Flags:** Updates N, Z when S bit is set (C, V unaffected)
 
-**Status:** Planned
+**Restrictions:** RdHi, RdLo, and Rm must all be different registers, R15 (PC) cannot be used
+
+**Example:**
+```arm
+UMLAL R0, R1, R2, R3   ; R1:R0 = (R2 * R3) + R1:R0 (unsigned)
+UMLALS R4, R5, R6, R7  ; R5:R4 += R6 * R7, update flags
+```
+
+#### SMULL - Signed Multiply Long ✅
+
+**Status:** Implemented (ARMv3M)
 
 **Syntax:** `SMULL{cond}{S} RdLo, RdHi, Rm, Rs`
 
@@ -639,15 +659,35 @@ MLAS R4, R5, R6, R7   ; R4 = R5 * R6 + R7, update flags
 
 **Operation:** `RdHi:RdLo = Rm * Rs (signed)`
 
-#### SMLAL - Signed Multiply-Accumulate Long ⏸️
+**Flags:** Updates N, Z when S bit is set (C, V unaffected)
 
-**Status:** Planned
+**Restrictions:** RdHi, RdLo, and Rm must all be different registers, R15 (PC) cannot be used
+
+**Example:**
+```arm
+SMULL R0, R1, R2, R3   ; R1:R0 = R2 * R3 (signed)
+SMULLS R4, R5, R6, R7  ; R5:R4 = R6 * R7 (signed), update flags
+```
+
+#### SMLAL - Signed Multiply-Accumulate Long ✅
+
+**Status:** Implemented (ARMv3M)
 
 **Syntax:** `SMLAL{cond}{S} RdLo, RdHi, Rm, Rs`
 
 **Description:** Signed multiply and accumulate with 64-bit result
 
 **Operation:** `RdHi:RdLo = (Rm * Rs) + RdHi:RdLo (signed)`
+
+**Flags:** Updates N, Z when S bit is set (C, V unaffected)
+
+**Restrictions:** RdHi, RdLo, and Rm must all be different registers, R15 (PC) cannot be used
+
+**Example:**
+```arm
+SMLAL R0, R1, R2, R3   ; R1:R0 = (R2 * R3) + R1:R0 (signed)
+SMLALS R4, R5, R6, R7  ; R5:R4 += R6 * R7 (signed), update flags
+```
 
 ---
 
@@ -714,31 +754,54 @@ SWI #0x11             ; Write character
 - `0xF3` - **DUMP_MEMORY** - Dump memory region (R0 = address, R1 = length) ✅
 - `0xF4` - **ASSERT** - Assert condition (R0 = condition) ✅
 
-### MRS - Move PSR to Register ⏸️
+### MRS - Move PSR to Register ✅
 
-**Status:** Planned
+**Status:** Implemented (ARMv3)
 
 **Syntax:** `MRS{cond} Rd, PSR`
 
 **Description:** Moves CPSR or SPSR to a register
 
-**Example:**
-```arm
-MRS R0, CPSR          ; R0 = CPSR
-```
+**Operation:** `Rd = CPSR` (reads all 32 bits of the status register)
 
-### MSR - Move Register to PSR ⏸️
-
-**Status:** Planned
-
-**Syntax:** `MSR{cond} PSR, Rm`
-
-**Description:** Moves a register or immediate to CPSR or SPSR
+**Restrictions:** Rd cannot be R15 (PC)
 
 **Example:**
 ```arm
-MSR CPSR, R0          ; CPSR = R0
+MRS R0, CPSR          ; R0 = CPSR (read current flags)
+MRS R1, CPSR          ; R1 = CPSR
 ```
+
+**Use Cases:**
+- Reading current processor flags for later restoration
+- Implementing critical sections in interrupt handlers
+- Debugging flag states
+
+### MSR - Move Register to PSR ✅
+
+**Status:** Implemented (ARMv3)
+
+**Syntax:** `MSR{cond} PSR_fields, Rm` or `MSR{cond} PSR_fields, #immediate`
+
+**Description:** Moves a register or immediate to CPSR or SPSR flags
+
+**Operation:** `CPSR_flags = Rm` or `CPSR_flags = immediate` (writes to flag bits only)
+
+**Restrictions:** Rm cannot be R15 (PC)
+
+**Fields:** `_f` indicates flag field (bits 31-24: N, Z, C, V)
+
+**Example:**
+```arm
+MSR CPSR_f, R0        ; CPSR flags = R0 (register form)
+MSR CPSR_f, #0xF0000000  ; Set all flags (immediate form)
+MSR CPSR_f, R1        ; Restore saved flags from R1
+```
+
+**Use Cases:**
+- Restoring processor flags after critical section
+- Manually setting/clearing flags for testing
+- Context switching in operating systems
 
 ---
 
@@ -944,6 +1007,53 @@ MOV R3, #'\''          ; Single quote (39)
 ```arm
 .balign 4         ; Align to 4-byte boundary
 .balign 16        ; Align to 16-byte boundary
+```
+
+### Literal Pool Directive ✅
+
+#### .ltorg
+**Description:** Places the literal pool at the current location
+
+**Syntax:** `.ltorg`
+
+**Purpose:** Used with the `LDR Rd, =value` pseudo-instruction to control where 32-bit constants are stored in memory
+
+**Details:**
+- Literals must be within ±4095 bytes of the LDR instruction
+- Multiple `.ltorg` directives can be used in large programs
+- Values are automatically deduplicated
+- Pool is 4-byte aligned automatically
+- If no `.ltorg` is specified, a pool is placed at end of program
+
+**Example:**
+```arm
+.text
+.org 0x8000
+
+main:
+    LDR R0, =0x12345678   ; Load large constant
+    LDR R1, =0xDEADBEEF   ; Load another constant
+    ADD R2, R0, R1
+    B end
+
+    .ltorg                ; Place literal pool here
+
+end:
+    MOV R0, #0
+    SWI #0x00
+```
+
+**Multiple Pools Example:**
+```arm
+section1:
+    LDR R0, =0x11111111
+    LDR R1, =0x22222222
+    .ltorg                ; First pool
+
+section2:
+    LDR R2, =0x33333333
+    LDR R3, =0x44444444
+    .ltorg                ; Second pool
 ```
 
 ### Directive Usage Examples
@@ -1239,10 +1349,50 @@ ADR R2, function      ; R2 = address of function
 
 | Pseudo | Real Instruction | Status | Description |
 |--------|------------------|--------|-------------|
-| NOP | MOV R0, R0 | ⏸️ | No operation |
-| LDR Rd, =value | LDR Rd, [PC, #offset] | ⏸️ | Load 32-bit constant |
+| NOP | MOV R0, R0 | ✅ | No operation |
+| LDR Rd, =value | LDR Rd, [PC, #offset] or MOV/MVN | ✅ | Load 32-bit constant |
 | PUSH {regs} | STMDB SP!, {regs} | ✅ | Push registers to stack |
 | POP {regs} | LDMIA SP!, {regs} | ✅ | Pop registers from stack |
+
+**NOP Example:**
+```arm
+NOP                   ; No operation (encoded as MOV R0, R0)
+NOP                   ; Used for timing, alignment, or placeholders
+```
+
+**LDR Rd, =value Example:**
+```arm
+LDR R0, =0x12345678   ; Load 32-bit constant into R0
+LDR R1, =message      ; Load address of message label
+LDR R2, =0xFF         ; Small values may use MOV R2, #0xFF
+```
+
+**LDR Rd, =value Details:**
+The assembler intelligently chooses the most efficient encoding:
+1. If the value fits in an ARM immediate (8-bit rotated), uses `MOV Rd, #value`
+2. If ~value fits in an ARM immediate, uses `MVN Rd, #~value`
+3. Otherwise, places the value in a literal pool and generates `LDR Rd, [PC, #offset]`
+
+**Literal Pool Management:**
+- Use `.ltorg` directive to place literal pool at specific locations
+- Literal pool must be within ±4095 bytes of the LDR instruction
+- Values are automatically deduplicated in the pool
+- Multiple `.ltorg` directives can be used for large programs
+
+**Literal Pool Example:**
+```arm
+.text
+.org 0x8000
+
+main:
+    LDR R0, =0x12345678
+    LDR R1, =0xDEADBEEF
+    ADD R2, R0, R1
+    MOV R0, #0
+    SWI #0x00
+
+    .ltorg              ; Place literal pool here
+```
 
 **PUSH Example:**
 ```arm

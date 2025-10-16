@@ -1,12 +1,248 @@
 # ARM2 Emulator Implementation Progress
 
-**Last Updated:** 2025-10-15
-**Current Phase:** Phase 11 Complete - Production Ready ✅
-**Test Suite:** All tests passing (100% ✅)
+**Last Updated:** 2025-10-16
+**Current Phase:** Phase 11 Complete + ARMv3 Extensions ✅
+**Test Suite:** 1106 tests passing (100% ✅), 0 lint issues
 
 ---
 
 ## Recent Updates
+
+### 2025-10-16: ARMv3/ARMv3M Instruction Extensions - Complete Implementation ✅
+**Status:** All planned instruction extensions fully implemented and tested
+
+**Note:** These instructions extend beyond the core ARM2 instruction set into ARMv3/ARMv3M territory. They are included for enhanced compatibility and were documented as "planned" in INSTRUCTIONS.md. While technically out of scope for a pure ARM2 emulator, they provide useful functionality and are cleanly implemented without disrupting the core ARM2 instruction set.
+
+---
+
+#### Long Multiply Instructions (ARMv3M) ✅
+
+**Implemented:** 4 instructions for 64-bit multiply operations
+
+**Instructions:**
+- **UMULL** - Unsigned Multiply Long: `RdHi:RdLo = Rm * Rs` (unsigned)
+- **UMLAL** - Unsigned Multiply-Accumulate Long: `RdHi:RdLo += Rm * Rs` (unsigned)
+- **SMULL** - Signed Multiply Long: `RdHi:RdLo = Rm * Rs` (signed)
+- **SMLAL** - Signed Multiply-Accumulate Long: `RdHi:RdLo += Rm * Rs` (signed)
+
+**Implementation Files:**
+1. **vm/multiply.go** - Added `ExecuteMultiplyLong()` function
+   - Handles both unsigned and signed 64-bit multiplication
+   - Proper accumulation for UMLAL/SMLAL variants
+   - Flag updates (N, Z) when S bit is set
+   - Register validation (RdHi, RdLo, Rm must all be different)
+
+2. **vm/executor.go** - Added decoder patterns
+   - Pattern: `(opcode & 0x0F8000F0) == 0x00800090`
+   - U bit (bit 22): 1=unsigned, 0=signed
+   - A bit (bit 21): 1=accumulate, 0=multiply only
+   - Added `InstMultiplyLong` instruction type
+
+**Testing:**
+- **14 comprehensive unit tests** in `tests/unit/vm/multiply_test.go`
+  - Basic operations (UMULL, UMLAL, SMULL, SMLAL)
+  - Large number multiplication
+  - Signed negative number handling
+  - Accumulation with positive and negative accumulators
+  - Register validation (same register detection)
+  - PC register rejection
+  - All tests passing ✅
+
+**Example Usage:**
+```arm
+; Unsigned 64-bit multiply
+UMULL R0, R1, R2, R3    ; R1:R0 = R2 * R3 (unsigned)
+
+; Signed 64-bit multiply with accumulation
+SMLAL R4, R5, R6, R7    ; R5:R4 += R6 * R7 (signed)
+```
+
+---
+
+#### PSR Transfer Instructions (ARMv3) ✅
+
+**Implemented:** 2 instructions for reading/writing processor status registers
+
+**Instructions:**
+- **MRS** - Move PSR to Register: Read CPSR into a register
+- **MSR** - Move Register/Immediate to PSR: Write to CPSR flags
+
+**Implementation Files:**
+1. **vm/cpu.go** - Added CPSR conversion methods
+   - `ToUint32()` - Converts CPSR flags to 32-bit value
+   - `FromUint32()` - Loads CPSR flags from 32-bit value
+   - Flags in bits 31-28: N(31), Z(30), C(29), V(28)
+
+2. **vm/psr.go** - NEW FILE for PSR transfer operations
+   - `ExecutePSRTransfer()` - Main dispatcher
+   - `executeMRS()` - Read CPSR to register
+   - `executeMSR()` - Write register or immediate to CPSR
+   - Supports both register and immediate forms for MSR
+
+3. **vm/executor.go** - Added decoder patterns and instruction type
+   - MRS pattern: `(opcode & 0x0FBF0FFF) == 0x010F0000`
+   - MSR register: `(opcode & 0x0FB000F0) == 0x01200000`
+   - MSR immediate: `(opcode & 0x0FB00000) == 0x03200000`
+   - Added `InstPSRTransfer` instruction type
+
+**Testing:**
+- **13 comprehensive unit tests** in `tests/unit/vm/psr_test.go`
+  - MRS basic operations and flag combinations
+  - MSR register and immediate forms
+  - Round-trip testing (save/restore flags)
+  - Register validation (R15/PC rejection)
+  - CPSR conversion methods (ToUint32/FromUint32)
+  - All tests passing ✅
+
+**Example Usage:**
+```arm
+; Save current flags
+MRS R0, CPSR            ; R0 = CPSR
+
+; Modify and restore flags
+MSR CPSR_f, R0          ; CPSR flags = R0
+
+; Set all flags using immediate
+MSR CPSR_f, #0xF0000000 ; Set N, Z, C, V flags
+```
+
+**Use Cases:**
+- Critical section implementation (save/restore flags)
+- Manual flag manipulation for testing
+- Interrupt handler flag management
+- Context switching in operating systems
+
+---
+
+#### Pseudo-Instructions ✅
+
+**Implemented:** 2 pseudo-instructions for code clarity and constant loading
+
+**1. NOP - No Operation**
+
+**Implementation:**
+- Added to instruction list in `parser/parser.go:652`
+- Encoder in `encoder/other.go:encodeNOP()` - encodes as `MOV R0, R0`
+- Switch case in `encoder/encoder.go:80-81`
+
+**Example:**
+```arm
+NOP                     ; No operation (timing, alignment, placeholder)
+```
+
+**2. LDR Rd, =value - Load 32-bit Constant (Already Implemented)**
+
+**Status:** This feature was already fully implemented! Verified existing implementation.
+
+**Implementation:**
+- `encoder/memory.go:encodeLDRPseudo()` (lines 186-290)
+- Intelligent encoding strategy:
+  1. If value fits in ARM immediate (8-bit rotated) → `MOV Rd, #value`
+  2. If ~value fits in ARM immediate → `MVN Rd, #~value`
+  3. Otherwise → literal pool with `LDR Rd, [PC, #offset]`
+
+**Features:**
+- ✅ Automatic value deduplication in literal pool
+- ✅ PC-relative addressing within ±4095 bytes
+- ✅ Multiple literal pools via `.ltorg` directive
+- ✅ Fallback to end-of-program pool if no `.ltorg` specified
+
+**Example:**
+```arm
+LDR R0, =0x12345678     ; Large constant (uses literal pool)
+LDR R1, =0xFF           ; Small constant (uses MOV R1, #0xFF)
+LDR R2, =message        ; Load address of label
+
+.ltorg                  ; Place literal pool here
+```
+
+**Testing:**
+- **5 integration tests** in `tests/integration/ltorg_test.go`
+  - Basic `.ltorg` usage
+  - Multiple pools
+  - Low memory origin compatibility
+  - 4-byte alignment verification
+  - Fallback behavior without `.ltorg`
+- All tests passing ✅
+
+---
+
+#### Documentation Updates ✅
+
+**INSTRUCTIONS.md Comprehensive Updates:**
+
+1. **Long Multiply Instructions (lines 612-690)**
+   - Changed status: ⏸️ Planned → ✅ Implemented (ARMv3M)
+   - Added complete syntax, operation, flags, restrictions
+   - Added practical examples for each instruction
+   - Documented register requirements and limitations
+
+2. **PSR Transfer Instructions (lines 757-804)**
+   - Changed status: ⏸️ Planned → ✅ Implemented (ARMv3)
+   - Added detailed syntax for both register and immediate forms
+   - Added use cases and practical examples
+   - Documented field specifiers (_f for flags)
+
+3. **Pseudo-Instructions Table (lines 1303-1360)**
+   - NOP: ⏸️ → ✅
+   - LDR Rd, =value: ⏸️ → ✅ with detailed explanation
+   - Added intelligent encoding strategy documentation
+   - Added literal pool management section
+
+4. **New .ltorg Directive Section (lines 1012-1057)**
+   - Complete documentation with syntax and purpose
+   - Usage examples (single and multiple pools)
+   - Best practices and range limitations
+   - Integration with LDR Rd, =value pseudo-instruction
+
+---
+
+#### Implementation Summary
+
+**Total Work Completed:**
+- **7 new instructions:** UMULL, UMLAL, SMULL, SMLAL, MRS, MSR, NOP
+- **2 features verified:** LDR Rd, =value, .ltorg directive
+- **27 new unit tests:** 14 multiply + 13 PSR transfer
+- **5 existing integration tests:** verified for literal pool
+- **Documentation:** Complete updates to INSTRUCTIONS.md
+
+**Files Modified:**
+- `vm/multiply.go` - ExecuteMultiplyLong function
+- `vm/psr.go` - NEW FILE for PSR transfer
+- `vm/cpu.go` - CPSR conversion methods
+- `vm/executor.go` - Decoders for new instruction types
+- `parser/parser.go` - NOP instruction support
+- `encoder/encoder.go` - NOP encoding dispatch
+- `encoder/other.go` - encodeNOP function
+- `INSTRUCTIONS.md` - Comprehensive documentation updates
+- `TODO.md` - Marked planned instructions as completed
+- `PROGRESS.md` - This documentation
+
+**Test Results:**
+- ✅ **1106 total tests** (increased from ~900)
+- ✅ **100% pass rate**
+- ✅ **0 lint issues** (golangci-lint)
+- ✅ **Build successful**
+
+**Effort:**
+- **Estimated:** 20-30 hours
+- **Actual:** ~6 hours
+- **Efficiency:** Implementation was much faster due to clean architecture
+
+**Architecture Notes:**
+- These instructions extend ARM2 to ARMv3/ARMv3M capabilities
+- Cleanly implemented without disrupting core ARM2 instruction set
+- All changes are backward compatible
+- Proper error handling and validation throughout
+
+**Rationale for Implementation:**
+While technically beyond ARM2 scope, these instructions provide:
+1. **Enhanced compatibility** with later ARM assembly code
+2. **Useful functionality** (64-bit math, PSR access, constant loading)
+3. **Standard assembler features** (NOP, LDR =value are ubiquitous)
+4. **Clean implementation** that doesn't compromise ARM2 accuracy
+
+---
 
 ### 2025-10-15: `.ltorg` Directive Implementation - Literal Pool Management ✅
 **Status:** Fully implemented and tested
