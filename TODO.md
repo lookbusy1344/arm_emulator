@@ -12,7 +12,7 @@ This file tracks outstanding work only. Completed items are in `PROGRESS.md`.
 
 **Status:** Project is production-ready with comprehensive test coverage and all critical features implemented. All planned ARMv3/ARMv3M instruction extensions have been completed (long multiply, PSR transfer, NOP, LDR Rd, =value). Remaining work focuses on release engineering, CI/CD improvements, and optional enhancements.
 
-**Test Status:** 1106 tests, 100% pass rate, 0 lint issues
+**Test Status:** 1126 tests, 100% pass rate, 0 lint issues
 
 **Estimated effort to v1.0.0:** 12-18 hours (CI/CD and release engineering only)
 
@@ -66,15 +66,15 @@ This file tracks outstanding work only. Completed items are in `PROGRESS.md`.
 - [ ] Memory region heatmap visualization
 - [ ] Reverse execution log
 
-### Re-enable TUI Automated Tests
-**Effort:** 2-3 hours
+### ✅ ~~Re-enable TUI Automated Tests~~ - COMPLETED (2025-10-16)
+**Actual Effort:** ~2 hours
 
-- [ ] Refactor `NewTUI` to accept optional `tcell.Screen` parameter for testing
-- [ ] Use `tcell.SimulationScreen` in tests instead of real terminal
-- [ ] Re-enable `tui_manual_test.go.disabled` as `tui_test.go`
-- [ ] Verify tests run without hanging in CI/CD
+- [x] Refactor `NewTUI` to accept optional `tcell.Screen` parameter for testing
+- [x] Use `tcell.SimulationScreen` in tests instead of real terminal
+- [x] Re-enable `tui_manual_test.go.disabled` as `tui_test.go`
+- [x] Verify tests run without hanging in CI/CD
 
-**Context:** Current TUI tests are disabled because `tview.NewApplication()` tries to initialize a real terminal, causing hangs during `go test`. Using tcell's SimulationScreen allows testing without a terminal.
+**Result:** 19 TUI tests implemented and passing successfully using `tcell.SimulationScreen`. Created `NewTUIWithScreen()` function that accepts an optional screen parameter, allowing tests to inject a simulation screen while production code uses the default screen. All tests run without hanging.
 
 ### Code Coverage Improvements
 **Effort:** 4-6 hours

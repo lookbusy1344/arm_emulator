@@ -45,9 +45,20 @@ type TUI struct {
 
 // NewTUI creates a new text user interface
 func NewTUI(debugger *Debugger) *TUI {
+	return NewTUIWithScreen(debugger, nil)
+}
+
+// NewTUIWithScreen creates a new text user interface with an optional screen
+// If screen is nil, a default screen will be created by tview
+func NewTUIWithScreen(debugger *Debugger, screen tcell.Screen) *TUI {
+	app := tview.NewApplication()
+	if screen != nil {
+		app.SetScreen(screen)
+	}
+
 	tui := &TUI{
 		Debugger:       debugger,
-		App:            tview.NewApplication(),
+		App:            app,
 		CurrentAddress: 0,
 		MemoryAddress:  0,
 		StackAddress:   0,
