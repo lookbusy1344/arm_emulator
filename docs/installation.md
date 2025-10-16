@@ -208,7 +208,7 @@ Simply delete the emulator executable and source directory.
 
 ## Next Steps
 
-- Read the [Tutorial](tutorial.md) to learn ARM2 assembly
+- Read the [Tutorial](TUTORIAL.md) to learn ARM2 assembly
 - Browse the [Example Programs](../examples/README.md)
 - Check out the [Assembly Reference](assembly_reference.md)
 - Learn about the [Debugger](debugger_reference.md)
@@ -218,7 +218,7 @@ Simply delete the emulator executable and source directory.
 - **Documentation:** See `docs/` directory
 - **Examples:** See `examples/` directory
 - **Issues:** Report bugs at https://github.com/yourusername/arm_emulator/issues
-- **FAQ:** Check [FAQ.md](faq.md) for common questions
+- **FAQ:** Check [FAQ.md](FAQ.md) for common questions
 
 ## System Requirements
 

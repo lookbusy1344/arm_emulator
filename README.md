@@ -84,8 +84,12 @@ Go code is now 40,352 lines and we have 75% code coverage.
 - [PROGRESS.md](PROGRESS.md) - Development progress and completed phases
 
 ### User Documentation
-- [docs/debugger_reference.md](docs/debugger_reference.md) - Complete debugger command reference and guide
+- [docs/TUTORIAL.md](docs/TUTORIAL.md) - Step-by-step tutorial for learning ARM2 assembly
+- [docs/installation.md](docs/installation.md) - Installation guide and setup
 - [docs/assembly_reference.md](docs/assembly_reference.md) - ARM2 assembly language reference
+- [docs/debugger_reference.md](docs/debugger_reference.md) - Complete debugger command reference and guide
+- [docs/FAQ.md](docs/FAQ.md) - Frequently asked questions and troubleshooting
+- [docs/API.md](docs/API.md) - API reference for developers
 - [docs/architecture.md](docs/architecture.md) - System architecture and design
 - [examples/README.md](examples/README.md) - Example programs and usage instructions
 
