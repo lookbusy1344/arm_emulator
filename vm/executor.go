@@ -248,7 +248,11 @@ func (vm *VM) Decode(opcode uint32) (*Instruction, error) {
 			// BLX register form: bits [27:4] = 0x12FFF3
 			inst.Type = InstBranch
 		} else if (opcode & 0x0FC000F0) == 0x00000090 {
-			// Multiply instruction pattern
+			// Multiply instruction pattern (MUL, MLA)
+			inst.Type = InstMultiply
+		} else if (opcode & 0x0F8000F0) == 0x00800090 {
+			// Long multiply instruction pattern (UMULL, UMLAL, SMULL, SMLAL)
+			// Bits [27:23] = 0b00001, bits [7:4] = 0b1001
 			inst.Type = InstMultiply
 		} else {
 			// Check for halfword load/store: bit 25 = 0, bit 7 = 1, bit 4 = 1

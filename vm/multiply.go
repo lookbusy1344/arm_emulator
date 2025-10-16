@@ -4,8 +4,15 @@ import (
 	"fmt"
 )
 
-// ExecuteMultiply executes multiply instructions (MUL, MLA)
+// ExecuteMultiply executes multiply instructions (MUL, MLA, UMULL, UMLAL, SMULL, SMLAL)
 func ExecuteMultiply(vm *VM, inst *Instruction) error {
+	// Check if this is a long multiply instruction
+	// Long multiply: bits [27:23] = 0b00001
+	if ((inst.Opcode >> 23) & 0x1F) == 0x01 {
+		return ExecuteMultiplyLong(vm, inst)
+	}
+
+	// Standard multiply (MUL, MLA)
 	accumulate := (inst.Opcode >> 21) & 0x1 // A bit: 1=MLA, 0=MUL
 	setFlags := inst.SetFlags               // S bit
 
@@ -81,4 +88,105 @@ func calculateMultiplyCycles(multiplier uint32) int {
 	}
 
 	return cycles
+}
+
+// ExecuteMultiplyLong executes long multiply instructions (UMULL, UMLAL, SMULL, SMLAL)
+func ExecuteMultiplyLong(vm *VM, inst *Instruction) error {
+	// Decode instruction fields
+	// Bit [22] = U (1=unsigned UMULL/UMLAL, 0=signed SMULL/SMLAL)
+	// Bit [21] = A (1=accumulate xMLAL, 0=multiply xMULL)
+	// Bit [20] = S (set flags)
+	unsignedOp := (inst.Opcode >> 22) & 0x1
+	accumulate := (inst.Opcode >> 21) & 0x1
+	setFlags := inst.SetFlags
+
+	rdHi := int((inst.Opcode >> 16) & 0xF) // Destination high register
+	rdLo := int((inst.Opcode >> 12) & 0xF) // Destination low register
+	rs := int((inst.Opcode >> 8) & 0xF)    // Operand register 1
+	rm := int(inst.Opcode & 0xF)           // Operand register 2
+
+	// Validate registers
+	// RdHi, RdLo, Rm must all be different
+	if rdHi == rdLo {
+		return fmt.Errorf("long multiply: RdHi and RdLo must be different registers")
+	}
+	if rdHi == rm || rdLo == rm {
+		return fmt.Errorf("long multiply: RdHi/RdLo and Rm must be different registers")
+	}
+
+	// R15 (PC) cannot be used
+	if rdHi == 15 || rdLo == 15 || rm == 15 || rs == 15 {
+		return fmt.Errorf("long multiply: R15 (PC) cannot be used")
+	}
+
+	// Get operands
+	op1 := vm.CPU.GetRegister(rm)
+	op2 := vm.CPU.GetRegister(rs)
+
+	var resultHi, resultLo uint32
+
+	if unsignedOp == 1 {
+		// Unsigned multiply
+		result64 := uint64(op1) * uint64(op2)
+
+		// Add accumulator if UMLAL
+		if accumulate == 1 {
+			accHi := uint64(vm.CPU.GetRegister(rdHi))
+			accLo := uint64(vm.CPU.GetRegister(rdLo))
+			accumulator := (accHi << 32) | accLo
+			result64 += accumulator
+		}
+
+		// Safe: extracting 32-bit words from 64-bit result
+		resultHi = uint32(result64 >> 32)        // #nosec G115 -- extracting high 32 bits
+		resultLo = uint32(result64 & 0xFFFFFFFF) // #nosec G115 -- extracting low 32 bits
+	} else {
+		// Signed multiply
+		// Convert to signed 64-bit
+		signedOp1 := int64(int32(op1)) // #nosec G115 -- intentional reinterpret cast for signed arithmetic
+		signedOp2 := int64(int32(op2)) // #nosec G115 -- intentional reinterpret cast for signed arithmetic
+		result64 := signedOp1 * signedOp2
+
+		// Add accumulator if SMLAL
+		if accumulate == 1 {
+			accHi := uint64(vm.CPU.GetRegister(rdHi))
+			accLo := uint64(vm.CPU.GetRegister(rdLo))
+			accumulator := int64((accHi << 32) | accLo) // #nosec G115 -- reinterpreting 64-bit unsigned as signed
+			result64 += accumulator
+		}
+
+		// Safe: extracting 32-bit words from 64-bit result
+		resultHi = uint32(uint64(result64) >> 32)        // #nosec G115 -- reinterpret signed to unsigned for bit extraction
+		resultLo = uint32(uint64(result64) & 0xFFFFFFFF) // #nosec G115 -- reinterpret signed to unsigned for bit extraction
+	}
+
+	// Store results
+	vm.CPU.SetRegister(rdHi, resultHi)
+	vm.CPU.SetRegister(rdLo, resultLo)
+
+	// Update flags if requested
+	if setFlags {
+		// Long multiply updates N and Z flags based on 64-bit result
+		// N = bit 63 of result
+		// Z = result == 0
+		n := (resultHi & 0x80000000) != 0
+		z := (resultHi == 0) && (resultLo == 0)
+
+		vm.CPU.CPSR.N = n
+		vm.CPU.CPSR.Z = z
+		// C and V are unaffected (or meaningless)
+	}
+
+	// Increment PC
+	vm.CPU.IncrementPC()
+
+	// Long multiply takes more cycles (typically 3-5 cycles for UMULL/SMULL, +1 for accumulate)
+	cycles := 3
+	if accumulate == 1 {
+		cycles = 4
+	}
+	// Safe: cycles is 3 or 4, -1 = 2 or 3, well within uint64 range
+	vm.CPU.IncrementCycles(uint64(cycles - 1)) // #nosec G115 -- cycles is 3-4, -1 because Step() already adds 1
+
+	return nil
 }
