@@ -1,12 +1,128 @@
 # ARM2 Emulator Implementation Progress
 
 **Last Updated:** 2025-10-16
-**Current Phase:** Phase 11 Complete + ARMv3 Extensions ✅
-**Test Suite:** 1106 tests passing (100% ✅), 0 lint issues
+**Current Phase:** Phase 11 Complete + ARMv3 Extensions + Register Trace ✅
+**Test Suite:** 1133 tests passing (100% ✅), 0 lint issues
 
 ---
 
 ## Recent Updates
+
+### 2025-10-16: Register Access Pattern Analysis - Complete Implementation ✅
+**Status:** New diagnostic mode for analyzing register usage patterns
+
+**Implementation:** Register trace diagnostic mode added to track and analyze how programs use registers during execution.
+
+**Features:**
+- **Register Access Tracking**: Records all register write operations with sequence numbers, PC values, and values
+- **Hot Register Identification**: Identifies most frequently accessed registers (top 10 by default)
+- **Unused Register Detection**: Lists registers that were never read or written
+- **Read-Before-Write Detection**: Flags registers that were read before being initialized (potential bugs)
+- **Unique Value Tracking**: Counts distinct values written to each register
+- **Access Statistics**: First/last read/write sequence numbers, total accesses per register
+- **Output Formats**: Both text (human-readable) and JSON (programmatic analysis)
+
+**Implementation Files:**
+1. **vm/register_trace.go** (375 lines) - Core register tracing implementation
+   - `RegisterTrace` - Main tracing structure with statistics
+   - `RegisterStats` - Per-register statistics tracking
+   - `RecordWrite()` - Records register writes with old/new values
+   - `RecordRead()` - Records register reads (placeholder for future)
+   - `GetHotRegisters()` - Returns most accessed registers
+   - `GetUnusedRegisters()` - Returns never-accessed registers
+   - `DetectReadBeforeWrite()` - Finds potential uninitialized use
+   - `Flush()` - Writes text report
+   - `ExportJSON()` - Exports data as JSON
+
+2. **vm/executor.go** - Integration with VM execution
+   - Register snapshot before instruction execution
+   - Change detection after instruction execution
+   - Records only changed registers (efficient)
+
+3. **vm/cpu.go** - Helper functions
+   - `getRegisterName()` - Maps register numbers to names (R0-R15, SP, LR, PC)
+
+4. **main.go** - Command-line interface
+   - `--register-trace` flag to enable tracing
+   - `--register-trace-file` to specify output file
+   - `--register-trace-format` to choose text or JSON
+   - Automatic flush on program exit
+
+**Testing:**
+- **12 unit tests** in `tests/unit/vm/register_trace_test.go`
+  - Basic tracking functionality
+  - Hot register identification (with access count sorting)
+  - Unused register detection
+  - Read-before-write detection
+  - Unique value tracking
+  - Text output formatting
+  - JSON export with structure validation
+  - Enabled/disabled state handling
+  - Sequence number tracking
+  - Statistics accuracy
+  - All tests passing ✅
+
+- **2 integration tests** in `tests/integration/register_trace_test.go`
+  - End-to-end CLI testing with actual programs
+  - Text output validation
+  - JSON output validation
+  - File creation and content verification
+  - All tests passing ✅
+
+**Example Usage:**
+```bash
+# Text output (default)
+./arm-emulator --register-trace program.s
+
+# JSON output for programmatic analysis
+./arm-emulator --register-trace --register-trace-format json program.s
+
+# Specify custom output file
+./arm-emulator --register-trace --register-trace-file trace.txt program.s
+
+# Combine with other diagnostic modes
+./arm-emulator --coverage --stack-trace --flag-trace --register-trace program.s
+```
+
+**Sample Output (Text Format):**
+```
+Register Access Pattern Analysis
+=================================
+
+Total Reads:  0
+Total Writes: 12
+Total Entries: 12
+Registers Tracked: 6
+
+Hot Registers (Top 10 by Total Accesses):
+------------------------------------------
+ 1. PC  :      6 accesses (R:     0 W:     6) [6 unique values]
+ 2. R0  :      2 accesses (R:     0 W:     2) [2 unique values]
+ 3. R1  :      1 accesses (R:     0 W:     1) [1 unique values]
+
+Unused Registers:
+-----------------
+R5, R6, R7, R8, R9, R10, R11, R12, R13, R14, R15
+
+Detailed Register Statistics:
+-----------------------------
+PC  : R:     0 W:     6 | First W:#1 | Unique:6 | Last:0x00008018
+R0  : R:     0 W:     2 | First W:#1 | Unique:2 | Last:0x00000000
+```
+
+**Use Cases:**
+- **Debugging**: Identify uninitialized register reads that could cause bugs
+- **Optimization**: Find underutilized registers for better code generation
+- **Analysis**: Understand register usage patterns in programs
+- **Education**: Visualize how ARM programs use registers
+- **Code Review**: Verify register allocation is efficient
+
+**Documentation Updated:**
+- CLAUDE.md - Added register trace to diagnostic modes list
+- TODO.md - Marked as completed
+- README.md - Added register trace documentation with examples
+
+---
 
 ### 2025-10-16: ARMv3/ARMv3M Instruction Extensions - Complete Implementation ✅
 **Status:** All planned instruction extensions fully implemented and tested

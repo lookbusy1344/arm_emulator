@@ -75,9 +75,10 @@ type VM struct {
 	Statistics     *PerformanceStatistics
 
 	// Additional diagnostic modes (Phase 11)
-	CodeCoverage *CodeCoverage
-	StackTrace   *StackTrace
-	FlagTrace    *FlagTrace
+	CodeCoverage  *CodeCoverage
+	StackTrace    *StackTrace
+	FlagTrace     *FlagTrace
+	RegisterTrace *RegisterTrace
 
 	// File descriptor table (simple)
 	files []*os.File
@@ -189,6 +190,15 @@ func (vm *VM) Step() error {
 		return nil
 	}
 
+	// Snapshot registers before execution for register trace
+	var regsBefore [16]uint32
+	if vm.RegisterTrace != nil && vm.RegisterTrace.Enabled {
+		// R0-R14
+		copy(regsBefore[:15], vm.CPU.R[:])
+		// PC (R15)
+		regsBefore[15] = vm.CPU.PC
+	}
+
 	// Execute instruction
 	if err := vm.Execute(decoded); err != nil {
 		// Don't overwrite terminal states (Halted, Breakpoint) set by syscalls
@@ -214,6 +224,20 @@ func (vm *VM) Step() error {
 		// Get simple instruction name for trace (we'll enhance this later with proper disassembly)
 		instName := fmt.Sprintf("0x%08X", decoded.Opcode)
 		vm.FlagTrace.RecordFlags(vm.CPU.Cycles, currentPC, instName, vm.CPU.CPSR)
+	}
+
+	// Register change tracking
+	if vm.RegisterTrace != nil && vm.RegisterTrace.Enabled {
+		// Check each register for changes
+		for i := 0; i < 15; i++ {
+			if vm.CPU.R[i] != regsBefore[i] {
+				vm.RegisterTrace.RecordWrite(vm.CPU.Cycles, currentPC, getRegisterName(i), regsBefore[i], vm.CPU.R[i])
+			}
+		}
+		// Check PC (R15)
+		if vm.CPU.PC != regsBefore[15] {
+			vm.RegisterTrace.RecordWrite(vm.CPU.Cycles, currentPC, "PC", regsBefore[15], vm.CPU.PC)
+		}
 	}
 
 	return nil

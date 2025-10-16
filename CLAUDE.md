@@ -75,8 +75,8 @@ go test ./...
 
 **Phase 11 (Production Hardening) - Complete ✅**
 - All tests passing (100% pass rate)
-  - Unit tests: ~1063 tests (includes 18 TUI tests using tcell.SimulationScreen)
-  - Integration tests: 62 tests (full end-to-end execution pipeline + CLI diagnostic flags + example programs)
+  - Unit tests: ~1071 tests (includes 18 TUI tests using tcell.SimulationScreen, 12 register trace tests)
+  - Integration tests: 64 tests (full end-to-end execution pipeline + CLI diagnostic flags + example programs)
 - Code quality tools implemented (golangci-lint with errcheck, unused, govet, ineffassign, misspell)
 - All lint issues resolved (0 issues reported)
 - Go vet warnings fixed (method renames to avoid interface conflicts)
@@ -95,7 +95,7 @@ go test ./...
   - Comprehensive integration test coverage for all examples
 - Character literal support complete (basic chars + escape sequences)
 - ARM immediate encoding bug fixed (fibonacci.s, calculator.s now work correctly)
-- Diagnostic modes complete (code coverage, stack trace, flag trace)
+- Diagnostic modes complete (code coverage, stack trace, flag trace, register access pattern analysis)
 
 ## Additional Features
 
@@ -128,14 +128,18 @@ Run programs with advanced diagnostic tracking:
 # Flag trace - track CPSR flag changes for debugging conditional logic
 ./arm-emulator --flag-trace --flag-trace-format text program.s
 
+# Register access pattern analysis - track register usage patterns
+./arm-emulator --register-trace --register-trace-format text program.s
+
 # Combine multiple diagnostic modes
-./arm-emulator --coverage --stack-trace --flag-trace --verbose program.s
+./arm-emulator --coverage --stack-trace --flag-trace --register-trace --verbose program.s
 ```
 
 Features:
 - **Code Coverage**: Tracks executed vs unexecuted instructions, reports coverage percentage
 - **Stack Trace**: Monitors all stack operations (push/pop/SP modifications), detects overflow/underflow
 - **Flag Trace**: Records CPSR flag changes (N, Z, C, V) for each instruction that modifies flags
+- **Register Trace**: Analyzes register access patterns, identifies hot registers, detects unused registers, and flags read-before-write issues
 
 All diagnostic modes support both text and JSON output formats.
 

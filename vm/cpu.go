@@ -165,3 +165,70 @@ func (c *CPU) BranchWithLink(address uint32) {
 func (c *CPU) IncrementCycles(cycles uint64) {
 	c.Cycles += cycles
 }
+
+// GetRegisterWithTrace gets a register value and records the read
+func (c *CPU) GetRegisterWithTrace(vm *VM, reg int, pc uint32) uint32 {
+	value := c.GetRegister(reg)
+
+	// Record register read if tracing enabled
+	if vm.RegisterTrace != nil && vm.RegisterTrace.Enabled {
+		regName := getRegisterName(reg)
+		vm.RegisterTrace.RecordRead(c.Cycles, pc, regName, value)
+	}
+
+	return value
+}
+
+// SetRegisterWithTrace sets a register value and records the write
+func (c *CPU) SetRegisterWithTrace(vm *VM, reg int, value uint32, pc uint32) {
+	oldValue := c.GetRegister(reg)
+
+	// Set the register
+	c.SetRegister(reg, value)
+
+	// Record register write if tracing enabled
+	if vm.RegisterTrace != nil && vm.RegisterTrace.Enabled {
+		regName := getRegisterName(reg)
+		vm.RegisterTrace.RecordWrite(c.Cycles, pc, regName, oldValue, value)
+	}
+}
+
+// getRegisterName returns the name of a register
+func getRegisterName(reg int) string {
+	switch reg {
+	case 0:
+		return "R0"
+	case 1:
+		return "R1"
+	case 2:
+		return "R2"
+	case 3:
+		return "R3"
+	case 4:
+		return "R4"
+	case 5:
+		return "R5"
+	case 6:
+		return "R6"
+	case 7:
+		return "R7"
+	case 8:
+		return "R8"
+	case 9:
+		return "R9"
+	case 10:
+		return "R10"
+	case 11:
+		return "R11"
+	case 12:
+		return "R12"
+	case 13:
+		return "SP"
+	case 14:
+		return "LR"
+	case 15:
+		return "PC"
+	default:
+		return "UNKNOWN"
+	}
+}

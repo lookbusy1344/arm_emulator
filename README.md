@@ -87,7 +87,7 @@ Go code now is 35,206 lines.
 
 ## Features
 
-- **Complete ARM2 instruction set implementation** with 1016 passing tests (100% pass rate)
+- **Complete ARM2 instruction set implementation** with 1133 passing tests (100% pass rate)
   - All 16 data processing instructions (AND, EOR, SUB, RSB, ADD, ADC, SBC, RSC, TST, TEQ, CMP, CMN, ORR, MOV, BIC, MVN)
   - All memory operations (LDR/STR/LDRB/STRB/LDM/STM + halfword extensions)
   - All branch instructions (B/BL/BX)
@@ -101,7 +101,7 @@ Go code now is 35,206 lines.
 - Cross-platform configuration management (TOML)
 - Execution and memory tracing with filtering
 - Performance statistics (JSON/CSV/HTML export)
-- **Diagnostic modes: code coverage, stack trace, flag trace**
+- **Diagnostic modes: code coverage, stack trace, flag trace, register access pattern analysis**
 - Development tools (linter, formatter, cross-reference generator)
 
 ## Prerequisites
@@ -213,8 +213,11 @@ Advanced debugging tools to help identify and fix issues:
 # Flag trace - track CPSR flag changes for debugging conditional logic
 ./arm-emulator --flag-trace program.s
 
+# Register trace - analyze register access patterns
+./arm-emulator --register-trace program.s
+
 # Combine multiple diagnostic modes with verbose output
-./arm-emulator --coverage --stack-trace --flag-trace --verbose program.s
+./arm-emulator --coverage --stack-trace --flag-trace --register-trace --verbose program.s
 ```
 
 **Diagnostic features:**
@@ -240,12 +243,21 @@ Advanced debugging tools to help identify and fix issues:
 - Statistics on flag change frequency
 - Helps debug conditional logic issues
 
+**Register Access Pattern Analysis:**
+- Tracks read/write patterns for all registers
+- Identifies "hot" registers (most frequently accessed)
+- Detects unused registers
+- Flags read-before-write issues (potential uninitialized use)
+- Shows unique value counts and access sequences
+- Helps optimize register allocation and find bugs
+
 All diagnostic modes support both text and JSON output formats:
 ```bash
 # JSON output for programmatic analysis
 ./arm-emulator --coverage --coverage-format json program.s
 ./arm-emulator --stack-trace --stack-trace-format json program.s
 ./arm-emulator --flag-trace --flag-trace-format json program.s
+./arm-emulator --register-trace --register-trace-format json program.s
 ```
 
 ### Example Programs
@@ -310,7 +322,7 @@ go test ./...
 ├── debugger/            # Debugging utilities with TUI
 ├── config/              # Cross-platform configuration
 ├── tools/               # Development tools (lint, format, xref)
-├── tests/               # Test files (1016 tests, 100% passing)
+├── tests/               # Test files (1133 tests, 100% passing)
 ├── examples/            # Example ARM assembly programs (23 programs)
 └── docs/                # User and developer documentation
 ```

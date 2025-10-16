@@ -10,9 +10,9 @@ This file tracks outstanding work only. Completed items are in `PROGRESS.md`.
 
 **Current Phase:** Phase 11 (Production Hardening) - Core Complete + ARMv3 Extensions
 
-**Status:** Project is production-ready with comprehensive test coverage and all critical features implemented. All planned ARMv3/ARMv3M instruction extensions have been completed (long multiply, PSR transfer, NOP, LDR Rd, =value). Remaining work focuses on optional enhancements and improvements.
+**Status:** Project is production-ready with comprehensive test coverage and all critical features implemented. All planned ARMv3/ARMv3M instruction extensions have been completed (long multiply, PSR transfer, NOP, LDR Rd, =value). Register access pattern analysis diagnostic mode has been added. Remaining work focuses on optional enhancements and improvements.
 
-**Test Status:** 1125 tests, 100% pass rate, 0 lint issues
+**Test Status:** 1133 tests, 100% pass rate, 0 lint issues
 
 ---
 
@@ -63,9 +63,9 @@ This file tracks outstanding work only. Completed items are in `PROGRESS.md`.
 - ✅ Flag Trace (`--flag-trace`) - Record CPSR flag changes (N, Z, C, V)
 - ✅ Execution Trace (`--trace`) - Basic instruction execution logging
 - ✅ Memory Trace (`--mem-trace`) - Memory access tracking
+- ✅ Register Access Pattern Analysis (`--register-trace`) - Track read/write patterns per register, identify hot registers, detect unused registers, read-before-write detection
 
 **Proposed Extensions:**
-- [ ] **Register Access Pattern Analysis** (4-6 hours) - Track read/write patterns per register, identify hot registers, detect unused registers, register dependency chains, read-before-write detection
 - [ ] **Data Flow Tracing** (6-8 hours) - Track data movement between registers/memory, value provenance, data dependency tracking, taint analysis
 - [ ] **Cycle-Accurate Timing Simulation** (8-10 hours) - Estimate ARM2 instruction timing, pipeline stall simulation, memory access latency, performance bottleneck identification
 - [ ] **Symbol-Aware Trace Output** (2-3 hours) - Enhance existing traces with symbol information, show function names instead of addresses

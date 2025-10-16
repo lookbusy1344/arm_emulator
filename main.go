@@ -41,15 +41,18 @@ func main() {
 		statsFormat    = flag.String("stats-format", "json", "Statistics format (json, csv, html)")
 
 		// Additional diagnostic modes (Phase 11)
-		enableCoverage   = flag.Bool("coverage", false, "Enable code coverage tracking")
-		coverageFile     = flag.String("coverage-file", "", "Coverage output file (default: coverage.txt)")
-		coverageFormat   = flag.String("coverage-format", "text", "Coverage format (text, json)")
-		enableStackTrace = flag.Bool("stack-trace", false, "Enable stack operation tracing")
-		stackTraceFile   = flag.String("stack-trace-file", "", "Stack trace output file (default: stack_trace.txt)")
-		stackTraceFormat = flag.String("stack-trace-format", "text", "Stack trace format (text, json)")
-		enableFlagTrace  = flag.Bool("flag-trace", false, "Enable CPSR flag change tracing")
-		flagTraceFile    = flag.String("flag-trace-file", "", "Flag trace output file (default: flag_trace.txt)")
-		flagTraceFormat  = flag.String("flag-trace-format", "text", "Flag trace format (text, json)")
+		enableCoverage      = flag.Bool("coverage", false, "Enable code coverage tracking")
+		coverageFile        = flag.String("coverage-file", "", "Coverage output file (default: coverage.txt)")
+		coverageFormat      = flag.String("coverage-format", "text", "Coverage format (text, json)")
+		enableStackTrace    = flag.Bool("stack-trace", false, "Enable stack operation tracing")
+		stackTraceFile      = flag.String("stack-trace-file", "", "Stack trace output file (default: stack_trace.txt)")
+		stackTraceFormat    = flag.String("stack-trace-format", "text", "Stack trace format (text, json)")
+		enableFlagTrace     = flag.Bool("flag-trace", false, "Enable CPSR flag change tracing")
+		flagTraceFile       = flag.String("flag-trace-file", "", "Flag trace output file (default: flag_trace.txt)")
+		flagTraceFormat     = flag.String("flag-trace-format", "text", "Flag trace format (text, json)")
+		enableRegisterTrace = flag.Bool("register-trace", false, "Enable register access pattern tracing")
+		registerTraceFile   = flag.String("register-trace-file", "", "Register trace output file (default: register_trace.txt)")
+		registerTraceFormat = flag.String("register-trace-format", "text", "Register trace format (text, json)")
 
 		// Symbol dump options
 		dumpSymbols = flag.Bool("dump-symbols", false, "Dump symbol table and exit")
@@ -351,6 +354,36 @@ func main() {
 		}
 	}
 
+	if *enableRegisterTrace {
+		// Determine register trace file path
+		rtPath := *registerTraceFile
+		if rtPath == "" {
+			ext := "txt"
+			if *registerTraceFormat == "json" {
+				ext = "json"
+			}
+			rtPath = filepath.Join(config.GetLogPath(), "register_trace."+ext)
+		}
+
+		rtWriter, err := os.Create(rtPath) // #nosec G304 -- user-specified register trace output path
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error creating register trace file: %v\n", err)
+			os.Exit(1)
+		}
+		defer func() {
+			if err := rtWriter.Close(); err != nil {
+				fmt.Fprintf(os.Stderr, "Warning: failed to close register trace file: %v\n", err)
+			}
+		}()
+
+		machine.RegisterTrace = vm.NewRegisterTrace(rtWriter)
+		machine.RegisterTrace.Start()
+
+		if *verboseMode {
+			fmt.Printf("Register trace enabled: %s\n", rtPath)
+		}
+	}
+
 	// Run in appropriate mode
 	if *debugMode || *tuiMode {
 		// Start debugger
@@ -525,6 +558,25 @@ func main() {
 			if *verboseMode {
 				fmt.Println()
 				fmt.Println(machine.FlagTrace.String())
+			}
+		}
+
+		if machine.RegisterTrace != nil {
+			switch *registerTraceFormat {
+			case "json":
+				err := machine.RegisterTrace.ExportJSON(machine.RegisterTrace.Writer)
+				if err != nil {
+					fmt.Fprintf(os.Stderr, "Error exporting register trace: %v\n", err)
+				}
+			default:
+				err := machine.RegisterTrace.Flush()
+				if err != nil {
+					fmt.Fprintf(os.Stderr, "Error flushing register trace: %v\n", err)
+				}
+			}
+			if *verboseMode {
+				fmt.Println()
+				fmt.Println(machine.RegisterTrace.String())
 			}
 		}
 
