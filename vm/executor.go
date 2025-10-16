@@ -46,6 +46,7 @@ const (
 	InstLoadStoreMultiple
 	InstBranch
 	InstSWI
+	InstPSRTransfer
 )
 
 // VM represents the complete virtual machine
@@ -254,6 +255,18 @@ func (vm *VM) Decode(opcode uint32) (*Instruction, error) {
 			// Long multiply instruction pattern (UMULL, UMLAL, SMULL, SMLAL)
 			// Bits [27:23] = 0b00001, bits [7:4] = 0b1001
 			inst.Type = InstMultiply
+		} else if (opcode & 0x0FBF0FFF) == 0x010F0000 {
+			// MRS instruction: bits [27:23]=00010, [22]=PSR, [21]=0, [20]=0, [19:16]=1111, [11:0]=0
+			// Pattern: cccc 00010 x 00 1111 dddd 0000 0000 0000
+			inst.Type = InstPSRTransfer
+		} else if (opcode & 0x0FB000F0) == 0x01200000 {
+			// MSR instruction (register): bits [27:23]=00010, [21]=1, [20]=0, [7:4]=0000
+			// Pattern: cccc 00010 x 10 xxxx 1111 0000 0000 mmmm
+			inst.Type = InstPSRTransfer
+		} else if (opcode & 0x0FB00000) == 0x03200000 {
+			// MSR instruction (immediate): bits [27:23]=00110, [21]=1, [20]=0
+			// Pattern: cccc 00110 x 10 xxxx 1111 rrrr iiii iiii
+			inst.Type = InstPSRTransfer
 		} else {
 			// Check for halfword load/store: bit 25 = 0, bit 7 = 1, bit 4 = 1
 			// This distinguishes from data processing with immediate (bit 25 = 1)
@@ -308,6 +321,8 @@ func (vm *VM) Execute(inst *Instruction) error {
 		return ExecuteBranch(vm, inst)
 	case InstSWI:
 		return ExecuteSWI(vm, inst)
+	case InstPSRTransfer:
+		return ExecutePSRTransfer(vm, inst)
 	default:
 		return fmt.Errorf("unknown instruction type at 0x%08X: opcode=0x%08X", inst.Address, inst.Opcode)
 	}
@@ -316,10 +331,11 @@ func (vm *VM) Execute(inst *Instruction) error {
 // Instruction implementations are in separate files:
 // - data_processing.go
 // - multiply.go
-// - memory.go
+// - inst_memory.go
 // - memory_multi.go
 // - branch.go
 // - syscall.go
+// - psr.go
 
 // Run executes instructions until halt, error, or breakpoint
 func (vm *VM) Run() error {

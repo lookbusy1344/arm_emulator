@@ -23,6 +23,36 @@ type CPSR struct {
 	V bool // Overflow flag (signed overflow)
 }
 
+// ToUint32 converts CPSR flags to a 32-bit value
+// ARM CPSR format: NZCV flags are in bits 31-28
+func (c *CPSR) ToUint32() uint32 {
+	var result uint32
+	if c.N {
+		result |= 1 << 31 // N flag in bit 31
+	}
+	if c.Z {
+		result |= 1 << 30 // Z flag in bit 30
+	}
+	if c.C {
+		result |= 1 << 29 // C flag in bit 29
+	}
+	if c.V {
+		result |= 1 << 28 // V flag in bit 28
+	}
+	// Bits 27-0 are reserved/unused in basic ARM2 CPSR
+	return result
+}
+
+// FromUint32 sets CPSR flags from a 32-bit value
+// ARM CPSR format: NZCV flags are in bits 31-28
+func (c *CPSR) FromUint32(value uint32) {
+	c.N = (value & (1 << 31)) != 0 // N flag in bit 31
+	c.Z = (value & (1 << 30)) != 0 // Z flag in bit 30
+	c.C = (value & (1 << 29)) != 0 // C flag in bit 29
+	c.V = (value & (1 << 28)) != 0 // V flag in bit 28
+	// Bits 27-0 are ignored (reserved/unused in basic ARM2)
+}
+
 // Register aliases for convenience
 const (
 	R0  = 0

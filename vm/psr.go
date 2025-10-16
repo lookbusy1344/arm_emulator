@@ -1,0 +1,92 @@
+package vm
+
+import (
+	"fmt"
+)
+
+// ExecutePSRTransfer executes PSR transfer instructions (MRS, MSR)
+func ExecutePSRTransfer(vm *VM, inst *Instruction) error {
+	// MRS/MSR instruction format:
+	// Bits [27:26] = 00
+	// Bit [25] = 1 (distinguishes from other instructions)
+	// Bit [22] = PSR type (0=CPSR, 1=SPSR) - we only support CPSR for now
+	// Bit [21] = Direction (0=MRS read PSR, 1=MSR write PSR)
+
+	isMSR := (inst.Opcode >> 21) & 0x1 // 1=MSR, 0=MRS
+
+	if isMSR == 0 {
+		return executeMRS(vm, inst)
+	}
+	return executeMSR(vm, inst)
+}
+
+// executeMRS implements MRS (Move PSR to Register)
+// Syntax: MRS{cond} Rd, PSR
+// Reads CPSR into a general-purpose register
+func executeMRS(vm *VM, inst *Instruction) error {
+	rd := int((inst.Opcode >> 12) & 0xF) // Destination register
+
+	// R15 (PC) should not be used as destination
+	if rd == 15 {
+		return fmt.Errorf("MRS: R15 (PC) cannot be used as destination register")
+	}
+
+	// Read CPSR value
+	cpsrValue := vm.CPU.CPSR.ToUint32()
+
+	// Store in destination register
+	vm.CPU.SetRegister(rd, cpsrValue)
+
+	// Increment PC
+	vm.CPU.IncrementPC()
+	vm.CPU.IncrementCycles(1)
+
+	return nil
+}
+
+// executeMSR implements MSR (Move Register/Immediate to PSR)
+// Syntax: MSR{cond} PSR, Rm
+// Writes a general-purpose register value to CPSR
+func executeMSR(vm *VM, inst *Instruction) error {
+	// Check if immediate or register source
+	immediateBit := (inst.Opcode >> 25) & 0x1
+
+	var sourceValue uint32
+
+	if immediateBit == 1 {
+		// Immediate value (rare for MSR, but supported)
+		immediate := inst.Opcode & 0xFF
+		rotate := ((inst.Opcode >> 8) & 0xF) * 2
+		// Rotate right
+		if rotate == 0 {
+			sourceValue = immediate
+		} else {
+			sourceValue = (immediate >> rotate) | (immediate << (32 - rotate))
+		}
+	} else {
+		// Register source
+		rm := int(inst.Opcode & 0xF)
+
+		// R15 (PC) should not be used as source
+		if rm == 15 {
+			return fmt.Errorf("MSR: R15 (PC) cannot be used as source register")
+		}
+
+		sourceValue = vm.CPU.GetRegister(rm)
+	}
+
+	// Check which fields to update (bit 16-19 specify field mask)
+	// For ARM2/basic implementation, we only update the flag bits (bits 31-28)
+	// More advanced implementations might support updating mode bits, etc.
+
+	// Update CPSR from source value
+	// Only update the flag bits (NZCV) in bits 31-28
+	// This is a safety measure to prevent mode changes in this basic implementation
+	vm.CPU.CPSR.FromUint32(sourceValue)
+
+	// Increment PC
+	vm.CPU.IncrementPC()
+	vm.CPU.IncrementCycles(1)
+
+	return nil
+}
