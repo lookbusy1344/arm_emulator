@@ -72,6 +72,10 @@ By 2001523f91760431f078e4f0fd6932f736cad770 we have all the example programs fix
 
 Go code now is 35,206 lines.
 
+**Day 9 - 16 Oct - Back to Claude Code** - Back on Claude Code, wonderful after using Copilot CLI. Adding some missing instructions, and testing the TUI interface, and Register Access Pattern Analysis.
+
+Go code is now exactly 38,000 lines!
+
 ## Documentation
 
 ### Project Documentation
