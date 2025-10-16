@@ -57,12 +57,20 @@ This file tracks outstanding work only. Completed items are in `PROGRESS.md`.
 
 ### Additional Diagnostic Modes
 
-- [ ] Register access pattern analysis
-- [ ] Data flow tracing
-- [ ] Cycle-accurate timing simulation
-- [ ] Symbol-aware trace output
-- [ ] Memory region heatmap visualization
-- [ ] Reverse execution log
+**Currently Implemented (Phase 11):**
+- ✅ Code Coverage (`--coverage`) - Track executed vs unexecuted instructions
+- ✅ Stack Trace (`--stack-trace`) - Monitor stack operations, detect overflow/underflow
+- ✅ Flag Trace (`--flag-trace`) - Record CPSR flag changes (N, Z, C, V)
+- ✅ Execution Trace (`--trace`) - Basic instruction execution logging
+- ✅ Memory Trace (`--mem-trace`) - Memory access tracking
+
+**Proposed Extensions:**
+- [ ] **Register Access Pattern Analysis** (4-6 hours) - Track read/write patterns per register, identify hot registers, detect unused registers, register dependency chains, read-before-write detection
+- [ ] **Data Flow Tracing** (6-8 hours) - Track data movement between registers/memory, value provenance, data dependency tracking, taint analysis
+- [ ] **Cycle-Accurate Timing Simulation** (8-10 hours) - Estimate ARM2 instruction timing, pipeline stall simulation, memory access latency, performance bottleneck identification
+- [ ] **Symbol-Aware Trace Output** (2-3 hours) - Enhance existing traces with symbol information, show function names instead of addresses
+- [ ] **Memory Region Heatmap Visualization** (4-6 hours) - Track access frequency per region, HTML/graphical output, color-coded visualization
+- [ ] **Reverse Execution Log** (10-12 hours) - Record state for backwards stepping, circular buffer of previous N instructions, time-travel debugging
 
 ### ✅ ~~Re-enable TUI Automated Tests~~ - COMPLETED (2025-10-16)
 **Actual Effort:** ~2 hours
