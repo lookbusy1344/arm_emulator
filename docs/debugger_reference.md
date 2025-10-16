@@ -620,5 +620,5 @@ Use `tbreak` for one-time breakpoints:
 ## See Also
 
 - [Assembly Reference](assembly_reference.md) - ARM2 instruction set
-- [Tutorial](tutorial.md) - Learning guide
+- [Debugging Tutorial](debugging_tutorial.md) - Step-by-step debugging guide
 - [Examples](../examples/README.md) - Sample programs

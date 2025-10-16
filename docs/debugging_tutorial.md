@@ -636,6 +636,33 @@ For complex issues, use tracing alongside debugging:
 ./arm-emulator --debug --trace --trace-file debug.log program.s
 ```
 
+### 11. Use Diagnostic Modes
+
+The emulator provides several diagnostic modes to help analyze program behavior:
+
+```bash
+# Code coverage - see which instructions were executed
+./arm-emulator --coverage program.s
+
+# Stack trace - monitor stack operations and detect issues
+./arm-emulator --stack-trace program.s
+
+# Flag trace - track CPSR flag changes
+./arm-emulator --flag-trace program.s
+
+# Register trace - analyze register usage patterns
+./arm-emulator --register-trace program.s
+
+# Combine multiple modes
+./arm-emulator --coverage --stack-trace --flag-trace --register-trace program.s
+```
+
+These modes can help identify:
+- Dead code (coverage)
+- Stack overflow/underflow (stack trace)
+- Incorrect conditional logic (flag trace)
+- Uninitialized registers or inefficient register usage (register trace)
+
 ## Common Debugging Scenarios
 
 ### Scenario 1: Loop Not Terminating

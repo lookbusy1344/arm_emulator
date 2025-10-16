@@ -1425,12 +1425,14 @@ POP {R4-R11}          ; Pop R4-R11 from stack
 
 - **ARM2 Compatibility:** This emulator targets the ARM2 instruction set with select ARM2a extensions (halfword load/store)
 
-- **Current Status (2025-10-14):**
+- **Current Status (2025-10-16):**
   - Production hardening and comprehensive testing complete
-  - 784 total tests (100% pass rate)
-  - All 23 example programs fully tested with expected output verification
+  - 1133 total tests (100% pass rate)
+  - All 34 example programs fully tested with expected output verification
   - Integration test framework covers entire example suite
   - All core ARM2 instructions implemented and tested
+  - ARMv3/ARMv3M extensions complete (long multiply, PSR transfer, NOP)
+  - Four diagnostic modes complete (coverage, stack trace, flag trace, register trace)
 
 - **Phase 11 Complete (2025-10-14):**
   - Comprehensive integration testing for all example programs
@@ -1461,14 +1463,14 @@ POP {R4-R11}          ; Pop R4-R11 from stack
   - RRX Carry Calculation: Fixed carry flag handling for rotate right extended operations
   - Debugger Run Command: Fixed to preserve program memory using ResetRegisters() instead of Reset()
 
-- **Test Coverage:** 784 unit and integration tests (100% pass rate) covering:
-  - Debugger tests: 60 tests
+- **Test Coverage:** 1133 unit and integration tests (100% pass rate) covering:
+  - Debugger tests: 78 tests (including 18 TUI tests with tcell.SimulationScreen)
   - Parser tests: 74 tests (including 39 character literal tests)
-  - VM/Unit tests: 400 tests
+  - VM/Unit tests: 656 tests (including 12 register trace, 11 flag trace, 18 stack trace, 23 coverage tests)
   - Tools tests: 73 tests (linter: 25, formatter: 27, xref: 21)
-  - Integration tests: 32 tests (complete example suite)
+  - Integration tests: 66 tests (34 example programs + diagnostic modes + register trace)
   - Config tests: 12 tests
-  - Encoder tests: included in integration tests
+  - Encoder tests: 174 tests
 
 - **Development Tools:**
   - Assembly Linter (tools/lint.go) - Code analysis with 25 tests

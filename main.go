@@ -875,6 +875,9 @@ Diagnostic Modes:
   -flag-trace        Enable CPSR flag change tracing
   -flag-trace-file   Flag trace file (default: flag_trace.txt)
   -flag-trace-format Flag trace format: text, json (default: text)
+  -register-trace    Enable register access pattern tracing
+  -register-trace-file Register trace file (default: register_trace.txt)
+  -register-trace-format Register trace format: text, json (default: text)
 
 Examples:
   # Run a program directly
@@ -906,6 +909,12 @@ Examples:
 
   # Run with flag trace to debug conditional logic
   arm-emulator -flag-trace program.s
+
+  # Run with register trace to analyze register usage patterns
+  arm-emulator -register-trace program.s
+
+  # Combine multiple diagnostic modes
+  arm-emulator -coverage -stack-trace -flag-trace -register-trace program.s
 
   # Dump symbol table
   arm-emulator -dump-symbols program.s
