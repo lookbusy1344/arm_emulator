@@ -10,11 +10,9 @@ This file tracks outstanding work only. Completed items are in `PROGRESS.md`.
 
 **Current Phase:** Phase 11 (Production Hardening) - Core Complete + ARMv3 Extensions
 
-**Status:** Project is production-ready with comprehensive test coverage and all critical features implemented. All planned ARMv3/ARMv3M instruction extensions have been completed (long multiply, PSR transfer, NOP, LDR Rd, =value). Remaining work focuses on release engineering, CI/CD improvements, and optional enhancements.
+**Status:** Project is production-ready with comprehensive test coverage and all critical features implemented. All planned ARMv3/ARMv3M instruction extensions have been completed (long multiply, PSR transfer, NOP, LDR Rd, =value). Remaining work focuses on optional enhancements and improvements.
 
 **Test Status:** 1125 tests, 100% pass rate, 0 lint issues
-
-**Estimated effort to v1.0.0:** 12-18 hours (CI/CD and release engineering only)
 
 ---
 
@@ -117,9 +115,9 @@ These are **not** part of ARM2 but could be added for broader compatibility:
 - [ ] CDP, LDC, STC, MCR, MRC - Coprocessor operations
 - [ ] Full coprocessor emulation framework
 
-**Note:** The emulator has complete ARM2 instruction set coverage. The long multiply and PSR transfer instructions listed in High Priority are now being prioritized for implementation. These remaining extensions are from later architectures.
+**Note:** The emulator has complete ARM2 instruction set coverage. All planned ARMv3/ARMv3M extensions have been completed. These remaining extensions are from later architectures.
 
-### Enhanced CI/CD Pipeline
+### Enhanced CI/CD Pipeline (Optional)
 **Effort:** 4-6 hours
 
 - [ ] Configure matrix builds (macOS, Windows, Linux)
@@ -128,7 +126,7 @@ These are **not** part of ARM2 but could be added for broader compatibility:
 - [ ] Add race detector to tests
 - [ ] Upload test results as CI artifacts
 
-### Release Engineering
+### Release Engineering (Optional)
 **Effort:** 8-12 hours
 
 - [ ] Create `.github/workflows/release.yml` with matrix builds
@@ -144,12 +142,9 @@ These are **not** part of ARM2 but could be added for broader compatibility:
 
 ## Effort Summary
 
-**Total estimated effort to v1.0.0:** 12-18 hours
-
-- **High Priority:** 12-18 hours (CI/CD and release engineering only)
+- **High Priority:** All completed ✅
   - ~~Planned instruction extensions: 20-30 hours~~ ✅ COMPLETED
-  - CI/CD and release engineering: 12-18 hours
 - **Medium Priority:** 18-27 hours (coverage, benchmarking, documentation)
-- **Low Priority:** Variable (optional enhancements)
+- **Low Priority:** Variable (optional enhancements, CI/CD, release engineering)
 
 **Completed in this session (2025-10-16):** ARMv3/ARMv3M instruction extensions (~6 hours actual vs 20-30 hours estimated)
