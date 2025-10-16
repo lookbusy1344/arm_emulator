@@ -132,6 +132,11 @@ func TestExamplePrograms(t *testing.T) {
 			programFile:    "test_org_0_with_ltorg.s",
 			expectedOutput: "test_org_0_with_ltorg.txt",
 		},
+		{
+			name:           "NOPTest",
+			programFile:    "nop_test.s",
+			expectedOutput: "nop_test.txt",
+		},
 	}
 
 	for _, tt := range tests {
