@@ -181,3 +181,85 @@ func TestNumericLabelTable_ForwardReference(t *testing.T) {
 		t.Errorf("expected 0x8020, got 0x%X", addr)
 	}
 }
+
+// TestSymbolTable_UpdateAddress verifies updating symbol addresses
+func TestSymbolTable_UpdateAddress(t *testing.T) {
+	st := parser.NewSymbolTable()
+	pos := parser.Position{Filename: "test.s", Line: 1, Column: 1}
+
+	// Define a symbol
+	err := st.Define("test_symbol", parser.SymbolLabel, 0x8000, pos)
+	if err != nil {
+		t.Fatalf("Failed to define symbol: %v", err)
+	}
+
+	// Update its address
+	err = st.UpdateAddress("test_symbol", 0x9000)
+	if err != nil {
+		t.Errorf("Failed to update symbol address: %v", err)
+	}
+
+	// Verify new address
+	value, err := st.Get("test_symbol")
+	if err != nil {
+		t.Errorf("Failed to get symbol: %v", err)
+	}
+	if value != 0x9000 {
+		t.Errorf("Expected address 0x9000, got 0x%X", value)
+	}
+}
+
+// TestSymbolTable_UpdateAddress_NotFound verifies error on updating non-existent symbol
+func TestSymbolTable_UpdateAddress_NotFound(t *testing.T) {
+	st := parser.NewSymbolTable()
+
+	err := st.UpdateAddress("nonexistent", 0x8000)
+	if err == nil {
+		t.Error("Expected error when updating non-existent symbol")
+	}
+}
+
+// TestSymbolTable_Relocations verifies relocation tracking
+func TestSymbolTable_Relocations(t *testing.T) {
+	st := parser.NewSymbolTable()
+	pos := parser.Position{Filename: "test.s", Line: 1, Column: 1}
+
+	// Add a relocation
+	rel := &parser.Relocation{
+		Pos:        pos,
+		SymbolName: "target",
+		Address:    0x8000,
+		Type:       parser.RelocationBranch,
+	}
+
+	st.AddRelocation(rel)
+
+	// Get relocations
+	relocs := st.GetRelocations()
+	if len(relocs) != 1 {
+		t.Errorf("Expected 1 relocation, got %d", len(relocs))
+	}
+
+	if relocs[0].SymbolName != "target" {
+		t.Errorf("Expected symbol name 'target', got '%s'", relocs[0].SymbolName)
+	}
+
+	// Verify the symbol was also referenced
+	sym, exists := st.Lookup("target")
+	if !exists {
+		t.Error("Expected symbol 'target' to be created via relocation")
+	}
+	if len(sym.References) != 1 {
+		t.Errorf("Expected 1 reference, got %d", len(sym.References))
+	}
+}
+
+// TestSymbolTable_GetRelocations_Empty verifies empty relocation list
+func TestSymbolTable_GetRelocations_Empty(t *testing.T) {
+	st := parser.NewSymbolTable()
+
+	relocs := st.GetRelocations()
+	if len(relocs) != 0 {
+		t.Errorf("Expected 0 relocations, got %d", len(relocs))
+	}
+}

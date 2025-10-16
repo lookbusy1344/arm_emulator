@@ -178,3 +178,107 @@ func TestLexer_Newlines(t *testing.T) {
 		t.Errorf("expected newline, got %v", tok.Type)
 	}
 }
+
+func TestTokenTypeString(t *testing.T) {
+	tests := []struct {
+		token    parser.TokenType
+		expected string
+	}{
+		{parser.TokenEOF, "EOF"},
+		{parser.TokenIdentifier, "IDENTIFIER"},
+		{parser.TokenNumber, "NUMBER"},
+		{parser.TokenRegister, "REGISTER"},
+		{parser.TokenComma, ","},
+		{parser.TokenColon, ":"},
+		{parser.TokenHash, "#"},
+		{parser.TokenLBracket, "["},
+		{parser.TokenRBracket, "]"},
+		{parser.TokenNewline, "NEWLINE"},
+		{parser.TokenComment, "COMMENT"},
+		{parser.TokenDirective, "DIRECTIVE"},
+		{parser.TokenCondition, "CONDITION"},
+	}
+
+	for _, tt := range tests {
+		result := tt.token.String()
+		if result != tt.expected {
+			t.Errorf("Expected %v.String()='%s', got '%s'", tt.token, tt.expected, result)
+		}
+	}
+}
+
+func TestTokenTypeStringUnknown(t *testing.T) {
+	// Test with an undefined token type
+	unknownToken := parser.TokenType(999)
+	result := unknownToken.String()
+
+	// Should return a formatted string like "TokenType(999)"
+	expected := "TokenType(999)"
+	if result != expected {
+		t.Errorf("Expected '%s', got '%s'", expected, result)
+	}
+}
+
+func TestTokenString(t *testing.T) {
+	// Test Token.String() method
+	token := parser.Token{
+		Type:    parser.TokenIdentifier,
+		Literal: "MOV",
+		Pos: parser.Position{
+			Filename: "test.s",
+			Line:     1,
+			Column:   1,
+		},
+	}
+
+	result := token.String()
+
+	// Should contain the token type, literal, and position
+	expectedSubstrings := []string{
+		"IDENTIFIER",
+		"MOV",
+		"test.s:1:1",
+	}
+
+	for _, substr := range expectedSubstrings {
+		if !contains(result, substr) {
+			t.Errorf("Expected token string to contain '%s', got: %s", substr, result)
+		}
+	}
+}
+
+func TestTokenStringWithNumber(t *testing.T) {
+	token := parser.Token{
+		Type:    parser.TokenNumber,
+		Literal: "42",
+		Pos: parser.Position{
+			Filename: "test.s",
+			Line:     5,
+			Column:   10,
+		},
+	}
+
+	result := token.String()
+
+	expectedSubstrings := []string{
+		"NUMBER",
+		"42",
+		"test.s:5:10",
+	}
+
+	for _, substr := range expectedSubstrings {
+		if !contains(result, substr) {
+			t.Errorf("Expected token string to contain '%s', got: %s", substr, result)
+		}
+	}
+}
+
+// Helper function to check if string contains substring
+func contains(s, substr string) bool {
+	for i := 0; i <= len(s)-len(substr); i++ {
+		if s[i:i+len(substr)] == substr {
+			return true
+		}
+	}
+	return false
+}
