@@ -1437,7 +1437,7 @@ POP {R4-R11}          ; Pop R4-R11 from stack
   - Expected output files for systematic regression testing
   - Fixed negative constant support in .equ directives
   - Fixed data section ordering bug
-  - Added standalone shift instruction support (LSL, LSR, ASR, ROR)
+  - Shift operations work as ARM2 operand modifiers (LSL, LSR, ASR, ROR)
   - Fixed 16-bit immediate encoding edge cases
 
 - **Phase 10 Complete (2025-10-09):**

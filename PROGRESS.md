@@ -497,11 +497,11 @@ If needed, `.ltorg` could be added to:
    - Fix: Fixed address tracking to properly handle section ordering
    - File: `parser/parser.go`
 
-3. **Standalone Shift Instructions** (xor_cipher.s)
-   - Problem: `LSR r0, r0, #4` not supported (only worked as modifier: `MOV r0, r0, LSR #4`)
-   - Fix: Added pseudo-instruction expansion in parser
-   - Affects: LSR, LSL, ASR, ROR as standalone instructions
-   - File: `parser/parser.go`
+3. **Shift Instructions** (xor_cipher.s)
+   - Note: Shifts (LSR, LSL, ASR, ROR) are NOT standalone instructions in ARM2
+   - They are operand modifiers used with data processing instructions (e.g., `MOV r0, r0, LSR #4`)
+   - This is correct ARM2 behavior - shifts are always part of another instruction
+   - Standalone shift syntax (e.g., `LSR r0, r0, #4`) is a pseudo-instruction convention in modern assemblers, not part of ARM2
 
 4. **16-bit Immediate Encoding** (multiple programs)
    - Problem: MOV with 16-bit immediates failed (not encodable as rotated 8-bit)

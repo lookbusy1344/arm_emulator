@@ -86,7 +86,7 @@ go test ./...
   - Negative constants in .equ directives now supported
   - MOVW automatic encoding for 16-bit immediates
   - CMP/CMN instruction handling for un-encodable immediates
-  - Standalone instruction shift support (LSR, LSL, ASR, ROR as pseudo-instructions)
+  - Shift operations work correctly as operand modifiers (LSR, LSL, ASR, ROR in MOV/ADD/etc.)
   - Data section ordering fixed (.data before .text)
   - Comprehensive integration test coverage for all examples
 - Character literal support complete (basic chars + escape sequences)
