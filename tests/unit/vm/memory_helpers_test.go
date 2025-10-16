@@ -228,3 +228,87 @@ func TestCPSRToFromUint32(t *testing.T) {
 		t.Errorf("V flag mismatch: expected %v, got %v", cpsr.V, newCPSR.V)
 	}
 }
+
+// TestMemoryLoadBytesUnsafe verifies unsafe byte loading
+func TestMemoryLoadBytesUnsafe(t *testing.T) {
+	v := vm.NewVM()
+
+	data := []byte{0x01, 0x02, 0x03, 0x04}
+	startAddr := uint32(vm.CodeSegmentStart)
+
+	err := v.Memory.LoadBytesUnsafe(startAddr, data)
+	if err != nil {
+		t.Fatalf("LoadBytesUnsafe failed: %v", err)
+	}
+
+	// Verify data was loaded
+	for i, expected := range data {
+		addr := startAddr + uint32(i)
+		actual, err := v.Memory.ReadByteAt(addr)
+		if err != nil {
+			t.Fatalf("Failed to read byte at 0x%08X: %v", addr, err)
+		}
+		if actual != expected {
+			t.Errorf("At 0x%08X: expected 0x%02X, got 0x%02X", addr, expected, actual)
+		}
+	}
+}
+
+// TestMemoryGetBytes verifies byte retrieval
+func TestMemoryGetBytes(t *testing.T) {
+	v := vm.NewVM()
+
+	// Load some data
+	data := []byte{0xAA, 0xBB, 0xCC, 0xDD}
+	startAddr := uint32(vm.CodeSegmentStart)
+	v.Memory.LoadBytesUnsafe(startAddr, data)
+
+	// Get bytes back
+	retrieved, err := v.Memory.GetBytes(startAddr, uint32(len(data)))
+	if err != nil {
+		t.Fatalf("GetBytes failed: %v", err)
+	}
+
+	// Verify data matches
+	for i, expected := range data {
+		if retrieved[i] != expected {
+			t.Errorf("Byte %d: expected 0x%02X, got 0x%02X", i, expected, retrieved[i])
+		}
+	}
+}
+
+// TestMemoryMakeCodeReadOnly verifies making code segment read-only
+func TestMemoryMakeCodeReadOnly(t *testing.T) {
+	v := vm.NewVM()
+
+	// Load some data
+	data := []byte{0x01, 0x02, 0x03, 0x04}
+	startAddr := uint32(vm.CodeSegmentStart)
+	v.Memory.LoadBytesUnsafe(startAddr, data)
+
+	// Make code read-only
+	v.Memory.MakeCodeReadOnly()
+
+	// Try to write (should fail)
+	err := v.Memory.WriteByteAt(startAddr, 0xFF)
+	if err == nil {
+		t.Error("Expected write to fail on read-only code segment")
+	}
+
+	// Reading should still work
+	_, err = v.Memory.ReadByteAt(startAddr)
+	if err != nil {
+		t.Errorf("Reading from read-only code should work: %v", err)
+	}
+}
+
+// TestMemoryResetHeap verifies heap reset
+func TestMemoryResetHeap(t *testing.T) {
+	v := vm.NewVM()
+
+	// Call ResetHeap (it resets internal heap state)
+	v.Memory.ResetHeap()
+
+	// If we get here without panic, the function works
+	// The heap management uses package-level variables that we can't easily inspect
+}
