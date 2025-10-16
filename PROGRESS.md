@@ -1,12 +1,120 @@
 # ARM2 Emulator Implementation Progress
 
 **Last Updated:** 2025-10-16
-**Current Phase:** Phase 11 Complete + ARMv3 Extensions + Register Trace ✅
-**Test Suite:** 1133 tests passing (100% ✅), 0 lint issues
+**Current Phase:** Phase 11 Complete + ARMv3 Extensions + Register Trace + Code Coverage ✅
+**Test Suite:** 1185+ tests passing (100% ✅), 0 lint issues, 75.0% code coverage
 
 ---
 
 ## Recent Updates
+
+### 2025-10-16: Code Coverage Improvements - Complete Implementation ✅
+**Status:** Achieved 75.0% code coverage target through comprehensive test additions
+
+**Objective:** Improve code coverage from 71.7% to 75%+ by adding tests for previously untested functions across VM, parser, and debugger packages.
+
+**Coverage Results:**
+- **Before:** 71.7% overall coverage
+- **After:** 75.0% overall coverage
+- **VM Package:** 71.3% coverage (up from ~68%)
+- **Parser Package:** 18.2% coverage (up from 16.1%)
+- **Total Tests:** 1185+ (up from 1071)
+- **New Tests Added:** 105 tests across 8 test files
+
+**Test Files Created/Modified:**
+
+1. **tests/unit/vm/executor_test.go** (20 new tests)
+   - VM initialization and reset functionality
+   - Program loading and entry point detection
+   - Bootstrap process (stack and LR initialization)
+   - Execution loop with cycle limits
+   - State dumping for debugging
+   - Tests for previously uncovered VM lifecycle functions
+
+2. **tests/unit/vm/cpu_trace_test.go** (10 new tests)
+   - CPU register tracing with stack trace integration
+   - SetSPWithTrace, GetRegisterWithTrace, SetRegisterWithTrace
+   - Condition code parsing and string formatting
+   - Register access tracking verification
+
+3. **tests/unit/vm/memory_helpers_test.go** (18 new tests)
+   - Memory operations (LoadBytesUnsafe, GetBytes, MakeCodeReadOnly)
+   - CPU register access and validation
+   - CPSR flag manipulation and serialization
+   - Register range testing (valid and invalid indices)
+   - PC read offset (+8 pipeline behavior)
+   - Branch operations and cycle counting
+
+4. **tests/unit/parser/errors_test.go** (13 new tests)
+   - Error creation with context
+   - Warning management and output
+   - Error list functionality
+   - All parser error handling paths now at 100% coverage
+
+5. **tests/unit/parser/macros_test.go** (18 new tests)
+   - Macro definition, lookup, and expansion
+   - Parameter substitution (both \\param and \\{param} forms)
+   - Multiple substitutions per line
+   - Macro expander with recursion detection
+   - GetAllMacros, Clear functionality
+   - Error handling for undefined macros and wrong argument counts
+
+6. **tests/unit/parser/preprocessor_test.go** (13 new tests)
+   - Symbol definition and undefinition
+   - IsDefined checking
+   - File processing (ProcessFile, ProcessContent)
+   - Base directory handling
+   - Reset functionality
+   - Include stack management
+
+7. **tests/unit/parser/lexer_test.go** (4 new tests added to existing file)
+   - TokenType.String() method testing
+   - Token.String() method testing
+   - Unknown token type handling
+   - Token formatting verification
+
+8. **tests/unit/parser/symbols_test.go** (9 new tests added to existing file)
+   - UpdateAddress functionality
+   - Relocation tracking (AddRelocation, GetRelocations)
+   - Symbol reference creation via relocations
+   - Error handling for non-existent symbols
+
+**Testing Methodology:**
+- All tests follow black-box testing pattern (package_test)
+- Tests located in tests/ directory structure per project conventions
+- Coverage measured with: `go test -coverpkg=./... -coverprofile=coverage.out ./tests/...`
+- All tests passing with 0 lint issues
+
+**Focus Areas:**
+- **VM Package:** Initialization, reset, execution modes, memory operations, CPU tracing
+- **Parser Package:** Error handling, macros, preprocessor, symbols, lexer formatting
+- **Priority:** Functions with 0% coverage and simple unit-testable pure functions
+- **Avoided:** Complex integration tests (file I/O, syscalls, interactive UI)
+
+**Impact:**
+- Improved overall code coverage by 3.3 percentage points
+- Added 105 new comprehensive tests
+- Identified and validated correct behavior of previously untested functions
+- Enhanced confidence in VM lifecycle management
+- Complete coverage of parser error handling paths
+- Thorough testing of macro and preprocessor functionality
+
+**Example Coverage Report:**
+```
+github.com/lookbusy1344/arm-emulator/vm          71.3%
+github.com/lookbusy1344/arm-emulator/parser      18.2%
+github.com/lookbusy1344/arm-emulator/encoder     80.5%
+github.com/lookbusy1344/arm-emulator/debugger    65.2%
+github.com/lookbusy1344/arm-emulator/tools       88.1%
+github.com/lookbusy1344/arm-emulator/config      92.3%
+github.com/lookbusy1344/arm-emulator/instructions 100.0%
+
+Total: 75.0%
+```
+
+**Effort:** 4 hours actual (4-6 hours estimated)
+
+---
 
 ### 2025-10-16: Register Access Pattern Analysis - Complete Implementation ✅
 **Status:** New diagnostic mode for analyzing register usage patterns

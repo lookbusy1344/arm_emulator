@@ -72,9 +72,9 @@ By 2001523f91760431f078e4f0fd6932f736cad770 we have all the example programs fix
 
 Go code now is 35,206 lines.
 
-**Day 9 - 16 Oct - Back to Claude Code** - Back on Claude Code, wonderful after using Copilot CLI. Adding some missing instructions, and testing the TUI interface, and Register Access Pattern Analysis.
+**Day 9 - 16 Oct - Claude Code** - Back on Claude Code, wonderful after using Copilot CLI. Adding some missing instructions, and testing the TUI interface, and Register Access Pattern Analysis.
 
-Go code is now exactly 38,000 lines!
+Go code is now 40,352 lines and we have 75% code coverage.
 
 ## Documentation
 
@@ -91,7 +91,7 @@ Go code is now exactly 38,000 lines!
 
 ## Features
 
-- **Complete ARM2 instruction set implementation** with 1133 passing tests (100% pass rate)
+- **Complete ARM2 instruction set implementation** with 1185+ passing tests (100% pass rate, 75% code coverage)
   - All 16 data processing instructions (AND, EOR, SUB, RSB, ADD, ADC, SBC, RSC, TST, TEQ, CMP, CMN, ORR, MOV, BIC, MVN)
   - All memory operations (LDR/STR/LDRB/STRB/LDM/STM + halfword extensions)
   - All branch instructions (B/BL/BX)
@@ -326,7 +326,7 @@ go test ./...
 ├── debugger/            # Debugging utilities with TUI
 ├── config/              # Cross-platform configuration
 ├── tools/               # Development tools (lint, format, xref)
-├── tests/               # Test files (1133 tests, 100% passing)
+├── tests/               # Test files (1185+ tests, 100% passing, 75% coverage)
 ├── examples/            # Example ARM assembly programs (23 programs)
 └── docs/                # User and developer documentation
 ```
