@@ -12,7 +12,7 @@ This file tracks outstanding work only. Completed items are in `PROGRESS.md`.
 
 **Status:** Project is production-ready with comprehensive test coverage and all critical features implemented. All planned ARMv3/ARMv3M instruction extensions have been completed (long multiply, PSR transfer, NOP, LDR Rd, =value). Remaining work focuses on release engineering, CI/CD improvements, and optional enhancements.
 
-**Test Status:** 1126 tests, 100% pass rate, 0 lint issues
+**Test Status:** 1125 tests, 100% pass rate, 0 lint issues
 
 **Estimated effort to v1.0.0:** 12-18 hours (CI/CD and release engineering only)
 
@@ -74,7 +74,7 @@ This file tracks outstanding work only. Completed items are in `PROGRESS.md`.
 - [x] Re-enable `tui_manual_test.go.disabled` as `tui_test.go`
 - [x] Verify tests run without hanging in CI/CD
 
-**Result:** 19 TUI tests implemented and passing successfully using `tcell.SimulationScreen`. Created `NewTUIWithScreen()` function that accepts an optional screen parameter, allowing tests to inject a simulation screen while production code uses the default screen. All tests run without hanging.
+**Result:** 18 TUI tests implemented and passing successfully using `tcell.SimulationScreen`. Created `NewTUIWithScreen()` function that accepts an optional screen parameter, allowing tests to inject a simulation screen while production code uses the default screen. All tests run without hanging. Tests are located in `tests/unit/debugger/tui_test.go` following project structure conventions.
 
 ### Code Coverage Improvements
 **Effort:** 4-6 hours

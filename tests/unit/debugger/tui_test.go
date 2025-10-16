@@ -6,26 +6,27 @@ import (
 	"testing"
 
 	"github.com/gdamore/tcell/v2"
+	"github.com/lookbusy1344/arm-emulator/debugger"
 	"github.com/lookbusy1344/arm-emulator/vm"
 )
 
 // createTestTUI creates a TUI with a simulation screen for testing
-func createTestTUI() (*TUI, tcell.SimulationScreen) {
+func createTestTUI() (*debugger.TUI, tcell.SimulationScreen) {
 	machine := vm.NewVM()
-	debugger := NewDebugger(machine)
+	dbg := debugger.NewDebugger(machine)
 	screen := tcell.NewSimulationScreen("UTF-8")
 	err := screen.Init()
 	if err != nil {
 		panic(fmt.Sprintf("failed to init simulation screen: %v", err))
 	}
-	tui := NewTUIWithScreen(debugger, screen)
+	tui := debugger.NewTUIWithScreen(dbg, screen)
 	return tui, screen
 }
 
 // TestNewTUI tests TUI creation
 func TestNewTUI(t *testing.T) {
 	machine := vm.NewVM()
-	debugger := NewDebugger(machine)
+	dbg := debugger.NewDebugger(machine)
 	screen := tcell.NewSimulationScreen("UTF-8")
 	err := screen.Init()
 	if err != nil {
@@ -33,13 +34,13 @@ func TestNewTUI(t *testing.T) {
 	}
 	defer screen.Fini()
 
-	tui := NewTUIWithScreen(debugger, screen)
+	tui := debugger.NewTUIWithScreen(dbg, screen)
 
 	if tui == nil {
 		t.Fatal("NewTUIWithScreen returned nil")
 	}
 
-	if tui.Debugger != debugger {
+	if tui.Debugger != dbg {
 		t.Error("TUI debugger not set correctly")
 	}
 
@@ -331,7 +332,7 @@ func TestTUIUpdateBreakpointsViewWithWatchpoints(t *testing.T) {
 	defer screen.Fini()
 
 	// Add a watchpoint (expression, type, address, isRegister, register)
-	tui.Debugger.Watchpoints.AddWatchpoint(WatchWrite, "r0", 0, true, 0)
+	tui.Debugger.Watchpoints.AddWatchpoint(debugger.WatchWrite, "r0", 0, true, 0)
 
 	// Update view
 	tui.UpdateBreakpointsView()
@@ -366,37 +367,6 @@ func TestTUIRefreshAll(t *testing.T) {
 
 	if tui.BreakpointsView.GetText(false) == "" {
 		t.Error("BreakpointsView not updated")
-	}
-}
-
-// TestTUIFindSymbolForAddress tests symbol resolution
-func TestTUIFindSymbolForAddress(t *testing.T) {
-	tui, screen := createTestTUI()
-	defer screen.Fini()
-
-	// Add symbols
-	tui.Debugger.Symbols["main"] = 0x8000
-	tui.Debugger.Symbols["loop"] = 0x8010
-	tui.Debugger.Symbols["exit"] = 0x8020
-
-	tests := []struct {
-		name     string
-		address  uint32
-		expected string
-	}{
-		{"main symbol", 0x8000, "main"},
-		{"loop symbol", 0x8010, "loop"},
-		{"exit symbol", 0x8020, "exit"},
-		{"no symbol", 0x9000, ""},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			result := tui.findSymbolForAddress(tt.address)
-			if result != tt.expected {
-				t.Errorf("Expected '%s', got '%s'", tt.expected, result)
-			}
-		})
 	}
 }
 

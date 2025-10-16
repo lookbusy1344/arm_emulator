@@ -43,7 +43,9 @@ go test ./...
 - `debugger/` - Debugging utilities with TUI (breakpoints, watchpoints, expression evaluation)
 - `config/` - Cross-platform configuration management
 - `tools/` - Development tools (linter, formatter, cross-reference generator)
-- `tests/` - Test files (660 tests, 100% pass rate)
+- `tests/` - Test files (1125 tests, 100% pass rate)
+  - `tests/unit/` - Unit tests for all packages
+  - `tests/integration/` - Integration tests for complete programs
 - `examples/` - Example ARM assembly programs (23 programs, 21 fully functional)
 - `docs/` - User and developer documentation
 
@@ -67,11 +69,13 @@ go test ./...
 
 **IMPORTANT:** This emulator implements the classic ARM2 architecture. Do NOT implement Linux-style syscalls (using `SVC #0` with syscall number in R7 register). The emulator uses only traditional ARM2 syscall convention: `SWI #immediate_value` where the syscall number is encoded directly in the instruction. R7 is just a general-purpose register with no special meaning for syscalls.
 
+**IMPORTANT:** All tests belong in the `tests/` directory structure, not in the main package directories. TUI tests use `tcell.SimulationScreen` to avoid terminal initialization issues. The `debugger.NewTUIWithScreen()` function accepts an optional screen parameter for testing while production code uses `debugger.NewTUI()` with the default screen.
+
 ## Current Status
 
 **Phase 11 (Production Hardening) - Complete ✅**
 - All tests passing (100% pass rate)
-  - Unit tests: ~900 tests
+  - Unit tests: ~1063 tests (includes 18 TUI tests using tcell.SimulationScreen)
   - Integration tests: 62 tests (full end-to-end execution pipeline + CLI diagnostic flags + example programs)
 - Code quality tools implemented (golangci-lint with errcheck, unused, govet, ineffassign, misspell)
 - All lint issues resolved (0 issues reported)
