@@ -207,6 +207,7 @@ func main() {
 		}()
 
 		machine.ExecutionTrace = vm.NewExecutionTrace(traceWriter)
+		machine.ExecutionTrace.LoadSymbols(symbols)
 		machine.ExecutionTrace.Start()
 
 		// Apply filter if specified
@@ -239,6 +240,7 @@ func main() {
 		}()
 
 		machine.MemoryTrace = vm.NewMemoryTrace(memTraceWriter)
+		machine.MemoryTrace.LoadSymbols(symbols)
 		machine.MemoryTrace.Start()
 
 		if *verboseMode {
@@ -317,6 +319,7 @@ func main() {
 		}()
 
 		machine.StackTrace = vm.NewStackTrace(stWriter, stackTop, vm.StackSegmentStart)
+		machine.StackTrace.LoadSymbols(symbols)
 		machine.StackTrace.Start(stackTop)
 
 		if *verboseMode {
@@ -347,6 +350,7 @@ func main() {
 		}()
 
 		machine.FlagTrace = vm.NewFlagTrace(ftWriter)
+		machine.FlagTrace.LoadSymbols(symbols)
 		machine.FlagTrace.Start(machine.CPU.CPSR)
 
 		if *verboseMode {
@@ -377,6 +381,7 @@ func main() {
 		}()
 
 		machine.RegisterTrace = vm.NewRegisterTrace(rtWriter)
+		machine.RegisterTrace.LoadSymbols(symbols)
 		machine.RegisterTrace.Start()
 
 		if *verboseMode {

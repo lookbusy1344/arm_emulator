@@ -89,6 +89,9 @@ type RegisterTrace struct {
 	// Statistics
 	totalReads  uint64
 	totalWrites uint64
+
+	// Symbol resolution
+	symbols *SymbolResolver // Symbol resolver for address annotation
 }
 
 // NewRegisterTrace creates a new register trace tracker
@@ -101,6 +104,11 @@ func NewRegisterTrace(writer io.Writer) *RegisterTrace {
 		registerStats: make(map[string]*RegisterStats),
 		lastRegValues: make(map[string]uint32),
 	}
+}
+
+// LoadSymbols loads a symbol table for address annotation
+func (r *RegisterTrace) LoadSymbols(symbols map[string]uint32) {
+	r.symbols = NewSymbolResolver(symbols)
 }
 
 // Start starts register tracing
@@ -242,6 +250,11 @@ func (r *RegisterTrace) DetectReadBeforeWrite() []string {
 	}
 	sort.Strings(result)
 	return result
+}
+
+// GetEntries returns all register access entries
+func (r *RegisterTrace) GetEntries() []RegisterAccessEntry {
+	return r.entries
 }
 
 // Flush writes register trace report to the writer

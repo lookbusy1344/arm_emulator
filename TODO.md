@@ -64,13 +64,24 @@ This file tracks outstanding work only. Completed items are in `PROGRESS.md`.
 - ✅ Execution Trace (`--trace`) - Basic instruction execution logging
 - ✅ Memory Trace (`--mem-trace`) - Memory access tracking
 - ✅ Register Access Pattern Analysis (`--register-trace`) - Track read/write patterns per register, identify hot registers, detect unused registers, read-before-write detection
+- ✅ Symbol-Aware Trace Output - All diagnostic traces show function/label names (e.g., `main+4`, `calculate`) instead of raw hex addresses
 
 **Proposed Extensions:**
 - [ ] **Data Flow Tracing** (6-8 hours) - Track data movement between registers/memory, value provenance, data dependency tracking, taint analysis
 - [ ] **Cycle-Accurate Timing Simulation** (8-10 hours) - Estimate ARM2 instruction timing, pipeline stall simulation, memory access latency, performance bottleneck identification
-- [ ] **Symbol-Aware Trace Output** (2-3 hours) - Enhance existing traces with symbol information, show function names instead of addresses
 - [ ] **Memory Region Heatmap Visualization** (4-6 hours) - Track access frequency per region, HTML/graphical output, color-coded visualization
 - [ ] **Reverse Execution Log** (10-12 hours) - Record state for backwards stepping, circular buffer of previous N instructions, time-travel debugging
+
+### ✅ ~~Symbol-Aware Trace Output~~ - COMPLETED (2025-10-16)
+**Actual Effort:** ~2 hours
+
+- [x] Created `SymbolResolver` for address-to-symbol lookups with offset calculation
+- [x] Enhanced ExecutionTrace, MemoryTrace, StackTrace, FlagTrace, RegisterTrace with symbol support
+- [x] Updated main.go to load symbols into all trace modules
+- [x] Created comprehensive unit tests (22 tests) for SymbolResolver
+- [x] Verified all traces show function/label names in output
+
+**Result:** All diagnostic traces now display human-readable symbol names (e.g., `main+4`, `calculate`, `helper1+20`) instead of raw hex addresses. This dramatically improves debugging experience. The `SymbolResolver` provides efficient binary search-based address resolution with offset calculation. All existing tests pass with zero lint issues.
 
 ### ✅ ~~Re-enable TUI Automated Tests~~ - COMPLETED (2025-10-16)
 **Actual Effort:** ~2 hours

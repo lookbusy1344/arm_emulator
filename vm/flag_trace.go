@@ -33,6 +33,9 @@ type FlagTrace struct {
 	zChanges     uint64 // Zero flag changes
 	cChanges     uint64 // Carry flag changes
 	vChanges     uint64 // Overflow flag changes
+
+	// Symbol resolution
+	symbols *SymbolResolver // Symbol resolver for address annotation
 }
 
 // NewFlagTrace creates a new flag trace tracker
@@ -43,6 +46,11 @@ func NewFlagTrace(writer io.Writer) *FlagTrace {
 		entries:    make([]FlagChangeEntry, 0, 1000),
 		maxEntries: 100000,
 	}
+}
+
+// LoadSymbols loads a symbol table for address annotation
+func (f *FlagTrace) LoadSymbols(symbols map[string]uint32) {
+	f.symbols = NewSymbolResolver(symbols)
 }
 
 // Start starts flag tracing
@@ -175,9 +183,15 @@ func (f *FlagTrace) formatEntry(entry FlagChangeEntry) string {
 	// Highlight changed flags
 	highlightedNew := f.highlightChanges(entry.NewFlags, entry.Changed)
 
-	line := fmt.Sprintf("[%06d] 0x%04X: %-30s  %s -> %s  (changed: %s)\n",
+	// Use symbol-aware formatting if symbols are available
+	pcStr := fmt.Sprintf("0x%04X", entry.PC)
+	if f.symbols != nil && f.symbols.HasSymbols() {
+		pcStr = f.symbols.FormatAddressCompact(entry.PC)
+	}
+
+	line := fmt.Sprintf("[%06d] %-20s: %-30s  %s -> %s  (changed: %s)\n",
 		entry.Sequence,
-		entry.PC,
+		pcStr,
 		entry.Instruction,
 		oldStr,
 		highlightedNew,

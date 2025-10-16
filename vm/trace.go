@@ -31,6 +31,7 @@ type ExecutionTrace struct {
 	entries      []TraceEntry
 	startTime    time.Time
 	lastSnapshot map[string]uint32 // Previous register values
+	symbols      *SymbolResolver   // Symbol resolver for address annotation
 }
 
 // NewExecutionTrace creates a new execution trace
@@ -54,6 +55,11 @@ func (t *ExecutionTrace) SetFilterRegisters(regs []string) {
 	for _, reg := range regs {
 		t.FilterRegs[strings.ToUpper(reg)] = true
 	}
+}
+
+// LoadSymbols loads a symbol table for address annotation
+func (t *ExecutionTrace) LoadSymbols(symbols map[string]uint32) {
+	t.symbols = NewSymbolResolver(symbols)
 }
 
 // Start starts the trace
@@ -147,9 +153,15 @@ func (t *ExecutionTrace) Flush() error {
 // writeEntry writes a single trace entry
 func (t *ExecutionTrace) writeEntry(entry TraceEntry) error {
 	// Format: [seq] addr: instruction | changes | flags | time
-	line := fmt.Sprintf("[%06d] 0x%04X: %-30s",
+	// Use symbol-aware formatting if symbols are available
+	addrStr := fmt.Sprintf("0x%04X", entry.Address)
+	if t.symbols != nil && t.symbols.HasSymbols() {
+		addrStr = t.symbols.FormatAddressCompact(entry.Address)
+	}
+
+	line := fmt.Sprintf("[%06d] %-20s: %-30s",
 		entry.Sequence,
-		entry.Address,
+		addrStr,
 		entry.Disassembly)
 
 	// Add register changes
@@ -230,6 +242,7 @@ type MemoryTrace struct {
 
 	entries   []MemoryAccessEntry
 	startTime time.Time
+	symbols   *SymbolResolver // Symbol resolver for address annotation
 }
 
 // NewMemoryTrace creates a new memory trace
@@ -240,6 +253,11 @@ func NewMemoryTrace(writer io.Writer) *MemoryTrace {
 		MaxEntries: 100000,
 		entries:    make([]MemoryAccessEntry, 0, 1000),
 	}
+}
+
+// LoadSymbols loads a symbol table for address annotation
+func (t *MemoryTrace) LoadSymbols(symbols map[string]uint32) {
+	t.symbols = NewSymbolResolver(symbols)
 }
 
 // Start starts the memory trace
@@ -308,21 +326,31 @@ func (t *MemoryTrace) Flush() error {
 // writeEntry writes a single memory trace entry
 func (t *MemoryTrace) writeEntry(entry MemoryAccessEntry) error {
 	// Format: [seq] [TYPE] PC: instruction <- [addr] = value (size)
+	// Use symbol-aware formatting if symbols are available
+	pcStr := fmt.Sprintf("0x%04X", entry.PC)
+	addrStr := fmt.Sprintf("0x%08X", entry.Address)
+
+	if t.symbols != nil && t.symbols.HasSymbols() {
+		pcStr = t.symbols.FormatAddressCompact(entry.PC)
+		// Also annotate memory addresses (useful for stack/data symbols)
+		addrStr = t.symbols.FormatAddressCompact(entry.Address)
+	}
+
 	var line string
 	if entry.Type == "READ" {
-		line = fmt.Sprintf("[%06d] [%-5s] 0x%04X <- [0x%08X] = 0x%08X (%s)\n",
+		line = fmt.Sprintf("[%06d] [%-5s] %-20s <- [%-20s] = 0x%08X (%s)\n",
 			entry.Sequence,
 			entry.Type,
-			entry.PC,
-			entry.Address,
+			pcStr,
+			addrStr,
 			entry.Value,
 			entry.Size)
 	} else {
-		line = fmt.Sprintf("[%06d] [%-5s] 0x%04X -> [0x%08X] = 0x%08X (%s)\n",
+		line = fmt.Sprintf("[%06d] [%-5s] %-20s -> [%-20s] = 0x%08X (%s)\n",
 			entry.Sequence,
 			entry.Type,
-			entry.PC,
-			entry.Address,
+			pcStr,
+			addrStr,
 			entry.Value,
 			entry.Size)
 	}

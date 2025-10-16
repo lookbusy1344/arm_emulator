@@ -51,6 +51,9 @@ type StackTrace struct {
 	totalBytes     uint64
 	overflowCount  uint64 // Number of stack overflow events
 	underflowCount uint64 // Number of stack underflow events
+
+	// Symbol resolution
+	symbols *SymbolResolver // Symbol resolver for address annotation
 }
 
 // NewStackTrace creates a new stack trace tracker
@@ -66,6 +69,11 @@ func NewStackTrace(writer io.Writer, stackBase, stackTop uint32) *StackTrace {
 		minSP:      stackBase,
 		maxSP:      stackBase,
 	}
+}
+
+// LoadSymbols loads a symbol table for address annotation
+func (s *StackTrace) LoadSymbols(symbols map[string]uint32) {
+	s.symbols = NewSymbolResolver(symbols)
 }
 
 // Start starts stack tracing
@@ -286,10 +294,16 @@ func (s *StackTrace) Flush() error {
 func (s *StackTrace) formatEntry(entry StackTraceEntry) string {
 	var line string
 
+	// Use symbol-aware formatting if symbols are available
+	pcStr := fmt.Sprintf("0x%04X", entry.PC)
+	if s.symbols != nil && s.symbols.HasSymbols() {
+		pcStr = s.symbols.FormatAddressCompact(entry.PC)
+	}
+
 	switch entry.Operation {
 	case StackPush:
-		line = fmt.Sprintf("[%06d] 0x%04X: PUSH %-3s  SP: 0x%08X -> 0x%08X  [0x%08X] = 0x%08X  (%d bytes)",
-			entry.Sequence, entry.PC, entry.Register,
+		line = fmt.Sprintf("[%06d] %-20s: PUSH %-3s  SP: 0x%08X -> 0x%08X  [0x%08X] = 0x%08X  (%d bytes)",
+			entry.Sequence, pcStr, entry.Register,
 			entry.OldSP, entry.NewSP, entry.Address, entry.Value, entry.Size)
 
 		// Warn if overflow
@@ -298,8 +312,8 @@ func (s *StackTrace) formatEntry(entry StackTraceEntry) string {
 		}
 
 	case StackPop:
-		line = fmt.Sprintf("[%06d] 0x%04X: POP  %-3s  SP: 0x%08X -> 0x%08X  [0x%08X] = 0x%08X  (%d bytes)",
-			entry.Sequence, entry.PC, entry.Register,
+		line = fmt.Sprintf("[%06d] %-20s: POP  %-3s  SP: 0x%08X -> 0x%08X  [0x%08X] = 0x%08X  (%d bytes)",
+			entry.Sequence, pcStr, entry.Register,
 			entry.OldSP, entry.NewSP, entry.Address, entry.Value, entry.Size)
 
 		// Warn if underflow
@@ -312,8 +326,8 @@ func (s *StackTrace) formatEntry(entry StackTraceEntry) string {
 		if entry.NewSP > entry.OldSP {
 			direction = "shrink"
 		}
-		line = fmt.Sprintf("[%06d] 0x%04X: MOVE      SP: 0x%08X -> 0x%08X  (%s by %d bytes)",
-			entry.Sequence, entry.PC, entry.OldSP, entry.NewSP, direction, entry.Size)
+		line = fmt.Sprintf("[%06d] %-20s: MOVE      SP: 0x%08X -> 0x%08X  (%s by %d bytes)",
+			entry.Sequence, pcStr, entry.OldSP, entry.NewSP, direction, entry.Size)
 	}
 
 	line += "\n"

@@ -96,6 +96,7 @@ go test ./...
 - Character literal support complete (basic chars + escape sequences)
 - ARM immediate encoding bug fixed (fibonacci.s, calculator.s now work correctly)
 - Diagnostic modes complete (code coverage, stack trace, flag trace, register access pattern analysis)
+- Symbol-aware trace output (Oct 2025): All diagnostic traces now show function/label names instead of raw addresses for improved readability
 
 ## Additional Features
 
@@ -140,8 +141,23 @@ Features:
 - **Stack Trace**: Monitors all stack operations (push/pop/SP modifications), detects overflow/underflow
 - **Flag Trace**: Records CPSR flag changes (N, Z, C, V) for each instruction that modifies flags
 - **Register Trace**: Analyzes register access patterns, identifies hot registers, detects unused registers, and flags read-before-write issues
+- **Symbol-Aware Output**: All traces automatically show function/label names (e.g., `main+4`, `calculate`) instead of raw hex addresses for easier debugging
 
 All diagnostic modes support both text and JSON output formats.
+
+Example symbol-aware output:
+```
+# Stack trace showing function names
+[000005] nested_call         : MOVE      SP: 0x00050000 -> 0x0004FFEC  (grow by 20 bytes)
+[000010] helper1             : MOVE      SP: 0x0004FFEC -> 0x0004FFD8  (grow by 20 bytes)
+
+# Flag trace showing symbol names
+[000012] loop                : 0xE355000C                      ---- -> N*---  (changed: N)
+
+# Coverage showing functions with symbols
+0x00008000: executed      1 times (first: cycle      1, last: cycle      1) [main]
+0x00008014: executed     13 times (first: cycle     12, last: cycle    462) [loop]
+```
 
 ### Development Tools
 
