@@ -1,14 +1,16 @@
-package tools
+package tools_test
 
 import (
 	"strings"
 	"testing"
+
+	"github.com/lookbusy1344/arm-emulator/tools"
 )
 
 func TestFormat_BasicInstruction(t *testing.T) {
 	source := `MOV R0,#10`
 
-	formatter := NewFormatter(DefaultFormatOptions())
+	formatter := tools.NewFormatter(tools.DefaultFormatOptions())
 	result, err := formatter.Format(source, "test.s")
 
 	if err != nil {
@@ -30,7 +32,7 @@ func TestFormat_BasicInstruction(t *testing.T) {
 func TestFormat_WithLabel(t *testing.T) {
 	source := `loop:MOV R0,#10`
 
-	formatter := NewFormatter(DefaultFormatOptions())
+	formatter := tools.NewFormatter(tools.DefaultFormatOptions())
 	result, err := formatter.Format(source, "test.s")
 
 	if err != nil {
@@ -55,7 +57,7 @@ func TestFormat_WithLabel(t *testing.T) {
 func TestFormat_WithComment(t *testing.T) {
 	source := `MOV R0, #10 ; Load 10 into R0`
 
-	formatter := NewFormatter(DefaultFormatOptions())
+	formatter := tools.NewFormatter(tools.DefaultFormatOptions())
 	result, err := formatter.Format(source, "test.s")
 
 	if err != nil {
@@ -79,7 +81,7 @@ loop:	MOV R0, #10
 		ADD R0, R0, #1
 	`
 
-	formatter := NewFormatter(CompactFormatOptions())
+	formatter := tools.NewFormatter(tools.CompactFormatOptions())
 	result, err := formatter.Format(source, "test.s")
 
 	if err != nil {
@@ -100,7 +102,7 @@ loop:	MOV R0, #10
 func TestFormat_ExpandedStyle(t *testing.T) {
 	source := `MOV R0,#10`
 
-	formatter := NewFormatter(ExpandedFormatOptions())
+	formatter := tools.NewFormatter(tools.ExpandedFormatOptions())
 	result, err := formatter.Format(source, "test.s")
 
 	if err != nil {
@@ -121,7 +123,7 @@ _start: MOV R0, #10
         SWI #0
 	`
 
-	formatter := NewFormatter(DefaultFormatOptions())
+	formatter := tools.NewFormatter(tools.DefaultFormatOptions())
 	result, err := formatter.Format(source, "test.s")
 
 	if err != nil {
@@ -149,7 +151,7 @@ data:	.word 42
 		.byte 0xFF
 	`
 
-	formatter := NewFormatter(DefaultFormatOptions())
+	formatter := tools.NewFormatter(tools.DefaultFormatOptions())
 	result, err := formatter.Format(source, "test.s")
 
 	if err != nil {
@@ -171,7 +173,7 @@ data:	.word 42
 func TestFormat_ConditionalInstructions(t *testing.T) {
 	source := `MOVEQ R0, #1`
 
-	formatter := NewFormatter(DefaultFormatOptions())
+	formatter := tools.NewFormatter(tools.DefaultFormatOptions())
 	result, err := formatter.Format(source, "test.s")
 
 	if err != nil {
@@ -187,7 +189,7 @@ func TestFormat_ConditionalInstructions(t *testing.T) {
 func TestFormat_SetFlagsInstruction(t *testing.T) {
 	source := `ADDS R0, R0, #1`
 
-	formatter := NewFormatter(DefaultFormatOptions())
+	formatter := tools.NewFormatter(tools.DefaultFormatOptions())
 	result, err := formatter.Format(source, "test.s")
 
 	if err != nil {
@@ -203,7 +205,7 @@ func TestFormat_SetFlagsInstruction(t *testing.T) {
 func TestFormat_ComplexOperands(t *testing.T) {
 	source := `LDR R0, [R1, #4]`
 
-	formatter := NewFormatter(DefaultFormatOptions())
+	formatter := tools.NewFormatter(tools.DefaultFormatOptions())
 	result, err := formatter.Format(source, "test.s")
 
 	if err != nil {
@@ -222,11 +224,11 @@ MOV R0, #10 ; Comment 1
 ADD R1, R0, #1 ; Comment 2
 	`
 
-	options := DefaultFormatOptions()
+	options := tools.DefaultFormatOptions()
 	options.AlignComments = true
 	options.CommentColumn = 30
 
-	formatter := NewFormatter(options)
+	formatter := tools.NewFormatter(options)
 	result, err := formatter.Format(source, "test.s")
 
 	if err != nil {
@@ -260,7 +262,7 @@ ADD R1, R0, #1 ; Comment 2
 func TestFormat_PreserveOperandOrder(t *testing.T) {
 	source := `ADD R0, R1, R2`
 
-	formatter := NewFormatter(DefaultFormatOptions())
+	formatter := tools.NewFormatter(tools.DefaultFormatOptions())
 	result, err := formatter.Format(source, "test.s")
 
 	if err != nil {
@@ -276,7 +278,7 @@ func TestFormat_PreserveOperandOrder(t *testing.T) {
 func TestFormat_EmptyInput(t *testing.T) {
 	source := ``
 
-	formatter := NewFormatter(DefaultFormatOptions())
+	formatter := tools.NewFormatter(tools.DefaultFormatOptions())
 	result, err := formatter.Format(source, "test.s")
 
 	if err != nil {
@@ -293,7 +295,7 @@ func TestFormat_OnlyComments(t *testing.T) {
 	source := `; This is a comment
 ; Another comment`
 
-	formatter := NewFormatter(DefaultFormatOptions())
+	formatter := tools.NewFormatter(tools.DefaultFormatOptions())
 	_, err := formatter.Format(source, "test.s")
 
 	// Should handle comments-only input
@@ -305,7 +307,7 @@ func TestFormat_OnlyComments(t *testing.T) {
 func TestFormat_MixedCase(t *testing.T) {
 	source := `mov r0, #10`
 
-	formatter := NewFormatter(DefaultFormatOptions())
+	formatter := tools.NewFormatter(tools.DefaultFormatOptions())
 	result, err := formatter.Format(source, "test.s")
 
 	if err != nil {
@@ -324,7 +326,7 @@ _start:
 		MOV R0, #10
 	`
 
-	formatter := NewFormatter(DefaultFormatOptions())
+	formatter := tools.NewFormatter(tools.DefaultFormatOptions())
 	result, err := formatter.Format(source, "test.s")
 
 	if err != nil {
@@ -350,7 +352,7 @@ loop:
 		BNE loop
 	`
 
-	formatter := NewFormatter(DefaultFormatOptions())
+	formatter := tools.NewFormatter(tools.DefaultFormatOptions())
 	result, err := formatter.Format(source, "test.s")
 
 	if err != nil {
@@ -406,7 +408,7 @@ end:
 		SWI #0
 	`
 
-	formatter := NewFormatter(DefaultFormatOptions())
+	formatter := tools.NewFormatter(tools.DefaultFormatOptions())
 	result, err := formatter.Format(source, "test.s")
 
 	if err != nil {
@@ -454,7 +456,7 @@ end:
 func TestFormat_DirectiveWithLabel(t *testing.T) {
 	source := `data: .word 42`
 
-	formatter := NewFormatter(DefaultFormatOptions())
+	formatter := tools.NewFormatter(tools.DefaultFormatOptions())
 	result, err := formatter.Format(source, "test.s")
 
 	if err != nil {
@@ -473,7 +475,7 @@ func TestFormat_DirectiveWithLabel(t *testing.T) {
 func TestFormatString_Convenience(t *testing.T) {
 	source := `MOV R0, #10`
 
-	result, err := FormatString(source, "test.s")
+	result, err := tools.FormatString(source, "test.s")
 
 	if err != nil {
 		t.Fatalf("FormatString error: %v", err)
@@ -487,10 +489,10 @@ func TestFormatString_Convenience(t *testing.T) {
 func TestFormatStringWithStyle_Compact(t *testing.T) {
 	source := `MOV R0, #10`
 
-	result, err := FormatStringWithStyle(source, "test.s", FormatCompact)
+	result, err := tools.FormatStringWithStyle(source, "test.s", tools.FormatCompact)
 
 	if err != nil {
-		t.Fatalf("FormatStringWithStyle error: %v", err)
+		t.Fatalf("tools.FormatStringWithStyle error: %v", err)
 	}
 
 	if !strings.Contains(result, "MOV") {
@@ -501,10 +503,10 @@ func TestFormatStringWithStyle_Compact(t *testing.T) {
 func TestFormatStringWithStyle_Expanded(t *testing.T) {
 	source := `MOV R0, #10`
 
-	result, err := FormatStringWithStyle(source, "test.s", FormatExpanded)
+	result, err := tools.FormatStringWithStyle(source, "test.s", tools.FormatExpanded)
 
 	if err != nil {
-		t.Fatalf("FormatStringWithStyle error: %v", err)
+		t.Fatalf("tools.FormatStringWithStyle error: %v", err)
 	}
 
 	if !strings.Contains(result, "MOV") {
@@ -515,7 +517,7 @@ func TestFormatStringWithStyle_Expanded(t *testing.T) {
 func TestFormat_ShiftedOperands(t *testing.T) {
 	source := `MOV R0, R1, LSL #2`
 
-	formatter := NewFormatter(DefaultFormatOptions())
+	formatter := tools.NewFormatter(tools.DefaultFormatOptions())
 	result, err := formatter.Format(source, "test.s")
 
 	if err != nil {
@@ -535,7 +537,7 @@ _start:	MOV R0, #10
 loop:	ADD R0, R0, #1
 	`
 
-	formatter := NewFormatter(DefaultFormatOptions())
+	formatter := tools.NewFormatter(tools.DefaultFormatOptions())
 	result, err := formatter.Format(source, "test.s")
 
 	if err != nil {

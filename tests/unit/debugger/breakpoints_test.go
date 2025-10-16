@@ -1,11 +1,13 @@
-package debugger
+package debugger_test
 
 import (
 	"testing"
+
+	"github.com/lookbusy1344/arm-emulator/debugger"
 )
 
 func TestBreakpointManager_AddBreakpoint(t *testing.T) {
-	bm := NewBreakpointManager()
+	bm := debugger.NewBreakpointManager()
 
 	bp := bm.AddBreakpoint(0x1000, false, "")
 
@@ -35,7 +37,7 @@ func TestBreakpointManager_AddBreakpoint(t *testing.T) {
 }
 
 func TestBreakpointManager_AddMultiple(t *testing.T) {
-	bm := NewBreakpointManager()
+	bm := debugger.NewBreakpointManager()
 
 	bp1 := bm.AddBreakpoint(0x1000, false, "")
 	bp2 := bm.AddBreakpoint(0x2000, false, "")
@@ -50,7 +52,7 @@ func TestBreakpointManager_AddMultiple(t *testing.T) {
 }
 
 func TestBreakpointManager_AddDuplicate(t *testing.T) {
-	bm := NewBreakpointManager()
+	bm := debugger.NewBreakpointManager()
 
 	bp1 := bm.AddBreakpoint(0x1000, false, "")
 	bp2 := bm.AddBreakpoint(0x1000, false, "r0 == 5")
@@ -66,7 +68,7 @@ func TestBreakpointManager_AddDuplicate(t *testing.T) {
 }
 
 func TestBreakpointManager_DeleteBreakpoint(t *testing.T) {
-	bm := NewBreakpointManager()
+	bm := debugger.NewBreakpointManager()
 
 	bp := bm.AddBreakpoint(0x1000, false, "")
 
@@ -87,7 +89,7 @@ func TestBreakpointManager_DeleteBreakpoint(t *testing.T) {
 }
 
 func TestBreakpointManager_EnableDisable(t *testing.T) {
-	bm := NewBreakpointManager()
+	bm := debugger.NewBreakpointManager()
 
 	bp := bm.AddBreakpoint(0x1000, false, "")
 
@@ -113,7 +115,7 @@ func TestBreakpointManager_EnableDisable(t *testing.T) {
 }
 
 func TestBreakpointManager_GetBreakpoint(t *testing.T) {
-	bm := NewBreakpointManager()
+	bm := debugger.NewBreakpointManager()
 
 	bm.AddBreakpoint(0x1000, false, "")
 	bm.AddBreakpoint(0x2000, false, "")
@@ -134,7 +136,7 @@ func TestBreakpointManager_GetBreakpoint(t *testing.T) {
 }
 
 func TestBreakpointManager_GetBreakpointByID(t *testing.T) {
-	bm := NewBreakpointManager()
+	bm := debugger.NewBreakpointManager()
 
 	bp1 := bm.AddBreakpoint(0x1000, false, "")
 	bp2 := bm.AddBreakpoint(0x2000, false, "")
@@ -156,7 +158,7 @@ func TestBreakpointManager_GetBreakpointByID(t *testing.T) {
 }
 
 func TestBreakpointManager_GetAllBreakpoints(t *testing.T) {
-	bm := NewBreakpointManager()
+	bm := debugger.NewBreakpointManager()
 
 	bm.AddBreakpoint(0x1000, false, "")
 	bm.AddBreakpoint(0x2000, false, "")
@@ -170,7 +172,7 @@ func TestBreakpointManager_GetAllBreakpoints(t *testing.T) {
 }
 
 func TestBreakpointManager_Clear(t *testing.T) {
-	bm := NewBreakpointManager()
+	bm := debugger.NewBreakpointManager()
 
 	bm.AddBreakpoint(0x1000, false, "")
 	bm.AddBreakpoint(0x2000, false, "")
@@ -183,7 +185,7 @@ func TestBreakpointManager_Clear(t *testing.T) {
 }
 
 func TestBreakpointManager_HasBreakpoint(t *testing.T) {
-	bm := NewBreakpointManager()
+	bm := debugger.NewBreakpointManager()
 
 	bm.AddBreakpoint(0x1000, false, "")
 
@@ -197,7 +199,7 @@ func TestBreakpointManager_HasBreakpoint(t *testing.T) {
 }
 
 func TestBreakpoint_Temporary(t *testing.T) {
-	bm := NewBreakpointManager()
+	bm := debugger.NewBreakpointManager()
 
 	bp := bm.AddBreakpoint(0x1000, true, "")
 
@@ -207,7 +209,7 @@ func TestBreakpoint_Temporary(t *testing.T) {
 }
 
 func TestBreakpoint_Condition(t *testing.T) {
-	bm := NewBreakpointManager()
+	bm := debugger.NewBreakpointManager()
 
 	condition := "r0 == 42"
 	bp := bm.AddBreakpoint(0x1000, false, condition)
@@ -218,7 +220,7 @@ func TestBreakpoint_Condition(t *testing.T) {
 }
 
 func TestBreakpoint_HitCount(t *testing.T) {
-	bm := NewBreakpointManager()
+	bm := debugger.NewBreakpointManager()
 
 	bp := bm.AddBreakpoint(0x1000, false, "")
 

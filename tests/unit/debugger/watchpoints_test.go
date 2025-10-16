@@ -1,15 +1,16 @@
-package debugger
+package debugger_test
 
 import (
 	"testing"
 
+	"github.com/lookbusy1344/arm-emulator/debugger"
 	"github.com/lookbusy1344/arm-emulator/vm"
 )
 
 func TestWatchpointManager_AddWatchpoint(t *testing.T) {
-	wm := NewWatchpointManager()
+	wm := debugger.NewWatchpointManager()
 
-	wp := wm.AddWatchpoint(WatchWrite, "r0", 0, true, 0)
+	wp := wm.AddWatchpoint(debugger.WatchWrite, "r0", 0, true, 0)
 
 	if wp == nil {
 		t.Fatal("AddWatchpoint returned nil")
@@ -19,8 +20,8 @@ func TestWatchpointManager_AddWatchpoint(t *testing.T) {
 		t.Errorf("Expected ID 1, got %d", wp.ID)
 	}
 
-	if wp.Type != WatchWrite {
-		t.Errorf("Wrong watchpoint type: got %d, want %d", wp.Type, WatchWrite)
+	if wp.Type != debugger.WatchWrite {
+		t.Errorf("Wrong watchpoint type: got %d, want %d", wp.Type, debugger.WatchWrite)
 	}
 
 	if wp.Expression != "r0" {
@@ -41,10 +42,10 @@ func TestWatchpointManager_AddWatchpoint(t *testing.T) {
 }
 
 func TestWatchpointManager_AddMultiple(t *testing.T) {
-	wm := NewWatchpointManager()
+	wm := debugger.NewWatchpointManager()
 
-	wp1 := wm.AddWatchpoint(WatchWrite, "r0", 0, true, 0)
-	wp2 := wm.AddWatchpoint(WatchRead, "[0x1000]", 0x1000, false, 0)
+	wp1 := wm.AddWatchpoint(debugger.WatchWrite, "r0", 0, true, 0)
+	wp2 := wm.AddWatchpoint(debugger.WatchRead, "[0x1000]", 0x1000, false, 0)
 
 	if wp1.ID == wp2.ID {
 		t.Error("Watchpoint IDs should be unique")
@@ -56,9 +57,9 @@ func TestWatchpointManager_AddMultiple(t *testing.T) {
 }
 
 func TestWatchpointManager_DeleteWatchpoint(t *testing.T) {
-	wm := NewWatchpointManager()
+	wm := debugger.NewWatchpointManager()
 
-	wp := wm.AddWatchpoint(WatchWrite, "r0", 0, true, 0)
+	wp := wm.AddWatchpoint(debugger.WatchWrite, "r0", 0, true, 0)
 
 	err := wm.DeleteWatchpoint(wp.ID)
 	if err != nil {
@@ -77,9 +78,9 @@ func TestWatchpointManager_DeleteWatchpoint(t *testing.T) {
 }
 
 func TestWatchpointManager_EnableDisable(t *testing.T) {
-	wm := NewWatchpointManager()
+	wm := debugger.NewWatchpointManager()
 
-	wp := wm.AddWatchpoint(WatchWrite, "r0", 0, true, 0)
+	wp := wm.AddWatchpoint(debugger.WatchWrite, "r0", 0, true, 0)
 
 	// Disable
 	err := wm.DisableWatchpoint(wp.ID)
@@ -103,11 +104,11 @@ func TestWatchpointManager_EnableDisable(t *testing.T) {
 }
 
 func TestWatchpointManager_CheckWatchpoints_Register(t *testing.T) {
-	wm := NewWatchpointManager()
+	wm := debugger.NewWatchpointManager()
 	machine := vm.NewVM()
 
 	// Add register watchpoint
-	wp := wm.AddWatchpoint(WatchWrite, "r0", 0, true, 0)
+	wp := wm.AddWatchpoint(debugger.WatchWrite, "r0", 0, true, 0)
 
 	// Initialize watchpoint
 	machine.CPU.R[0] = 100
@@ -147,13 +148,13 @@ func TestWatchpointManager_CheckWatchpoints_Register(t *testing.T) {
 }
 
 func TestWatchpointManager_CheckWatchpoints_Memory(t *testing.T) {
-	wm := NewWatchpointManager()
+	wm := debugger.NewWatchpointManager()
 	machine := vm.NewVM()
 
 	addr := uint32(0x00020000) // Data segment address
 
 	// Add memory watchpoint
-	wp := wm.AddWatchpoint(WatchWrite, "[0x00020000]", addr, false, 0)
+	wp := wm.AddWatchpoint(debugger.WatchWrite, "[0x00020000]", addr, false, 0)
 
 	// Initialize watchpoint
 	machine.Memory.WriteWord(addr, 0x12345678)
@@ -181,11 +182,11 @@ func TestWatchpointManager_CheckWatchpoints_Memory(t *testing.T) {
 }
 
 func TestWatchpointManager_Disabled(t *testing.T) {
-	wm := NewWatchpointManager()
+	wm := debugger.NewWatchpointManager()
 	machine := vm.NewVM()
 
 	// Add and disable watchpoint
-	wp := wm.AddWatchpoint(WatchWrite, "r0", 0, true, 0)
+	wp := wm.AddWatchpoint(debugger.WatchWrite, "r0", 0, true, 0)
 	wm.InitializeWatchpoint(wp.ID, machine)
 	wm.DisableWatchpoint(wp.ID)
 
@@ -200,11 +201,11 @@ func TestWatchpointManager_Disabled(t *testing.T) {
 }
 
 func TestWatchpointManager_GetAllWatchpoints(t *testing.T) {
-	wm := NewWatchpointManager()
+	wm := debugger.NewWatchpointManager()
 
-	wm.AddWatchpoint(WatchWrite, "r0", 0, true, 0)
-	wm.AddWatchpoint(WatchRead, "r1", 0, true, 1)
-	wm.AddWatchpoint(WatchReadWrite, "[0x1000]", 0x1000, false, 0)
+	wm.AddWatchpoint(debugger.WatchWrite, "r0", 0, true, 0)
+	wm.AddWatchpoint(debugger.WatchRead, "r1", 0, true, 1)
+	wm.AddWatchpoint(debugger.WatchReadWrite, "[0x1000]", 0x1000, false, 0)
 
 	all := wm.GetAllWatchpoints()
 
@@ -214,10 +215,10 @@ func TestWatchpointManager_GetAllWatchpoints(t *testing.T) {
 }
 
 func TestWatchpointManager_Clear(t *testing.T) {
-	wm := NewWatchpointManager()
+	wm := debugger.NewWatchpointManager()
 
-	wm.AddWatchpoint(WatchWrite, "r0", 0, true, 0)
-	wm.AddWatchpoint(WatchRead, "r1", 0, true, 1)
+	wm.AddWatchpoint(debugger.WatchWrite, "r0", 0, true, 0)
+	wm.AddWatchpoint(debugger.WatchRead, "r1", 0, true, 1)
 
 	wm.Clear()
 
@@ -227,21 +228,21 @@ func TestWatchpointManager_Clear(t *testing.T) {
 }
 
 func TestWatchpoint_Types(t *testing.T) {
-	wm := NewWatchpointManager()
+	wm := debugger.NewWatchpointManager()
 
-	wpWrite := wm.AddWatchpoint(WatchWrite, "r0", 0, true, 0)
-	wpRead := wm.AddWatchpoint(WatchRead, "r1", 0, true, 1)
-	wpAccess := wm.AddWatchpoint(WatchReadWrite, "r2", 0, true, 2)
+	wpWrite := wm.AddWatchpoint(debugger.WatchWrite, "r0", 0, true, 0)
+	wpRead := wm.AddWatchpoint(debugger.WatchRead, "r1", 0, true, 1)
+	wpAccess := wm.AddWatchpoint(debugger.WatchReadWrite, "r2", 0, true, 2)
 
-	if wpWrite.Type != WatchWrite {
+	if wpWrite.Type != debugger.WatchWrite {
 		t.Error("Wrong type for write watchpoint")
 	}
 
-	if wpRead.Type != WatchRead {
+	if wpRead.Type != debugger.WatchRead {
 		t.Error("Wrong type for read watchpoint")
 	}
 
-	if wpAccess.Type != WatchReadWrite {
+	if wpAccess.Type != debugger.WatchReadWrite {
 		t.Error("Wrong type for access watchpoint")
 	}
 }

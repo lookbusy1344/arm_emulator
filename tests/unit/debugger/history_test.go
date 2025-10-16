@@ -1,11 +1,13 @@
-package debugger
+package debugger_test
 
 import (
 	"testing"
+
+	"github.com/lookbusy1344/arm-emulator/debugger"
 )
 
 func TestCommandHistory_Add(t *testing.T) {
-	h := NewCommandHistory()
+	h := debugger.NewCommandHistory()
 
 	h.Add("step")
 	h.Add("continue")
@@ -26,7 +28,7 @@ func TestCommandHistory_Add(t *testing.T) {
 }
 
 func TestCommandHistory_IgnoreEmpty(t *testing.T) {
-	h := NewCommandHistory()
+	h := debugger.NewCommandHistory()
 
 	h.Add("step")
 	h.Add("")
@@ -38,7 +40,7 @@ func TestCommandHistory_IgnoreEmpty(t *testing.T) {
 }
 
 func TestCommandHistory_IgnoreDuplicates(t *testing.T) {
-	h := NewCommandHistory()
+	h := debugger.NewCommandHistory()
 
 	h.Add("step")
 	h.Add("step")
@@ -55,7 +57,7 @@ func TestCommandHistory_IgnoreDuplicates(t *testing.T) {
 }
 
 func TestCommandHistory_Previous(t *testing.T) {
-	h := NewCommandHistory()
+	h := debugger.NewCommandHistory()
 
 	h.Add("cmd1")
 	h.Add("cmd2")
@@ -85,7 +87,7 @@ func TestCommandHistory_Previous(t *testing.T) {
 }
 
 func TestCommandHistory_Next(t *testing.T) {
-	h := NewCommandHistory()
+	h := debugger.NewCommandHistory()
 
 	h.Add("cmd1")
 	h.Add("cmd2")
@@ -115,7 +117,7 @@ func TestCommandHistory_Next(t *testing.T) {
 }
 
 func TestCommandHistory_GetLast(t *testing.T) {
-	h := NewCommandHistory()
+	h := debugger.NewCommandHistory()
 
 	h.Add("cmd1")
 	h.Add("cmd2")
@@ -134,7 +136,7 @@ func TestCommandHistory_GetLast(t *testing.T) {
 }
 
 func TestCommandHistory_Clear(t *testing.T) {
-	h := NewCommandHistory()
+	h := debugger.NewCommandHistory()
 
 	h.Add("cmd1")
 	h.Add("cmd2")
@@ -153,7 +155,7 @@ func TestCommandHistory_Clear(t *testing.T) {
 }
 
 func TestCommandHistory_Search(t *testing.T) {
-	h := NewCommandHistory()
+	h := debugger.NewCommandHistory()
 
 	h.Add("break 0x1000")
 	h.Add("break 0x2000")
@@ -176,7 +178,7 @@ func TestCommandHistory_Search(t *testing.T) {
 }
 
 func TestCommandHistory_SearchNoMatches(t *testing.T) {
-	h := NewCommandHistory()
+	h := debugger.NewCommandHistory()
 
 	h.Add("step")
 	h.Add("continue")
@@ -189,7 +191,7 @@ func TestCommandHistory_SearchNoMatches(t *testing.T) {
 }
 
 func TestCommandHistory_MaxSize(t *testing.T) {
-	h := NewCommandHistory()
+	h := debugger.NewCommandHistory()
 
 	// Add more than max size
 	for i := 0; i < 1100; i++ {
@@ -203,7 +205,7 @@ func TestCommandHistory_MaxSize(t *testing.T) {
 }
 
 func TestCommandHistory_EmptyHistory(t *testing.T) {
-	h := NewCommandHistory()
+	h := debugger.NewCommandHistory()
 
 	if h.Size() != 0 {
 		t.Errorf("New history size = %d, want 0", h.Size())

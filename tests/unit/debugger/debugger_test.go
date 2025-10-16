@@ -1,16 +1,17 @@
-package debugger
+package debugger_test
 
 import (
 	"strings"
 	"testing"
 
+	"github.com/lookbusy1344/arm-emulator/debugger"
 	"github.com/lookbusy1344/arm-emulator/vm"
 )
 
 // TestNewDebugger tests debugger creation
 func TestNewDebugger(t *testing.T) {
 	machine := vm.NewVM()
-	dbg := NewDebugger(machine)
+	dbg := debugger.NewDebugger(machine)
 
 	if dbg == nil {
 		t.Fatal("NewDebugger returned nil")
@@ -40,7 +41,7 @@ func TestNewDebugger(t *testing.T) {
 // TestLoadSymbols tests symbol loading
 func TestLoadSymbols(t *testing.T) {
 	machine := vm.NewVM()
-	dbg := NewDebugger(machine)
+	dbg := debugger.NewDebugger(machine)
 
 	symbols := map[string]uint32{
 		"main":   0x1000,
@@ -62,7 +63,7 @@ func TestLoadSymbols(t *testing.T) {
 // TestResolveAddress tests address resolution
 func TestResolveAddress(t *testing.T) {
 	machine := vm.NewVM()
-	dbg := NewDebugger(machine)
+	dbg := debugger.NewDebugger(machine)
 
 	// Add test symbols
 	dbg.LoadSymbols(map[string]uint32{
@@ -100,19 +101,19 @@ func TestResolveAddress(t *testing.T) {
 // TestExecuteCommand tests command execution
 func TestExecuteCommand(t *testing.T) {
 	machine := vm.NewVM()
-	dbg := NewDebugger(machine)
+	dbg := debugger.NewDebugger(machine)
 
 	tests := []struct {
 		name      string
 		command   string
 		wantErr   bool
-		checkFunc func(*testing.T, *Debugger)
+		checkFunc func(*testing.T, *debugger.Debugger)
 	}{
 		{
 			name:    "Help command",
 			command: "help",
 			wantErr: false,
-			checkFunc: func(t *testing.T, d *Debugger) {
+			checkFunc: func(t *testing.T, d *debugger.Debugger) {
 				output := d.GetOutput()
 				if !strings.Contains(output, "ARM2 Debugger Commands") {
 					t.Error("Help output not found")
@@ -123,7 +124,7 @@ func TestExecuteCommand(t *testing.T) {
 			name:    "Reset command",
 			command: "reset",
 			wantErr: false,
-			checkFunc: func(t *testing.T, d *Debugger) {
+			checkFunc: func(t *testing.T, d *debugger.Debugger) {
 				if d.VM.CPU.PC != 0 {
 					t.Error("VM not reset")
 				}
@@ -154,7 +155,7 @@ func TestExecuteCommand(t *testing.T) {
 // TestBreakpointCommands tests breakpoint commands
 func TestBreakpointCommands(t *testing.T) {
 	machine := vm.NewVM()
-	dbg := NewDebugger(machine)
+	dbg := debugger.NewDebugger(machine)
 
 	// Set breakpoint
 	err := dbg.ExecuteCommand("break 0x1000")
@@ -212,7 +213,7 @@ func TestBreakpointCommands(t *testing.T) {
 // TestTemporaryBreakpoint tests temporary breakpoints
 func TestTemporaryBreakpoint(t *testing.T) {
 	machine := vm.NewVM()
-	dbg := NewDebugger(machine)
+	dbg := debugger.NewDebugger(machine)
 
 	// Set temporary breakpoint
 	err := dbg.ExecuteCommand("tbreak 0x2000")
@@ -252,7 +253,7 @@ func TestTemporaryBreakpoint(t *testing.T) {
 // TestInfoRegisters tests the info registers command
 func TestInfoRegisters(t *testing.T) {
 	machine := vm.NewVM()
-	dbg := NewDebugger(machine)
+	dbg := debugger.NewDebugger(machine)
 
 	// Set some register values
 	machine.CPU.R[0] = 0x12345678
@@ -288,7 +289,7 @@ func TestInfoRegisters(t *testing.T) {
 // TestInfoBreakpoints tests the info breakpoints command
 func TestInfoBreakpoints(t *testing.T) {
 	machine := vm.NewVM()
-	dbg := NewDebugger(machine)
+	dbg := debugger.NewDebugger(machine)
 
 	// Add breakpoints
 	dbg.Breakpoints.AddBreakpoint(0x1000, false, "")
@@ -317,7 +318,7 @@ func TestInfoBreakpoints(t *testing.T) {
 // TestPrintCommand tests the print command
 func TestPrintCommand(t *testing.T) {
 	machine := vm.NewVM()
-	dbg := NewDebugger(machine)
+	dbg := debugger.NewDebugger(machine)
 
 	// Set register value
 	machine.CPU.R[5] = 42
@@ -337,7 +338,7 @@ func TestPrintCommand(t *testing.T) {
 // TestExamineMemory tests the examine memory command
 func TestExamineMemory(t *testing.T) {
 	machine := vm.NewVM()
-	dbg := NewDebugger(machine)
+	dbg := debugger.NewDebugger(machine)
 
 	// Write test data to memory - use data segment address
 	testAddr := uint32(0x00020000) // Data segment start
@@ -358,7 +359,7 @@ func TestExamineMemory(t *testing.T) {
 // TestSetRegister tests the set register command
 func TestSetRegister(t *testing.T) {
 	machine := vm.NewVM()
-	dbg := NewDebugger(machine)
+	dbg := debugger.NewDebugger(machine)
 
 	err := dbg.ExecuteCommand("set r3 = 0x100")
 	if err != nil {
@@ -373,7 +374,7 @@ func TestSetRegister(t *testing.T) {
 // TestStepMode tests stepping modes
 func TestStepMode(t *testing.T) {
 	machine := vm.NewVM()
-	dbg := NewDebugger(machine)
+	dbg := debugger.NewDebugger(machine)
 
 	// Test step command
 	err := dbg.ExecuteCommand("step")
@@ -381,8 +382,8 @@ func TestStepMode(t *testing.T) {
 		t.Fatalf("Failed to execute step: %v", err)
 	}
 
-	if dbg.StepMode != StepSingle {
-		t.Error("Step mode not set to StepSingle")
+	if dbg.StepMode != debugger.StepSingle {
+		t.Error("Step mode not set to debugger.StepSingle")
 	}
 
 	if !dbg.Running {
@@ -400,7 +401,7 @@ func TestStepMode(t *testing.T) {
 	}
 
 	// Verify step mode was cleared
-	if dbg.StepMode != StepNone {
+	if dbg.StepMode != debugger.StepNone {
 		t.Error("Step mode not cleared after break")
 	}
 }
@@ -408,7 +409,7 @@ func TestStepMode(t *testing.T) {
 // TestCommandHistory tests command history functionality
 func TestCommandHistory(t *testing.T) {
 	machine := vm.NewVM()
-	dbg := NewDebugger(machine)
+	dbg := debugger.NewDebugger(machine)
 
 	// Execute some commands
 	cmds := []string{"break 0x1000", "step", "continue"}
@@ -432,7 +433,7 @@ func TestCommandHistory(t *testing.T) {
 // TestShouldBreak tests breakpoint detection
 func TestShouldBreak(t *testing.T) {
 	machine := vm.NewVM()
-	dbg := NewDebugger(machine)
+	dbg := debugger.NewDebugger(machine)
 
 	// Set breakpoint
 	dbg.Breakpoints.AddBreakpoint(0x1000, false, "")
@@ -465,7 +466,7 @@ func TestShouldBreak(t *testing.T) {
 // TestConditionalBreakpoint tests breakpoints with conditions
 func TestConditionalBreakpoint(t *testing.T) {
 	machine := vm.NewVM()
-	dbg := NewDebugger(machine)
+	dbg := debugger.NewDebugger(machine)
 
 	// Set conditional breakpoint
 	dbg.Breakpoints.AddBreakpoint(0x1000, false, "r0")

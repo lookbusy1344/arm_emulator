@@ -1,8 +1,10 @@
-package vm
+package vm_test
 
 import (
 	"math"
 	"testing"
+
+	"github.com/lookbusy1344/arm-emulator/vm"
 )
 
 func TestSafeInt32ToUint32(t *testing.T) {
@@ -20,17 +22,17 @@ func TestSafeInt32ToUint32(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		result, err := SafeInt32ToUint32(tt.input)
+		result, err := vm.SafeInt32ToUint32(tt.input)
 		if tt.shouldErr {
 			if err == nil {
-				t.Errorf("SafeInt32ToUint32(%d) expected error but got none", tt.input)
+				t.Errorf("vm.SafeInt32ToUint32(%d) expected error but got none", tt.input)
 			}
 		} else {
 			if err != nil {
-				t.Errorf("SafeInt32ToUint32(%d) unexpected error: %v", tt.input, err)
+				t.Errorf("vm.SafeInt32ToUint32(%d) unexpected error: %v", tt.input, err)
 			}
 			if result != tt.expected {
-				t.Errorf("SafeInt32ToUint32(%d) = %d, expected %d", tt.input, result, tt.expected)
+				t.Errorf("vm.SafeInt32ToUint32(%d) = %d, expected %d", tt.input, result, tt.expected)
 			}
 		}
 	}
@@ -59,17 +61,17 @@ func TestSafeIntToUint32(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		result, err := SafeIntToUint32(tt.input)
+		result, err := vm.SafeIntToUint32(tt.input)
 		if tt.shouldErr {
 			if err == nil {
-				t.Errorf("SafeIntToUint32(%d) expected error but got none", tt.input)
+				t.Errorf("vm.SafeIntToUint32(%d) expected error but got none", tt.input)
 			}
 		} else {
 			if err != nil {
-				t.Errorf("SafeIntToUint32(%d) unexpected error: %v", tt.input, err)
+				t.Errorf("vm.SafeIntToUint32(%d) unexpected error: %v", tt.input, err)
 			}
 			if result != tt.expected {
-				t.Errorf("SafeIntToUint32(%d) = %d, expected %d", tt.input, result, tt.expected)
+				t.Errorf("vm.SafeIntToUint32(%d) = %d, expected %d", tt.input, result, tt.expected)
 			}
 		}
 	}
@@ -91,17 +93,17 @@ func TestSafeInt64ToUint32(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		result, err := SafeInt64ToUint32(tt.input)
+		result, err := vm.SafeInt64ToUint32(tt.input)
 		if tt.shouldErr {
 			if err == nil {
-				t.Errorf("SafeInt64ToUint32(%d) expected error but got none", tt.input)
+				t.Errorf("vm.SafeInt64ToUint32(%d) expected error but got none", tt.input)
 			}
 		} else {
 			if err != nil {
-				t.Errorf("SafeInt64ToUint32(%d) unexpected error: %v", tt.input, err)
+				t.Errorf("vm.SafeInt64ToUint32(%d) unexpected error: %v", tt.input, err)
 			}
 			if result != tt.expected {
-				t.Errorf("SafeInt64ToUint32(%d) = %d, expected %d", tt.input, result, tt.expected)
+				t.Errorf("vm.SafeInt64ToUint32(%d) = %d, expected %d", tt.input, result, tt.expected)
 			}
 		}
 	}
@@ -121,17 +123,17 @@ func TestSafeUint32ToUint16(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		result, err := SafeUint32ToUint16(tt.input)
+		result, err := vm.SafeUint32ToUint16(tt.input)
 		if tt.shouldErr {
 			if err == nil {
-				t.Errorf("SafeUint32ToUint16(%d) expected error but got none", tt.input)
+				t.Errorf("vm.SafeUint32ToUint16(%d) expected error but got none", tt.input)
 			}
 		} else {
 			if err != nil {
-				t.Errorf("SafeUint32ToUint16(%d) unexpected error: %v", tt.input, err)
+				t.Errorf("vm.SafeUint32ToUint16(%d) unexpected error: %v", tt.input, err)
 			}
 			if result != tt.expected {
-				t.Errorf("SafeUint32ToUint16(%d) = %d, expected %d", tt.input, result, tt.expected)
+				t.Errorf("vm.SafeUint32ToUint16(%d) = %d, expected %d", tt.input, result, tt.expected)
 			}
 		}
 	}
@@ -151,17 +153,17 @@ func TestSafeUint32ToUint8(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		result, err := SafeUint32ToUint8(tt.input)
+		result, err := vm.SafeUint32ToUint8(tt.input)
 		if tt.shouldErr {
 			if err == nil {
-				t.Errorf("SafeUint32ToUint8(%d) expected error but got none", tt.input)
+				t.Errorf("vm.SafeUint32ToUint8(%d) expected error but got none", tt.input)
 			}
 		} else {
 			if err != nil {
-				t.Errorf("SafeUint32ToUint8(%d) unexpected error: %v", tt.input, err)
+				t.Errorf("vm.SafeUint32ToUint8(%d) unexpected error: %v", tt.input, err)
 			}
 			if result != tt.expected {
-				t.Errorf("SafeUint32ToUint8(%d) = %d, expected %d", tt.input, result, tt.expected)
+				t.Errorf("vm.SafeUint32ToUint8(%d) = %d, expected %d", tt.input, result, tt.expected)
 			}
 		}
 	}
@@ -188,17 +190,17 @@ func TestSafeUintToUint32(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		result, err := SafeUintToUint32(tt.input)
+		result, err := vm.SafeUintToUint32(tt.input)
 		if tt.shouldErr {
 			if err == nil {
-				t.Errorf("SafeUintToUint32(%d) expected error but got none", tt.input)
+				t.Errorf("vm.SafeUintToUint32(%d) expected error but got none", tt.input)
 			}
 		} else {
 			if err != nil {
-				t.Errorf("SafeUintToUint32(%d) unexpected error: %v", tt.input, err)
+				t.Errorf("vm.SafeUintToUint32(%d) unexpected error: %v", tt.input, err)
 			}
 			if result != tt.expected {
-				t.Errorf("SafeUintToUint32(%d) = %d, expected %d", tt.input, result, tt.expected)
+				t.Errorf("vm.SafeUintToUint32(%d) = %d, expected %d", tt.input, result, tt.expected)
 			}
 		}
 	}
@@ -217,9 +219,9 @@ func TestAsInt32(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		result := AsInt32(tt.input)
+		result := vm.AsInt32(tt.input)
 		if result != tt.expected {
-			t.Errorf("AsInt32(0x%X) = %d, expected %d", tt.input, result, tt.expected)
+			t.Errorf("vm.AsInt32(0x%X) = %d, expected %d", tt.input, result, tt.expected)
 		}
 	}
 }

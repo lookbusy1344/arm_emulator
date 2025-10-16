@@ -1,14 +1,16 @@
-package config
+package config_test
 
 import (
 	"os"
 	"path/filepath"
 	"runtime"
 	"testing"
+
+	"github.com/lookbusy1344/arm-emulator/config"
 )
 
 func TestDefaultConfig(t *testing.T) {
-	cfg := DefaultConfig()
+	cfg := config.DefaultConfig()
 
 	// Test execution defaults
 	if cfg.Execution.MaxCycles != 1000000 {
@@ -49,7 +51,7 @@ func TestDefaultConfig(t *testing.T) {
 }
 
 func TestGetConfigPath(t *testing.T) {
-	path := GetConfigPath()
+	path := config.GetConfigPath()
 
 	// Verify path is not empty
 	if path == "" {
@@ -79,7 +81,7 @@ func TestGetConfigPath(t *testing.T) {
 }
 
 func TestGetLogPath(t *testing.T) {
-	path := GetLogPath()
+	path := config.GetLogPath()
 
 	// Verify path is not empty
 	if path == "" {
@@ -108,7 +110,7 @@ func TestSaveAndLoad(t *testing.T) {
 	configPath := filepath.Join(tempDir, "test_config.toml")
 
 	// Create a config with custom values
-	cfg := DefaultConfig()
+	cfg := config.DefaultConfig()
 	cfg.Execution.MaxCycles = 5000000
 	cfg.Execution.EnableTrace = true
 	cfg.Debugger.HistorySize = 500
@@ -126,7 +128,7 @@ func TestSaveAndLoad(t *testing.T) {
 	}
 
 	// Load config
-	loaded, err := LoadFrom(configPath)
+	loaded, err := config.LoadFrom(configPath)
 	if err != nil {
 		t.Fatalf("Failed to load config: %v", err)
 	}
@@ -155,7 +157,7 @@ func TestLoadNonExistent(t *testing.T) {
 	configPath := filepath.Join(tempDir, "nonexistent.toml")
 
 	// Should return default config without error
-	cfg, err := LoadFrom(configPath)
+	cfg, err := config.LoadFrom(configPath)
 	if err != nil {
 		t.Fatalf("LoadFrom should not error on non-existent file: %v", err)
 	}
@@ -180,7 +182,7 @@ max_cycles = "not a number"  # Invalid: should be uint64
 	}
 
 	// Should return error
-	_, err := LoadFrom(configPath)
+	_, err := config.LoadFrom(configPath)
 	if err == nil {
 		t.Error("Expected error when loading invalid TOML")
 	}
@@ -193,7 +195,7 @@ func TestSaveCreatesDirectory(t *testing.T) {
 	// Try to save to a path with non-existent subdirectories
 	configPath := filepath.Join(tempDir, "subdir1", "subdir2", "config.toml")
 
-	cfg := DefaultConfig()
+	cfg := config.DefaultConfig()
 	if err := cfg.SaveTo(configPath); err != nil {
 		t.Fatalf("Failed to save config: %v", err)
 	}
