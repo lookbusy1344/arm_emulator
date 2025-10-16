@@ -77,6 +77,8 @@ func (e *Encoder) EncodeInstruction(inst *parser.Instruction, address uint32) (u
 		return e.encodePush(inst, cond)
 	case "POP":
 		return e.encodePop(inst, cond)
+	case "NOP":
+		return e.encodeNOP(cond), nil
 
 	// Software interrupt
 	case "SWI", "SVC": // SVC is ARM7+ name for SWI

@@ -257,6 +257,15 @@ func (e *Encoder) parseRegisterList(list string) (uint32, error) {
 	return mask, nil
 }
 
+// encodeNOP encodes NOP as MOV R0, R0
+func (e *Encoder) encodeNOP(cond uint32) uint32 {
+	// NOP = MOV R0, R0
+	// Format: cccc 0001 101S dddd 0000 0000 0000 mmmm
+	// MOV (S=0, Rd=0, Rm=0)
+	instruction := (cond << 28) | (0xD << 21) | (0 << 16) | 0
+	return instruction
+}
+
 // encodeSWI encodes software interrupt instruction
 func (e *Encoder) encodeSWI(inst *parser.Instruction, cond uint32) (uint32, error) {
 	if len(inst.Operands) < 1 {
