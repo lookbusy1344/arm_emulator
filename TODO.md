@@ -53,29 +53,18 @@ This file tracks outstanding work only. Completed items are in `PROGRESS.md`.
 
 **Documentation:** INSTRUCTIONS.md updated with complete syntax, examples, and usage notes for all new instructions.
 
-### Enhanced CI/CD Pipeline
-**Effort:** 4-6 hours
-
-- [ ] Configure matrix builds (macOS, Windows, Linux)
-- [ ] Add test coverage reporting (codecov)
-- [ ] Add coverage threshold enforcement (70% minimum)
-- [ ] Add race detector to tests
-- [ ] Upload test results as CI artifacts
-
-### Release Engineering
-**Effort:** 8-12 hours
-
-- [ ] Create `.github/workflows/release.yml` with matrix builds
-  - linux-amd64, darwin-amd64, darwin-arm64, windows-amd64
-- [ ] Create release archives and GitHub Release automation
-- [ ] Create `CHANGELOG.md`
-- [ ] Create `CONTRIBUTING.md`
-- [ ] Create `docs/release_checklist.md`
-- [ ] Pre-release verification checklist
-
 ---
 
 ## Medium Priority Tasks
+
+### Additional Diagnostic Modes
+
+- [ ] Register access pattern analysis
+- [ ] Data flow tracing
+- [ ] Cycle-accurate timing simulation
+- [ ] Symbol-aware trace output
+- [ ] Memory region heatmap visualization
+- [ ] Reverse execution log
 
 ### Re-enable TUI Automated Tests
 **Effort:** 2-3 hours
@@ -130,14 +119,26 @@ These are **not** part of ARM2 but could be added for broader compatibility:
 
 **Note:** The emulator has complete ARM2 instruction set coverage. The long multiply and PSR transfer instructions listed in High Priority are now being prioritized for implementation. These remaining extensions are from later architectures.
 
-### Additional Diagnostic Modes
+### Enhanced CI/CD Pipeline
+**Effort:** 4-6 hours
 
-- [ ] Register access pattern analysis
-- [ ] Data flow tracing
-- [ ] Cycle-accurate timing simulation
-- [ ] Symbol-aware trace output
-- [ ] Memory region heatmap visualization
-- [ ] Reverse execution log
+- [ ] Configure matrix builds (macOS, Windows, Linux)
+- [ ] Add test coverage reporting (codecov)
+- [ ] Add coverage threshold enforcement (70% minimum)
+- [ ] Add race detector to tests
+- [ ] Upload test results as CI artifacts
+
+### Release Engineering
+**Effort:** 8-12 hours
+
+- [ ] Create `.github/workflows/release.yml` with matrix builds
+  - linux-amd64, darwin-amd64, darwin-arm64, windows-amd64
+- [ ] Create release archives and GitHub Release automation
+- [ ] Create `CHANGELOG.md`
+- [ ] Create `CONTRIBUTING.md`
+- [ ] Create `docs/release_checklist.md`
+- [ ] Pre-release verification checklist
+
 
 ---
 
