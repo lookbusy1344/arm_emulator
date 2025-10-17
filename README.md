@@ -56,15 +56,15 @@ It's important to have clear daily (or at least progressive) goals, so we can ke
 
 **Day 6 - 13 Oct - Copilot VSCode** - Switched to Sonnet 4.5 in Copilot interactively with VSCode, because Claude Code weekly limits have been reached. While making progress, several more example programs are failing without detection from Copilot. The automated tests are clearly not thorough enough.
 
-I've been working through the failing example programs, and getting them to run without Copilot editing out the parts that don't work. This is a slow process, but I'm making progress.
+I've been working through the failing example programs, and getting them to run without Copilot editing out the parts that don't work. This is a slow but I'm making progress.
 
-Last step of the day was to take more detailed control, and tell Copilot to include integration tests that run whole example programs, comparing the output to expected output files. This is a good way to catch problems that unit tests miss (although some example programs are still failing). This is the first code I have actually looked at in detail and directed more closely, eg 9262a29b2373970592ad3a9fdca6792901d72bae.
+Last step of the day was to take more detailed control, and tell Copilot to include integration tests that run whole example programs, comparing the output to expected output files. This is a good way to catch problems that unit tests miss (although some example programs are still failing). This is the first code I have actually looked at in detail and directed more closely, eg 9262a29b2373970592ad.
 
 Go code now is 34,735 lines.
 
 **Day 7 - 14 Oct - Copilot CLI** - Today I’m trying Copilot CLI. https://github.com/github/copilot-cli with the default Sonnet 4.5 model, from commit c3d1c0ada6fbf073e0. Not as slick as Claude Code, and needs more confirmations.
 
-Commit f19616250600ed4ed9883 breaks integration tests (the script runs fine by hand), and Sonnet 4.5 completely failed to fix it. Switching to GPT-5 however seemed to fixed very elegantly, although it is slow and uncommunicative.
+Commit f19616250600ed4ed9883 breaks integration tests (the script runs fine by hand), and Sonnet 4.5 completely failed to fix it. Switching to GPT-5 however seemed to fixed very elegantly, although it is slow and uncommunicative. The solution just appeared after minutes of silence!
 
 By 2001523f91760431f078e we have all the example programs fixed, and running as integration tests. Something I've closely pushed for in the latest phase of development.
 
@@ -72,7 +72,7 @@ By 2001523f91760431f078e we have all the example programs fixed, and running as 
 
 Go code now is 35,206 lines.
 
-**Day 9 - 16 Oct - Claude Code** - Back on Claude Code, far superior to Copilot. Adding some missing instructions, and automated testing the TUI interface, and Register Access Pattern Analysis.
+**Day 9 - 16 Oct - Claude Code** - Back on Claude Code, far superior to Copilot. Adding some missing assembly instructions, and automated testing the TUI interface, and Register Access Pattern Analysis.
 
 Go code is now 40,352 lines and we have 75% code coverage. Note the big jump in output.
 
