@@ -76,7 +76,7 @@ Go code now is 35,206 lines.
 
 Go code is now 40,352 lines and we have 75% code coverage.
 
-**Day 10 - 17 Oct** - the project is almost finished and ready for detailed review, a substantial task for over 40k lines of code! Today I have mainly focused on docs, checked through the tutorial and making a list of specific fixes and clarifications I’d like Claude to make. Also worked on a solution for the CPSR issue with full 32 bit addresses (this is a small departure from strict ARM2 compatibility since that architecture only used 26 bit addressing, and stored CPU flags in the remaining 8 bits of the PC). This emulator uses full 32 bit addressing, so we need to store the CPSR flags separately. This is only a theoretical issue for most example programs, because there are no hardware interrupts.
+**Day 10 - 17 Oct** - The project is almost finished and ready for detailed review, a substantial task for over 40k lines of code! Today I have mainly focused on docs, checked through the tutorial and making a list of specific fixes and clarifications I’d like Claude to make. Also worked on a solution for the CPSR issue with full 32 bit addresses (this is a small departure from strict ARM2 compatibility since that architecture only used 26 bit addressing, and stored CPU flags in the remaining bits of the PC register). This emulator uses full 32 bit addressing, so we need to store the CPSR flags separately. This is only a theoretical issue for most example programs, because there are no hardware interrupts.
 
 Go code is currently 41,651 lines. Estimated total vibing time is around 32 hours, so an average of 1,300 lines of code per hour!
 
@@ -85,6 +85,18 @@ All unit and integration tests are passing, and the test system runs all the exa
 Release automation added, and v0.9.0 tagged. Looks like the builds for Windows and MacOS are working properly.
 
 Perhaps at this point I should actually try it with some assembly I have written myself 😂
+
+## Summary
+
+At this stage I’ve probably taken vibing as far as I can go without actually writing some ARM2 assembly and trying to run and debug it by hand. So far every test program has been written by Claude (or Copilot, when Claude limits were exceeded).
+
+In terms of developer experience, Claude Code is amazing. It’s easy to get jaded and blasé about current AI progress, but in stepping back if you told me 2 years ago this would be possible I would have said you were dreaming! Already these AI tools can out-perform science fiction depictions in shows like *Star Trek*, and we are only 2 years into the revolution. What will be possible in another 2 years? This will revolutionise the whole workplace.
+
+My criticisms are minor. You need to lean on Claude to preserve tests that fail, and actually fix the issue not delete the test. Instructions in CLAUDE.md should be strong in this regard. The only time I’ve applied detailed pressure and closely monitored code was when instructing Claude to write comprehensive integration tests, running the example programs and checking the output against expected results. Even then, some failing examples survived unnoticed between days 7-10. This might be less of an issue when Claude is writing something less esoteric and more easily seen, like a website. In this project, the goals were always loosely defined and all the example programs were pretty open-ended.
+
+Claude continues to evolve quickly. Even during these 10 days, it has had 2 significant updates: first with Sonnet 4.5 and then today the faster Haiku 4.5, for simple tasks. It completed small doc updates and automatic release workflows almost instantly.
+
+Exciting times. Perhaps I should think of a second more challenging vibe-coding project!
 
 ## Documentation
 
