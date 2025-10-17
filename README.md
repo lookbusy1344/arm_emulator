@@ -125,6 +125,11 @@ Exciting times. Perhaps I should think of a second more challenging vibe-coding 
   - All ARM2 addressing modes (immediate, register, shifted, pre/post-indexed)
   - Software interrupts with 30+ syscalls
 - Assembly parser for ARM assembly programs with macros and preprocessor
+- **Dynamic literal pool sizing**: Smart allocation based on actual literal usage, not fixed estimates
+  - Counts LDR pseudo-instructions per `.ltorg` directive
+  - Adjusts pool addresses for optimal space utilization
+  - Validation warnings for pools exceeding capacity
+  - Support for 20+ literals per pool (tested up to 33)
 - Machine code encoder/decoder for binary ARM instruction formats
 - Interactive debugger with TUI (Text User Interface)
 - Virtual machine execution environment

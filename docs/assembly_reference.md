@@ -535,9 +535,16 @@ Forces emission of the literal pool at the current location. Literals are values
 - Programs with `.org 0x0000` or many constants may exceed this range
 - `.ltorg` places literals within reachable distance
 
+**Smart Pool Sizing:**
+- Pools are sized dynamically based on actual literal count
+- No wasted space for small pools (e.g., 5 literals saves 44 bytes vs. estimate)
+- Supports 20+ literals per pool (tested up to 33)
+- Address adjustments account for cumulative pool size differences
+- Optional validation warnings when `ARM_WARN_POOLS` environment variable is set
+
 **Alignment:**
 - Automatically aligns to 4-byte boundary
-- Space is reserved for accumulated literals
+- Space is reserved for accumulated literals (dynamic calculation)
 
 **Example:**
 ```asm
@@ -550,22 +557,29 @@ main:
     ADD R3, R0, R1
     ADD R3, R3, R2
     B   next_section
-    
+
     .ltorg                  ; Place literals here (within 4095 bytes)
+                            ; Pool sized for actual literal count (3 literals)
 
 next_section:
     ; More code far from main...
     LDR R4, =0x11111111
     LDR R5, =0x22222222
-    
+    LDR R6, =0x33333333
+    LDR R7, =0x44444444
+    LDR R8, =0x55555555
+
     .ltorg                  ; Another pool for distant code
+                            ; Pool sized for 5 literals (only 20 bytes needed)
 ```
 
 **Notes:**
 - Multiple `.ltorg` directives allowed
 - Literals automatically deduplicated (same value reused)
+- Dynamic sizing wastes no space on small pools
 - If no `.ltorg` specified, literals placed at end of program
 - For programs using `.org 0x8000`, `.ltorg` is usually unnecessary
+- Use `ARM_WARN_POOLS=1 ./arm-emulator program.s` to see pool utilization warnings
 
 ## Condition Codes
 
