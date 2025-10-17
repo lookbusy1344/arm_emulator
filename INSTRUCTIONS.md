@@ -1,11 +1,6 @@
 # ARM2 Instruction Set Reference
 
-This document details the ARM assembly instructions implemented and planned for this ARM2 emulator.
-
-## Status Legend
-- ✅ **Implemented** - Fully functional and tested
-- ⏸️ **Planned** - Documented but not yet implemented
-- 🔧 **Partial** - Partially implemented or has limitations
+This document details the ARM assembly instructions supported by this ARM2 emulator.
 
 ---
 
@@ -26,9 +21,7 @@ This document details the ARM assembly instructions implemented and planned for 
 
 ### Arithmetic Operations
 
-#### ADD - Add ✅
-
-**Status:** Implemented
+#### ADD - Add
 
 **Syntax:** `ADD{cond}{S} Rd, Rn, <operand2>`
 
@@ -46,9 +39,7 @@ ADDEQ R4, R5, R6, LSL #2  ; If equal, R4 = R5 + (R6 << 2)
 ADDNE R0, R0, #1      ; If not equal, R0 = R0 + 1
 ```
 
-#### ADC - Add with Carry ✅
-
-**Status:** Implemented
+#### ADC - Add with Carry
 
 **Syntax:** `ADC{cond}{S} Rd, Rn, <operand2>`
 
@@ -64,9 +55,7 @@ ADC R0, R1, R2        ; R0 = R1 + R2 + C
 ADCS R3, R3, #0       ; R3 = R3 + C, update flags (for multi-precision)
 ```
 
-#### SUB - Subtract ✅
-
-**Status:** Implemented
+#### SUB - Subtract
 
 **Syntax:** `SUB{cond}{S} Rd, Rn, <operand2>`
 
@@ -83,9 +72,7 @@ SUBS R3, R3, #1       ; R3 = R3 - 1, update flags
 SUBGE R4, R5, #10     ; If greater or equal, R4 = R5 - 10
 ```
 
-#### SBC - Subtract with Carry ✅
-
-**Status:** Implemented
+#### SBC - Subtract with Carry
 
 **Syntax:** `SBC{cond}{S} Rd, Rn, <operand2>`
 
@@ -101,9 +88,7 @@ SBC R0, R1, R2        ; R0 = R1 - R2 - NOT(C)
 SBCS R3, R3, #0       ; For multi-precision subtraction
 ```
 
-#### RSB - Reverse Subtract ✅
-
-**Status:** Implemented
+#### RSB - Reverse Subtract
 
 **Syntax:** `RSB{cond}{S} Rd, Rn, <operand2>`
 
@@ -120,9 +105,7 @@ RSBS R2, R2, #0       ; R2 = -R2 (negate)
 RSBLT R3, R4, #100    ; If less than, R3 = 100 - R4
 ```
 
-#### RSC - Reverse Subtract with Carry ✅
-
-**Status:** Implemented
+#### RSC - Reverse Subtract with Carry
 
 **Syntax:** `RSC{cond}{S} Rd, Rn, <operand2>`
 
@@ -139,9 +122,7 @@ RSC R0, R1, R2        ; R0 = R2 - R1 - NOT(C)
 
 ### Logical Operations
 
-#### AND - Logical AND ✅
-
-**Status:** Implemented
+#### AND - Logical AND
 
 **Syntax:** `AND{cond}{S} Rd, Rn, <operand2>`
 
@@ -157,9 +138,7 @@ AND R0, R1, R2        ; R0 = R1 & R2
 ANDS R3, R3, #0xFF    ; R3 = R3 & 0xFF, update flags
 ```
 
-#### ORR - Logical OR ✅
-
-**Status:** Implemented
+#### ORR - Logical OR
 
 **Syntax:** `ORR{cond}{S} Rd, Rn, <operand2>`
 
@@ -176,9 +155,7 @@ ORRS R3, R3, #0x80    ; Set bit 7, update flags
 ORRNE R4, R5, #1      ; If not equal, R4 = R5 | 1
 ```
 
-#### EOR - Logical Exclusive OR ✅
-
-**Status:** Implemented
+#### EOR - Logical Exclusive OR
 
 **Syntax:** `EOR{cond}{S} Rd, Rn, <operand2>`
 
@@ -194,9 +171,7 @@ EOR R0, R1, R2        ; R0 = R1 ^ R2
 EORS R3, R3, R3       ; R3 = 0, update flags
 ```
 
-#### BIC - Bit Clear ✅
-
-**Status:** Implemented
+#### BIC - Bit Clear
 
 **Syntax:** `BIC{cond}{S} Rd, Rn, <operand2>`
 
@@ -214,9 +189,7 @@ BICS R3, R3, #0x0F    ; Clear lower 4 bits, update flags
 
 ### Move Operations
 
-#### MOV - Move ✅
-
-**Status:** Implemented
+#### MOV - Move
 
 **Syntax:** `MOV{cond}{S} Rd, <operand2>`
 
@@ -240,9 +213,7 @@ MOVGE R10, #5         ; If greater or equal, R10 = 5
 MOVLE R11, #0         ; If less or equal, R11 = 0
 ```
 
-#### MVN - Move NOT ✅
-
-**Status:** Implemented
+#### MVN - Move NOT
 
 **Syntax:** `MVN{cond}{S} Rd, <operand2>`
 
@@ -260,9 +231,7 @@ MVN R2, #0            ; R2 = 0xFFFFFFFF (-1)
 
 ### Comparison Operations
 
-#### CMP - Compare ✅
-
-**Status:** Implemented
+#### CMP - Compare
 
 **Syntax:** `CMP{cond} Rn, <operand2>`
 
@@ -279,9 +248,7 @@ CMP R2, #0            ; Test if R2 is zero
 CMP R3, R4, LSL #1    ; Compare R3 with R4 << 1
 ```
 
-#### CMN - Compare Negative ✅
-
-**Status:** Implemented
+#### CMN - Compare Negative
 
 **Syntax:** `CMN{cond} Rn, <operand2>`
 
@@ -297,9 +264,7 @@ CMN R0, R1            ; Compare R0 with -R1
 CMN R2, #-5           ; Test if R2 is 5
 ```
 
-#### TST - Test Bits ✅
-
-**Status:** Implemented
+#### TST - Test Bits
 
 **Syntax:** `TST{cond} Rn, <operand2>`
 
@@ -315,9 +280,7 @@ TST R0, #0x01         ; Test if bit 0 is set
 TST R1, R2            ; Test bits in common
 ```
 
-#### TEQ - Test Equivalence ✅
-
-**Status:** Implemented
+#### TEQ - Test Equivalence
 
 **Syntax:** `TEQ{cond} Rn, <operand2>`
 
@@ -339,9 +302,7 @@ TEQ R2, #0            ; Test if R2 is zero
 
 ### Single Data Transfer
 
-#### LDR - Load Word ✅
-
-**Status:** Implemented
+#### LDR - Load Word
 
 **Syntax:** `LDR{cond} Rd, <addressing_mode>`
 
@@ -357,9 +318,7 @@ LDR R4, [R5], #8      ; R4 = [R5], then R5 = R5 + 8
 LDR R6, [R7, R8]      ; R6 = [R7 + R8]
 ```
 
-#### STR - Store Word ✅
-
-**Status:** Implemented
+#### STR - Store Word
 
 **Syntax:** `STR{cond} Rd, <addressing_mode>`
 
@@ -374,9 +333,7 @@ STR R2, [R3, #-4]     ; [R3 - 4] = R2
 STR R4, [R5, R6, LSL #2]!  ; [R5 + (R6 << 2)] = R4, writeback
 ```
 
-#### LDRB - Load Byte ✅
-
-**Status:** Implemented
+#### LDRB - Load Byte
 
 **Syntax:** `LDRB{cond} Rd, <addressing_mode>`
 
@@ -390,9 +347,7 @@ LDRB R0, [R1]         ; R0 = byte at [R1]
 LDRB R2, [R3, #1]     ; R2 = byte at [R3 + 1]
 ```
 
-#### STRB - Store Byte ✅
-
-**Status:** Implemented
+#### STRB - Store Byte
 
 **Syntax:** `STRB{cond} Rd, <addressing_mode>`
 
@@ -406,10 +361,7 @@ STRB R0, [R1]         ; [R1] = R0[7:0]
 STRB R2, [R3, #10]    ; [R3 + 10] = R2[7:0]
 ```
 
-#### LDRH - Load Halfword ✅
-
-**Status:** Implemented (ARM2a extension)
-
+#### LDRH - Load Halfword
 **Syntax:** `LDRH{cond} Rd, <addressing_mode>`
 
 **Description:** Loads a 16-bit halfword from memory (zero-extended)
@@ -422,10 +374,7 @@ LDRH R0, [R1]         ; R0 = halfword at [R1]
 LDRH R2, [R3, #2]     ; R2 = halfword at [R3 + 2]
 ```
 
-#### STRH - Store Halfword ✅
-
-**Status:** Implemented (ARM2a extension)
-
+#### STRH - Store Halfword
 **Syntax:** `STRH{cond} Rd, <addressing_mode>`
 
 **Description:** Stores a 16-bit halfword to memory
@@ -440,9 +389,7 @@ STRH R2, [R3, #6]     ; [R3 + 6] = R2[15:0]
 
 ### Multiple Data Transfer
 
-#### LDM - Load Multiple ✅
-
-**Status:** Implemented
+#### LDM - Load Multiple
 
 **Syntax:** `LDM{cond}{mode} Rn{!}, {register_list}{^}`
 
@@ -470,9 +417,7 @@ LDMFD SP!, {R0-R12, LR, PC}^  ; Exception return (restore CPSR from SPSR)
 LDMFD SP!, {R0-R12, LR, PC}^  ; Restore all registers and CPSR from SPSR
 ```
 
-#### STM - Store Multiple ✅
-
-**Status:** Implemented
+#### STM - Store Multiple
 
 **Syntax:** `STM{cond}{mode} Rn{!}, {register_list}{^}`
 
@@ -497,9 +442,7 @@ STMIA R0!, {R1-R4}      ; Store R1-R4 to memory at R0, increment R0
 
 ## Branch Instructions
 
-#### B - Branch ✅
-
-**Status:** Implemented
+#### B - Branch
 
 **Syntax:** `B{cond} label`
 
@@ -522,9 +465,7 @@ BCS carry_set         ; Branch if carry set
 BMI minus             ; Branch if minus/negative
 ```
 
-#### BL - Branch with Link ✅
-
-**Status:** Implemented
+#### BL - Branch with Link
 
 **Syntax:** `BL{cond} label`
 
@@ -540,9 +481,7 @@ BL function           ; Call function
 BLEQ conditional_fn   ; Call if equal
 ```
 
-#### BX - Branch and Exchange ✅
-
-**Status:** Implemented
+#### BX - Branch and Exchange
 
 **Syntax:** `BX{cond} Rm`
 
@@ -556,9 +495,7 @@ BX LR                 ; Return from subroutine
 BX R0                 ; Branch to address in R0
 ```
 
-#### BLX - Branch with Link and Exchange ✅
-
-**Status:** Implemented
+#### BLX - Branch with Link and Exchange
 
 **Syntax:** `BLX{cond} Rm`
 
@@ -576,9 +513,7 @@ BLX R0                ; Call function at address in R0
 
 ## Multiply Instructions
 
-#### MUL - Multiply ✅
-
-**Status:** Implemented
+#### MUL - Multiply
 
 **Syntax:** `MUL{cond}{S} Rd, Rm, Rs`
 
@@ -598,9 +533,7 @@ MUL R0, R1, R2        ; R0 = R1 * R2
 MULS R3, R4, R5       ; R3 = R4 * R5, update flags
 ```
 
-#### MLA - Multiply-Accumulate ✅
-
-**Status:** Implemented
+#### MLA - Multiply-Accumulate
 
 **Syntax:** `MLA{cond}{S} Rd, Rm, Rs, Rn`
 
@@ -620,10 +553,7 @@ MLA R0, R1, R2, R3    ; R0 = R1 * R2 + R3
 MLAS R4, R5, R6, R7   ; R4 = R5 * R6 + R7, update flags
 ```
 
-#### UMULL - Unsigned Multiply Long ✅
-
-**Status:** Implemented (ARMv3M)
-
+#### UMULL - Unsigned Multiply Long
 **Syntax:** `UMULL{cond}{S} RdLo, RdHi, Rm, Rs`
 
 **Description:** Multiplies two 32-bit unsigned values producing 64-bit result
@@ -640,10 +570,7 @@ UMULL R0, R1, R2, R3   ; R1:R0 = R2 * R3 (unsigned)
 UMULLS R4, R5, R6, R7  ; R5:R4 = R6 * R7, update flags
 ```
 
-#### UMLAL - Unsigned Multiply-Accumulate Long ✅
-
-**Status:** Implemented (ARMv3M)
-
+#### UMLAL - Unsigned Multiply-Accumulate Long
 **Syntax:** `UMLAL{cond}{S} RdLo, RdHi, Rm, Rs`
 
 **Description:** Unsigned multiply and accumulate with 64-bit result
@@ -660,10 +587,7 @@ UMLAL R0, R1, R2, R3   ; R1:R0 = (R2 * R3) + R1:R0 (unsigned)
 UMLALS R4, R5, R6, R7  ; R5:R4 += R6 * R7, update flags
 ```
 
-#### SMULL - Signed Multiply Long ✅
-
-**Status:** Implemented (ARMv3M)
-
+#### SMULL - Signed Multiply Long
 **Syntax:** `SMULL{cond}{S} RdLo, RdHi, Rm, Rs`
 
 **Description:** Multiplies two 32-bit signed values producing 64-bit result
@@ -680,10 +604,7 @@ SMULL R0, R1, R2, R3   ; R1:R0 = R2 * R3 (signed)
 SMULLS R4, R5, R6, R7  ; R5:R4 = R6 * R7 (signed), update flags
 ```
 
-#### SMLAL - Signed Multiply-Accumulate Long ✅
-
-**Status:** Implemented (ARMv3M)
-
+#### SMLAL - Signed Multiply-Accumulate Long
 **Syntax:** `SMLAL{cond}{S} RdLo, RdHi, Rm, Rs`
 
 **Description:** Signed multiply and accumulate with 64-bit result
@@ -704,9 +625,7 @@ SMLALS R4, R5, R6, R7  ; R5:R4 += R6 * R7 (signed), update flags
 
 ## System Instructions
 
-### SWI - Software Interrupt ✅
-
-**Status:** Implemented
+### SWI - Software Interrupt
 
 **Syntax:** `SWI{cond} #immediate`
 
@@ -723,52 +642,13 @@ SWI #0x11             ; Write character
 
 #### System Call Numbers (SWI)
 
-##### Console I/O (0x00-0x07) ✅
-- `0x00` - **EXIT** - Exit program (R0 = exit code) ✅
-- `0x01` - **WRITE_CHAR** - Write character (R0 = character) ✅
-- `0x02` - **WRITE_STRING** - Write null-terminated string (R0 = address) ✅
-- `0x03` - **WRITE_INT** - Write integer (R0 = value, R1 = base) ✅
-- `0x04` - **READ_CHAR** - Read character (returns in R0) ✅
-- `0x05` - **READ_STRING** - Read string (R0 = buffer, R1 = max length) ✅
-- `0x06` - **READ_INT** - Read integer (returns in R0) ✅
-- `0x07` - **WRITE_NEWLINE** - Write newline ✅
-
-##### File Operations (0x10-0x16) ✅
-- `0x10` - **OPEN** - Open file (R0 = filename, R1 = mode) ✅
-- `0x11` - **CLOSE** - Close file (R0 = file handle) ✅
-- `0x12` - **READ** - Read from file (R0 = handle, R1 = buffer, R2 = size) ✅
-- `0x13` - **WRITE** - Write to file (R0 = handle, R1 = buffer, R2 = size) ✅
-- `0x14` - **SEEK** - Seek in file (R0 = handle, R1 = offset, R2 = whence) ✅
-- `0x15` - **TELL** - Get file position (R0 = handle) ✅
-- `0x16` - **FILE_SIZE** - Get file size (R0 = handle) ✅
-
-##### Memory Operations (0x20-0x22) ✅
-- `0x20` - **ALLOCATE** - Allocate memory (R0 = size, returns address in R0) ✅
-- `0x21` - **FREE** - Free memory (R0 = address) ✅
-- `0x22` - **REALLOCATE** - Reallocate memory (R0 = address, R1 = new size) ✅
-
-##### System Information (0x30-0x33) ✅
-- `0x30` - **GET_TIME** - Get time in milliseconds (returns in R0) ✅
-- `0x31` - **GET_RANDOM** - Get random 32-bit value (returns in R0) ✅
-- `0x32` - **GET_ARGUMENTS** - Get command-line arguments ✅
-- `0x33` - **GET_ENVIRONMENT** - Get environment variables ✅
-
-##### Error Handling (0x40-0x42) ✅
-- `0x40` - **GET_ERROR** - Get last error code ✅
-- `0x41` - **SET_ERROR** - Set error code ✅
-- `0x42` - **PRINT_ERROR** - Print error message ✅
-
-##### Debugging Support (0xF0-0xF4) ✅
-- `0xF0` - **DEBUG_PRINT** - Print debug message (R0 = string address) ✅
-- `0xF1` - **BREAKPOINT** - Trigger breakpoint ✅
-- `0xF2` - **DUMP_REGISTERS** - Dump all registers ✅
-- `0xF3` - **DUMP_MEMORY** - Dump memory region (R0 = address, R1 = length) ✅
-- `0xF4` - **ASSERT** - Assert condition (R0 = condition) ✅
-
-### MRS - Move PSR to Register ✅
-
-**Status:** Implemented (ARMv3)
-
+##### Console I/O (0x00-0x07)- `0x00` - **EXIT** - Exit program (R0 = exit code)- `0x01` - **WRITE_CHAR** - Write character (R0 = character)- `0x02` - **WRITE_STRING** - Write null-terminated string (R0 = address)- `0x03` - **WRITE_INT** - Write integer (R0 = value, R1 = base)- `0x04` - **READ_CHAR** - Read character (returns in R0)- `0x05` - **READ_STRING** - Read string (R0 = buffer, R1 = max length)- `0x06` - **READ_INT** - Read integer (returns in R0)- `0x07` - **WRITE_NEWLINE** - Write newline
+##### File Operations (0x10-0x16)- `0x10` - **OPEN** - Open file (R0 = filename, R1 = mode)- `0x11` - **CLOSE** - Close file (R0 = file handle)- `0x12` - **READ** - Read from file (R0 = handle, R1 = buffer, R2 = size)- `0x13` - **WRITE** - Write to file (R0 = handle, R1 = buffer, R2 = size)- `0x14` - **SEEK** - Seek in file (R0 = handle, R1 = offset, R2 = whence)- `0x15` - **TELL** - Get file position (R0 = handle)- `0x16` - **FILE_SIZE** - Get file size (R0 = handle)
+##### Memory Operations (0x20-0x22)- `0x20` - **ALLOCATE** - Allocate memory (R0 = size, returns address in R0)- `0x21` - **FREE** - Free memory (R0 = address)- `0x22` - **REALLOCATE** - Reallocate memory (R0 = address, R1 = new size)
+##### System Information (0x30-0x33)- `0x30` - **GET_TIME** - Get time in milliseconds (returns in R0)- `0x31` - **GET_RANDOM** - Get random 32-bit value (returns in R0)- `0x32` - **GET_ARGUMENTS** - Get command-line arguments- `0x33` - **GET_ENVIRONMENT** - Get environment variables
+##### Error Handling (0x40-0x42)- `0x40` - **GET_ERROR** - Get last error code- `0x41` - **SET_ERROR** - Set error code- `0x42` - **PRINT_ERROR** - Print error message
+##### Debugging Support (0xF0-0xF4)- `0xF0` - **DEBUG_PRINT** - Print debug message (R0 = string address)- `0xF1` - **BREAKPOINT** - Trigger breakpoint- `0xF2` - **DUMP_REGISTERS** - Dump all registers- `0xF3` - **DUMP_MEMORY** - Dump memory region (R0 = address, R1 = length)- `0xF4` - **ASSERT** - Assert condition (R0 = condition)
+### MRS - Move PSR to Register
 **Syntax:** `MRS{cond} Rd, PSR`
 
 **Description:** Moves CPSR or SPSR to a register
@@ -788,10 +668,7 @@ MRS R1, CPSR          ; R1 = CPSR
 - Implementing critical sections in interrupt handlers
 - Debugging flag states
 
-### MSR - Move Register to PSR ✅
-
-**Status:** Implemented (ARMv3)
-
+### MSR - Move Register to PSR
 **Syntax:** `MSR{cond} PSR_fields, Rm` or `MSR{cond} PSR_fields, #immediate`
 
 **Description:** Moves a register or immediate to CPSR or SPSR flags
@@ -839,8 +716,7 @@ Assembler directives control how the assembler processes your source code. They 
 | `.balign` | Alignment | Align to specified byte boundary |
 | `.ltorg` | Literal Pool | Place literal pool at current location |
 
-### Section Directives ✅
-
+### Section Directives
 #### .text
 **Description:** Marks the beginning of the code section (executable instructions)
 
@@ -929,8 +805,7 @@ input_buf:  .space 512
 
 **Note:** In this emulator, `.data` and `.text` sections can be freely interleaved. The assembler tracks addresses sequentially regardless of section type.
 
-### Symbol Directives ✅
-
+### Symbol Directives
 #### .global
 **Description:** Declares a symbol as global (visible to other modules/exported)
 
@@ -1057,8 +932,7 @@ MOV R1, #MINUS_ONE
 .equ STACK_SIZE,  4 * KB
 ```
 
-### Memory Allocation Directives ✅
-
+### Memory Allocation Directives
 #### .org
 **Description:** Sets the assembly origin address (starting address for code/data)
 
@@ -1370,8 +1244,7 @@ MOV R1, #BUF_SIZE
 BL clear_buffer
 ```
 
-### Character Literals ✅
-
+### Character Literals
 Character literals can be used anywhere an immediate value is expected. They are enclosed in single quotes and evaluate to the ASCII/Unicode value of the character.
 
 **Syntax:** `'c'` where c is any character
@@ -1400,8 +1273,7 @@ MOV R2, #'\\'          ; Backslash (92)
 MOV R3, #'\''          ; Single quote (39)
 ```
 
-### Alignment Directives ✅
-
+### Alignment Directives
 #### .align
 **Description:** Aligns the current address to a 2^n bytes boundary
 
@@ -1474,8 +1346,7 @@ critical_loop:
 .balign 8         ; 8 bytes
 ```
 
-### Literal Pool Directive ✅
-
+### Literal Pool Directive
 #### .ltorg
 **Description:** Places the literal pool at the current location
 
@@ -1705,8 +1576,7 @@ cache_aligned: .word 1, 2, 3, 4
 
 ## Condition Codes
 
-All instructions can be conditionally executed based on CPSR flags. ✅
-
+All instructions can be conditionally executed based on CPSR flags.
 | Code | Suffix | Description | Condition |
 |------|--------|-------------|-----------|
 | 0000 | EQ | Equal | Z == 1 |
@@ -1740,8 +1610,7 @@ MOVGT R5, #1          ; Move if greater than
 
 ARM2 provides flexible addressing modes for both data processing instructions and memory access instructions.
 
-### Data Processing Operand2 ✅
-
+### Data Processing Operand2
 Data processing instructions (ADD, SUB, MOV, etc.) use the **Operand2** field, which can be:
 
 1. **Immediate Value with Rotation**
@@ -1817,8 +1686,7 @@ Data processing instructions (ADD, SUB, MOV, etc.) use the **Operand2** field, w
    - If shift amount is 0, no shift performed
    - If shift amount >= 32, behavior depends on shift type
 
-### Memory Addressing Modes ✅
-
+### Memory Addressing Modes
 Memory access instructions (LDR, STR, LDRB, STRB, LDRH, STRH) support these addressing modes:
 
 #### Addressing Mode Summary Table
@@ -2006,10 +1874,8 @@ LDR R0, [SP], #4       ; Pop R0: R0 = memory[SP], SP = SP + 4
 
 ## Shift Operations
 
-All shift operations are available in data processing instructions. ✅
-
-### LSL - Logical Shift Left ✅
-
+All shift operations are available in data processing instructions.
+### LSL - Logical Shift Left
 **Operation:** Shifts bits left, fills with zeros
 
 **Special Cases:**
@@ -2017,8 +1883,7 @@ All shift operations are available in data processing instructions. ✅
 
 **Example:** `MOV R0, R1, LSL #4` shifts R1 left by 4 bits
 
-### LSR - Logical Shift Right ✅
-
+### LSR - Logical Shift Right
 **Operation:** Shifts bits right, fills with zeros
 
 **Special Cases:**
@@ -2027,8 +1892,7 @@ All shift operations are available in data processing instructions. ✅
 
 **Example:** `ADD R0, R1, R2, LSR #8` adds R1 + (R2 >> 8)
 
-### ASR - Arithmetic Shift Right ✅
-
+### ASR - Arithmetic Shift Right
 **Operation:** Shifts bits right, preserves sign bit (fills with bit 31)
 
 **Special Cases:**
@@ -2037,8 +1901,7 @@ All shift operations are available in data processing instructions. ✅
 
 **Example:** `MOV R0, R1, ASR #2` performs signed divide by 4
 
-### ROR - Rotate Right ✅
-
+### ROR - Rotate Right
 **Operation:** Rotates bits right, wraps around
 
 **Special Cases:**
@@ -2046,8 +1909,7 @@ All shift operations are available in data processing instructions. ✅
 
 **Example:** `ORR R0, R1, R2, ROR #16` rotates R2 by 16 bits
 
-### RRX - Rotate Right Extended ✅
-
+### RRX - Rotate Right Extended
 **Operation:** Rotates right by 1 bit through carry flag (33-bit rotation with carry)
 
 **Details:**
@@ -2058,8 +1920,7 @@ All shift operations are available in data processing instructions. ✅
 
 **Example:** `MOV R0, R1, RRX` rotates R1 right through carry
 
-### Register-Specified Shifts ✅
-
+### Register-Specified Shifts
 **Operation:** Shift amount specified in register (bottom 8 bits used)
 
 **Details:**
@@ -2073,8 +1934,7 @@ All shift operations are available in data processing instructions. ✅
 
 ## CPSR Flags
 
-The Current Program Status Register (CPSR) contains condition flags. ✅
-
+The Current Program Status Register (CPSR) contains condition flags.
 ### Flag Overview
 
 | Flag | Bit | Name | Description |
@@ -2309,9 +2169,7 @@ MSR CPSR_f, #0x00000000  ; Clear all flags
 
 Pseudo-instructions are assembler conveniences that map to real instructions.
 
-### ADR - Load PC-Relative Address ✅
-
-**Status:** Implemented
+### ADR - Load PC-Relative Address
 
 **Syntax:** `ADR{cond} Rd, label`
 
@@ -2332,12 +2190,12 @@ ADR R2, function      ; R2 = address of function
 
 ### Other Pseudo-Instructions
 
-| Pseudo | Real Instruction | Status | Description |
-|--------|------------------|--------|-------------|
-| NOP | MOV R0, R0 | ✅ | No operation |
-| LDR Rd, =value | LDR Rd, [PC, #offset] or MOV/MVN | ✅ | Load 32-bit constant |
-| PUSH {regs} | STMDB SP!, {regs} | ✅ | Push registers to stack |
-| POP {regs} | LDMIA SP!, {regs} | ✅ | Pop registers from stack |
+| Pseudo | Real Instruction | Description |
+|--------|------------------|-------------|
+| NOP | MOV R0, R0 | No operation |
+| LDR Rd, =value | LDR Rd, [PC, #offset] or MOV/MVN | Load 32-bit constant |
+| PUSH {regs} | STMDB SP!, {regs} | Push registers to stack |
+| POP {regs} | LDMIA SP!, {regs} | Pop registers from stack |
 
 **NOP Example:**
 ```arm
@@ -2410,29 +2268,6 @@ POP {R4-R11}          ; Pop R4-R11 from stack
 
 - **ARM2 Compatibility:** This emulator targets the ARM2 instruction set with select ARM2a extensions (halfword load/store)
 
-- **Current Status (2025-10-16):**
-  - Production hardening and comprehensive testing complete
-  - 1133 total tests (100% pass rate)
-  - All 34 example programs fully tested with expected output verification
-  - Integration test framework covers entire example suite
-  - All core ARM2 instructions implemented and tested
-  - ARMv3/ARMv3M extensions complete (long multiply, PSR transfer, NOP)
-  - Four diagnostic modes complete (coverage, stack trace, flag trace, register trace)
-
-- **Phase 11 Complete (2025-10-14):**
-  - Comprehensive integration testing for all example programs
-  - Expected output files for systematic regression testing
-  - Fixed negative constant support in .equ directives
-  - Fixed data section ordering bug
-  - Shift operations work as ARM2 operand modifiers (LSL, LSR, ASR, ROR)
-  - Fixed 16-bit immediate encoding edge cases
-
-- **Phase 10 Complete (2025-10-09):**
-  - Cross-platform configuration management (config/) with TOML support
-  - Execution and memory tracing (vm/trace.go) with register filtering
-  - Performance statistics tracking (vm/statistics.go) with JSON/CSV/HTML export
-  - Command-line flags: -trace, -mem-trace, -stats with file and format options
-
 - **Assembler Features:**
   - Full directive support: `.text`, `.data`, `.bss`, `.global`, `.equ`, `.set`
   - Memory allocation: `.word`, `.half`, `.byte`, `.ascii`, `.asciz`, `.space`
@@ -2440,40 +2275,9 @@ POP {R4-R11}          ; Pop R4-R11 from stack
   - Character literals with escape sequences
   - Immediate value support in multiple formats (decimal, hex, binary)
 
-- **Recent Fixes (2025-10-09):**
-  - PC Pipeline Handling: GetRegister() now returns PC+8 when reading R15 to simulate ARM pipeline effect
-  - ROR #0 to RRX Conversion: Fixed encoding where ROR with shift amount 0 means RRX (rotate right extended)
-  - LSR #0 Special Case: Now correctly treated as LSR #32 (shifts all bits out to 0)
-  - ASR #0 Special Case: Now correctly treated as ASR #32 (preserves sign bit across all positions)
-  - RRX Carry Calculation: Fixed carry flag handling for rotate right extended operations
-  - Debugger Run Command: Fixed to preserve program memory using ResetRegisters() instead of Reset()
-
-- **Test Coverage:** 1133 unit and integration tests (100% pass rate) covering:
-  - Debugger tests: 78 tests (including 18 TUI tests with tcell.SimulationScreen)
-  - Parser tests: 74 tests (including 39 character literal tests)
-  - VM/Unit tests: 656 tests (including 12 register trace, 11 flag trace, 18 stack trace, 23 coverage tests)
-  - Tools tests: 73 tests (linter: 25, formatter: 27, xref: 21)
-  - Integration tests: 66 tests (34 example programs + diagnostic modes + register trace)
-  - Config tests: 12 tests
-  - Encoder tests: 174 tests
-
 - **Development Tools:**
   - Assembly Linter (tools/lint.go) - Code analysis with 25 tests
   - Code Formatter (tools/format.go) - Professional formatting with 27 tests
   - Cross-Reference Generator (tools/xref.go) - Symbol analysis with 21 tests
 
-- **Future Extensions:** Long multiply instructions (UMULL, UMLAL, SMULL, SMLAL) and PSR transfer instructions (MRS, MSR) are planned
-
-- **Cycle Accuracy:** Multiply instructions use cycle-accurate timing (2-16 cycles based on multiplier)
-
 - **Memory Alignment:** Word accesses should be 4-byte aligned, halfword 2-byte aligned
-
----
-
-## References
-
-- ARM Architecture Reference Manual (ARMv2)
-- ARM2 Datasheet (Acorn RISC Machine)
-- Implementation files: `/vm/*.go`
-- Test suite: `/tests/unit/vm/*_test.go`
-- Progress tracking: `PROGRESS.md`
