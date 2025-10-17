@@ -27,6 +27,10 @@ jobs:
             arch: amd64
             runner: windows-latest
             binary_name: arm-emulator.exe
+          - os: windows
+            arch: arm64
+            runner: windows-latest
+            binary_name: arm-emulator.exe
 
     steps:
       - uses: actions/checkout@v4
