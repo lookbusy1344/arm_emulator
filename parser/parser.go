@@ -400,8 +400,13 @@ func (p *Parser) handleDirective(d *Directive, program *Program) {
 		}
 		// Record this location as a literal pool position
 		program.LiteralPoolLocs = append(program.LiteralPoolLocs, p.currentAddress)
-		// Note: Actual space reservation happens during encoding when we know
-		// how many literals need to be placed here
+
+		// Reserve space for the literal pool
+		// We reserve a reasonable fixed amount (16 literals = 64 bytes) for each .ltorg
+		// This is a conservative estimate that handles typical usage while not being excessive
+		// The encoder will place actual literals within this space
+		const estimatedLiteralsPerPool = 16
+		p.currentAddress += estimatedLiteralsPerPool * 4
 	}
 }
 

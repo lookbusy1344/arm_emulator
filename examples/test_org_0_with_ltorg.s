@@ -22,10 +22,14 @@ main:
     ; Print newline
     MOV R0, #10
     SWI #0x01           ; WRITE_CHAR
-    
+
+    ; Jump over literal pool
+    B exit_program
+
     ; Place literal pool within 4095 bytes of the loads above
     .ltorg
-    
+
+exit_program:
     ; Exit
     MOV R0, #0
     SWI #0x00           ; EXIT
