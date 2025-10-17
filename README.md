@@ -82,6 +82,8 @@ Go code is currently 41,651 lines. Estimated total vibing time is around 32 hour
 
 All unit and integration tests are passing, and the test system runs all the example programs and confirms their output.
 
+Release automation added, and v0.9.0 tagged. Looks like the builds for Windows and MacOS are working properly.
+
 Perhaps at this point I should actually try it with some assembly I have written myself 😂
 
 ## Documentation
