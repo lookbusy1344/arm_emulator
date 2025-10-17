@@ -878,10 +878,31 @@ Start with `--tui`:
 
 ### Diagnostic Modes
 
-**Code coverage:**
+**Instruction coverage tracking:**
+
+Track which ARM instructions in your assembly program were executed:
+
 ```bash
 ./arm-emulator --coverage program.s
 ```
+
+This shows which instructions ran and which didn't, with execution counts and cycle timing. The output goes to `~/.local/share/arm-emu/logs/coverage.txt` by default.
+
+Example with custom output:
+```bash
+# Text format (default)
+./arm-emulator --coverage --coverage-file report.txt program.s
+
+# JSON format for automation
+./arm-emulator --coverage --coverage-format json --coverage-file report.json program.s
+```
+
+Coverage reports include:
+- Executed vs unexecuted instruction addresses
+- Execution counts per instruction
+- Coverage percentage
+- First and last execution cycle for each instruction
+- Symbol names (function/label names) in the output
 
 **Stack monitoring:**
 ```bash
