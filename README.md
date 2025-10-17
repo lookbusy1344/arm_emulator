@@ -78,9 +78,9 @@ Go code is now 40,352 lines and we have 75% code coverage.
 
 **Day 10 - 17 Oct** - the project is almost finished and ready for detailed review, a substantial task for over 40k lines of code! Today I have mainly focused on docs, checked through the tutorial and making a list of specific fixes and clarifications I’d like Claude to make. Also worked on a solution for the CPSR issue with full 32 bit addresses (this is a small departure from strict ARM2 compatibility since that architecture only used 26 bit addressing, and stored CPU flags in the remaining 8 bits of the PC). This emulator uses full 32 bit addressing, so we need to store the CPSR flags separately. This is only a theoretical issue for most example programs, because there are no hardware interrupts.
 
-Go code is currently 41,550 lines. Estimated total vibing time is around 32 hours, so an average of 1,300 lines of code per hour!
+Go code is currently 41,651 lines. Estimated total vibing time is around 32 hours, so an average of 1,300 lines of code per hour!
 
-All unit and integration tests are passing, and the test system runs the example programs and checks their output.
+All unit and integration tests are passing, and the test system runs all the example programs and confirms their output.
 
 Perhaps at this point I should actually try it with some assembly I have written myself 😂
 
@@ -103,7 +103,7 @@ Perhaps at this point I should actually try it with some assembly I have written
 
 ## Features
 
-- **Complete ARM2 instruction set implementation** with 1185+ passing tests (100% pass rate, 75% code coverage)
+- **Complete ARM2 instruction set implementation** with 959 passing tests (100% pass rate, 75% code coverage)
   - All 16 data processing instructions (AND, EOR, SUB, RSB, ADD, ADC, SBC, RSC, TST, TEQ, CMP, CMN, ORR, MOV, BIC, MVN)
   - All memory operations (LDR/STR/LDRB/STRB/LDM/STM + halfword extensions)
   - All branch instructions (B/BL/BX)
@@ -278,7 +278,7 @@ All diagnostic modes support both text and JSON output formats:
 
 ### Example Programs
 
-The `examples/` directory contains 23 sample ARM assembly programs that demonstrate various features:
+The `examples/` directory contains 43 sample ARM assembly programs that demonstrate various features:
 
 **Basic Examples:**
 - **hello.s** - Hello World program
@@ -302,6 +302,7 @@ The `examples/` directory contains 23 sample ARM assembly programs that demonstr
 - **conditionals.s** - If/else, switch/case patterns
 - **loops.s** - For, while, do-while loops
 - **addressing_modes.s** - ARM2 addressing modes demonstration
+- **add_128bit.s** - 128-bit integer addition with carry propagation
 
 And more! See [examples/README.md](examples/README.md) for detailed descriptions and usage instructions.
 
@@ -338,8 +339,8 @@ go test ./...
 ├── debugger/            # Debugging utilities with TUI
 ├── config/              # Cross-platform configuration
 ├── tools/               # Development tools (lint, format, xref)
-├── tests/               # Test files (1185+ tests, 100% passing, 75% coverage)
-├── examples/            # Example ARM assembly programs (23 programs)
+├── tests/               # Test files (959 tests, 100% passing, 75% coverage)
+├── examples/            # Example ARM assembly programs (43 programs)
 └── docs/                # User and developer documentation
 ```
 

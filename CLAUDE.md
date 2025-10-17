@@ -43,10 +43,10 @@ go test ./...
 - `debugger/` - Debugging utilities with TUI (breakpoints, watchpoints, expression evaluation)
 - `config/` - Cross-platform configuration management
 - `tools/` - Development tools (linter, formatter, cross-reference generator)
-- `tests/` - Test files (1125 tests, 100% pass rate)
+- `tests/` - Test files (959 tests, 100% pass rate)
   - `tests/unit/` - Unit tests for all packages
   - `tests/integration/` - Integration tests for complete programs
-- `examples/` - Example ARM assembly programs (42 programs, all fully functional including 3 interactive)
+- `examples/` - Example ARM assembly programs (43 programs, all fully functional including 3 interactive)
 - `docs/` - User and developer documentation
 
 ## Development Guidelines
@@ -75,7 +75,7 @@ go test ./...
 
 **Phase 11 (Production Hardening) - Complete ✅**
 - All tests passing (100% pass rate)
-  - Unit tests: ~1071 tests (includes 18 TUI tests using tcell.SimulationScreen, 12 register trace tests)
+  - Unit tests: ~895 tests (includes 18 TUI tests using tcell.SimulationScreen, 12 register trace tests)
   - Integration tests: 64 tests (full end-to-end execution pipeline + CLI diagnostic flags + example programs)
 - Code quality tools implemented (golangci-lint with errcheck, unused, govet, ineffassign, misspell)
 - All lint issues resolved (0 issues reported)
@@ -83,8 +83,8 @@ go test ./...
 - CI updated to Go 1.25 with automated linting
 - Build artifacts added to .gitignore
 - Parser limitations resolved (debugger expression parser rewritten)
-- Example programs: 42 programs total, all fully functional (100% success rate) ✅
-  - 32+ programs with expected output files
+- Example programs: 43 programs total, all fully functional (100% success rate) ✅
+  - 33+ programs with expected output files
   - Table-driven test framework for easy test maintenance
   - 39 non-interactive programs fully functional
   - 3 interactive programs work correctly with stdin (bubble_sort.s, calculator.s, fibonacci.s)
@@ -169,17 +169,18 @@ Example symbol-aware output:
 
 ### Example Programs Status
 
-#### All Example Programs Working! (42 total, 100%) ✅
+#### All Example Programs Working! (43 total, 100%) ✅
 
-All 42 example programs execute successfully:
+All 43 example programs execute successfully:
 
-**Non-Interactive Programs (39):**
+**Non-Interactive Programs (40):**
 - hello.s, loops.s, arithmetic.s, conditionals.s, functions.s
 - factorial.s, recursive_fib.s, recursive_factorial.s
 - string operations: strings.s, string_reverse.s (with stdin)
 - data structures: arrays.s, linked_list.s, hash_table.s
 - sorting algorithms: quicksort.s, bubble_sort.s
 - literal pools: test_ltorg.s, test_org_0_with_ltorg.s
+- multi-precision: add_128bit.s (128-bit integer addition with carry propagation)
 - And 27+ more fully functional examples
 
 **Interactive Programs (3):**

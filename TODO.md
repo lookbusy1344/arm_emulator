@@ -10,7 +10,7 @@ This file tracks outstanding work only. Completed items are in `PROGRESS.md`.
 
 **Status:** Project is production-ready with comprehensive test coverage and all critical features implemented.
 
-**Test Status:** 1194+ tests, 100% pass rate, 0 lint issues, 75.0% code coverage
+**Test Status:** 959 tests, 100% pass rate, 0 lint issues, 75.0% code coverage
 
 ---
 
@@ -95,9 +95,5 @@ These are **not** part of ARM2 but could be added for broader compatibility:
 **Effort:** 8-12 hours
 
 - [ ] Create `.github/workflows/release.yml` with matrix builds
-- [ ] linux-amd64, darwin-amd64, darwin-arm64, windows-amd64
+- [ ] linux-amd64, darwin-arm64, windows-amd64
 - [ ] Create release archives and GitHub Release automation
-- [ ] Create `CHANGELOG.md`
-- [ ] Create `CONTRIBUTING.md`
-- [ ] Create `docs/release_checklist.md`
-- [ ] Pre-release verification checklist
