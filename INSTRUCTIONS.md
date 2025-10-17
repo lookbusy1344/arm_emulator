@@ -2163,6 +2163,117 @@ MSR CPSR_f, #0xF0000000  ; Set all flags (N=1, Z=1, C=1, V=1)
 MSR CPSR_f, #0x00000000  ; Clear all flags
 ```
 
+### Saving and Restoring Flags on the Stack
+
+When calling functions that modify flags, you may need to preserve the current flag state. This is done by reading the CPSR, pushing it to the stack, and later popping and restoring it.
+
+**Basic pattern:**
+```arm
+; Save flags to stack
+MRS R0, CPSR        ; Read current flags into R0
+PUSH {R0}           ; Push flags to stack
+
+; ... code that modifies flags ...
+ADDS R1, R2, R3     ; This will change N, Z, C, V flags
+
+; Restore flags from stack
+POP {R0}            ; Pop saved flags from stack
+MSR CPSR_f, R0      ; Restore flags
+```
+
+**Function call with flag preservation:**
+```arm
+calculate:
+    ; Function that needs to preserve caller's flags
+    MRS R12, CPSR        ; Save flags in R12 (IP register)
+    PUSH {R12, LR}       ; Save flags and return address
+
+    ; Function body - modifies flags freely
+    CMP R0, #0
+    BEQ zero_case
+    ADDS R0, R0, R1
+    MULS R0, R0, R2
+
+zero_case:
+    ; Restore flags before returning
+    POP {R12, LR}        ; Restore saved flags and return address
+    MSR CPSR_f, R12      ; Restore caller's flags
+    MOV PC, LR           ; Return
+```
+
+**Nested function calls:**
+```arm
+outer_function:
+    ; Save flags and registers
+    MRS R12, CPSR
+    PUSH {R4-R6, R12, LR}
+
+    ; Do some work
+    MOV R4, R0
+    ADDS R5, R1, R2
+
+    ; Call inner function (which preserves flags)
+    MOV R0, R4
+    BL inner_function
+
+    ; Continue with preserved flags from before BL
+    ; (inner_function preserved them)
+    ADDS R6, R5, R0
+
+    ; Restore and return
+    POP {R4-R6, R12, LR}
+    MSR CPSR_f, R12
+    MOV PC, LR
+
+inner_function:
+    ; This function also preserves caller's flags
+    MRS R12, CPSR
+    PUSH {R12, LR}
+
+    ; Function body
+    CMP R0, #10
+    MOVGT R0, #10
+
+    ; Restore and return
+    POP {R12, LR}
+    MSR CPSR_f, R12
+    MOV PC, LR
+```
+
+**Critical section example:**
+```arm
+critical_operation:
+    ; Disable interrupts and save flags
+    MRS R12, CPSR        ; Save current CPSR
+    PUSH {R12}           ; Save to stack
+
+    ; Set flags to disable interrupts (if interrupt bits were in flags)
+    MSR CPSR_f, #0xC0000000  ; Set N and Z flags (example)
+
+    ; Critical code here
+    LDR R0, =shared_data
+    LDR R1, [R0]
+    ADD R1, R1, #1
+    STR R1, [R0]
+
+    ; Restore original flags (and interrupt state)
+    POP {R12}
+    MSR CPSR_f, R12
+    MOV PC, LR
+```
+
+**Why preserve flags?**
+- Calling conventions may require preserving condition codes
+- Interrupts or function calls in the middle of conditional logic
+- Multi-step operations where intermediate flag states matter
+- Implementing reentrant or interrupt-safe code
+
+**Important notes:**
+- Only the flag bits (N, Z, C, V) in bits 31-28 are typically preserved
+- `MSR CPSR_f` writes only the flag field (bits 31-24), leaving other CPSR bits unchanged
+- Use R12 (IP) as a temporary register for flags since it's caller-saved
+- The stack pattern (PUSH/POP) ensures proper nesting of flag preservation
+
 ---
 
 ## Pseudo-Instructions
