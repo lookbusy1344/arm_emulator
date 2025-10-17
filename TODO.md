@@ -18,6 +18,72 @@ This file tracks outstanding work only. Completed items are in `PROGRESS.md`.
 
 ## High Priority Tasks
 
+### Implement S bit (^) Flag Preservation in LDM/STM Instructions
+**Priority:** HIGH
+**Effort:** 4-6 hours
+**Status:** Not started
+
+**Problem:** Currently the S bit in LDM/STM instructions is ignored (vm/memory_multi.go:135-138). This breaks proper exception handling and context switching where processor flags need to be saved/restored along with PC.
+
+**Current Behavior:**
+- `STMFD SP!, {R0-R12, LR, PC}` - Stores PC value only (no flags)
+- `LDMFD SP!, {R0-R12, LR, PC}^` - Loads PC only (doesn't restore flags)
+- The S bit (PSR flag, bit 22) is explicitly ignored with `_ = psr`
+
+**Solution (Option 3: ARM6-style S bit):**
+Implement modern ARM convention while keeping 32-bit PC + separate CPSR architecture:
+
+1. **Add SPSR (Saved Program Status Register) to CPU struct**
+   - Location: vm/cpu.go
+   - Add `SPSR CPSR` field to store saved processor status
+   - Initialize in NewCPU() and Reset()
+
+2. **Update LDM instruction (vm/memory_multi.go:77-93)**
+   - When loading PC with S bit set (`LDMFD SP!, {..., PC}^`):
+     - Load PC normally (current behavior)
+     - Restore CPSR from SPSR (simulate exception return)
+     - This enables proper exception handler returns
+
+3. **Update STM instruction (vm/memory_multi.go:94-112)**
+   - Current behavior is acceptable (stores PC+12)
+   - Optional: When storing PC with S bit, could pack flags into high bits
+   - For ARM6 compatibility, current behavior works
+
+4. **Add helper methods (vm/cpu.go)**
+   - `SaveCPSR()` - Copy CPSR to SPSR
+   - `RestoreCPSR()` - Copy SPSR to CPSR
+   - Document ARM6-style exception handling semantics
+
+5. **Create comprehensive tests (tests/unit/vm/ldm_stm_flags_test.go)**
+   - Test LDM with S bit restores CPSR from SPSR
+   - Test LDM without S bit doesn't affect CPSR
+   - Test all flag combinations (N, Z, C, V)
+   - Test with various register lists
+   - Integration test: simulate exception handler that preserves flags
+
+**Benefits:**
+- ✅ Enables proper exception handling (foundation for IRQ/FIQ support)
+- ✅ Context switching works correctly
+- ✅ Matches ARM6+ behavior (industry standard)
+- ✅ No breaking changes (none of the 34 example programs use `^` suffix currently)
+- ✅ Minimal implementation (~50-100 lines in vm/memory_multi.go + tests)
+
+**Files to Modify:**
+- `vm/cpu.go` - Add SPSR field and helper methods
+- `vm/memory_multi.go` - Implement S bit handling in ExecuteLoadStoreMultiple
+- `tests/unit/vm/ldm_stm_flags_test.go` - NEW FILE for comprehensive tests
+
+**Documentation Updates:**
+- `INSTRUCTIONS.md` - Document LDM/STM S bit behavior
+- `docs/architecture.md` - Document SPSR and exception handling semantics
+
+**References:**
+- ARM Architecture Reference Manual (ARM6 behavior)
+- Current code: vm/memory_multi.go:135-138 (S bit ignored)
+- Test examples: tests/unit/vm/memory_test.go:1428 (TestLDM_IncludingPC_Return)
+
+---
+
 ### ✅ ~~Planned ARM2 Instruction Extensions~~ - COMPLETED (2025-10-16)
 **Actual Effort:** ~6 hours total
 
