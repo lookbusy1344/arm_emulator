@@ -137,6 +137,24 @@ func TestExamplePrograms(t *testing.T) {
 			programFile:    "nop_test.s",
 			expectedOutput: "nop_test.txt",
 		},
+		{
+			name:           "CelsiusToFahrenheit_0",
+			programFile:    "celsius_to_fahrenheit.s",
+			expectedOutput: "celsius_to_fahrenheit_0.txt",
+			stdin:          "0\n",
+		},
+		{
+			name:           "CelsiusToFahrenheit_25",
+			programFile:    "celsius_to_fahrenheit.s",
+			expectedOutput: "celsius_to_fahrenheit_25.txt",
+			stdin:          "25\n",
+		},
+		{
+			name:           "CelsiusToFahrenheit_100",
+			programFile:    "celsius_to_fahrenheit.s",
+			expectedOutput: "celsius_to_fahrenheit_100.txt",
+			stdin:          "100\n",
+		},
 	}
 
 	for _, tt := range tests {
