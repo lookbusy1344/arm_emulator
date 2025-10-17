@@ -542,38 +542,177 @@ Write a program that converts Celsius to Fahrenheit using: F = (C * 9 / 5) + 32
 
 ARM2 uses a **load-store architecture**: only LDR/STR instructions access memory.
 
-### Loading from Memory
+### ARM2 Addressing Modes Summary
+
+ARM2 supports several addressing modes for memory access. The table below shows all supported modes:
+
+| Mode | Syntax | Description | Base Update | Example |
+|------|--------|-------------|-------------|---------|
+| **Register Indirect** | `[Rn]` | Address is in register | No | `LDR R0, [R1]` |
+| **Pre-indexed Immediate** | `[Rn, #offset]` | Base + immediate offset | No | `LDR R0, [R1, #4]` |
+| **Pre-indexed Register** | `[Rn, Rm]` | Base + register offset | No | `LDR R0, [R1, R2]` |
+| **Pre-indexed Scaled** | `[Rn, Rm, shift]` | Base + shifted register | No | `LDR R0, [R1, R2, LSL #2]` |
+| **Pre-indexed with Writeback** | `[Rn, #offset]!` | Base + offset, update base | Yes | `LDR R0, [R1, #4]!` |
+| **Pre-indexed Register Writeback** | `[Rn, Rm]!` | Base + register, update base | Yes | `LDR R0, [R1, R2]!` |
+| **Pre-indexed Scaled Writeback** | `[Rn, Rm, shift]!` | Base + shifted reg, update base | Yes | `LDR R0, [R1, R2, LSL #2]!` |
+| **Post-indexed Immediate** | `[Rn], #offset` | Use base, then add offset | Yes | `LDR R0, [R1], #4` |
+| **Post-indexed Register** | `[Rn], Rm` | Use base, then add register | Yes | `LDR R0, [R1], R2` |
+| **Post-indexed Scaled** | `[Rn], Rm, shift` | Use base, then add shifted reg | Yes | `LDR R0, [R1], R2, LSL #2` |
+
+**Key Points:**
+- **Pre-indexed**: Offset applied before memory access
+- **Post-indexed**: Offset applied after memory access
+- **Writeback (`!`)**: Updates the base register with the calculated address
+- **Scaled**: Register offset can be shifted (LSL, LSR, ASR, ROR)
+- **Offset range**: -4095 to +4095 for immediate offsets
+
+### Basic Addressing Modes
+
+#### Register Indirect
+
+The simplest form - address is in a register:
 
 ```asm
         LDR     R0, [R1]        ; R0 = memory[R1]
-        LDR     R0, [R1, #4]    ; R0 = memory[R1 + 4]
-        LDR     R0, [R1, R2]    ; R0 = memory[R1 + R2]
-```
-
-### Storing to Memory
-
-```asm
         STR     R0, [R1]        ; memory[R1] = R0
-        STR     R0, [R1, #8]    ; memory[R1 + 8] = R0
 ```
 
-### Byte Access
+#### Pre-indexed with Immediate Offset
+
+Access memory at base + offset, base register unchanged:
 
 ```asm
-        LDRB    R0, [R1]        ; Load byte (zero-extended)
-        STRB    R0, [R1]        ; Store byte (lower 8 bits)
+        LDR     R0, [R1, #4]    ; R0 = memory[R1 + 4], R1 unchanged
+        LDR     R0, [R1, #-8]   ; R0 = memory[R1 - 8], R1 unchanged
+        STR     R0, [R1, #12]   ; memory[R1 + 12] = R0, R1 unchanged
 ```
 
-### Pre/Post-Indexed Addressing
+**Use cases:**
+- Accessing struct fields: `LDR R0, [R1, #8]` gets field at offset 8
+- Fixed offsets from base pointer
 
-**Pre-indexed** (update before access):
+#### Pre-indexed with Register Offset
+
+Access memory at base + register:
+
 ```asm
-        LDR     R0, [R1, #4]!   ; R1 += 4; R0 = memory[R1]
+        LDR     R0, [R1, R2]    ; R0 = memory[R1 + R2]
+        STR     R0, [R1, R2]    ; memory[R1 + R2] = R0
 ```
 
-**Post-indexed** (update after access):
+**Use cases:**
+- Variable offsets
+- Simple array indexing
+
+#### Pre-indexed with Scaled Register (Array Indexing)
+
+The most powerful mode - shifts the register offset before adding:
+
 ```asm
-        LDR     R0, [R1], #4    ; R0 = memory[R1]; R1 += 4
+        ; Word array access (multiply index by 4)
+        LDR     R0, [R1, R2, LSL #2]    ; R0 = memory[R1 + (R2 << 2)]
+
+        ; Halfword array access (multiply index by 2)
+        LDRH    R0, [R1, R2, LSL #1]    ; R0 = memory[R1 + (R2 << 1)]
+
+        ; Byte array access (no shift needed)
+        LDRB    R0, [R1, R2]            ; R0 = memory[R1 + R2]
+```
+
+**Available shifts:** LSL, LSR, ASR, ROR
+
+**Use cases:**
+- Efficient array indexing without separate multiply
+- Accessing arrays of different element sizes
+
+**Example - accessing word array:**
+```asm
+        LDR     R0, =array      ; R0 = array base address
+        MOV     R1, #5          ; R1 = index 5
+        LDR     R2, [R0, R1, LSL #2]  ; R2 = array[5]
+        ; Equivalent to: R2 = memory[R0 + (R1 * 4)]
+```
+
+### Writeback Addressing (`!`)
+
+The `!` suffix updates the base register with the effective address.
+
+#### Pre-indexed with Writeback
+
+Calculate address, access memory, then update base:
+
+```asm
+        LDR     R0, [R1, #4]!   ; R1 = R1 + 4, then R0 = memory[R1]
+        LDR     R0, [R1, #-4]!  ; R1 = R1 - 4, then R0 = memory[R1]
+        LDR     R0, [R1, R2]!   ; R1 = R1 + R2, then R0 = memory[R1]
+        LDR     R0, [R1, R2, LSL #2]!  ; R1 = R1 + (R2<<2), then R0 = memory[R1]
+```
+
+**Use cases:**
+- Moving through memory with pointer update
+- Pre-decrement for stack operations
+
+**Example - walking through array:**
+```asm
+        LDR     R0, =array
+        LDR     R1, [R0, #4]!   ; Get array[1], R0 now points to array[1]
+        LDR     R2, [R0, #4]!   ; Get array[2], R0 now points to array[2]
+```
+
+### Post-indexed Addressing
+
+Access memory first, then update base register.
+
+#### Post-indexed with Immediate
+
+```asm
+        LDR     R0, [R1], #4    ; R0 = memory[R1], then R1 = R1 + 4
+        LDR     R0, [R1], #-4   ; R0 = memory[R1], then R1 = R1 - 4
+        STR     R0, [R1], #4    ; memory[R1] = R0, then R1 = R1 + 4
+```
+
+**Use cases:**
+- Iterating through arrays
+- Sequential memory access
+- Stack pop operations
+
+**Example - array iteration:**
+```asm
+        LDR     R0, =array
+        LDR     R1, [R0], #4    ; R1 = array[0], R0 += 4
+        LDR     R2, [R0], #4    ; R2 = array[1], R0 += 4
+        LDR     R3, [R0], #4    ; R3 = array[2], R0 += 4
+```
+
+#### Post-indexed with Register
+
+```asm
+        LDR     R0, [R1], R2    ; R0 = memory[R1], then R1 = R1 + R2
+        STR     R0, [R1], R2    ; memory[R1] = R0, then R1 = R1 + R2
+```
+
+#### Post-indexed with Scaled Register
+
+```asm
+        LDR     R0, [R1], R2, LSL #2    ; R0 = memory[R1], then R1 = R1 + (R2 << 2)
+```
+
+### Byte and Halfword Access
+
+The same addressing modes work with byte and halfword instructions:
+
+```asm
+        ; Byte access (8-bit, zero-extended on load)
+        LDRB    R0, [R1]        ; Load byte from [R1]
+        LDRB    R0, [R1, #5]    ; Load byte from [R1 + 5]
+        LDRB    R0, [R1], #1    ; Load byte, increment pointer
+        STRB    R0, [R1]        ; Store lower 8 bits
+
+        ; Halfword access (16-bit, zero-extended on load)
+        LDRH    R0, [R1]        ; Load halfword from [R1]
+        LDRH    R0, [R1, #2]    ; Load halfword from [R1 + 2]
+        LDRH    R0, [R1, R2, LSL #1]  ; Array of halfwords
+        STRH    R0, [R1], #2    ; Store halfword, increment by 2
 ```
 
 ### Example: Array Sum

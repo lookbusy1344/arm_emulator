@@ -1727,90 +1727,269 @@ MOVGT R5, #1          ; Move if greater than
 
 ## Addressing Modes
 
+ARM2 provides flexible addressing modes for both data processing instructions and memory access instructions.
+
 ### Data Processing Operand2 ✅
+
+Data processing instructions (ADD, SUB, MOV, etc.) use the **Operand2** field, which can be:
 
 1. **Immediate Value with Rotation**
    ```arm
    MOV R0, #255          ; R0 = 255
    ADD R1, R2, #0x100    ; R1 = R2 + 256
    ```
+   - 8-bit immediate value rotated right by an even number of positions (0-30)
+   - Allows encoding of many common constants efficiently
+   - If value cannot be encoded, assembler will error or use literal pool
 
 2. **Register**
    ```arm
    ADD R0, R1, R2        ; R0 = R1 + R2
+   MOV R0, R1            ; R0 = R1
    ```
+   - Simple register value, no shift applied
 
 3. **Register with Logical Shift Left (LSL)**
    ```arm
    ADD R0, R1, R2, LSL #2    ; R0 = R1 + (R2 << 2)
+   MOV R0, R1, LSL #4        ; R0 = R1 << 4
    ```
+   - Shift amount: 0-31
+   - LSL #0 means no shift
+   - Commonly used for multiplication by powers of 2
 
 4. **Register with Logical Shift Right (LSR)**
    ```arm
    SUB R0, R1, R2, LSR #4    ; R0 = R1 - (R2 >> 4)
+   MOV R0, R1, LSR #8        ; R0 = R1 >> 8 (unsigned)
    ```
+   - Shift amount: 1-32
+   - LSR #32 means all bits shifted out (result = 0)
+   - In encoding, LSR #0 is interpreted as LSR #32
 
 5. **Register with Arithmetic Shift Right (ASR)**
    ```arm
    MOV R0, R1, ASR #8        ; R0 = R1 >> 8 (signed)
+   SUB R0, R1, R2, ASR #2    ; R0 = R1 - (R2 >> 2, signed)
    ```
+   - Shift amount: 1-32
+   - Preserves sign bit (bit 31)
+   - ASR #32 means sign-extend across all bits
+   - In encoding, ASR #0 is interpreted as ASR #32
 
 6. **Register with Rotate Right (ROR)**
    ```arm
    ORR R0, R1, R2, ROR #16   ; R0 = R1 | rotate_right(R2, 16)
+   MOV R0, R1, ROR #8        ; R0 = R1 rotated right 8 bits
    ```
+   - Rotate amount: 1-31
+   - Bits rotate from LSB to MSB
+   - In encoding, ROR #0 means RRX (rotate right extended)
 
 7. **Register with Rotate Right Extended (RRX)**
    ```arm
    MOV R0, R1, RRX           ; R0 = rotate_right_with_carry(R1)
+   ADD R0, R1, R2, RRX       ; R0 = R1 + rotate_right_extended(R2)
    ```
+   - Encoded as ROR #0 in machine code
+   - 33-bit rotate through carry flag
+   - Bit 0 → carry, carry → bit 31
+   - Useful for multi-precision shifts
 
 8. **Register-specified Shift**
    ```arm
    MOV R0, R1, LSL R2        ; R0 = R1 << R2
    ADD R3, R4, R5, LSR R6    ; R3 = R4 + (R5 >> R6)
+   SUB R0, R1, R2, ASR R3    ; R0 = R1 - (R2 >> R3, signed)
    ```
+   - Shift amount taken from bottom 8 bits of register
+   - If shift amount is 0, no shift performed
+   - If shift amount >= 32, behavior depends on shift type
 
 ### Memory Addressing Modes ✅
 
+Memory access instructions (LDR, STR, LDRB, STRB, LDRH, STRH) support these addressing modes:
+
+#### Addressing Mode Summary Table
+
+| Mode | Syntax | Address Calculation | Base Register Update | Example |
+|------|--------|---------------------|---------------------|---------|
+| Register Indirect | `[Rn]` | address = Rn | No | `LDR R0, [R1]` |
+| Pre-indexed Immediate | `[Rn, #±offset]` | address = Rn ± offset | No | `LDR R0, [R1, #4]` |
+| Pre-indexed Register | `[Rn, ±Rm]` | address = Rn ± Rm | No | `LDR R0, [R1, R2]` |
+| Pre-indexed Scaled | `[Rn, ±Rm, shift]` | address = Rn ± (Rm shift amount) | No | `LDR R0, [R1, R2, LSL #2]` |
+| Pre-indexed Immediate Writeback | `[Rn, #±offset]!` | address = Rn ± offset | Rn = Rn ± offset | `LDR R0, [R1, #4]!` |
+| Pre-indexed Register Writeback | `[Rn, ±Rm]!` | address = Rn ± Rm | Rn = Rn ± Rm | `LDR R0, [R1, R2]!` |
+| Pre-indexed Scaled Writeback | `[Rn, ±Rm, shift]!` | address = Rn ± (Rm shift amount) | Rn = address | `LDR R0, [R1, R2, LSL #2]!` |
+| Post-indexed Immediate | `[Rn], #±offset` | address = Rn | Rn = Rn ± offset | `LDR R0, [R1], #4` |
+| Post-indexed Register | `[Rn], ±Rm` | address = Rn | Rn = Rn ± Rm | `LDR R0, [R1], R2` |
+| Post-indexed Scaled | `[Rn], ±Rm, shift` | address = Rn | Rn = Rn ± (Rm shift amount) | `LDR R0, [R1], R2, LSL #2` |
+
+#### Detailed Mode Descriptions
+
 1. **Register Indirect**
    ```arm
-   LDR R0, [R1]              ; R0 = [R1]
+   LDR R0, [R1]              ; R0 = memory[R1]
+   STR R0, [R1]              ; memory[R1] = R0
    ```
+   - Simplest mode: address is in base register
+   - Base register unchanged
 
 2. **Pre-indexed with Immediate Offset**
    ```arm
-   LDR R0, [R1, #4]          ; R0 = [R1 + 4]
-   STR R2, [R3, #-8]         ; [R3 - 8] = R2
+   LDR R0, [R1, #4]          ; R0 = memory[R1 + 4], R1 unchanged
+   LDR R0, [R1, #-8]         ; R0 = memory[R1 - 8], R1 unchanged
+   STR R2, [R3, #12]         ; memory[R3 + 12] = R2, R3 unchanged
    ```
+   - Offset range: -4095 to +4095
+   - Address = base + offset
+   - Base register unchanged
+   - **Use case:** Accessing struct fields at fixed offsets
 
 3. **Pre-indexed with Register Offset**
    ```arm
-   LDR R0, [R1, R2]          ; R0 = [R1 + R2]
+   LDR R0, [R1, R2]          ; R0 = memory[R1 + R2], R1 unchanged
+   LDR R0, [R1, -R2]         ; R0 = memory[R1 - R2], R1 unchanged
+   STR R0, [R1, R2]          ; memory[R1 + R2] = R0, R1 unchanged
    ```
+   - Address = base ± register
+   - Base register unchanged
+   - **Use case:** Variable offset access
 
 4. **Pre-indexed with Scaled Register Offset**
    ```arm
-   LDR R0, [R1, R2, LSL #2]  ; R0 = [R1 + (R2 << 2)]
-   STR R3, [R4, R5, LSL #2]  ; [R4 + (R5 << 2)] = R3
-   LDR R6, [R7, R8, LSR #1]  ; R6 = [R7 + (R8 >> 1)]
+   LDR R0, [R1, R2, LSL #2]  ; R0 = memory[R1 + (R2 << 2)], R1 unchanged
+   STR R3, [R4, R5, LSL #2]  ; memory[R4 + (R5 << 2)] = R3, R4 unchanged
+   LDR R6, [R7, R8, LSR #1]  ; R6 = memory[R7 + (R8 >> 1)], R7 unchanged
+   LDRH R0, [R1, R2, LSL #1] ; Load halfword from array[R2]
    ```
-   **Note:** This is commonly used for array indexing, e.g., `LDR R0, [R1, R2, LSL #2]` accesses `array[R2]` when R1 points to a word array.
+   - Address = base ± (register shifted by amount)
+   - Available shifts: LSL, LSR, ASR, ROR
+   - Shift amount: 0-31
+   - Base register unchanged
+   - **Use case:** Efficient array indexing without separate multiply
+   - **Note:** `LDR R0, [R1, R2, LSL #2]` accesses word array[R2] when R1 points to array base
 
-5. **Pre-indexed with Writeback**
+5. **Pre-indexed with Immediate Writeback** (the `!` addressing)
    ```arm
-   LDR R0, [R1, #4]!         ; R0 = [R1 + 4], R1 = R1 + 4
+   LDR R0, [R1, #4]!         ; R1 = R1 + 4, then R0 = memory[R1]
+   LDR R0, [R1, #-4]!        ; R1 = R1 - 4, then R0 = memory[R1]
+   STR R0, [R1, #8]!         ; R1 = R1 + 8, then memory[R1] = R0
    ```
+   - Address = base + offset
+   - **Base register updated** to effective address
+   - **Use case:** Pre-increment/decrement pointer
+   - **Important:** The `!` suffix is what triggers the writeback
 
-6. **Post-indexed with Immediate**
+6. **Pre-indexed Register Writeback** (the `!` addressing with register)
    ```arm
-   LDR R0, [R1], #4          ; R0 = [R1], then R1 = R1 + 4
+   LDR R0, [R1, R2]!         ; R1 = R1 + R2, then R0 = memory[R1]
+   LDR R0, [R1, -R2]!        ; R1 = R1 - R2, then R0 = memory[R1]
    ```
+   - Address = base ± register
+   - **Base register updated** to effective address
+   - **Use case:** Variable increment pointer update
 
-7. **Post-indexed with Register**
+7. **Pre-indexed Scaled Writeback** (the `!` addressing with scaled register)
    ```arm
-   STR R0, [R1], R2          ; [R1] = R0, then R1 = R1 + R2
+   LDR R0, [R1, R2, LSL #2]! ; R1 = R1 + (R2 << 2), then R0 = memory[R1]
+   STR R0, [R1, R2, LSL #1]! ; R1 = R1 + (R2 << 1), then memory[R1] = R0
    ```
+   - Address = base ± (register shifted by amount)
+   - **Base register updated** to effective address
+   - **Use case:** Stepping through arrays with element size scaling
+
+8. **Post-indexed with Immediate**
+   ```arm
+   LDR R0, [R1], #4          ; R0 = memory[R1], then R1 = R1 + 4
+   LDR R0, [R1], #-4         ; R0 = memory[R1], then R1 = R1 - 4
+   STR R0, [R1], #8          ; memory[R1] = R0, then R1 = R1 + 8
+   ```
+   - Address = base (current value)
+   - **Base register updated** after access: base = base + offset
+   - **Use case:** Iterate through array, pointer moves after each access
+   - **Common pattern:** Sequential memory access in loops
+
+9. **Post-indexed with Register**
+   ```arm
+   LDR R0, [R1], R2          ; R0 = memory[R1], then R1 = R1 + R2
+   STR R0, [R1], R2          ; memory[R1] = R0, then R1 = R1 + R2
+   LDR R0, [R1], -R2         ; R0 = memory[R1], then R1 = R1 - R2
+   ```
+   - Address = base (current value)
+   - **Base register updated** after access: base = base ± register
+   - **Use case:** Variable increment iteration
+
+10. **Post-indexed with Scaled Register**
+    ```arm
+    LDR R0, [R1], R2, LSL #2  ; R0 = memory[R1], then R1 = R1 + (R2 << 2)
+    STR R0, [R1], R2, LSL #1  ; memory[R1] = R0, then R1 = R1 + (R2 << 1)
+    ```
+    - Address = base (current value)
+    - **Base register updated** after access: base = base ± (register shifted)
+    - **Use case:** Complex iteration patterns
+
+#### Understanding Writeback (`!`)
+
+The **writeback** feature updates the base register with the effective address:
+
+**Pre-indexed writeback:**
+```arm
+LDR R0, [R1, #4]!    ; Equivalent to: R1 = R1 + 4; R0 = memory[R1]
+```
+
+**Post-indexed (implicit writeback):**
+```arm
+LDR R0, [R1], #4     ; Equivalent to: R0 = memory[R1]; R1 = R1 + 4
+```
+
+**Key difference:**
+- **Pre-indexed with `!`**: Update base, *then* use updated address
+- **Post-indexed**: Use current base, *then* update base
+
+**Common use cases:**
+- **Stack operations:** `STR R0, [SP, #-4]!` (pre-decrement)
+- **Array iteration:** `LDR R0, [R1], #4` (post-increment)
+- **Linked list traversal:** `LDR R0, [R1]!` (follow pointer)
+
+#### Addressing Mode Examples
+
+**Struct field access:**
+```arm
+; struct { int x; int y; int z; } point;
+; R0 = &point
+LDR R1, [R0, #0]     ; R1 = point.x
+LDR R2, [R0, #4]     ; R2 = point.y
+LDR R3, [R0, #8]     ; R3 = point.z
+```
+
+**Array access:**
+```arm
+; int array[10];
+; R0 = &array[0], R1 = index
+LDR R2, [R0, R1, LSL #2]   ; R2 = array[index]
+```
+
+**Iteration with post-increment:**
+```arm
+; Copy 10 words from src to dst
+; R0 = src, R1 = dst, R2 = count
+loop:
+    LDR R3, [R0], #4       ; Load and increment src
+    STR R3, [R1], #4       ; Store and increment dst
+    SUBS R2, R2, #1
+    BNE loop
+```
+
+**Stack push (pre-decrement):**
+```arm
+STR R0, [SP, #-4]!     ; Push R0: SP = SP - 4, memory[SP] = R0
+```
+
+**Stack pop (post-increment):**
+```arm
+LDR R0, [SP], #4       ; Pop R0: R0 = memory[SP], SP = SP + 4
+```
 
 ---
 
