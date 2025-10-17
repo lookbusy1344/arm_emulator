@@ -197,10 +197,133 @@ ARM2 has 16 registers, each 32 bits wide:
 
 **CPSR (Current Program Status Register)**
 - Contains condition flags and processor status
-- **N**: Negative (bit 31)
-- **Z**: Zero (bit 30)
-- **C**: Carry (bit 29)
-- **V**: Overflow (bit 28)
+- **N**: Negative (bit 31) - Result has bit 31 set (negative in signed operations)
+- **Z**: Zero (bit 30) - Result is zero
+- **C**: Carry (bit 29) - Carry out (addition) or NO borrow (subtraction)
+- **V**: Overflow (bit 28) - Signed overflow occurred
+
+### Understanding Processor Flags
+
+The CPSR flags are automatically set by arithmetic and logical operations when you use the `S` suffix (e.g., `ADDS`, `SUBS`). Comparison instructions (`CMP`, `TST`) always set flags.
+
+#### The N Flag (Negative)
+- **SET (1)**: Result is negative (bit 31 = 1)
+- **CLEAR (0)**: Result is positive or zero (bit 31 = 0)
+- **Use with**: Signed comparisons (MI, PL conditions)
+
+```asm
+SUBS R0, R1, R2     ; If result negative, N=1
+BMI  negative_case  ; Branch if minus (N=1)
+BPL  positive_case  ; Branch if plus (N=0)
+```
+
+#### The Z Flag (Zero)
+- **SET (1)**: Result is exactly zero
+- **CLEAR (0)**: Result is non-zero
+- **Use with**: Equality tests (EQ, NE conditions)
+
+```asm
+CMP  R0, R1         ; Compare R0 with R1
+BEQ  equal          ; Branch if equal (Z=1)
+BNE  not_equal      ; Branch if not equal (Z=0)
+```
+
+#### The C Flag (Carry)
+This flag behaves differently for addition vs subtraction:
+
+**For Addition:**
+- **SET (1)**: Carry occurred (unsigned overflow)
+- **CLEAR (0)**: No carry
+
+```asm
+ADDS R0, R1, R2     ; Add with flags
+BCS  overflow       ; Branch if carry set
+```
+
+**For Subtraction (Important!):**
+- **SET (1)**: NO borrow occurred (result >= 0)
+- **CLEAR (0)**: Borrow occurred (result < 0)
+
+```asm
+; This is counterintuitive but important!
+SUBS R0, R1, R2     ; If R1 >= R2, C=1 (no borrow needed)
+                    ; If R1 < R2,  C=0 (borrow needed)
+
+CMP  R0, #10        ; Compare R0 with 10
+BHS  greater_equal  ; Branch if higher or same (C=1)
+BLO  lower          ; Branch if lower (C=0)
+```
+
+**Use with**: Unsigned comparisons (HI, LO, HS, LS), multi-precision arithmetic (ADC, SBC)
+
+#### The V Flag (Overflow)
+- **SET (1)**: Signed overflow occurred (result out of range for two's complement)
+- **CLEAR (0)**: No signed overflow
+- **Use with**: Signed overflow detection (VS, VC conditions)
+
+**Overflow examples:**
+```asm
+; Positive + Positive = Negative (overflow!)
+MOV  R0, #0x7FFFFFFF    ; Max positive int
+ADDS R0, R0, #1         ; Add 1
+                        ; Result: 0x80000000 (negative!)
+                        ; V=1 (overflow occurred)
+
+; Negative - Positive = Positive (overflow!)
+MOV  R0, #0x80000000    ; Min negative int
+SUBS R0, R0, #1         ; Subtract 1
+                        ; Result: 0x7FFFFFFF (positive!)
+                        ; V=1 (overflow occurred)
+```
+
+#### When Flags Are Updated
+
+**With S suffix** (explicit flag update):
+```asm
+ADDS R0, R1, R2     ; Add and update N, Z, C, V
+SUBS R0, R1, R2     ; Subtract and update N, Z, C, V
+ANDS R0, R1, R2     ; AND and update N, Z, C (V unchanged)
+MOVS R0, R1         ; Move and update N, Z, C (V unchanged)
+```
+
+**Without S suffix** (no flag update):
+```asm
+ADD  R0, R1, R2     ; Add but don't update flags
+SUB  R0, R1, R2     ; Subtract but don't update flags
+```
+
+**Always update flags** (no S needed):
+```asm
+CMP  R0, R1         ; Compare (like SUBS, but discard result)
+CMN  R0, R1         ; Compare negative (like ADDS)
+TST  R0, R1         ; Test bits (like ANDS)
+TEQ  R0, R1         ; Test equal (like EORS)
+```
+
+#### Practical Flag Usage
+
+**Loop termination:**
+```asm
+        MOV  R0, #10    ; Counter
+loop:
+        SUBS R0, R0, #1 ; Decrement and set flags
+        BNE  loop       ; Continue if not zero (Z=0)
+```
+
+**Range checking:**
+```asm
+        CMP  R0, #0     ; Check if R0 < 0
+        BMI  error      ; Branch if negative
+        CMP  R0, #100   ; Check if R0 >= 100
+        BHS  error      ; Branch if higher or same
+```
+
+**Multi-precision arithmetic:**
+```asm
+        ; 64-bit addition: R1:R0 = R1:R0 + R3:R2
+        ADDS R0, R0, R2 ; Add low words, set carry
+        ADC  R1, R1, R3 ; Add high words + carry
+```
 
 ### Using Registers
 

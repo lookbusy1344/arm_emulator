@@ -1885,20 +1885,233 @@ All shift operations are available in data processing instructions. ✅
 
 The Current Program Status Register (CPSR) contains condition flags. ✅
 
-| Flag | Name | Description |
-|------|------|-------------|
-| N | Negative | Set when result is negative (bit 31 = 1) |
-| Z | Zero | Set when result is zero |
-| C | Carry | Set on unsigned overflow (addition) or no borrow (subtraction) |
-| V | Overflow | Set on signed overflow |
+### Flag Overview
 
-**Flag Update Rules:**
-- Arithmetic operations (ADD, ADC, SUB, SBC, RSB, RSC): Update N, Z, C, V
-- Logical operations (AND, ORR, EOR, BIC, MOV, MVN): Update N, Z, C (V unaffected)
-- Comparison operations (CMP, CMN, TST, TEQ): Always update flags
-- Multiply operations (MUL, MLA): Update N, Z only (C meaningless, V unaffected)
-- S suffix required for most instructions to update flags
-- Comparison instructions always update flags regardless of S bit
+| Flag | Bit | Name | Description |
+|------|-----|------|-------------|
+| N | 31 | Negative | Set when result is negative (bit 31 = 1) |
+| Z | 30 | Zero | Set when result is zero |
+| C | 29 | Carry | Set on unsigned overflow (addition) or no borrow (subtraction) |
+| V | 28 | Overflow | Set on signed overflow |
+
+### Detailed Flag Descriptions
+
+#### N Flag (Negative)
+**When SET (N=1):**
+- The result has bit 31 set (sign bit = 1)
+- For signed operations, the result is negative
+- Example: After `SUBS R0, R0, R1` where R0 < R1, N=1
+
+**When CLEAR (N=0):**
+- The result has bit 31 clear (sign bit = 0)
+- For signed operations, the result is positive or zero
+- Example: After `ADDS R0, R1, R2` with positive result, N=0
+
+**Usage:**
+- Use with signed comparisons (LT, GE, GT, LE)
+- Test with MI (minus/negative) and PL (plus/positive) conditions
+
+#### Z Flag (Zero)
+**When SET (Z=1):**
+- The result is exactly zero (all 32 bits are 0)
+- Equality condition is true
+- Example: After `SUBS R0, R1, R1`, Z=1 (result is 0)
+
+**When CLEAR (Z=0):**
+- The result is non-zero
+- Equality condition is false
+- Example: After `ADDS R0, R1, R2` with non-zero result, Z=0
+
+**Usage:**
+- Use with EQ (equal) and NE (not equal) conditions
+- Test after CMP for equality checks
+- Essential for loop termination conditions
+
+#### C Flag (Carry)
+**When SET (C=1):**
+
+**For Addition (ADD, ADC, CMN):**
+- Unsigned overflow occurred (result > 0xFFFFFFFF)
+- The addition produced a carry out of bit 31
+- Example: `ADDS R0, R1, R2` where R1=0xFFFFFFFF, R2=1 sets C=1
+
+**For Subtraction (SUB, SBC, CMP, RSB, RSC):**
+- **NO borrow occurred** (result >= 0 in unsigned terms)
+- The subtraction did NOT require a borrow
+- Example: `SUBS R0, R1, R2` where R1 >= R2 sets C=1
+- **Important:** C=1 means "no borrow", C=0 means "borrow occurred"
+
+**For Shifts:**
+- Contains the last bit shifted out
+- Example: `MOVS R0, R1, LSR #1` puts bit 0 of R1 into C
+
+**When CLEAR (C=0):**
+
+**For Addition:**
+- No unsigned overflow (result <= 0xFFFFFFFF)
+
+**For Subtraction:**
+- Borrow occurred (unsigned underflow)
+- Example: `SUBS R0, R1, R2` where R1 < R2 sets C=0
+
+**Usage:**
+- Use with unsigned comparisons (HI, LS, HS/CS, LO/CC)
+- Use ADC/SBC for multi-precision arithmetic
+- Test with CS/HS (carry set) and CC/LO (carry clear) conditions
+
+#### V Flag (Overflow)
+**When SET (V=1):**
+- Signed overflow occurred
+- The result cannot be represented in 32-bit two's complement
+- The sign bit changed incorrectly
+
+**Addition overflow occurs when:**
+- Adding two positive numbers yields negative result
+- Adding two negative numbers yields positive result
+- Example: `ADDS R0, R1, R2` where R1=0x7FFFFFFF, R2=1 sets V=1
+  (0x7FFFFFFF + 1 = 0x80000000, positive + positive = negative)
+
+**Subtraction overflow occurs when:**
+- Subtracting negative from positive yields negative result
+- Subtracting positive from negative yields positive result
+- Example: `SUBS R0, R1, R2` where R1=0x80000000, R2=1 sets V=1
+  (0x80000000 - 1 = 0x7FFFFFFF, negative - positive = positive)
+
+**When CLEAR (V=0):**
+- No signed overflow occurred
+- The result is valid in two's complement
+
+**Usage:**
+- Use with signed comparisons (LT, GE, GT, LE)
+- Test with VS (overflow set) and VC (overflow clear) conditions
+- Essential for detecting overflow in signed arithmetic
+
+### Flag Update Rules
+
+**Arithmetic Operations (ADD, ADC, SUB, SBC, RSB, RSC):**
+- Update all four flags: N, Z, C, V
+- C flag: Carry out for addition, NOT borrow for subtraction
+- V flag: Signed overflow detection
+- S suffix required (ADDS, SUBS, etc.)
+
+**Logical Operations (AND, ORR, EOR, BIC, MOV, MVN):**
+- Update N, Z, C only (V unaffected)
+- N: Set from bit 31 of result
+- Z: Set if result is zero
+- C: Set from shifter carry out (if shift applied)
+- S suffix required (ANDS, MOVS, etc.)
+
+**Comparison Operations (CMP, CMN, TST, TEQ):**
+- Always update flags (no S suffix needed)
+- CMP/CMN: Update N, Z, C, V (like SUB/ADD)
+- TST/TEQ: Update N, Z, C (like AND/EOR)
+
+**Multiply Operations (MUL, MLA):**
+- Update N, Z only when S suffix used
+- C flag meaningless after multiply
+- V flag unaffected
+- Example: `MULS R0, R1, R2`
+
+**Long Multiply Operations (UMULL, SMULL, etc.):**
+- Update N, Z only when S suffix used
+- C, V flags unaffected
+
+### Carry Flag in Subtraction - Important Note
+
+The carry flag behaves **inversely** for subtraction compared to addition:
+
+```arm
+; Addition: C=1 means carry occurred
+ADDS R0, R1, R2     ; If overflow: C=1, else C=0
+
+; Subtraction: C=1 means NO borrow (result >= 0)
+SUBS R0, R1, R2     ; If R1 >= R2: C=1 (no borrow)
+                    ; If R1 < R2:  C=0 (borrow occurred)
+
+; Comparison (performs subtraction)
+CMP R0, R1          ; Same as SUBS, but result discarded
+                    ; If R0 >= R1: C=1
+                    ; If R0 < R1:  C=0
+```
+
+This is why:
+- `BHS` (branch if higher or same) checks C=1
+- `BLO` (branch if lower) checks C=0
+
+### Multi-Precision Arithmetic Using Flags
+
+**64-bit Addition:**
+```arm
+; Add R1:R0 + R3:R2 -> R5:R4
+ADDS R4, R0, R2     ; Low word, sets carry
+ADC  R5, R1, R3     ; High word + carry
+```
+
+**64-bit Subtraction:**
+```arm
+; Subtract R1:R0 - R3:R2 -> R5:R4
+SUBS R4, R0, R2     ; Low word, sets borrow in C
+SBC  R5, R1, R3     ; High word - borrow
+```
+
+### Flag Usage Examples
+
+**Signed comparison:**
+```arm
+CMP R0, #10         ; Compare R0 with 10
+; If R0 = 5:  N=1 (negative result), Z=0, C=0 (borrow), V=0
+; If R0 = 10: N=0, Z=1 (zero result), C=1 (no borrow), V=0
+; If R0 = 15: N=0, Z=0, C=1 (no borrow), V=0
+
+BGT greater         ; Branch if R0 > 10 (Z=0 AND N=V)
+BLT less            ; Branch if R0 < 10 (N != V)
+BEQ equal           ; Branch if R0 = 10 (Z=1)
+```
+
+**Unsigned comparison:**
+```arm
+CMP R0, #100        ; Compare R0 with 100 (unsigned)
+BHI higher          ; Branch if R0 > 100 (C=1 AND Z=0)
+BLO lower           ; Branch if R0 < 100 (C=0)
+BHS higher_same     ; Branch if R0 >= 100 (C=1)
+BLS lower_same      ; Branch if R0 <= 100 (C=0 OR Z=1)
+```
+
+**Testing bits:**
+```arm
+TST R0, #0x01       ; Test if bit 0 is set
+; If bit 0 set: Z=0
+; If bit 0 clear: Z=1
+BNE bit_is_set      ; Branch if Z=0 (bit was set)
+BEQ bit_is_clear    ; Branch if Z=1 (bit was clear)
+```
+
+**Overflow detection:**
+```arm
+MOV R0, #0x7FFFFFFF ; Max positive 32-bit signed int
+ADDS R0, R0, #1     ; Add 1
+; Result: R0 = 0x80000000 (looks negative)
+; Flags: N=1 (negative), V=1 (overflow occurred)
+BVS overflow_handler ; Branch if overflow (V=1)
+```
+
+### Reading and Writing Flags
+
+**Reading CPSR:**
+```arm
+MRS R0, CPSR        ; Read CPSR into R0
+; Bit 31 = N flag
+; Bit 30 = Z flag
+; Bit 29 = C flag
+; Bit 28 = V flag
+```
+
+**Writing flags:**
+```arm
+MSR CPSR_f, R0      ; Write R0 to CPSR flags field
+MSR CPSR_f, #0xF0000000  ; Set all flags (N=1, Z=1, C=1, V=1)
+MSR CPSR_f, #0x00000000  ; Clear all flags
+```
 
 ---
 
