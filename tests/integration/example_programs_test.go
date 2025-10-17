@@ -133,6 +133,11 @@ func TestExamplePrograms(t *testing.T) {
 			expectedOutput: "test_org_0_with_ltorg.txt",
 		},
 		{
+			name:           "LargeLiteralPool",
+			programFile:    "large_literal_pool.s",
+			expectedOutput: "large_literal_pool.txt",
+		},
+		{
 			name:           "NOPTest",
 			programFile:    "nop_test.s",
 			expectedOutput: "nop_test.txt",

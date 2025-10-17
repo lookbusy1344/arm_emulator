@@ -64,6 +64,43 @@
 - Linting: 0 issues
 - Comprehensive coverage of edge cases (duplicates, many literals, multiple pools)
 
+**Critical Bug Fix - Address Adjustment Edge Case:**
+
+**Issue Discovered:** During stress testing with `large_literal_pool.s`, discovered a critical bug in the `findNearestLiteralPoolLocation()` function in `encoder/memory.go`. When a literal pool location exactly matched the PC address (`poolLoc == pc`), the function incorrectly treated it as a backward reference instead of a forward reference.
+
+**Symptoms:**
+- Literals placed at incorrect addresses (overlapping with instruction space)
+- Instructions placed at literal addresses (code overwritten by data)
+- Unaligned memory access errors (`load failed at 0x92929291: unaligned word access`)
+- Program crashes when executing literal pool data as instructions
+
+**Root Cause Analysis:**
+The condition `if poolLoc > pc` excluded the case where `poolLoc == pc`. When a pool starts exactly at PC, the literals *within* the pool are actually *after* PC (forward references), but the function treated them as backward references. This caused:
+1. Pool 0 at 0x800C with PC=0x800C would be rejected as a forward reference
+2. Encoder would choose a distant Pool 1 instead, causing address calculation errors
+3. Subsequent literals would overwrite instruction space
+
+**Fix Applied:** (encoder/memory.go:510)
+Changed the forward reference condition from:
+```go
+if poolLoc > pc {
+```
+To:
+```go
+if poolLoc >= pc {
+```
+
+Also updated the candidate address check from `candidateAddr > pc` to `candidateAddr >= pc` to handle the edge case where the first literal in a pool is exactly at PC.
+
+**Verification:**
+- Created stress test program with 85 literals across 4 pools (25+22+18+20)
+- All pools exceed default 16-literal estimate (up to 143.8% utilization)
+- 173 instructions execute successfully
+- Added to integration test suite as `TestExamplePrograms/LargeLiteralPool`
+- All existing tests continue to pass (1200+ tests, 100%)
+
+**Impact:** This fix ensures correct address calculation for all literal pool configurations, including edge cases where pool boundaries align with instruction addresses. The dynamic pool sizing now works correctly even with very large pools that significantly exceed the default estimate.
+
 ---
 
 ### 2025-10-17: LDM/STM Flag Preservation - Complete Implementation ✅
