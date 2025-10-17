@@ -172,6 +172,11 @@ func TestExamplePrograms(t *testing.T) {
 			expectedOutput: "arithmetic.txt",
 		},
 		{
+			name:           "Add128Bit",
+			programFile:    "add_128bit.s",
+			expectedOutput: "add_128bit.txt",
+		},
+		{
 			name:           "Arrays",
 			programFile:    "arrays.s",
 			expectedOutput: "arrays.txt",
