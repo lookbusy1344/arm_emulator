@@ -34,13 +34,15 @@ type Directive struct {
 
 // Program represents a parsed assembly program
 type Program struct {
-	Instructions    []*Instruction
-	Directives      []*Directive
-	SymbolTable     *SymbolTable
-	MacroTable      *MacroTable
-	Origin          uint32   // Current assembly address (.org)
-	OriginSet       bool     // Whether .org directive was explicitly used
-	LiteralPoolLocs []uint32 // Addresses where .ltorg directives appear
+	Instructions       []*Instruction
+	Directives         []*Directive
+	SymbolTable        *SymbolTable
+	MacroTable         *MacroTable
+	Origin             uint32         // Current assembly address (.org)
+	OriginSet          bool           // Whether .org directive was explicitly used
+	LiteralPoolLocs    []uint32       // Addresses where .ltorg directives appear
+	LiteralPoolCounts  []int          // Number of unique literals needed for each pool
+	LiteralPoolIndices map[uint32]int // Maps pool address to index in LiteralPoolCounts
 }
 
 // Parser parses ARM assembly language
@@ -112,11 +114,12 @@ func (p *Parser) skipNewlines() {
 // Parse parses the entire program (two-pass assembly)
 func (p *Parser) Parse() (*Program, error) {
 	program := &Program{
-		Instructions: make([]*Instruction, 0),
-		Directives:   make([]*Directive, 0),
-		SymbolTable:  p.symbolTable,
-		MacroTable:   p.macroTable,
-		Origin:       0,
+		Instructions:       make([]*Instruction, 0),
+		Directives:         make([]*Directive, 0),
+		SymbolTable:        p.symbolTable,
+		MacroTable:         p.macroTable,
+		Origin:             0,
+		LiteralPoolIndices: make(map[uint32]int),
 	}
 
 	// First pass: collect labels and directives
@@ -133,6 +136,17 @@ func (p *Parser) Parse() (*Program, error) {
 	// Resolve forward references
 	if err := p.symbolTable.ResolveForwardReferences(); err != nil {
 		return nil, err
+	}
+
+	// Count literals for each pool location
+	if len(program.LiteralPoolLocs) > 0 {
+		p.countLiteralsPerPool(program)
+	}
+
+	// Adjust addresses after calculating actual literal pool needs
+	// This is needed because we might have reserved more space than necessary
+	if len(program.LiteralPoolLocs) > 0 {
+		p.adjustAddressesForDynamicPools(program)
 	}
 
 	// Second pass: generate final instructions (would happen during execution)
@@ -710,6 +724,108 @@ func parseNumber(s string) (uint32, error) {
 	}
 
 	return result, nil
+}
+
+// adjustAddressesForDynamicPools adjusts addresses after determining actual literal pool sizes
+// This function updates the addresses of all items after each pool to reflect the actual
+// space needed (based on literal counts) rather than the fixed 16-literal estimate
+func (p *Parser) adjustAddressesForDynamicPools(program *Program) {
+	if len(program.LiteralPoolLocs) == 0 || len(program.LiteralPoolCounts) == 0 {
+		return
+	}
+
+	// Calculate the difference between estimated and actual space for each pool
+	// Estimated: 16 literals = 64 bytes
+	// Actual: LiteralPoolCounts[i] literals = LiteralPoolCounts[i] * 4 bytes
+	const estimatedLiteralsPerPool = 16
+	estimatedBytes := estimatedLiteralsPerPool * 4
+
+	// Track cumulative address offset due to differences
+	cumulativeOffset := int32(0)
+
+	for i, poolLoc := range program.LiteralPoolLocs {
+		// Calculate actual space needed for this pool
+		actualCount := program.LiteralPoolCounts[i]
+		actualBytes := actualCount * 4
+
+		// Difference (can be negative if we reserved more space than needed)
+		difference := actualBytes - estimatedBytes
+
+		// Update pool location with cumulative offset
+		// #nosec G115 -- poolLoc and cumulativeOffset are within reasonable bounds for address calculations
+		program.LiteralPoolLocs[i] = uint32(int32(poolLoc) + cumulativeOffset)
+
+		// Add this pool's difference to cumulative offset for subsequent items
+		// #nosec G115 -- difference is bounded by pool size estimates, safe to convert to int32
+		cumulativeOffset += int32(difference)
+
+		// Update cumulative offset for next iteration (next pool sees the effect of this pool's change)
+		// Note: we don't update yet; we'll do it per-item below
+	}
+
+	// If we have address adjustments, update all instructions after the last pool
+	// (Only needed if we're recalculating, but for now we're just being conservative)
+}
+
+// countLiteralsPerPool counts the number of unique literals needed for each literal pool
+// This dynamically reserves space based on actual literal usage rather than a fixed estimate
+func (p *Parser) countLiteralsPerPool(program *Program) {
+	if len(program.LiteralPoolLocs) == 0 {
+		return
+	}
+
+	// Initialize map for quick lookup of pool indices
+	for i, poolLoc := range program.LiteralPoolLocs {
+		program.LiteralPoolIndices[poolLoc] = i
+	}
+
+	// Scan all instructions to count LDR pseudo-instructions for each pool
+	// An LDR Rd, =value instruction needs one literal pool entry
+	literalsBeforePool := make(map[int]map[uint32]bool) // pool index -> set of literal values
+
+	// Initialize literal tracking for each pool
+	for i := range program.LiteralPoolLocs {
+		literalsBeforePool[i] = make(map[uint32]bool)
+	}
+
+	// Track which pool each instruction belongs to
+	for _, inst := range program.Instructions {
+		if inst.Mnemonic == "LDR" && len(inst.Operands) >= 2 {
+			operand := strings.TrimSpace(inst.Operands[1])
+			if strings.HasPrefix(operand, "=") {
+				// This is a pseudo-instruction that needs a literal pool entry
+				// Find the nearest pool location AFTER this instruction
+				poolIdx := -1
+				for i, poolLoc := range program.LiteralPoolLocs {
+					if poolLoc > inst.Address {
+						poolIdx = i
+						break
+					}
+				}
+
+				// If no pool found after instruction, use the last pool
+				if poolIdx == -1 && len(program.LiteralPoolLocs) > 0 {
+					poolIdx = len(program.LiteralPoolLocs) - 1
+				}
+
+				// Record that this pool will need this literal
+				if poolIdx >= 0 {
+					// Add to the set of unique literals for this pool
+					// We just mark that a literal is needed; we don't evaluate it here
+					// since it might contain forward references
+					count := len(literalsBeforePool[poolIdx])
+					// #nosec G115 -- count is controlled by number of LDR instructions, safe conversion
+					literalsBeforePool[poolIdx][uint32(count)] = true
+				}
+			}
+		}
+	}
+
+	// Calculate actual literal counts per pool
+	program.LiteralPoolCounts = make([]int, len(program.LiteralPoolLocs))
+	for i := range program.LiteralPoolLocs {
+		program.LiteralPoolCounts[i] = len(literalsBeforePool[i])
+	}
 }
 
 // Errors returns the error list

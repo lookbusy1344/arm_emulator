@@ -646,9 +646,11 @@ func loadProgramIntoVM(machine *vm.VM, program *parser.Program, entryPoint uint3
 	// Create encoder
 	enc := encoder.NewEncoder(program.SymbolTable)
 
-	// Pass literal pool locations from parser to encoder
+	// Pass literal pool locations and counts from parser to encoder
 	enc.LiteralPoolLocs = make([]uint32, len(program.LiteralPoolLocs))
 	copy(enc.LiteralPoolLocs, program.LiteralPoolLocs)
+	enc.LiteralPoolCounts = make([]int, len(program.LiteralPoolCounts))
+	copy(enc.LiteralPoolCounts, program.LiteralPoolCounts)
 
 	// Track the maximum address used for literal pool placement
 	maxAddr := entryPoint
@@ -832,6 +834,14 @@ func loadProgramIntoVM(machine *vm.VM, program *parser.Program, entryPoint uint3
 	for addr, value := range enc.LiteralPool {
 		if err := machine.Memory.WriteWordUnsafe(addr, value); err != nil {
 			return fmt.Errorf("failed to write literal at 0x%08X: %w", addr, err)
+		}
+	}
+
+	// Validate literal pool capacity and collect warnings
+	enc.ValidatePoolCapacity()
+	if enc.HasPoolWarnings() && os.Getenv("ARM_WARN_POOLS") != "" {
+		for _, warning := range enc.GetPoolWarnings() {
+			fmt.Fprintf(os.Stderr, "Warning: %s\n", warning)
 		}
 	}
 

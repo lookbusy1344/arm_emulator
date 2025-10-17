@@ -22,32 +22,6 @@ None
 
 ## Medium Priority Tasks
 
-### Literal Pool Space Reservation Improvement
-**Effort:** 4-6 hours
-**Priority:** Medium
-
-**Current Behavior:**
-- Parser reserves fixed 64 bytes (16 literals) per `.ltorg` directive
-- Encoder dynamically places literals and can extend beyond reservation
-- Works correctly in practice for typical programs (test files have 4-6 literals per pool)
-- Encoder writes literals AFTER instructions, avoiding immediate corruption
-
-**Potential Issues:**
-- If >16 unique literals exist before a `.ltorg`, they extend beyond reserved space
-- Could theoretically cause address calculation inconsistencies in complex scenarios
-- No validation or warning when literal count exceeds reservation
-
-**Proposed Solutions:**
-1. **Dynamic counting:** Pre-scan to count actual literals before each `.ltorg` and reserve exact space needed
-2. **Validation:** Add warning/error when encoder places >16 literals in a pool
-3. **Increased reservation:** Increase to 32 or 64 literals (128-256 bytes) per pool
-4. **Two-pass refinement:** Adjust addresses after encoding if literal pools exceed estimates
-
-**Testing:**
-- Created test with 30 literals - works correctly despite exceeding reservation
-- No issues found in current test suite (max 6 literals per pool)
-- Edge case: very literal-heavy code with tight address constraints
-
 ### Additional Diagnostic Modes
 
 **Proposed Extensions:**

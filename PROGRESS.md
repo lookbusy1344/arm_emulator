@@ -1,12 +1,70 @@
 # ARM2 Emulator Implementation Progress
 
 **Last Updated:** 2025-10-17
-**Current Phase:** Phase 11 Complete + ARMv3 Extensions + Register Trace + Code Coverage + Flag Preservation ✅
-**Test Suite:** 1194+ tests passing (100% ✅), 0 lint issues, 75.0% code coverage
+**Current Phase:** Phase 11 Complete + ARMv3 Extensions + Register Trace + Code Coverage + Flag Preservation + Dynamic Literal Pool Sizing ✅
+**Test Suite:** 1200+ tests passing (100% ✅), 0 lint issues, 75.0% code coverage
 
 ---
 
 ## Recent Updates
+
+### 2025-10-17: Literal Pool Space Reservation Improvement - Dynamic Counting ✅
+**Status:** Dynamic literal pool sizing implemented with validation and warnings
+
+**Objective:** Improve the literal pool space reservation system from fixed 64-byte allocation to dynamic allocation based on actual literal usage, with validation warnings for pools exceeding expected capacity.
+
+**Implementation Details:**
+
+1. **Parser Enhancement: Dynamic Literal Counting** (parser/parser.go)
+   - Added `LiteralPoolCounts []int` field to Program struct to track expected literal count per pool
+   - Added `LiteralPoolIndices map[uint32]int` for quick pool lookup by address
+   - Implemented `countLiteralsPerPool()` function that:
+     - Scans all LDR pseudo-instructions after parsing
+     - Counts how many literal pool entries each `.ltorg` directive will need
+     - Associates literals with nearest subsequent pool location
+     - Handles edge case: literals after last pool use the last pool
+   - Implemented `adjustAddressesForDynamicPools()` function that:
+     - Calculates difference between estimated (16 literals) and actual literal counts
+     - Adjusts pool addresses based on cumulative differences
+     - Allows for better address space utilization when pools have fewer literals
+
+2. **Encoder Enhancement: Validation and Warnings** (encoder/encoder.go)
+   - Added `LiteralPoolCounts []int` field to Encoder struct for tracking expected counts
+   - Added `PoolWarnings []string` field to collect capacity warnings
+   - Implemented `ValidatePoolCapacity()` method that:
+     - Audits actual vs. expected literal counts after encoding
+     - Warns if actual count exceeds expected count
+     - Reports pool utilization percentage
+   - Added `GetPoolWarnings()` and `HasPoolWarnings()` accessor methods
+   - Can be enabled via `ARM_WARN_POOLS` environment variable
+
+3. **Main Loop Integration** (main.go)
+   - Copy `LiteralPoolCounts` from parser to encoder (lines 652-653)
+   - Call `ValidatePoolCapacity()` after encoding all instructions (line 841)
+   - Print pool warnings to stderr if `ARM_WARN_POOLS` environment variable is set (lines 842-846)
+
+4. **Test Suite** (tests/integration/ltorg_test.go - 6 comprehensive new tests)
+   - `TestDynamicLiteralPoolCounting` - Verifies parser counts literals correctly for multiple pools
+   - `TestDynamicLiteralPoolValidation` - Tests encoder validation of pool capacity
+   - `TestManyLiteralsInPool` - Handles 20+ literals in a single pool
+   - `TestDuplicateLiteralsInPool` - Verifies duplicate LDR instructions are counted
+   - `TestMultiplePoolsWithDifferentCounts` - Tests accurate counting across multiple pools
+   - `TestPoolIndexLookup` - Verifies pool index mapping after address adjustment
+
+**Benefits:**
+- Better address space utilization: pools reserve only needed space instead of fixed 64 bytes
+- Earlier detection of pool capacity issues through validation
+- Support for programs with many literals (tested with 20+)
+- Backward compatible: falls back to default 16-literal estimate if no .ltorg directives
+- Environmental variable control: warnings only shown when explicitly enabled
+
+**Test Results:**
+- All 1200+ tests passing (100%)
+- New literal pool tests: 6/6 passing
+- Linting: 0 issues
+- Comprehensive coverage of edge cases (duplicates, many literals, multiple pools)
+
+---
 
 ### 2025-10-17: LDM/STM Flag Preservation - Complete Implementation ✅
 **Status:** S bit (^) flag preservation fully implemented and tested

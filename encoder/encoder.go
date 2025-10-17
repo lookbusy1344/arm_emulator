@@ -12,21 +12,25 @@ import (
 
 // Encoder converts parsed instructions into ARM machine code
 type Encoder struct {
-	symbolTable      *parser.SymbolTable
-	currentAddr      uint32
-	LiteralPool      map[uint32]uint32 // address -> value for literal pool (exported)
-	LiteralPoolStart uint32            // Start address for literal pool (set externally)
-	LiteralPoolLocs  []uint32          // Addresses of .ltorg directives (multiple pools)
-	pendingLiterals  map[uint32]uint32 // value -> preferred address mapping for dedup
+	symbolTable       *parser.SymbolTable
+	currentAddr       uint32
+	LiteralPool       map[uint32]uint32 // address -> value for literal pool (exported)
+	LiteralPoolStart  uint32            // Start address for literal pool (set externally)
+	LiteralPoolLocs   []uint32          // Addresses of .ltorg directives (multiple pools)
+	LiteralPoolCounts []int             // Expected literal counts for each pool (from parser)
+	pendingLiterals   map[uint32]uint32 // value -> preferred address mapping for dedup
+	PoolWarnings      []string          // Warnings about pool capacity issues
 }
 
 // NewEncoder creates a new encoder instance
 func NewEncoder(symbolTable *parser.SymbolTable) *Encoder {
 	return &Encoder{
-		symbolTable:     symbolTable,
-		LiteralPool:     make(map[uint32]uint32),
-		LiteralPoolLocs: make([]uint32, 0),
-		pendingLiterals: make(map[uint32]uint32),
+		symbolTable:       symbolTable,
+		LiteralPool:       make(map[uint32]uint32),
+		LiteralPoolLocs:   make([]uint32, 0),
+		LiteralPoolCounts: make([]int, 0),
+		pendingLiterals:   make(map[uint32]uint32),
+		PoolWarnings:      make([]string, 0),
 	}
 }
 
@@ -369,4 +373,75 @@ func (e *Encoder) evaluateTerm(term string) (uint32, error) {
 
 	// Otherwise parse as immediate number
 	return e.parseImmediate(term)
+}
+
+// ValidatePoolCapacity checks if actual literal pool usage matches expected capacity
+// This method should be called after encoding all instructions
+func (e *Encoder) ValidatePoolCapacity() {
+	if len(e.LiteralPoolLocs) == 0 {
+		return
+	}
+
+	// Count actual literals in each pool region
+	actualCounts := make(map[uint32]int) // pool location -> count of literals in that region
+
+	for addr := range e.LiteralPool {
+		// Find which pool this literal belongs to
+		for i, poolLoc := range e.LiteralPoolLocs {
+			if i+1 < len(e.LiteralPoolLocs) {
+				// Check if literal is between this pool and the next
+				if addr >= poolLoc && addr < e.LiteralPoolLocs[i+1] {
+					actualCounts[poolLoc]++
+					break
+				}
+			} else {
+				// Last pool - all remaining literals belong to it
+				if addr >= poolLoc {
+					actualCounts[poolLoc]++
+					break
+				}
+			}
+		}
+	}
+
+	// Check each pool against expected capacity
+	const estimatedLiteralsPerPool = 16
+
+	for i, poolLoc := range e.LiteralPoolLocs {
+		expectedCount := estimatedLiteralsPerPool
+		if i < len(e.LiteralPoolCounts) {
+			expectedCount = e.LiteralPoolCounts[i]
+		}
+
+		actualCount := actualCounts[poolLoc]
+
+		// Warn if actual count exceeds expected
+		if actualCount > expectedCount {
+			warning := fmt.Sprintf(
+				"Literal pool at 0x%08X: actual count (%d) exceeds expected (%d)",
+				poolLoc, actualCount, expectedCount,
+			)
+			e.PoolWarnings = append(e.PoolWarnings, warning)
+		}
+
+		// Also warn if we're using more than half the reserved space for pools with large margins
+		if expectedCount >= estimatedLiteralsPerPool && actualCount > estimatedLiteralsPerPool/2 {
+			warning := fmt.Sprintf(
+				"Literal pool at 0x%08X: using %d of %d estimated literals (%.1f%%)",
+				poolLoc, actualCount, estimatedLiteralsPerPool,
+				float64(actualCount)/float64(estimatedLiteralsPerPool)*100,
+			)
+			e.PoolWarnings = append(e.PoolWarnings, warning)
+		}
+	}
+}
+
+// GetPoolWarnings returns all collected pool capacity warnings
+func (e *Encoder) GetPoolWarnings() []string {
+	return e.PoolWarnings
+}
+
+// HasPoolWarnings returns true if any warnings were collected
+func (e *Encoder) HasPoolWarnings() bool {
+	return len(e.PoolWarnings) > 0
 }
