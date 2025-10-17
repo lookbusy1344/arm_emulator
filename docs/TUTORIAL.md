@@ -648,15 +648,49 @@ Calculate address, access memory, then update base:
         LDR     R0, [R1, R2, LSL #2]!  ; R1 = R1 + (R2<<2), then R0 = memory[R1]
 ```
 
+**Understanding the `!` (Writeback) Suffix:**
+
+The exclamation mark (`!`) is a **writeback indicator** that tells the processor to update the base register after the memory access. Here's exactly what happens:
+
+1. **Calculate the effective address**: Base register + offset
+2. **Update the base register**: Store the effective address back into the base register
+3. **Perform the memory operation**: Load or store using the new address
+
+**Important Details:**
+- The `!` modifies the instruction's behavior - without it, the base register remains unchanged
+- This is called "pre-indexed with writeback" because the offset is applied *before* the memory access, and the result is written back
+- The base register is permanently modified - it now points to the new address
+
+**Step-by-step example:**
+```asm
+        ; Assume R1 = 0x8000
+        LDR     R0, [R1, #4]!   ; What happens:
+                                ; 1. Calculate: 0x8000 + 4 = 0x8004
+                                ; 2. Update R1: R1 = 0x8004
+                                ; 3. Load: R0 = memory[0x8004]
+                                ; Result: R1 is now 0x8004 (modified!)
+```
+
+**Contrast with regular pre-indexed (no `!`):**
+```asm
+        ; Assume R1 = 0x8000
+        LDR     R0, [R1, #4]    ; What happens:
+                                ; 1. Calculate: 0x8000 + 4 = 0x8004
+                                ; 2. Load: R0 = memory[0x8004]
+                                ; 3. R1 stays 0x8000 (unchanged!)
+```
+
 **Use cases:**
 - Moving through memory with pointer update
-- Pre-decrement for stack operations
+- Pre-decrement for stack operations (e.g., `STMFD SP!, {...}`)
+- Iterating through data structures where you want to advance the pointer
 
 **Example - walking through array:**
 ```asm
-        LDR     R0, =array
-        LDR     R1, [R0, #4]!   ; Get array[1], R0 now points to array[1]
-        LDR     R2, [R0, #4]!   ; Get array[2], R0 now points to array[2]
+        LDR     R0, =array      ; R0 = 0x8100 (array base)
+        LDR     R1, [R0, #4]!   ; Get array[1], R0 now = 0x8104
+        LDR     R2, [R0, #4]!   ; Get array[2], R0 now = 0x8108
+        ; Note: R0 has been permanently updated after each instruction
 ```
 
 ### Post-indexed Addressing
@@ -937,6 +971,73 @@ The stack grows **downward** (from high to low addresses).
 ```asm
         LDMFD   SP!, {R0-R3, PC}    ; Pop R0-R3 and return
 ```
+
+**Understanding the `!` in Stack Operations:**
+
+The exclamation mark (`!`) in `STMFD SP!, {...}` and `LDMFD SP!, {...}` is critical for stack operations - it tells the processor to update the stack pointer after the operation.
+
+**STMFD SP!, {R1-R2, LR} - Store Multiple Full Descending with Writeback:**
+
+What each part means:
+- **STM**: Store Multiple registers to memory
+- **FD**: Full Descending stack (SP points to last used location, stack grows downward)
+- **SP**: The stack pointer register (R13)
+- **!**: **Writeback** - update SP to reflect the new stack top
+- **{R1-R2, LR}**: List of registers to push
+
+**Step-by-step execution:**
+```asm
+        ; Assume SP = 0x00050000, R1 = 0x100, R2 = 0x200, LR = 0x8050
+        STMFD   SP!, {R1-R2, LR}
+
+        ; What happens:
+        ; 1. SP = SP - 4 = 0x0004FFFC, store LR (0x8050) at [0x0004FFFC]
+        ; 2. SP = SP - 4 = 0x0004FFF8, store R2 (0x200) at [0x0004FFF8]
+        ; 3. SP = SP - 4 = 0x0004FFF4, store R1 (0x100) at [0x0004FFF4]
+        ; 4. Final: SP = 0x0004FFF4 (updated due to !)
+        ;
+        ; Memory layout (stack grows down):
+        ; 0x0004FFF4: 0x100      (R1) <- SP now points here
+        ; 0x0004FFF8: 0x200      (R2)
+        ; 0x0004FFFC: 0x8050     (LR)
+        ; 0x00050000: [old stack top]
+```
+
+**Why the `!` is essential:**
+- **With `!`**: SP is updated to point to the new top of stack (lowest address used)
+- **Without `!`**: SP would remain at 0x00050000, causing stack corruption on next push!
+
+**LDMFD SP!, {R1-R2, PC} - Load Multiple Full Descending with Writeback:**
+
+```asm
+        ; Assume SP = 0x0004FFF4 (pointing to our saved data)
+        LDMFD   SP!, {R1-R2, PC}
+
+        ; What happens:
+        ; 1. Load R1 from [SP=0x0004FFF4], then SP = SP + 4 = 0x0004FFF8
+        ; 2. Load R2 from [SP=0x0004FFF8], then SP = SP + 4 = 0x0004FFFC
+        ; 3. Load PC from [SP=0x0004FFFC], then SP = SP + 4 = 0x00050000
+        ; 4. Final: SP = 0x00050000 (restored to original value!)
+        ;           PC = 0x8050 (return to caller)
+```
+
+**Without `!` - Stack Corruption Example:**
+```asm
+        ; BAD - Missing !
+        STMFD   SP, {R1-R2, LR}     ; Stores data but SP unchanged!
+        ; SP still points to 0x00050000 instead of 0x0004FFF4
+        ; Next push will overwrite the same memory!
+
+        ; CORRECT - With !
+        STMFD   SP!, {R1-R2, LR}    ; Stores data AND updates SP
+        ; SP now points to 0x0004FFF4 (new stack top)
+```
+
+**Key Takeaways:**
+- Always use `!` with stack operations (`STMFD SP!`, `LDMFD SP!`)
+- The `!` ensures the stack pointer tracks the actual stack top
+- Forgetting `!` causes stack corruption and hard-to-debug crashes
+- The `!` is what makes push/pop work correctly in sequences
 
 ### Function with Stack Usage
 
