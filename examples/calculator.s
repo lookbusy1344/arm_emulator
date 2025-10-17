@@ -26,6 +26,11 @@ menu_loop:
     BL read_char
     MOV r5, r0              @ r5 = operation
 
+    @ Check for EOF (read_char returns -1/0xFFFFFFFF on EOF)
+    MVN r3, #0              @ r3 = 0xFFFFFFFF (-1)
+    CMP r5, r3
+    BEQ exit_program
+
     @ Check for quit
     CMP r5, #'q'
     BEQ exit_program

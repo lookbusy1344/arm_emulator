@@ -155,6 +155,12 @@ func TestExamplePrograms(t *testing.T) {
 			expectedOutput: "celsius_to_fahrenheit_100.txt",
 			stdin:          "100\n",
 		},
+		{
+			name:           "Calculator",
+			programFile:    "calculator.s",
+			expectedOutput: "calculator.txt",
+			stdin:          "15\n+\n7\nq\n",
+		},
 	}
 
 	for _, tt := range tests {
