@@ -699,15 +699,16 @@ go build -o arm-emulator
 
 **A:**
 1. Start with [TUTORIAL.md](TUTORIAL.md)
-2. Study example programs in `examples/`
-3. Write small programs and gradually increase complexity
-4. Use debugger to understand instruction behavior
-5. Read [assembly_reference.md](assembly_reference.md) for details
-6. Practice, practice, practice!
+2. Study example programs in `examples/` (44 programs covering all concepts)
+3. Reference [INSTRUCTIONS.md](../INSTRUCTIONS.md) for detailed instruction documentation
+4. Read [assembly_reference.md](assembly_reference.md) for directives and syntax
+5. Write small programs and gradually increase complexity
+6. Use debugger (see [debugger_reference.md](debugger_reference.md)) to understand instruction behavior
+7. Practice, practice, practice!
 
 ### Q: Where can I find example programs?
 
-**A:** The `examples/` directory contains 30+ programs:
+**A:** The `examples/` directory contains 44 programs:
 - **hello.s**: Basic output
 - **arithmetic.s**: Math operations
 - **functions.s**: Function calls and conventions
@@ -729,10 +730,11 @@ go build -o arm-emulator
 
 ## Still Need Help?
 
-- **Documentation**: Check `docs/` directory
-- **Examples**: Browse `examples/` for reference code
-- **Tutorial**: Work through [TUTORIAL.md](TUTORIAL.md)
-- **Reference**: See [assembly_reference.md](assembly_reference.md)
-- **Debugger**: Read [debugger_reference.md](debugger_reference.md)
+- **Documentation**: Check `docs/` directory for comprehensive guides
+- **Tutorial**: Work through [TUTORIAL.md](TUTORIAL.md) for hands-on learning
+- **Instruction Reference**: [INSTRUCTIONS.md](../INSTRUCTIONS.md) for every ARM2 instruction
+- **Assembly Reference**: [assembly_reference.md](assembly_reference.md) for directives and syntax
+- **Examples**: Browse `examples/` (44 programs) for reference code
+- **Debugger**: [debugger_reference.md](debugger_reference.md) and [debugging_tutorial.md](debugging_tutorial.md)
 
 **Remember**: The best way to learn is by doing. Write code, make mistakes, debug, and learn!

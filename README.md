@@ -78,7 +78,7 @@ Go code is now 40,352 lines and we have 75% code coverage.
 
 **Day 10 - 17 Oct** - The project is almost finished and ready for detailed review, a substantial task for over 40k lines of code! Today I have mainly focused on docs, checked through the tutorial and making a list of specific fixes and clarifications I’d like Claude to make. Also worked on a solution for the CPSR issue with full 32 bit addresses (this is a small departure from strict ARM2 compatibility since that architecture only used 26 bit addressing, and stored CPU flags in the remaining bits of the PC register). This emulator uses full 32 bit addressing, so we need to store the CPSR flags separately. This is only a theoretical issue for most example programs, because there are no hardware interrupts.
 
-Go code is currently 41,651 lines. Estimated total vibing time is around 32 hours, so an average of 1,300 lines of code per hour!
+Go code is currently 42,481 lines. Estimated total vibing time is around 32 hours, so an average of 1,300 lines of code per hour!
 
 All unit and integration tests are passing, and the test system runs all the example programs and confirms their output.
 
@@ -106,18 +106,23 @@ Exciting times. Perhaps I should think of a second more challenging vibe-coding 
 - [PROGRESS.md](PROGRESS.md) - Development progress and completed phases
 
 ### User Documentation
-- [docs/TUTORIAL.md](docs/TUTORIAL.md) - Step-by-step tutorial for learning ARM2 assembly
 - [docs/installation.md](docs/installation.md) - Installation guide and setup
-- [docs/assembly_reference.md](docs/assembly_reference.md) - ARM2 assembly language reference
+- [docs/TUTORIAL.md](docs/TUTORIAL.md) - Step-by-step tutorial for learning ARM2 assembly
+- [INSTRUCTIONS.md](INSTRUCTIONS.md) - Complete ARM2 instruction set reference
+- [docs/assembly_reference.md](docs/assembly_reference.md) - ARM2 assembly language reference (directives, syntax)
+- [examples/README.md](examples/README.md) - Example programs and usage instructions (44 programs)
 - [docs/debugger_reference.md](docs/debugger_reference.md) - Complete debugger command reference and guide
+- [docs/debugging_tutorial.md](docs/debugging_tutorial.md) - Hands-on debugging tutorials with examples
 - [docs/FAQ.md](docs/FAQ.md) - Frequently asked questions and troubleshooting
+
+### Developer Documentation
 - [docs/API.md](docs/API.md) - API reference for developers
 - [docs/architecture.md](docs/architecture.md) - System architecture and design
-- [examples/README.md](examples/README.md) - Example programs and usage instructions
+- [docs/ltorg_implementation.md](docs/ltorg_implementation.md) - Literal pool implementation details
 
 ## Features
 
-- **Complete ARM2 instruction set implementation** with 959 passing tests (100% pass rate, 75% code coverage)
+- **Complete ARM2 instruction set implementation** with 969 passing tests (100% pass rate, 75% code coverage)
   - All 16 data processing instructions (AND, EOR, SUB, RSB, ADD, ADC, SBC, RSC, TST, TEQ, CMP, CMN, ORR, MOV, BIC, MVN)
   - All memory operations (LDR/STR/LDRB/STRB/LDM/STM + halfword extensions)
   - All branch instructions (B/BL/BX)
@@ -297,7 +302,7 @@ All diagnostic modes support both text and JSON output formats:
 
 ### Example Programs
 
-The `examples/` directory contains 43 sample ARM assembly programs that demonstrate various features:
+The `examples/` directory contains 44 sample ARM assembly programs that demonstrate various features:
 
 **Basic Examples:**
 - **hello.s** - Hello World program
@@ -383,8 +388,8 @@ This triggers the `Build Release` workflow which:
 ├── debugger/            # Debugging utilities with TUI
 ├── config/              # Cross-platform configuration
 ├── tools/               # Development tools (lint, format, xref)
-├── tests/               # Test files (959 tests, 100% passing, 75% coverage)
-├── examples/            # Example ARM assembly programs (43 programs)
+├── tests/               # Test files (969 tests, 100% passing, 75% coverage)
+├── examples/            # Example ARM assembly programs (44 programs)
 └── docs/                # User and developer documentation
 ```
 

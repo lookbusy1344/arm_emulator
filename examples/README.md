@@ -2,7 +2,7 @@
 
 This directory contains example ARM assembly programs that demonstrate various features of the ARM2 emulator.
 
-**Total Examples:** 43 programs covering basic operations, algorithms, data structures, advanced features, and comprehensive stress tests.
+**Total Examples:** 44 programs covering basic operations, algorithms, data structures, advanced features, and comprehensive stress tests.
 
 ## Quick Navigation
 
@@ -18,7 +18,7 @@ This directory contains example ARM assembly programs that demonstrate various f
 
 ## Basic Examples
 
-### 1. hello.s
+### hello.s
 **Hello World Program**
 - Classic first program in any language
 - Demonstrates: String output, program termination
@@ -29,7 +29,7 @@ This directory contains example ARM assembly programs that demonstrate various f
 Hello, World!
 ```
 
-### 2. arithmetic.s
+### arithmetic.s
 **Basic Arithmetic Operations**
 - Demonstrates addition, subtraction, multiplication, and division
 - Shows how to perform basic math in ARM assembly
@@ -43,7 +43,7 @@ Multiplication: 6 * 7 = 42
 Division: 35 / 5 = 7
 ```
 
-### 3. add_128bit.s
+### add_128bit.s
 **128-bit Integer Addition**
 - Adds two 128-bit integers using multi-word arithmetic
 - Demonstrates carry propagation with ADDS/ADCS instructions
@@ -60,7 +60,7 @@ Second number: 0x00000000111111112222222222222222
 Result:        0x12345678ABCDF00220FEDCBA98765432
 ```
 
-### 4. times_table.s
+### times_table.s
 **Multiplication Table Generator**
 - Reads a number from input (1-12)
 - Displays the complete multiplication table for that number
@@ -76,7 +76,7 @@ Output:
 5 x 12 = 60
 ```
 
-### 5. celsius_to_fahrenheit.s
+### celsius_to_fahrenheit.s
 **Temperature Converter**
 - Converts Celsius to Fahrenheit
 - Formula: F = C * 9 / 5 + 32
@@ -88,7 +88,7 @@ Input: Enter temperature in Celsius: 25
 Output: Temperature in Fahrenheit: 77
 ```
 
-### 6. calculator.s
+### calculator.s
 **Simple Calculator**
 - Interactive calculator with basic operations (+, -, *, /)
 - Menu-driven interface
@@ -103,7 +103,7 @@ Output: 15 + 7 = 22
 
 ## Algorithm Examples
 
-### 7. fibonacci.s
+### fibonacci.s
 **Fibonacci Sequence Generator**
 - Generates the first N Fibonacci numbers
 - Supports up to 20 numbers
@@ -115,7 +115,7 @@ Input: 10
 Output: 0, 1, 1, 2, 3, 5, 8, 13, 21, 34
 ```
 
-### 8. factorial.s
+### factorial.s
 **Factorial Calculator**
 - Computes factorial using recursion
 - Input validation (0-12 to prevent overflow)
@@ -127,19 +127,19 @@ Input: 5
 Output: 5! = 120
 ```
 
-### 9. recursive_factorial.s
+### recursive_factorial.s
 **Recursive Factorial Implementation**
 - Alternative factorial implementation emphasizing recursion
 - Clean recursive algorithm demonstration
 - Demonstrates: proper stack frame management, base cases, recursive calls
 
-### 10. recursive_fib.s
+### recursive_fib.s
 **Recursive Fibonacci Calculator**
 - Classic recursive Fibonacci implementation
 - Demonstrates recursive function calls
 - Shows call tree depth and stack usage
 
-### 11. bubble_sort.s
+### bubble_sort.s
 **Bubble Sort Algorithm**
 - Sorts an array of integers in ascending order
 - Interactive array input
@@ -151,13 +151,13 @@ Input: [64, 34, 25, 12, 22]
 Output: [12, 22, 25, 34, 64]
 ```
 
-### 12. quicksort.s
+### quicksort.s
 **Quicksort Algorithm**
 - Efficient O(n log n) sorting algorithm
 - Partition-based divide-and-conquer approach
 - Demonstrates: recursion, in-place sorting, advanced algorithm implementation
 
-### 13. binary_search.s
+### binary_search.s
 **Binary Search Algorithm**
 - Searches for a value in a sorted array
 - Efficient O(log n) search algorithm
@@ -169,7 +169,7 @@ Searching for value 25 in sorted array [5, 10, 15, 20, 25, 30, 35, 40, 45, 50]
 Value found at index 4
 ```
 
-### 14. gcd.s
+### gcd.s
 **Greatest Common Divisor**
 - Calculates GCD using Euclidean algorithm
 - Interactive input for two numbers
@@ -181,7 +181,7 @@ Input: 48, 18
 Output: GCD of 48 and 18 is 6
 ```
 
-### 15. division.s
+### division.s
 **Integer Division Demonstration**
 - Software division using repeated subtraction
 - Returns both quotient and remainder
@@ -193,7 +193,7 @@ Output: GCD of 48 and 18 is 6
 1000 / 17 = 58 remainder 14
 ```
 
-### 16. sieve_of_eratosthenes.s
+### sieve_of_eratosthenes.s
 **Prime Number Generator**
 - Classic sieve algorithm for finding prime numbers
 - Efficient prime generation up to a limit
@@ -201,7 +201,7 @@ Output: GCD of 48 and 18 is 6
 
 ## Data Structure Examples
 
-### 17. arrays.s
+### arrays.s
 **Array Operations**
 - Array initialization, access, and traversal
 - Finding minimum, maximum, and sum
@@ -215,7 +215,7 @@ Maximum value: 50
 Sum of all elements: 205
 ```
 
-### 18. linked_list.s
+### linked_list.s
 **Linked List Implementation**
 - Dynamic linked list with insertion and deletion
 - Uses dynamic memory allocation (syscall 0x20/0x21)
@@ -229,7 +229,7 @@ Deleting value 30...
 List: 50 -> 40 -> 20 -> 10
 ```
 
-### 19. stack.s
+### stack.s
 **Stack-Based Calculator**
 - Stack implementation with push/pop operations
 - Evaluates postfix (reverse Polish notation) expressions
@@ -243,7 +243,7 @@ Evaluating: (10 - 6) / 2
 Result: 2
 ```
 
-### 20. hash_table.s
+### hash_table.s
 **Hash Table Implementation**
 - Hash table with linear probing for collision resolution
 - Insertion and lookup operations
@@ -256,7 +256,7 @@ Inserted: 33 -> 330 (collision resolved)
 Found: 42 -> 420
 ```
 
-### 21. strings.s
+### strings.s
 **String Manipulation**
 - String operations: length, copy, compare, concatenate
 - Byte-level memory access
@@ -270,7 +270,7 @@ Comparing "Hello" with "World": first string is less
 Concatenated: "ARM Assembly"
 ```
 
-### 22. string_reverse.s
+### string_reverse.s
 **String Reversal**
 - Reads a string and prints it reversed
 - In-place reversal algorithm
@@ -282,7 +282,7 @@ Input: "Hello"
 Output: "olleH"
 ```
 
-### 23. matrix_multiply.s
+### matrix_multiply.s
 **Matrix Multiplication**
 - Computes C = A × B where A is m×n and B is n×p
 - 2D array indexing with row-major order
@@ -296,7 +296,7 @@ Result: [[50, 60], [114, 140], [178, 220]]
 
 ## Advanced Examples
 
-### 24. functions.s
+### functions.s
 **Function Calling Conventions**
 - Demonstrates proper function call syntax
 - Parameter passing in registers
@@ -324,7 +324,7 @@ Example 4: Swapping 100 and 200
 After swap: 200, 100
 ```
 
-### 25. conditionals.s
+### conditionals.s
 **Conditional Execution**
 - If/else statements
 - Nested conditions
@@ -351,7 +351,7 @@ Can drive
 Example 4: Switch/case (day 3): Wednesday
 ```
 
-### 26. loops.s
+### loops.s
 **Loop Constructs**
 - For loops (counted iteration)
 - While loops (pre-test loops)
@@ -385,19 +385,19 @@ Example 5: Break/continue (find first even number)
 Found even number at index 5 with value 18
 ```
 
-### 27. nested_calls.s
+### nested_calls.s
 **Deep Function Call Nesting**
 - Tests deep call stack functionality
 - Multiple levels of function nesting
 - Demonstrates: stack frame management, return address handling, stack depth
 
-### 28. state_machine.s
+### state_machine.s
 **Finite State Machine**
 - Email address validator using state machine pattern
 - State transitions based on input characters
 - Demonstrates: state-based logic, character processing, validation algorithms
 
-### 29. task_scheduler.s
+### task_scheduler.s
 **Cooperative Task Scheduler**
 - Simple round-robin task scheduler
 - Context switching between tasks
@@ -405,7 +405,7 @@ Found even number at index 5 with value 18
 
 ## Bit Manipulation Examples
 
-### 30. bit_operations.s
+### bit_operations.s
 **Comprehensive Bit Manipulation**
 - Bit counting (popcount)
 - Bit reversal
@@ -429,7 +429,7 @@ Test 2: Reverse byte 0b10110010
 Test 3: Is 64 a power of 2? PASS
 ```
 
-### 31. xor_cipher.s
+### xor_cipher.s
 **XOR Encryption/Decryption**
 - Simple XOR cipher implementation
 - Demonstrates encryption and decryption
@@ -437,7 +437,7 @@ Test 3: Is 64 a power of 2? PASS
 
 ## System & I/O Examples
 
-### 32. addressing_modes.s
+### addressing_modes.s
 **ARM Addressing Modes Demonstration**
 - Comprehensive demonstration of ARM2 addressing modes
 - Tests immediate offset, pre-indexed with writeback, post-indexed
@@ -451,14 +451,14 @@ Testing ARM Addressing Modes...
 All addressing mode tests passed!
 ```
 
-### 33. adr_demo.s
+### adr_demo.s
 **ADR Pseudo-Instruction Demo**
 - Position-independent address loading
 - PC-relative addressing
 - Loading addresses of labels and data
 - Demonstrates: ADR instruction, position-independent code
 
-### 34. memory_stress.s
+### memory_stress.s
 **Memory Operations Stress Test**
 - Sequential access patterns
 - Strided access patterns
@@ -475,7 +475,7 @@ Test 4: Indexed addressing... PASS
 Test 5: LDM/STM operations... PASS
 ```
 
-### 35. multi_precision_arith.s
+### multi_precision_arith.s
 **Multi-Precision Arithmetic**
 - 128-bit arithmetic operations
 - ADC/SBC carry chain operations
@@ -491,7 +491,7 @@ Test 4 PASSED: Shift
 ALL TESTS PASSED
 ```
 
-### 36. file_io.s
+### file_io.s
 **File I/O Operations**
 - File open, read, write, close syscalls
 - Seek and tell operations
@@ -510,40 +510,47 @@ ALL TESTS PASSED
 
 These programs test specific assembler features and edge cases:
 
-### 37. test_ltorg.s
+### test_ltorg.s
 **Literal Pool Management**
 - Tests `.ltorg` directive for placing literal pools
 - Demonstrates: literal pool placement, LDR pseudo-instruction, constant loading
 
-### 38. test_org_0_with_ltorg.s
+### large_literal_pool.s
+**Large Literal Pool Stress Test**
+- Heavily stresses dynamic literal pool implementation with 80+ constants across 4 pools
+- Tests pools exceeding the default 16-literal estimate
+- Demonstrates: dynamic pool sizing, multiple literal pools, cumulative address adjustments
+- Validates correct address calculation for instructions after large pools
+
+### test_org_0_with_ltorg.s
 **Origin 0x0000 with Literal Pool**
 - Tests programs starting at address 0x0000
 - Combined with literal pool management
 - Edge case testing for address calculations
 
-### 39. nop_test.s
+### nop_test.s
 **NOP Pseudo-Instruction**
 - Tests NOP (No Operation) instruction
 - Demonstrates: pseudo-instruction expansion
 
-### 40. const_expressions.s
+### const_expressions.s
 **Constant Expression Evaluation**
 - Tests constant arithmetic in assembly time
 - Label arithmetic (label + offset, label - offset)
 - Non-power-of-2 constants
 - Demonstrates: assembler constant evaluation, compile-time arithmetic
 
-### 41. test_const_expr.s
+### test_const_expr.s
 **Constant Expression Tests**
 - Additional constant expression test cases
 - Edge cases for constant evaluation
 
-### 42. test_expr.s
+### test_expr.s
 **Expression Evaluation Tests**
 - Tests expression parser in assembler
 - Complex constant expressions
 
-### 43. standalone_labels.s
+### standalone_labels.s
 **Standalone Label Syntax**
 - Tests labels on their own lines (not followed by instructions)
 - Demonstrates: label definition syntax variations
@@ -673,7 +680,7 @@ These examples collectively demonstrate:
   - addressing_modes.s, xor_cipher.s
 
 - **Test/Edge Cases** (Assembler feature testing):
-  - test_ltorg.s, test_org_0_with_ltorg.s, nop_test.s, const_expressions.s,
+  - test_ltorg.s, large_literal_pool.s, test_org_0_with_ltorg.s, nop_test.s, const_expressions.s,
   - test_const_expr.s, test_expr.s, standalone_labels.s, adr_demo.s
 
 ## Learning Path
@@ -709,7 +716,7 @@ go clean -testcache
 go test ./tests/integration/...
 ```
 
-43 programs have expected output files for automated testing.
+All 44 programs have expected output files for automated testing (some with multiple test cases for different inputs).
 
 ## Notes
 

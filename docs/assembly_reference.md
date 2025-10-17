@@ -714,7 +714,9 @@ Start with a dot:
 
 ## See Also
 
-- [Tutorial](tutorial.md) - Step-by-step learning guide
-- [Examples](../examples/README.md) - Sample programs
-- [Debugger Reference](debugger_reference.md) - Debugging commands
-- [System Calls Reference](syscalls.md) - Detailed syscall documentation
+- [TUTORIAL.md](TUTORIAL.md) - Step-by-step learning guide
+- [Instruction Set Reference](../INSTRUCTIONS.md) - Detailed documentation for every ARM2 instruction
+- [Examples](../examples/README.md) - 44 sample programs
+- [Debugger Reference](debugger_reference.md) - Debugging commands and features
+- [Debugging Tutorial](debugging_tutorial.md) - Hands-on debugging walkthroughs
+- [FAQ](FAQ.md) - Common questions and troubleshooting

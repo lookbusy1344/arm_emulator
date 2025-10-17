@@ -1474,10 +1474,12 @@ Congratulations! You've learned ARM2 assembly programming fundamentals.
 
 ### Further Reading
 
-- [Assembly Reference](assembly_reference.md) - Complete instruction reference
-- [Debugger Reference](debugger_reference.md) - Advanced debugging
+- [Instruction Set Reference](../INSTRUCTIONS.md) - Detailed reference for every ARM2 instruction
+- [Assembly Reference](assembly_reference.md) - Directives, syntax, and assembler features
+- [Debugger Reference](debugger_reference.md) - Advanced debugging commands and features
+- [Debugging Tutorial](debugging_tutorial.md) - Hands-on debugging walkthroughs
 - [FAQ](FAQ.md) - Common questions and solutions
-- [Examples](../examples/README.md) - 30+ example programs
+- [Examples](../examples/README.md) - 44 example programs with descriptions
 
 ### Resources
 

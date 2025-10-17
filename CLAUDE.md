@@ -43,10 +43,10 @@ go test ./...
 - `debugger/` - Debugging utilities with TUI (breakpoints, watchpoints, expression evaluation)
 - `config/` - Cross-platform configuration management
 - `tools/` - Development tools (linter, formatter, cross-reference generator)
-- `tests/` - Test files (959 tests, 100% pass rate)
+- `tests/` - Test files (969 tests, 100% pass rate)
   - `tests/unit/` - Unit tests for all packages
   - `tests/integration/` - Integration tests for complete programs
-- `examples/` - Example ARM assembly programs (43 programs, all fully functional including 3 interactive)
+- `examples/` - Example ARM assembly programs (44 programs, all fully functional including 3 interactive)
 - `docs/` - User and developer documentation
 
 ## SWI Syscall Reference
@@ -140,8 +140,8 @@ The emulator implements traditional ARM2 syscall convention: `SWI #immediate_val
 ## Current Status
 
 **Phase 11 (Production Hardening) - Complete ✅**
-- All tests passing (100% pass rate)
-  - Unit tests: ~895 tests (includes 18 TUI tests using tcell.SimulationScreen, 12 register trace tests)
+- All tests passing (100% pass rate, 969 total tests)
+  - Unit tests: ~905 tests (includes 18 TUI tests using tcell.SimulationScreen, 12 register trace tests)
   - Integration tests: 64 tests (full end-to-end execution pipeline + CLI diagnostic flags + example programs)
 - Code quality tools implemented (golangci-lint with errcheck, unused, govet, ineffassign, misspell)
 - All lint issues resolved (0 issues reported)
@@ -149,7 +149,7 @@ The emulator implements traditional ARM2 syscall convention: `SWI #immediate_val
 - CI updated to Go 1.25 with automated linting
 - Build artifacts added to .gitignore
 - Parser limitations resolved (debugger expression parser rewritten)
-- Example programs: 43 programs total, all fully functional (100% success rate) ✅
+- Example programs: 44 programs total, all fully functional (100% success rate) ✅
   - 33+ programs with expected output files
   - Table-driven test framework for easy test maintenance
   - 39 non-interactive programs fully functional
