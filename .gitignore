@@ -9,4 +9,4 @@ copilot.data.*.xml
 *.prof
 coverage.out
 *.log
-/tests/integration/test_io.txt
+test_io.txt
