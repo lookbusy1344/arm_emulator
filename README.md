@@ -327,6 +327,31 @@ go clean -testcache
 go test ./...
 ```
 
+### Release Builds
+
+Create optimized release builds for distribution:
+
+**Local optimized build:**
+```bash
+go build -ldflags="-s -w" -o arm-emulator
+```
+
+The `-ldflags="-s -w"` flags strip symbol tables and debug information, producing smaller, faster-loading binaries suitable for distribution (~30-40% size reduction).
+
+**Automated release builds:**
+
+The project includes automated GitHub Actions workflows that create optimized release builds for multiple platforms:
+
+```bash
+git tag v1.0.0
+git push origin v1.0.0
+```
+
+This triggers the `Build Release` workflow which:
+- Builds optimized binaries for **linux-amd64**, **darwin-arm64**, and **windows-amd64**
+- Creates a GitHub Release with pre-built binaries for each platform
+- Users can download platform-specific binaries directly from the [Releases](https://github.com/lookbusy1344/arm_emulator/releases) page
+
 ## Project Structure
 
 ```
