@@ -743,6 +743,13 @@ func (p *Parser) adjustAddressesForDynamicPools(program *Program) {
 	// Track cumulative address offset due to differences
 	cumulativeOffset := int32(0)
 
+	// Store original pool locations before adjustments
+	originalPoolLocs := make([]uint32, len(program.LiteralPoolLocs))
+	copy(originalPoolLocs, program.LiteralPoolLocs)
+
+	// Store cumulative offset at each pool location for later address adjustments
+	offsetAtPool := make([]int32, len(program.LiteralPoolLocs))
+
 	for i, poolLoc := range program.LiteralPoolLocs {
 		// Calculate actual space needed for this pool
 		actualCount := program.LiteralPoolCounts[i]
@@ -759,12 +766,59 @@ func (p *Parser) adjustAddressesForDynamicPools(program *Program) {
 		// #nosec G115 -- difference is bounded by pool size estimates, safe to convert to int32
 		cumulativeOffset += int32(difference)
 
-		// Update cumulative offset for next iteration (next pool sees the effect of this pool's change)
-		// Note: we don't update yet; we'll do it per-item below
+		// Store cumulative offset after this pool
+		offsetAtPool[i] = cumulativeOffset
 	}
 
-	// If we have address adjustments, update all instructions after the last pool
-	// (Only needed if we're recalculating, but for now we're just being conservative)
+	// Now update all instruction and symbol addresses that come after pools
+	// IMPORTANT: We must calculate all adjustments first, THEN apply them
+	// Otherwise we'd be comparing already-adjusted addresses against original pool locations
+	if len(originalPoolLocs) > 0 {
+		// Helper function to determine adjustment for a given ORIGINAL address
+		getAdjustmentForAddress := func(addr uint32) int32 {
+			// Find the last pool that this address comes after
+			for i := len(originalPoolLocs) - 1; i >= 0; i-- {
+				// #nosec G115 -- estimatedBytes is a const 64, safe to convert to uint32
+				poolEndLoc := originalPoolLocs[i] + uint32(estimatedBytes)
+				if addr >= poolEndLoc {
+					// This address comes after pool i, use cumulative offset at pool i
+					return offsetAtPool[i]
+				}
+			}
+			// Address comes before all pools, no adjustment needed
+			return 0
+		}
+
+		// First pass: calculate adjustments for all instructions
+		instAdjustments := make([]int32, len(program.Instructions))
+		for i, inst := range program.Instructions {
+			instAdjustments[i] = getAdjustmentForAddress(inst.Address)
+		}
+
+		// Second pass: apply adjustments
+		for i, adjustment := range instAdjustments {
+			if adjustment != 0 {
+				// #nosec G115 -- adjustment is bounded, safe conversion
+				program.Instructions[i].Address = uint32(int32(program.Instructions[i].Address) + adjustment)
+			}
+		}
+
+		// Same for symbols
+		symbolAdjustments := make(map[string]int32)
+		for name, symbol := range program.SymbolTable.symbols {
+			adjustmentOffset := getAdjustmentForAddress(symbol.Value)
+			if adjustmentOffset != 0 {
+				symbolAdjustments[name] = adjustmentOffset
+			}
+		}
+
+		for name, adjustment := range symbolAdjustments {
+			symbol := program.SymbolTable.symbols[name]
+			// #nosec G115 -- adjustment is bounded, safe conversion
+			symbol.Value = uint32(int32(symbol.Value) + adjustment)
+			program.SymbolTable.symbols[name] = symbol
+		}
+	}
 }
 
 // countLiteralsPerPool counts the number of unique literals needed for each literal pool
