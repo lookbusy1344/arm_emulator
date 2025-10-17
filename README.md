@@ -30,7 +30,7 @@ The prompt for each phase was *"Let’s implement phase X from IMPLEMENTATION_PL
 
 ## Daily progress
 
-**Day 1 - 8 Oct** - Claude has written a specification, and a staged implemenation plan. It's made good progress with phases 1-5 completed.
+**Day 1 - 8 Oct** - Claude has written a specification, and a staged implementation plan. It's made good progress with phases 1-5 completed.
 
 **Day 2 - 9 Oct** - Phases 6-10 completed. From the original plan the project should be essentially complete, but there is actually much more to do, including the parser. I have directed Claude to note in TODO.md anything it cannot complete, as frequently it will truncate a complex task and then 'forget' about the more difficult features left unfinished.
 
@@ -48,7 +48,7 @@ Go code is 28,331 lines long at the end of day. Weekly Claude usages limits are 
 
 **Day 5 - 12 Oct** - Asking Claude if any core ARM2 instructions are left to implement (apparently not), and to write comprehensive tests for all instructions. This has found several instructions that are malfunctioning, and it’s important to keep reminding Claude not to simplify or delete tests that fail, but to address the underlying issue. However the project is beginning to look impressive now, and I still haven't written or edited one line of Go here, just markdown files and prompts to Claude.
 
-Today I have focused on asking Claude to write challanging example programs, but not at this stage getting them to run (to avoid issues with Claude just deleting things that don't work). I have also asked it to write comprehensive tests for all instructions, again without focusing too much on whether they pass.
+Today I have focused on asking Claude to write challenging example programs, but not at this stage getting them to run (to avoid issues with Claude just deleting things that don't work). I have also asked it to write comprehensive tests for all instructions, again without focusing too much on whether they pass.
 
 Go code is 33,461 lines. Weekly Claude usage limits reached, can resume again on Thursday 16 Oct. In the interim I will use Sonnet 4.5 with Copilot.
 
