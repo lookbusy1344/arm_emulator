@@ -48,6 +48,7 @@ func TestLexer_Comments(t *testing.T) {
 		expected string
 	}{
 		{"; line comment", " line comment"},
+		{"@ line comment", " line comment"},
 		{"// line comment", " line comment"},
 		{"/* block comment */", " block comment "},
 	}

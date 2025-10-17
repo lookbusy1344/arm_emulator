@@ -160,7 +160,7 @@ func (l *Lexer) skipWhitespace() {
 	}
 }
 
-// skipLineComment skips a line comment starting with ; or //
+// skipLineComment skips a line comment starting with ;, @, or //
 func (l *Lexer) skipLineComment() string {
 	start := l.pos - 1
 	for l.ch != '\n' && l.ch != 0 {
@@ -320,7 +320,7 @@ func (l *Lexer) NextToken() Token {
 		l.column = 0
 		return tok
 
-	case ';':
+	case ';', '@':
 		tok.Type = TokenComment
 		tok.Literal = l.skipLineComment()
 		return tok
