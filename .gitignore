@@ -10,3 +10,4 @@ copilot.data.*.xml
 coverage.out
 *.log
 test_io.txt
+/arm-emulator-*
