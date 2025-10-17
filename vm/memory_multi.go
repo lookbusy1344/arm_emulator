@@ -132,10 +132,15 @@ func ExecuteLoadStoreMultiple(vm *VM, inst *Instruction) error {
 		vm.StackTrace.RecordSPMove(vm.CPU.Cycles, inst.Address, baseAddr, vm.CPU.GetSP())
 	}
 
-	// Handle S bit (PSR transfer or user mode access)
-	// For simplicity, we ignore this in basic implementation
-	// Full implementation would handle SPSR transfer and user mode bank switching
-	_ = psr
+	// Handle S bit (PSR transfer for LDM with PC)
+	// ARM6+ behavior: When loading PC with S bit set, restore CPSR from SPSR
+	// This simulates returning from an exception handler
+	if psr == 1 && load == 1 && pcLoaded {
+		// LDM with S bit and PC loaded: restore CPSR from SPSR (exception return)
+		vm.CPU.RestoreCPSR()
+	}
+	// Note: STM with S bit has no special behavior in this implementation
+	// (storing PC+12 is sufficient for exception handling)
 
 	// Increment PC (unless we loaded into PC)
 	if !pcLoaded {

@@ -444,7 +444,7 @@ STRH R2, [R3, #6]     ; [R3 + 6] = R2[15:0]
 
 **Status:** Implemented
 
-**Syntax:** `LDM{cond}{mode} Rn{!}, {register_list}`
+**Syntax:** `LDM{cond}{mode} Rn{!}, {register_list}{^}`
 
 **Description:** Loads multiple registers from consecutive memory locations
 
@@ -454,18 +454,27 @@ STRH R2, [R3, #6]     ; [R3 + 6] = R2[15:0]
 
 **Example:**
 ```arm
-LDMIA R13!, {R0-R3}   ; Load R0-R3 from stack, increment R13
-LDMFD SP!, {R4-R6, PC}  ; Pop R4-R6 and return
-LDMIA R0, {R1-R4}     ; Load R1-R4 from memory at R0
+LDMIA R13!, {R0-R3}      ; Load R0-R3 from stack, increment R13
+LDMFD SP!, {R4-R6, PC}   ; Pop R4-R6 and return
+LDMIA R0, {R1-R4}        ; Load R1-R4 from memory at R0
+LDMFD SP!, {R0-R12, LR, PC}^  ; Exception return (restore CPSR from SPSR)
 ```
 
 **Usage Note:** `LDMFD SP!` (Load Multiple Full Descending) is the standard way to pop registers from the stack.
+
+**S Bit (^ suffix):** When the `^` suffix is used with PC in the register list, the instruction performs an exception return by restoring the CPSR from SPSR. This simulates returning from an exception handler where the processor status needs to be restored along with the program counter. The S bit has no effect if PC is not in the register list.
+
+**Example Exception Return:**
+```arm
+; Exception handler epilogue
+LDMFD SP!, {R0-R12, LR, PC}^  ; Restore all registers and CPSR from SPSR
+```
 
 #### STM - Store Multiple ✅
 
 **Status:** Implemented
 
-**Syntax:** `STM{cond}{mode} Rn{!}, {register_list}`
+**Syntax:** `STM{cond}{mode} Rn{!}, {register_list}{^}`
 
 **Description:** Stores multiple registers to consecutive memory locations
 
@@ -476,11 +485,13 @@ LDMIA R0, {R1-R4}     ; Load R1-R4 from memory at R0
 **Example:**
 ```arm
 STMDB SP!, {R0-R3, LR}  ; Push R0-R3 and LR to stack
-STMFD SP!, {R4-R11}   ; Push R4-R11 to stack
-STMIA R0!, {R1-R4}    ; Store R1-R4 to memory at R0, increment R0
+STMFD SP!, {R4-R11}     ; Push R4-R11 to stack
+STMIA R0!, {R1-R4}      ; Store R1-R4 to memory at R0, increment R0
 ```
 
 **Usage Note:** `STMFD SP!` (Store Multiple Full Descending) is the standard way to push registers onto the stack.
+
+**S Bit (^ suffix):** The `^` suffix sets the S bit (bit 22) in the instruction encoding. For STM instructions, this bit has no special behavior in this implementation - registers are stored normally with PC stored as PC+12 when included in the register list. The S bit is primarily used with LDM instructions for exception returns.
 
 ---
 

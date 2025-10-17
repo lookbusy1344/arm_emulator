@@ -1291,6 +1291,64 @@ not_equal:
         MOV     PC, LR
 ```
 
+### Saving and Restoring Processor Flags
+
+**Important:** The CPSR flags (N, Z, C, V) are **NOT** automatically saved by `STMFD`/`LDMFD` stack operations. If you need to preserve flags across function calls or critical sections, you must explicitly save and restore the CPSR.
+
+**Using MRS/MSR Instructions:**
+
+The `MRS` (Move PSR to Register) and `MSR` (Move Register to PSR) instructions allow you to read and write the CPSR:
+
+```asm
+; Save CPSR flags to stack
+save_flags:
+        MRS     R0, CPSR        ; Read CPSR into R0
+        STMFD   SP!, {R0}       ; Push CPSR onto stack
+
+        ; ... do work that modifies flags ...
+
+        LDMFD   SP!, {R0}       ; Pop CPSR from stack
+        MSR     CPSR_f, R0      ; Restore flags (f = flags field only)
+        MOV     PC, LR
+```
+
+**Example: Preserving Flags in Nested Function:**
+
+```asm
+; Function that needs to preserve caller's flags
+critical_function:
+        STMFD   SP!, {R1-R3, LR}
+        MRS     R3, CPSR        ; Save current flags in R3
+
+        ; Do work that modifies flags
+        ADDS    R1, R0, #1      ; This sets flags
+        CMP     R1, #100
+        MOVGT   R0, #100        ; Cap at 100
+
+        ; Restore original flags before returning
+        MSR     CPSR_f, R3      ; Restore flags from R3
+        LDMFD   SP!, {R1-R3, PC}
+```
+
+**SPSR and Exception Handling (Advanced):**
+
+The emulator also supports the **SPSR** (Saved Program Status Register) and the `^` suffix for exception returns. This is primarily used by operating system exception handlers:
+
+```asm
+; Exception handler epilogue
+; The ^ suffix restores CPSR from SPSR when loading PC
+        LDMFD   SP!, {R0-R12, LR, PC}^  ; Exception return
+```
+
+**When to use each approach:**
+- **MRS/MSR**: For regular user code that needs to preserve flags
+- **SPSR/^**: For OS-level exception handlers (advanced use case)
+
+**Note:** Most functions don't need to preserve flags - the caller typically expects flags to be modified. Only use flag preservation when:
+- You have a utility function that shouldn't affect calling code's conditionals
+- You're implementing critical sections that must be transparent to the caller
+- You're writing exception or interrupt handlers
+
 ---
 
 ## Debugging Your Programs

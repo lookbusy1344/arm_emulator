@@ -11,6 +11,10 @@ type CPU struct {
 	// Current Program Status Register
 	CPSR CPSR
 
+	// Saved Program Status Register (for exception handling)
+	// Used when LDM with S bit restores PC (simulates exception return)
+	SPSR CPSR
+
 	// Cycle counter for statistics
 	Cycles uint64
 }
@@ -79,6 +83,7 @@ func NewCPU() *CPU {
 		R:      [15]uint32{},
 		PC:     0,
 		CPSR:   CPSR{},
+		SPSR:   CPSR{},
 		Cycles: 0,
 	}
 }
@@ -90,6 +95,7 @@ func (c *CPU) Reset() {
 	}
 	c.PC = 0
 	c.CPSR = CPSR{}
+	c.SPSR = CPSR{}
 	c.Cycles = 0
 }
 
@@ -231,4 +237,17 @@ func getRegisterName(reg int) string {
 	default:
 		return "UNKNOWN"
 	}
+}
+
+// SaveCPSR copies the current CPSR to SPSR
+// This is typically done when entering an exception handler
+func (c *CPU) SaveCPSR() {
+	c.SPSR = c.CPSR
+}
+
+// RestoreCPSR copies SPSR back to CPSR
+// This is done when returning from an exception handler
+// (e.g., LDM with S bit loading PC)
+func (c *CPU) RestoreCPSR() {
+	c.CPSR = c.SPSR
 }
