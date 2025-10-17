@@ -161,6 +161,90 @@ func TestExamplePrograms(t *testing.T) {
 			expectedOutput: "calculator.txt",
 			stdin:          "15\n+\n7\nq\n",
 		},
+		{
+			name:           "AddressingModes",
+			programFile:    "addressing_modes.s",
+			expectedOutput: "addressing_modes.txt",
+		},
+		{
+			name:           "Arithmetic",
+			programFile:    "arithmetic.s",
+			expectedOutput: "arithmetic.txt",
+		},
+		{
+			name:           "Arrays",
+			programFile:    "arrays.s",
+			expectedOutput: "arrays.txt",
+		},
+		{
+			name:           "BinarySearch",
+			programFile:    "binary_search.s",
+			expectedOutput: "binary_search.txt",
+		},
+		{
+			name:           "BitOperations",
+			programFile:    "bit_operations.s",
+			expectedOutput: "bit_operations.txt",
+		},
+		{
+			name:           "BubbleSort",
+			programFile:    "bubble_sort.s",
+			expectedOutput: "bubble_sort.txt",
+			stdin:          "7\n5\n1\n4\n2\n8\n3\n6\n",
+		},
+		{
+			name:           "Conditionals",
+			programFile:    "conditionals.s",
+			expectedOutput: "conditionals.txt",
+		},
+		{
+			name:           "Division",
+			programFile:    "division.s",
+			expectedOutput: "division.txt",
+		},
+		{
+			name:           "Factorial",
+			programFile:    "factorial.s",
+			expectedOutput: "factorial.txt",
+			stdin:          "5\n",
+		},
+		{
+			name:           "Fibonacci",
+			programFile:    "fibonacci.s",
+			expectedOutput: "fibonacci.txt",
+			stdin:          "10\n",
+		},
+		{
+			name:           "Functions",
+			programFile:    "functions.s",
+			expectedOutput: "functions.txt",
+		},
+		{
+			name:           "LinkedList",
+			programFile:    "linked_list.s",
+			expectedOutput: "linked_list.txt",
+		},
+		{
+			name:           "Quicksort",
+			programFile:    "quicksort.s",
+			expectedOutput: "quicksort.txt",
+		},
+		{
+			name:           "TimesTable",
+			programFile:    "times_table.s",
+			expectedOutput: "times_table.txt",
+			stdin:          "7\n",
+		},
+		{
+			name:           "TestConstExpr",
+			programFile:    "test_const_expr.s",
+			expectedOutput: "test_const_expr.txt",
+		},
+		{
+			name:           "TestExpr",
+			programFile:    "test_expr.s",
+			expectedOutput: "test_expr.txt",
+		},
 	}
 
 	for _, tt := range tests {
