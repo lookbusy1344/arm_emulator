@@ -54,7 +54,7 @@ Go code is 33,461 lines. Weekly Claude usage limits reached, can resume again on
 
 It's important to have clear daily (or at least progressive) goals, so we can keep Claude focused on them.
 
-**Day 6 - 13 Oct - Copilot VSCode** - Switched to Sonnet 4.5 in Copilot with VSCode, because Claude Code weekly limits have been reached. I'm not sure the overall experience is quite as good as CC. While making progress, several more example programs are failing without detection from Copilot. The automated tests are clearly not thorough enough.
+**Day 6 - 13 Oct - Copilot VSCode** - Switched to Sonnet 4.5 in Copilot interactively with VSCode, because Claude Code weekly limits have been reached. While making progress, several more example programs are failing without detection from Copilot. The automated tests are clearly not thorough enough.
 
 I've been working through the failing example programs, and getting them to run without Copilot editing out the parts that don't work. This is a slow process, but I'm making progress.
 
@@ -62,41 +62,41 @@ Last step of the day was to take more detailed control, and tell Copilot to incl
 
 Go code now is 34,735 lines.
 
-**Day 7 - 14 Oct - Copilot CLI** - Today I’m trying Copilot CLI. https://github.com/github/copilot-cli with the default Sonnet 4.5 model, from commit c3d1c0ada6fbf073e0e6ce54371dbb9b3c63119e. Not quite as slick as Claude Code, but close (well the model is the same!).
+**Day 7 - 14 Oct - Copilot CLI** - Today I’m trying Copilot CLI. https://github.com/github/copilot-cli with the default Sonnet 4.5 model, from commit c3d1c0ada6fbf073e0. Not as slick as Claude Code, and needs more confirmations.
 
-f19616250600ed4ed98839de2ad14bfac3774e92 breaks integration tests (the script runs fine by hand), and Sonnet 4.5 completely failed to fix it. Switching to GPT-5 however seemed to fixed very elegantly, although it is slow and uncommunicative.
+Commit f19616250600ed4ed9883 breaks integration tests (the script runs fine by hand), and Sonnet 4.5 completely failed to fix it. Switching to GPT-5 however seemed to fixed very elegantly, although it is slow and uncommunicative.
 
-By 2001523f91760431f078e4f0fd6932f736cad770 we have all the example programs fixed, and running as integration tests. Something I've closely pushed for in the latest phase of development.
+By 2001523f91760431f078e we have all the example programs fixed, and running as integration tests. Something I've closely pushed for in the latest phase of development.
 
-**Day 8 - 15 Oct - Copilot CLI** - Got the new example programs working and integrated into tests. Updating the documents. Although not as polished as Claude, Copilot has the choice of models which can be useful.
+**Day 8 - 15 Oct - Copilot CLI** - More integration tests. Updating the documents. Although not as polished as Claude, Copilot has the choice of models which can be useful.
 
 Go code now is 35,206 lines.
 
-**Day 9 - 16 Oct - Claude Code** - Back on Claude Code, wonderful after using Copilot CLI. Adding some missing instructions, and testing the TUI interface, and Register Access Pattern Analysis.
+**Day 9 - 16 Oct - Claude Code** - Back on Claude Code, far superior to Copilot. Adding some missing instructions, and automated testing the TUI interface, and Register Access Pattern Analysis.
 
-Go code is now 40,352 lines and we have 75% code coverage.
+Go code is now 40,352 lines and we have 75% code coverage. Note the big jump in output.
 
-**Day 10 - 17 Oct** - The project is almost finished and ready for detailed review, a substantial task for over 40k lines of code! Today I have mainly focused on docs, checked through the tutorial and making a list of specific fixes and clarifications I’d like Claude to make. Also worked on a solution for the CPSR issue with full 32 bit addresses (this is a small departure from strict ARM2 compatibility since that architecture only used 26 bit addressing, and stored CPU flags in the remaining bits of the PC register). This emulator uses full 32 bit addressing, so we need to store the CPSR flags separately. This is only a theoretical issue for most example programs, because there are no hardware interrupts.
+**Day 10 - 17 Oct** - The project is almost finished and ready for detailed review, a substantial task for over 40k lines of code! Today I have mainly focused on docs, checked through the tutorial and making a list of specific fixes and clarifications I’d like Claude to make. Also worked on a solution for the CPSR issue with 32 bit addresses (this is a small departure from strict ARM2 that used 26 bit addressing, and stored CPU flags in the remaining bits of the PC register). This emulator uses full 32 bit addressing, so we need to store the CPSR flags separately. This is only a theoretical issue for most example programs, because there are no hardware interrupts.
 
-Go code is currently 42,481 lines. Estimated total vibing time is around 32 hours, so an average of 1,300 lines of code per hour!
+Go code is now 42,481 lines. Estimated total vibing time is around 32 hours, so an average of 1,300 lines of code per hour!
 
 All unit and integration tests are passing, and the test system runs all the example programs and confirms their output.
 
-Release automation added, and v0.9.0 tagged. Looks like the builds for Windows and MacOS are working properly.
+Release automation added, and v0.9.0 tagged. We now have automatic builds for 4 platfroms. Perhaps at this point I should actually try it with some assembly I have written myself 😂
 
-Perhaps at this point I should actually try it with some assembly I have written myself 😂
-
-## Summary
+## Summary, some thoughts
 
 At this stage I’ve probably taken vibing as far as I can go without actually writing some ARM2 assembly and trying to run and debug it by hand. So far every test program has been written by Claude (or Copilot, when Claude limits were exceeded).
 
-In terms of developer experience, Claude Code is amazing. It’s easy to get jaded and blasé about current AI progress, but in stepping back if you told me 2 years ago this would be possible I would have said you were dreaming! Already these AI tools can out-perform science fiction depictions in shows like *Star Trek*, and we are only 2 years into the revolution. What will be possible in another 2 years? This will revolutionise the whole workplace.
+In terms of developer experience, *Claude Code* is amazing. It’s easy to get jaded and blasé about current AI progress, but if you told me 2 years ago this would be possible I would have said you were dreaming! Already these AI tools can out-perform science fiction depictions in shows like *Star Trek*, and we are only 2 years into the revolution. What will be possible in another 2 years? This will revolutionise the whole workplace.
 
-My criticisms are minor. You need to lean on Claude to preserve tests that fail, and actually fix the issue not delete the test. Instructions in CLAUDE.md should be strong in this regard. The only time I’ve applied detailed pressure and closely monitored code was when instructing Claude to write comprehensive integration tests, running the example programs and checking the output against expected results. Even then, some failing examples survived unnoticed between days 7-10. This might be less of an issue when Claude is writing something less esoteric and more easily seen, like a website. In this project, the goals were always loosely defined and all the example programs were pretty open-ended.
+My criticisms are minor. You need to lean on Claude to preserve tests that fail, and actually fix the issue not delete the test. Instructions in CLAUDE.md should be strong in this regard. The only time I’ve applied detailed pressure and closely monitored code was when instructing Claude to write comprehensive integration tests, running the example programs and checking the output against expected results. Even then, some failing examples survived unnoticed between days 7-10. This might be less of an issue when Claude is writing something less esoteric and more easily seen, like a website. In this project, the goals were always loosely defined and many example programs were pretty open-ended.
 
-Claude continues to evolve quickly. Even during these 10 days, it has had 2 significant updates: first with Sonnet 4.5 and then today the faster Haiku 4.5, for simple tasks. It completed small doc updates and automatic release workflows almost instantly.
+Claude continues to evolve quickly. Even during these 10 days, it has had 2 significant updates: first with Sonnet 4.5 and then today the faster Haiku 4.5 for simple tasks. It completed small doc updates and automatic release workflows almost instantly.
 
 Exciting times. Perhaps I should think of a second more challenging vibe-coding project!
+
+**The rest of this document is AI generated.**
 
 ## Documentation
 
