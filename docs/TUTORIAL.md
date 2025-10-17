@@ -102,6 +102,40 @@ Or TUI mode for visual debugging:
 
 Let's write the classic "Hello, World!" program.
 
+### Syscall Register Conventions
+
+When calling system calls (SWI instructions), it's important to understand which registers are preserved and which are modified:
+
+**Preserved Registers (Safe across SWI calls):**
+- **R4-R11**: Always preserved - syscalls never modify these
+- **SP (R13)**: Stack pointer - always preserved
+- **LR (R14)**: Link register - always preserved
+- **CPSR flags**: Condition flags (N, Z, C, V) are always preserved
+
+**Volatile Registers (May be modified by SWI calls):**
+- **R0**: Used for first parameter and return value - ALWAYS modified
+- **R1-R3**: Used for additional parameters - may be modified depending on the syscall
+- **R12 (IP)**: Intra-procedure scratch register - may be modified
+
+**Register Usage by Common Syscalls:**
+
+| Syscall | Number | Input | Output | Preserved |
+|---------|--------|-------|--------|-----------|
+| EXIT | 0x00 | R0=exit_code | - | R1-R14, flags |
+| WRITE_CHAR | 0x01 | R0=char | - | R1-R14, flags |
+| WRITE_STRING | 0x02 | R0=string_addr | - | R1-R14, flags |
+| WRITE_INT | 0x03 | R0=value, R1=base | - | R2-R14, flags |
+| READ_CHAR | 0x04 | - | R0=char | R1-R14, flags |
+| READ_STRING | 0x05 | R0=buffer, R1=maxlen | R0=bytes_read | R2-R14, flags |
+| READ_INT | 0x06 | - | R0=value | R1-R14, flags |
+| WRITE_NEWLINE | 0x07 | - | - | R0-R14, flags |
+
+**Important Notes:**
+- Always assume R0-R3 may be modified by any syscall
+- If you need to preserve R0-R3 across a syscall, save them to the stack or other registers (R4-R11)
+- The CPSR flags are always preserved, so you don't need to worry about condition codes being corrupted
+- For nested function calls with syscalls, use `PUSH {R4-R11, LR}` to preserve both work registers and return address
+
 ### Example: hello.s
 
 Create a file called `hello.s`:
@@ -114,6 +148,8 @@ _start:
         LDR     R0, =msg_hello
 
         ; Call WRITE_STRING syscall
+        ; Note: R0 will be preserved (WRITE_STRING doesn't modify it for this syscall)
+        ; but we should not rely on this - always assume R0-R3 may be modified
         SWI     #0x02
 
         ; Print a newline
@@ -174,6 +210,63 @@ _start:
         MOV     R0, #0
         SWI     #0x00
 ```
+
+### Example: Preserving Registers Across Syscalls
+
+Here's an example showing how to preserve register values when making syscalls:
+
+```asm
+        .org    0x8000
+
+_start:
+        ; Calculate a value we want to keep
+        MOV     R4, #42         ; R4 = 42 (safe - R4 preserved by syscalls)
+        MOV     R0, #10         ; R0 = 10 (will be modified)
+
+        ; Print first number
+        MOV     R1, #10
+        SWI     #0x03           ; WRITE_INT (modifies R0, preserves R4)
+
+        SWI     #0x07           ; WRITE_NEWLINE
+
+        ; R0 may have been modified, but R4 is still 42
+        MOV     R0, R4          ; Move our preserved value to R0
+        MOV     R1, #10
+        SWI     #0x03           ; Print 42
+
+        SWI     #0x07
+
+        ; Example: When you need to preserve multiple values
+        MOV     R0, #100
+        MOV     R1, #200
+        MOV     R2, #300
+
+        ; Save R0-R2 to preserved registers before syscalls
+        MOV     R4, R0          ; R4 = 100
+        MOV     R5, R1          ; R5 = 200
+        MOV     R6, R2          ; R6 = 300
+
+        ; Now make multiple syscalls
+        LDR     R0, =msg_values
+        SWI     #0x02           ; WRITE_STRING
+
+        ; Our values are still safe in R4-R6
+        MOV     R0, R4
+        MOV     R1, #10
+        SWI     #0x03           ; Print 100
+
+        ; Exit
+        MOV     R0, #0
+        SWI     #0x00
+
+msg_values:
+        .asciz  "Saved value: "
+```
+
+**Key Takeaways:**
+- Use R4-R11 for values you need to keep across syscalls
+- R0-R3 should be considered temporary when calling syscalls
+- The CPSR flags are automatically preserved, so conditional logic remains valid after syscalls
 
 ---
 
