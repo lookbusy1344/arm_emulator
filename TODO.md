@@ -48,7 +48,10 @@ None
 These are **not** part of ARM2 but could be added for broader compatibility:
 
 **ARMv2a Atomic Operations** (Effort: 4-6 hours)
-- [ ] SWP, SWPB - Atomic swap operations
+- [ ] SWP (Swap Word) - Atomically swap 32-bit value between register and memory
+- [ ] SWPB (Swap Byte) - Atomically swap 8-bit value between register and memory
+- **Purpose:** Synchronization primitives for multi-threaded/multi-processor systems (spinlocks, semaphores, mutex)
+- **Note:** Introduced in ARMv2a (ARM3), not original ARM2. ARM2 was single-processor without multi-threading support.
 
 **ARMv2 Coprocessor Interface** (Effort: 20-30 hours)
 - [ ] CDP, LDC, STC, MCR, MRC - Coprocessor operations
@@ -57,10 +60,14 @@ These are **not** part of ARM2 but could be added for broader compatibility:
 **Note:** The emulator has complete ARM2 instruction set coverage. All planned ARMv3/ARMv3M extensions have been completed. These remaining extensions are from later architectures.
 
 ### Enhanced CI/CD Pipeline (Optional)
-**Effort:** 4-6 hours
+**Effort:** 2-3 hours (partially complete)
 
-- [ ] Configure matrix builds (macOS, Windows, Linux)
-- [ ] Add test coverage reporting (codecov)
-- [ ] Add coverage threshold enforcement (70% minimum)
-- [ ] Add race detector to tests
-- [ ] Upload test results as CI artifacts
+**Completed:**
+- ✅ Matrix builds for multiple platforms (build-release.yml: Linux AMD64, macOS ARM64, Windows AMD64/ARM64)
+- ✅ Build artifact uploads with 30-day retention
+- ✅ Race detector works locally (`go test -race ./...`)
+
+**Remaining:**
+- [ ] Add test coverage reporting (codecov integration)
+- [ ] Add coverage threshold enforcement in CI (currently 75% local)
+- [ ] Add race detector to CI pipeline (works locally but not in ci.yml)
