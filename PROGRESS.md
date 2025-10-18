@@ -1,12 +1,80 @@
 # ARM2 Emulator Implementation Progress
 
-**Last Updated:** 2025-10-17
+**Last Updated:** 2025-10-18
 **Current Phase:** Phase 11 Complete + ARMv3 Extensions + Register Trace + Code Coverage + Flag Preservation + Dynamic Literal Pool Sizing ✅
 **Test Suite:** 1200+ tests passing (100% ✅), 0 lint issues, 75.0% code coverage
 
 ---
 
 ## Recent Updates
+
+### 2025-10-18: Critical Bug Fixes - Heap Allocator, File Descriptors, and REALLOCATE Syscall ✅
+**Status:** Five critical bugs fixed with comprehensive test coverage
+
+**Commits:** 233b2d5..93e7fa0 (7 commits)
+
+**Critical Bugs Fixed:**
+
+1. **Global Heap Allocator State Bug** (commit 8230b5b) - **HIGH PRIORITY**
+   - **Problem:** Heap allocator used global variables (`heapAllocations`, `nextHeapAddress`) instead of per-instance state
+   - **Impact:**
+     - Race conditions when running multiple VM instances concurrently
+     - State leakage between VM runs when `Reset()` was called
+     - Test interference when running tests in parallel
+   - **Fix:** Moved heap allocator state to per-instance fields in Memory struct
+     - Added `HeapAllocations map[uint32]uint32` field to Memory
+     - Added `NextHeapAddress uint32` field to Memory
+     - Updated `NewMemory()` to initialize instance state
+     - Updated `Reset()` and `ResetHeap()` to reset instance state
+     - Updated `Allocate()` and `Free()` to use instance fields
+   - **Files Modified:** vm/memory.go
+
+2. **File Descriptor Synchronization Race Condition** (commit 14721ea) - **CRITICAL**
+   - **Problem:** File descriptor mutex (`fdMu`) was a global variable
+   - **Impact:** Race conditions when multiple goroutines access different VM instances concurrently
+   - **Fix:** Moved `fdMu` from global variable to per-instance field in VM struct
+     - Added `fdMu sync.Mutex` field to VM struct
+     - Updated `getFile()`, `allocFD()`, and `closeFD()` to use `vm.fdMu`
+     - Removed global `fdMu` variable
+   - **Files Modified:** vm/syscalls.go
+
+3. **REALLOCATE Syscall Not Copying Data** (commit 1bdd82b) - **HIGH PRIORITY**
+   - **Problem:** REALLOCATE syscall allocated new memory but didn't copy old data
+   - **Impact:** Data loss when reallocating memory blocks
+   - **Fix:** Implemented proper REALLOCATE behavior
+     - Handles NULL pointer (allocates new memory)
+     - Validates old address is a valid allocation
+     - Copies old data to new allocation (minimum of old/new sizes)
+     - Properly frees old memory after successful copy
+     - Returns NULL on any failure
+   - **Files Modified:** vm/syscalls.go
+
+4. **Heap Allocation Overflow Not Checked** (commit cbef92a) - **MEDIUM PRIORITY**
+   - **Problem:** No overflow check when `nextHeapAddress + size` wraps around
+   - **Impact:** Could allow allocation outside heap segment bounds
+   - **Fix:** Added overflow check before allocation
+   - **Files Modified:** vm/memory.go
+
+5. **Test Logic Flaws** (commit 93e7fa0)
+   - **TestHeapAllocatorPerInstance:** Fixed test that incorrectly expected different addresses when both VMs independently allocate at the same heap start (0x00030000). Changed to verify each VM has exactly 1 allocation (proving independence).
+   - **TestHeapOverflowCheck:** Fixed overflow detection order - added overflow check BEFORE alignment. When size is 0xFFFFFFFF, alignment operation `(size + 3)` causes uint32 overflow, wrapping to 0x00000002, then masking to 0x00000000, causing wrong error message.
+   - **Files Modified:** tests/unit/vm/code_review_fixes_test.go
+
+**Comprehensive Test Suite Added** (commit bceb935):
+- 15 new tests covering all critical/high-priority fixes
+- 4 tests for heap allocator per-instance state
+- 6 tests for REALLOCATE syscall data copying and error handling
+- 1 test for file descriptor synchronization
+- 2 tests for heap overflow checks
+
+**Test Results:**
+- All 1200+ tests passing (100%)
+- New critical bug fix tests: 15/15 passing
+- All existing tests continue to pass
+- Linting: 0 issues
+- No race conditions detected
+
+**Co-Authored-By:** lookbusy1344 <lookbusy1344@users.noreply.github.com>
 
 ### 2025-10-17: Literal Pool Space Reservation Improvement - Dynamic Counting ✅
 **Status:** Dynamic literal pool sizing implemented with validation and warnings

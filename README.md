@@ -86,7 +86,9 @@ All unit and integration tests are passing, and the test system runs all the exa
 
 Release automation added, and v0.9.0 tagged. We now have automatic builds for 4 platfroms. Perhaps at this point I should actually try it with some assembly I have written myself 😂
 
-**Day 11 - 18 Oct** - Telling Claude to take a fresh look with "Look at it with fresh eyes. The engineer implemented it suspiciously quickly and I do not trust their work" created a good PR that apparently fixes some serious bugs. Interesting!
+**Day 11 - 18 Oct** - Telling Claude to take a fresh look with prompt *"Look at it with fresh eyes. The engineer implemented it suspiciously quickly and I do not trust their work"* created a good PR that apparently fixes some serious bugs from commits 233b2d5 to 93e7fa0. Interesting!
+
+Go code is now 42,978 lines.
 
 ## Summary, some thoughts
 
@@ -401,9 +403,11 @@ This triggers the `Build Release` workflow which:
 
 This emulator provides **complete ARM2 instruction set coverage** as implemented in the original 1986 Acorn ARM2 processor. All core ARM2 instructions and addressing modes are fully functional and tested.
 
-**What's NOT implemented (and why):**
-- Long multiply instructions (UMULL/UMLAL/SMULL/SMLAL) - introduced in ARMv3M (ARM6), not ARM2
-- PSR transfer instructions (MRS/MSR) - introduced in ARMv3, not ARM2
+**Beyond ARM2 - Additional instructions implemented:**
+- **Long multiply instructions (UMULL/UMLAL/SMULL/SMLAL)** - introduced in ARMv3M (ARM6), fully implemented with 64-bit results
+- **PSR transfer instructions (MRS/MSR)** - introduced in ARMv3, implemented for CPSR flag manipulation
+
+**What's NOT implemented:**
 - Atomic swap instructions (SWP/SWPB) - introduced in ARMv2a (ARM3), not original ARM2
 - Coprocessor instructions (CDP/LDC/STC/MCR/MRC) - optional in ARMv2, rarely used
 
