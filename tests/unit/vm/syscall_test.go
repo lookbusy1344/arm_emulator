@@ -125,8 +125,25 @@ func TestSWI_GetTime(t *testing.T) {
 	}
 
 	// R0 should contain a timestamp (non-zero)
-	if v.CPU.R[0] == 0 {
+	timestamp1 := v.CPU.R[0]
+	if timestamp1 == 0 {
 		t.Error("expected non-zero timestamp")
+	}
+
+	// Call again and verify time advances
+	v.CPU.PC = 0x8004
+	setupCodeWrite(v)
+	v.Memory.WriteWord(0x8004, opcode)
+	v.Step()
+
+	timestamp2 := v.CPU.R[0]
+	if timestamp2 < timestamp1 {
+		t.Errorf("time went backwards: first=%d, second=%d", timestamp1, timestamp2)
+	}
+
+	// Verify PC advanced correctly
+	if v.CPU.PC != 0x8008 {
+		t.Errorf("expected PC=0x8008, got PC=0x%08X", v.CPU.PC)
 	}
 }
 
@@ -310,6 +327,61 @@ func TestSWI_GetArguments(t *testing.T) {
 	argc := v.CPU.R[0]
 	if argc != 3 {
 		t.Errorf("expected argc=3, got argc=%d", argc)
+	}
+
+	// R1 should contain argv pointer (currently 0 in implementation)
+	argv := v.CPU.R[1]
+	if argv != 0 {
+		t.Logf("argv pointer = 0x%08X (currently unimplemented, returns 0)", argv)
+	}
+}
+
+func TestSWI_GetArguments_Empty(t *testing.T) {
+	// Test GET_ARGUMENTS with no arguments
+	v := vm.NewVM()
+	v.ProgramArguments = []string{}
+	v.CPU.PC = 0x8000
+
+	// SWI #0x32 (EF000032)
+	opcode := uint32(0xEF000032)
+	setupCodeWrite(v)
+	v.Memory.WriteWord(0x8000, opcode)
+	err := v.Step()
+
+	if err != nil {
+		t.Fatalf("get_arguments failed: %v", err)
+	}
+
+	argc := v.CPU.R[0]
+	if argc != 0 {
+		t.Errorf("expected argc=0 for empty args, got argc=%d", argc)
+	}
+}
+
+func TestSWI_GetEnvironment(t *testing.T) {
+	// Test GET_ENVIRONMENT syscall (0x33)
+	v := vm.NewVM()
+	v.CPU.PC = 0x8000
+
+	// SWI #0x33 (EF000033)
+	opcode := uint32(0xEF000033)
+	setupCodeWrite(v)
+	v.Memory.WriteWord(0x8000, opcode)
+	err := v.Step()
+
+	if err != nil {
+		t.Fatalf("get_environment failed: %v", err)
+	}
+
+	// R0 should contain environment pointer (currently 0 in simplified implementation)
+	envp := v.CPU.R[0]
+	if envp != 0 {
+		t.Errorf("expected envp=0 (unimplemented), got envp=0x%08X", envp)
+	}
+
+	// PC should have advanced
+	if v.CPU.PC != 0x8004 {
+		t.Errorf("expected PC=0x8004, got PC=0x%08X", v.CPU.PC)
 	}
 }
 
