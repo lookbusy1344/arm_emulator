@@ -179,6 +179,59 @@ func TestSWI_GetRandom(t *testing.T) {
 	}
 }
 
+func TestSWI_DebugPrint(t *testing.T) {
+	// SWI #0xF0 (debug print)
+	v := vm.NewVM()
+	setupDataWrite(v)
+
+	// Write debug message to memory
+	msgAddr := uint32(0x10000)
+	msg := "Debug test message"
+	for i, c := range msg {
+		v.Memory.WriteByteAt(msgAddr+uint32(i), byte(c))
+	}
+	v.Memory.WriteByteAt(msgAddr+uint32(len(msg)), 0) // Null terminator
+
+	v.CPU.R[0] = msgAddr
+	v.CPU.PC = 0x8000
+
+	// SWI #0xF0 (EF0000F0)
+	opcode := uint32(0xEF0000F0)
+	setupCodeWrite(v)
+	v.Memory.WriteWord(0x8000, opcode)
+
+	// Note: This will print to stderr, but we can't easily capture it in tests
+	// We just verify it doesn't error
+	err := v.Step()
+
+	if err != nil {
+		t.Errorf("debug_print failed: %v", err)
+	}
+
+	// PC should have advanced
+	if v.CPU.PC != 0x8004 {
+		t.Errorf("expected PC=0x8004, got PC=0x%08X", v.CPU.PC)
+	}
+}
+
+func TestSWI_DebugPrint_InvalidAddress(t *testing.T) {
+	// Test DEBUG_PRINT with invalid memory address
+	v := vm.NewVM()
+	v.CPU.R[0] = 0xFFFFFFFF // Invalid address
+	v.CPU.PC = 0x8000
+
+	// SWI #0xF0 (EF0000F0)
+	opcode := uint32(0xEF0000F0)
+	setupCodeWrite(v)
+	v.Memory.WriteWord(0x8000, opcode)
+	err := v.Step()
+
+	// Should return error for invalid address
+	if err == nil {
+		t.Error("expected error for invalid address")
+	}
+}
+
 func TestSWI_Breakpoint(t *testing.T) {
 	// SWI #0xF1 (breakpoint)
 	v := vm.NewVM()
@@ -198,6 +251,102 @@ func TestSWI_Breakpoint(t *testing.T) {
 	// VM should be in breakpoint state
 	if v.State != vm.StateBreakpoint {
 		t.Errorf("expected state=Breakpoint, got state=%v", v.State)
+	}
+}
+
+func TestSWI_DumpRegisters(t *testing.T) {
+	// SWI #0xF2 (dump registers)
+	v := vm.NewVM()
+
+	// Set some register values to verify they're dumped
+	v.CPU.R[0] = 0x12345678
+	v.CPU.R[1] = 0xABCDEF00
+	v.CPU.R[13] = 0x50000 // SP
+	v.CPU.R[14] = 0x8100  // LR
+	v.CPU.PC = 0x8000
+	v.CPU.CPSR.N = true
+	v.CPU.CPSR.Z = false
+
+	// SWI #0xF2 (EF0000F2)
+	opcode := uint32(0xEF0000F2)
+	setupCodeWrite(v)
+	v.Memory.WriteWord(0x8000, opcode)
+
+	// Note: This will print to stdout, but we can't easily capture it in tests
+	// We just verify it doesn't error
+	err := v.Step()
+
+	if err != nil {
+		t.Errorf("dump_registers failed: %v", err)
+	}
+
+	// PC should have advanced
+	if v.CPU.PC != 0x8004 {
+		t.Errorf("expected PC=0x8004, got PC=0x%08X", v.CPU.PC)
+	}
+}
+
+func TestSWI_DumpMemory(t *testing.T) {
+	// SWI #0xF3 (dump memory)
+	v := vm.NewVM()
+	setupDataWrite(v)
+
+	// Write some test data to memory
+	testAddr := uint32(0x10000)
+	testData := []byte{0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77,
+		0x88, 0x99, 0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF}
+	for i, b := range testData {
+		v.Memory.WriteByteAt(testAddr+uint32(i), b)
+	}
+
+	v.CPU.R[0] = testAddr
+	v.CPU.R[1] = uint32(len(testData))
+	v.CPU.PC = 0x8000
+
+	// SWI #0xF3 (EF0000F3)
+	opcode := uint32(0xEF0000F3)
+	setupCodeWrite(v)
+	v.Memory.WriteWord(0x8000, opcode)
+
+	// Note: This will print to stdout, but we can't easily capture it in tests
+	// We just verify it doesn't error
+	err := v.Step()
+
+	if err != nil {
+		t.Errorf("dump_memory failed: %v", err)
+	}
+
+	// PC should have advanced
+	if v.CPU.PC != 0x8004 {
+		t.Errorf("expected PC=0x8004, got PC=0x%08X", v.CPU.PC)
+	}
+}
+
+func TestSWI_DumpMemory_LargeLength(t *testing.T) {
+	// Test DUMP_MEMORY with length > 1KB (should be clamped)
+	v := vm.NewVM()
+	setupDataWrite(v)
+
+	testAddr := uint32(0x10000)
+	v.CPU.R[0] = testAddr
+	v.CPU.R[1] = 2048 // Larger than 1KB limit
+	v.CPU.PC = 0x8000
+
+	// SWI #0xF3 (EF0000F3)
+	opcode := uint32(0xEF0000F3)
+	setupCodeWrite(v)
+	v.Memory.WriteWord(0x8000, opcode)
+
+	// Should still work, but only dump up to 1KB
+	err := v.Step()
+
+	if err != nil {
+		t.Errorf("dump_memory with large length failed: %v", err)
+	}
+
+	// PC should have advanced
+	if v.CPU.PC != 0x8004 {
+		t.Errorf("expected PC=0x8004, got PC=0x%08X", v.CPU.PC)
 	}
 }
 
