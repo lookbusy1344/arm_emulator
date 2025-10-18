@@ -88,9 +88,11 @@ Release automation added, and v0.9.0 tagged. We now have automatic builds for 4 
 
 **Day 11 - 18 Oct** - Telling Claude to take a fresh look with prompt *"Look at it with fresh eyes. The engineer implemented it suspiciously quickly and I do not trust their work"* created a good PR that apparently fixes some serious bugs from commits 233b2d5 to 93e7fa0. Interesting!
 
-Go code is now 42,978 lines.
+Also working on TUI debugging, which had a number of problems and doesn't seem to be well tested. By end of day it's much more usable.
 
-## Summary, some thoughts
+Go code is now 44,073 lines.
+
+## Summary, some thoughts after 10 days
 
 At this stage I’ve probably taken vibing as far as I can go without actually writing some ARM2 assembly and trying to run and debug it by hand. So far every test program has been written by Claude (or Copilot, when Claude limits were exceeded).
 
