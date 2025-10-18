@@ -175,25 +175,27 @@ func (t *TUI) setupKeyBindings() {
 	t.App.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
 		switch event.Key() {
 		case tcell.KeyF1:
-			t.executeCommand("help")
+			go t.executeCommand("help")
 			return nil
 		case tcell.KeyF5:
-			t.executeCommand("continue")
+			go t.executeCommand("continue")
 			return nil
 		case tcell.KeyF9:
-			t.executeCommand("break")
+			go t.executeCommand("break")
 			return nil
 		case tcell.KeyF10:
-			t.executeCommand("next")
+			go t.executeCommand("next")
 			return nil
 		case tcell.KeyF11:
-			t.executeCommand("step")
+			go t.executeCommand("step")
 			return nil
 		case tcell.KeyCtrlC:
 			t.App.Stop()
 			return nil
 		case tcell.KeyCtrlL:
-			t.RefreshAll()
+			t.App.QueueUpdateDraw(func() {
+				t.RefreshAll()
+			})
 			return nil
 		}
 		return event
@@ -205,7 +207,7 @@ func (t *TUI) handleCommand(key tcell.Key) {
 	if key == tcell.KeyEnter {
 		cmd := t.CommandInput.GetText()
 		if cmd != "" {
-			t.executeCommand(cmd)
+			go t.executeCommand(cmd)
 			t.CommandInput.SetText("")
 		}
 	}
@@ -219,7 +221,9 @@ func (t *TUI) executeCommand(cmd string) {
 	// Check for quit/exit commands
 	cmdLower := strings.ToLower(strings.TrimSpace(cmd))
 	if cmdLower == "quit" || cmdLower == "q" || cmdLower == "exit" {
-		t.WriteOutput("[yellow]Exiting debugger...[white]\n")
+		go t.App.QueueUpdateDraw(func() {
+			t.WriteOutput("[yellow]Exiting debugger...[white]\n")
+		})
 		t.App.Stop()
 		return
 	}
@@ -230,53 +234,70 @@ func (t *TUI) executeCommand(cmd string) {
 	// Get output
 	output := t.Debugger.GetOutput()
 
-	// Display output
-	if err != nil {
-		t.WriteOutput(fmt.Sprintf("[red]Error:[white] %v\n", err))
-	}
-	if output != "" {
-		t.WriteOutput(output)
-	}
+	// Display output and refresh (in goroutine to avoid blocking)
+	go t.App.QueueUpdateDraw(func() {
+		if err != nil {
+			t.WriteOutput(fmt.Sprintf("[red]Error:[white] %v\n", err))
+		}
+		if output != "" {
+			t.WriteOutput(output)
+		}
+		t.RefreshAll()
+	})
 
 	// If running, execute until breakpoint or halt
 	if t.Debugger.Running {
 		t.executeUntilBreak()
 	}
-
-	// Refresh all views
-	t.RefreshAll()
 }
 
 // executeUntilBreak runs the VM until a breakpoint is hit or the program halts
 func (t *TUI) executeUntilBreak() {
-	for t.Debugger.Running {
-		// Check for breakpoint before execution
-		if shouldBreak, reason := t.Debugger.ShouldBreak(); shouldBreak {
-			t.Debugger.Running = false
-			t.WriteOutput(fmt.Sprintf("[yellow]Stopped:[white] %s at PC=0x%08X\n", reason, t.Debugger.VM.CPU.PC))
-			break
-		}
-
-		// Execute one step
-		if err := t.Debugger.VM.Step(); err != nil {
-			if t.Debugger.VM.State == vm.StateHalted {
+	// Run execution in the background to keep TUI responsive
+	go func() {
+		for t.Debugger.Running {
+			// Check for breakpoint before execution
+			if shouldBreak, reason := t.Debugger.ShouldBreak(); shouldBreak {
 				t.Debugger.Running = false
-				t.WriteOutput(fmt.Sprintf("[green]Program exited with code %d[white]\n", t.Debugger.VM.ExitCode))
+				t.App.QueueUpdateDraw(func() {
+					t.WriteOutput(fmt.Sprintf("[yellow]Stopped:[white] %s at PC=0x%08X\n", reason, t.Debugger.VM.CPU.PC))
+					t.RefreshAll()
+				})
 				break
 			}
-			t.WriteOutput(fmt.Sprintf("[red]Runtime error:[white] %v\n", err))
-			t.Debugger.Running = false
-			break
+
+			// Execute one step
+			if err := t.Debugger.VM.Step(); err != nil {
+				if t.Debugger.VM.State == vm.StateHalted {
+					t.Debugger.Running = false
+					t.App.QueueUpdateDraw(func() {
+						t.WriteOutput(fmt.Sprintf("[green]Program exited with code %d[white]\n", t.Debugger.VM.ExitCode))
+						t.RefreshAll()
+					})
+					break
+				}
+				t.Debugger.Running = false
+				t.App.QueueUpdateDraw(func() {
+					t.WriteOutput(fmt.Sprintf("[red]Runtime error:[white] %v\n", err))
+					t.RefreshAll()
+				})
+				break
+			}
+
+			// Update display periodically during long runs
+			// (every 100 instructions to keep display responsive)
+			if t.Debugger.VM.CPU.Cycles%100 == 0 {
+				t.App.QueueUpdateDraw(func() {
+					t.RefreshAll()
+				})
+			}
 		}
 
-		// Update display periodically during long runs
-		// (every 1000 instructions to avoid slowing down execution too much)
-		if t.Debugger.VM.CPU.Cycles%1000 == 0 {
-			t.App.QueueUpdateDraw(func() {
-				t.RefreshAll()
-			})
-		}
-	}
+		// Final refresh when execution stops
+		t.App.QueueUpdateDraw(func() {
+			t.RefreshAll()
+		})
+	}()
 }
 
 // WriteOutput writes to the output view
@@ -286,6 +307,7 @@ func (t *TUI) WriteOutput(text string) {
 }
 
 // RefreshAll refreshes all view panels
+// Note: This should be called from within App.QueueUpdateDraw or the main event loop
 func (t *TUI) RefreshAll() {
 	t.UpdateSourceView()
 	t.UpdateRegisterView()
@@ -293,7 +315,7 @@ func (t *TUI) RefreshAll() {
 	t.UpdateStackView()
 	t.UpdateDisassemblyView()
 	t.UpdateBreakpointsView()
-	t.App.Draw()
+	// Note: App.Draw() is not called here - caller must use QueueUpdateDraw
 }
 
 // UpdateSourceView updates the source code view
