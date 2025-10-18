@@ -41,6 +41,12 @@ type TUI struct {
 	// Source code cache
 	SourceLines []string
 	SourceFile  string
+
+	// Register tracking for highlighting changes
+	PrevRegisters [16]uint32   // Previous values of R0-R15 before last step
+	PrevCPSR      vm.CPSR      // Previous CPSR flags before last step
+	ChangedRegs   map[int]bool // Registers that changed in the last step
+	ChangedCPSR   bool         // CPSR changed in the last step
 }
 
 // tuiWriter redirects VM output to the TUI OutputView
@@ -77,6 +83,7 @@ func NewTUIWithScreen(debugger *Debugger, screen tcell.Screen) *TUI {
 		MemoryAddress:  0,
 		StackAddress:   0,
 		Running:        false,
+		ChangedRegs:    make(map[int]bool),
 	}
 
 	tui.initializeViews()
@@ -286,12 +293,16 @@ func (t *TUI) executeUntilBreak() {
 				}
 			}
 
+			// Capture register state before executing
+			t.CaptureRegisterState()
+
 			// Execute one step
 			if err := t.Debugger.VM.Step(); err != nil {
 				if t.Debugger.VM.State == vm.StateHalted {
 					t.Debugger.Running = false
 					t.App.QueueUpdateDraw(func() {
 						t.WriteOutput(fmt.Sprintf("[green]Program exited with code %d[white]\n", t.Debugger.VM.ExitCode))
+						t.DetectRegisterChanges()
 						t.RefreshAll()
 					})
 					break
@@ -299,10 +310,14 @@ func (t *TUI) executeUntilBreak() {
 				t.Debugger.Running = false
 				t.App.QueueUpdateDraw(func() {
 					t.WriteOutput(fmt.Sprintf("[red]Runtime error:[white] %v\n", err))
+					t.DetectRegisterChanges()
 					t.RefreshAll()
 				})
 				break
 			}
+
+			// Detect register changes after execution
+			t.DetectRegisterChanges()
 
 			// For single-step mode, check if we should break after execution
 			if t.Debugger.StepMode == StepSingle {
@@ -420,14 +435,20 @@ func (t *TUI) UpdateRegisterView() {
 			} else {
 				value = cpu.R[reg]
 			}
-			cols = append(cols, fmt.Sprintf("%-3s: 0x%08X", name, value))
+
+			// Check if this register changed in the last step
+			if t.ChangedRegs[reg] {
+				cols = append(cols, fmt.Sprintf("[green]%-3s: 0x%08X[white]", name, value))
+			} else {
+				cols = append(cols, fmt.Sprintf("%-3s: 0x%08X", name, value))
+			}
 		}
 		lines = append(lines, strings.Join(cols, "  "))
 	}
 
 	lines = append(lines, "")
 
-	// CPSR flags
+	// CPSR flags - keep individual flag colors
 	flags := ""
 	if cpu.CPSR.N {
 		flags += "[red]N[white]"
@@ -465,7 +486,12 @@ func (t *TUI) UpdateRegisterView() {
 		cpsrValue |= 0x10000000
 	}
 
-	lines = append(lines, fmt.Sprintf("CPSR: 0x%08X  Flags: %s", cpsrValue, flags))
+	// Highlight CPSR value if flags changed, but preserve individual flag colors
+	if t.ChangedCPSR {
+		lines = append(lines, fmt.Sprintf("[green]CPSR: 0x%08X[white]  Flags: %s", cpsrValue, flags))
+	} else {
+		lines = append(lines, fmt.Sprintf("CPSR: 0x%08X  Flags: %s", cpsrValue, flags))
+	}
 	lines = append(lines, fmt.Sprintf("Cycles: %d", cpu.Cycles))
 
 	t.RegisterView.SetText(strings.Join(lines, "\n"))
@@ -723,4 +749,45 @@ func (t *TUI) LoadSource(filename string, lines []string) {
 	t.SourceFile = filename
 	t.SourceLines = lines
 	t.UpdateSourceView()
+}
+
+// CaptureRegisterState captures the current register state before stepping
+func (t *TUI) CaptureRegisterState() {
+	cpu := t.Debugger.VM.CPU
+
+	// Save current register values
+	for i := 0; i < 15; i++ {
+		t.PrevRegisters[i] = cpu.R[i]
+	}
+	t.PrevRegisters[15] = cpu.PC
+
+	// Save CPSR
+	t.PrevCPSR = cpu.CPSR
+}
+
+// DetectRegisterChanges compares current registers with previous state
+func (t *TUI) DetectRegisterChanges() {
+	cpu := t.Debugger.VM.CPU
+
+	// Clear previous changes
+	t.ChangedRegs = make(map[int]bool)
+	t.ChangedCPSR = false
+
+	// Check each register
+	for i := 0; i < 15; i++ {
+		if cpu.R[i] != t.PrevRegisters[i] {
+			t.ChangedRegs[i] = true
+		}
+	}
+
+	// Check PC (R15)
+	if cpu.PC != t.PrevRegisters[15] {
+		t.ChangedRegs[15] = true
+	}
+
+	// Check CPSR flags
+	if cpu.CPSR.N != t.PrevCPSR.N || cpu.CPSR.Z != t.PrevCPSR.Z ||
+		cpu.CPSR.C != t.PrevCPSR.C || cpu.CPSR.V != t.PrevCPSR.V {
+		t.ChangedCPSR = true
+	}
 }
