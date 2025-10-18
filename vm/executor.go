@@ -117,6 +117,8 @@ func (vm *VM) Reset() {
 // losing the loaded program
 func (vm *VM) ResetRegisters() {
 	vm.CPU.Reset()
+	// Restore PC to entry point after reset
+	vm.CPU.PC = vm.EntryPoint
 	vm.State = StateHalted
 	vm.InstructionLog = vm.InstructionLog[:0]
 	vm.LastError = nil

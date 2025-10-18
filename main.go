@@ -842,8 +842,9 @@ func loadProgramIntoVM(machine *vm.VM, program *parser.Program, entryPoint uint3
 		}
 	}
 
-	// Set PC to entry point
+	// Set PC to entry point and save entry point for debugger resets
 	machine.CPU.PC = entryPoint
+	machine.EntryPoint = entryPoint
 
 	return nil
 }

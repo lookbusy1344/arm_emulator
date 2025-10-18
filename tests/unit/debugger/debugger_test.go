@@ -490,3 +490,35 @@ func TestConditionalBreakpoint(t *testing.T) {
 		t.Errorf("Wrong break reason: %s", reason)
 	}
 }
+
+// TestRunCommandPreservesEntryPoint tests that the run command preserves the entry point
+func TestRunCommandPreservesEntryPoint(t *testing.T) {
+	machine := vm.NewVM()
+
+	// Set entry point to 0x8000 (typical ARM program start)
+	entryPoint := uint32(0x8000)
+	machine.CPU.PC = entryPoint
+	machine.EntryPoint = entryPoint
+
+	dbg := debugger.NewDebugger(machine)
+
+	// Execute run command
+	err := dbg.ExecuteCommand("run")
+	if err != nil {
+		t.Fatalf("Failed to execute run command: %v", err)
+	}
+
+	// Verify PC was reset to entry point, not 0
+	if machine.CPU.PC != entryPoint {
+		t.Errorf("PC after run = 0x%08X, want 0x%08X", machine.CPU.PC, entryPoint)
+	}
+
+	// Verify VM state is correct
+	if machine.State != vm.StateRunning {
+		t.Error("VM state should be Running after run command")
+	}
+
+	if !dbg.Running {
+		t.Error("Debugger should be in Running state")
+	}
+}
