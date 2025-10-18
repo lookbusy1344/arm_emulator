@@ -28,6 +28,8 @@ Once I checked the specification, I asked Claude to produce a staged implementat
 
 The prompt for each phase was *"Let’s implement phase X from IMPLEMENTATION_PLAN.md, documenting completed work in PROGRESS.md, and implement appropriate tests. Anything that you cannot fix, note in TODO.md"*
 
+Claude can sometimes suffer from groupthink, just confirming the code is excellent without looking afresh. This prompt helps *"Look at it with fresh eyes. The engineer implemented it suspiciously quickly and I do not trust their work"*
+
 ## Daily progress
 
 **Day 1 - 8 Oct** - Claude has written a specification, and a staged implementation plan. It's made good progress with phases 1-5 completed.
@@ -83,6 +85,8 @@ Go code is now 42,481 lines. Estimated total vibing time is around 32 hours, so 
 All unit and integration tests are passing, and the test system runs all the example programs and confirms their output.
 
 Release automation added, and v0.9.0 tagged. We now have automatic builds for 4 platfroms. Perhaps at this point I should actually try it with some assembly I have written myself 😂
+
+**Day 11 - 18 Oct** - Telling Claude to take a fresh look with "Look at it with fresh eyes. The engineer implemented it suspiciously quickly and I do not trust their work" created a good PR that apparently fixes some serious bugs. Interesting!
 
 ## Summary, some thoughts
 
