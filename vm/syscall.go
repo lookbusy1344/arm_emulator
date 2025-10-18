@@ -481,7 +481,7 @@ func handleDumpRegisters(vm *VM) error {
 		_, _ = fmt.Fprintf(vm.OutputWriter, "R%-2d = 0x%08X (%d)\n", i, vm.CPU.R[i], int32(vm.CPU.R[i])) // #nosec G115 -- intentional uint32->int32 for display, ignore write errors
 	}
 	_, _ = fmt.Fprintf(vm.OutputWriter, "PC  = 0x%08X\n", vm.CPU.PC) // Ignore write errors
-	_, _ = fmt.Fprintf(vm.OutputWriter, "CPSR = [%s%s%s%s]\n", // Ignore write errors
+	_, _ = fmt.Fprintf(vm.OutputWriter, "CPSR = [%s%s%s%s]\n",       // Ignore write errors
 		map[bool]string{true: "N", false: "-"}[vm.CPU.CPSR.N],
 		map[bool]string{true: "Z", false: "-"}[vm.CPU.CPSR.Z],
 		map[bool]string{true: "C", false: "-"}[vm.CPU.CPSR.C],

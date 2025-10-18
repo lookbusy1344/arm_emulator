@@ -103,7 +103,7 @@ func NewVM() *VM {
 		EntryPoint:       CodeSegmentStart,
 		ProgramArguments: make([]string, 0),
 		ExitCode:         0,
-		OutputWriter:     os.Stdout, // Default to stdout
+		OutputWriter:     os.Stdout,           // Default to stdout
 		files:            make([]*os.File, 3), // Will be lazily initialized to stdin/stdout/stderr
 	}
 }
