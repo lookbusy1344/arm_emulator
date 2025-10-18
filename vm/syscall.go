@@ -715,17 +715,63 @@ func handleReallocate(vm *VM) error {
 	oldAddr := vm.CPU.GetRegister(0)
 	newSize := vm.CPU.GetRegister(1)
 
-	// Simplified: allocate new memory and copy
-	// A full implementation would track allocations
+	// Handle NULL pointer (allocate new)
+	if oldAddr == 0 {
+		newAddr, err := vm.Memory.Allocate(newSize)
+		if err != nil {
+			vm.CPU.SetRegister(0, 0) // NULL on failure
+		} else {
+			vm.CPU.SetRegister(0, newAddr)
+		}
+		vm.CPU.IncrementPC()
+		return nil
+	}
+
+	// Get old allocation size from heap tracker
+	oldAlloc, ok := heapAllocations[oldAddr]
+	if !ok {
+		// Invalid address - return NULL
+		vm.CPU.SetRegister(0, 0)
+		vm.CPU.IncrementPC()
+		return nil
+	}
+
+	// Allocate new memory
 	newAddr, err := vm.Memory.Allocate(newSize)
 	if err != nil {
 		vm.CPU.SetRegister(0, 0) // NULL on failure
-	} else {
-		// Would copy old data here in full implementation
-		_ = vm.Memory.Free(oldAddr) // Free old memory (ignore error if invalid)
-		vm.CPU.SetRegister(0, newAddr)
+		vm.CPU.IncrementPC()
+		return nil
 	}
 
+	// Copy old data to new location (up to minimum of old and new sizes)
+	copySize := oldAlloc.Size
+	if newSize < copySize {
+		copySize = newSize
+	}
+
+	for i := uint32(0); i < copySize; i++ {
+		b, err := vm.Memory.ReadByteAt(oldAddr + i)
+		if err != nil {
+			// Copy failed, free new allocation and return NULL
+			_ = vm.Memory.Free(newAddr)
+			vm.CPU.SetRegister(0, 0)
+			vm.CPU.IncrementPC()
+			return nil
+		}
+		if err := vm.Memory.WriteByteAt(newAddr+i, b); err != nil {
+			// Copy failed, free new allocation and return NULL
+			_ = vm.Memory.Free(newAddr)
+			vm.CPU.SetRegister(0, 0)
+			vm.CPU.IncrementPC()
+			return nil
+		}
+	}
+
+	// Free old memory
+	_ = vm.Memory.Free(oldAddr)
+
+	vm.CPU.SetRegister(0, newAddr)
 	vm.CPU.IncrementPC()
 	return nil
 }
