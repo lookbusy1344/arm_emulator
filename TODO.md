@@ -16,7 +16,44 @@ This file tracks outstanding work only. Completed items are in `PROGRESS.md`.
 
 ## High Priority Tasks
 
-None
+### TUI Help Command Display Issue
+**Status:** BLOCKED - Needs Investigation
+**Effort:** Unknown
+**Priority:** HIGH
+
+**Problem:**
+When typing `help` (or pressing F1) in the TUI debugger, the help text appears as black-on-black (invisible until highlighted). The text IS being written to the OutputView (confirmed via debug logging showing 1040 bytes), but is not visible.
+
+**What Works:**
+- Welcome message at TUI startup displays correctly with colors (green and white)
+- All other TUI views display correctly
+- Help command works fine in non-TUI debugger mode
+- Color tags like `[green]`, `[white]` work in welcome message
+
+**What Doesn't Work:**
+- Help text written from within `QueueUpdateDraw` callback appears black-on-black
+- Text written via `WriteOutput()` after TUI starts running is invisible
+
+**Attempted Fixes (All Failed):**
+1. Added `SetTextColor(tcell.ColorWhite)` to OutputView - no effect
+2. Wrapped output in `[white]` color tags - no effect
+3. Tried `[yellow]` tags to test if any colors work - no effect
+4. Changed from `Write()` to `SetText()` - no effect
+5. Used `GetText(true)` to preserve color tags - no effect
+6. Tried `QueueUpdate` vs `QueueUpdateDraw` - no effect
+7. Set explicit background color with `SetBackgroundColor(tcell.ColorBlack)` - no effect
+
+**Technical Details:**
+- File: `debugger/tui.go`
+- Function: `executeCommand()` line 234
+- OutputView config: line 136, has `SetDynamicColors(true)`
+- Text written via: `go t.App.QueueUpdateDraw(func() { t.WriteOutput(...) })`
+
+**Next Steps:**
+- Investigate tview library documentation for `Write()` vs `SetText()` color handling
+- Check if `QueueUpdateDraw` from goroutine has threading issues
+- Test simpler approach without goroutines
+- Consider filing tview library issue if bug is in library
 
 ---
 
