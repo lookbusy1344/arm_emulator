@@ -116,7 +116,7 @@ Exciting times. Perhaps I should think of a second more challenging vibe-coding 
 - [docs/TUTORIAL.md](docs/TUTORIAL.md) - Step-by-step tutorial for learning ARM2 assembly
 - [INSTRUCTIONS.md](INSTRUCTIONS.md) - Complete ARM2 instruction set reference
 - [docs/assembly_reference.md](docs/assembly_reference.md) - ARM2 assembly language reference (directives, syntax)
-- [examples/README.md](examples/README.md) - Example programs and usage instructions (44 programs)
+- [examples/README.md](examples/README.md) - Example programs and usage instructions (48 programs)
 - [docs/debugger_reference.md](docs/debugger_reference.md) - Complete debugger command reference and guide
 - [docs/debugging_tutorial.md](docs/debugging_tutorial.md) - Hands-on debugging tutorials with examples
 - [docs/FAQ.md](docs/FAQ.md) - Frequently asked questions and troubleshooting
@@ -128,13 +128,13 @@ Exciting times. Perhaps I should think of a second more challenging vibe-coding 
 
 ## Features
 
-- **Complete ARM2 instruction set implementation** with 969 passing tests (100% pass rate, 75% code coverage)
+- **Complete ARM2 instruction set implementation** with 1385 passing tests (100% pass rate, 75% code coverage)
   - All 16 data processing instructions (AND, EOR, SUB, RSB, ADD, ADC, SBC, RSC, TST, TEQ, CMP, CMN, ORR, MOV, BIC, MVN)
   - All memory operations (LDR/STR/LDRB/STRB/LDM/STM + halfword extensions)
   - All branch instructions (B/BL/BX)
   - Multiply instructions (MUL/MLA)
   - All ARM2 addressing modes (immediate, register, shifted, pre/post-indexed)
-  - Software interrupts with 30+ syscalls
+  - Software interrupts with 35+ syscalls (console I/O, file operations, memory management, system information, debugging support)
 - Assembly parser for ARM assembly programs with macros and preprocessor
 - **Dynamic literal pool sizing**: Smart allocation based on actual literal usage, not fixed estimates
   - Counts LDR pseudo-instructions per `.ltorg` directive
@@ -308,7 +308,7 @@ All diagnostic modes support both text and JSON output formats:
 
 ### Example Programs
 
-The `examples/` directory contains 44 sample ARM assembly programs that demonstrate various features:
+The `examples/` directory contains 48 sample ARM assembly programs that demonstrate various features:
 
 **Basic Examples:**
 - **hello.s** - Hello World program
@@ -394,8 +394,8 @@ This triggers the `Build Release` workflow which:
 ├── debugger/            # Debugging utilities with TUI
 ├── config/              # Cross-platform configuration
 ├── tools/               # Development tools (lint, format, xref)
-├── tests/               # Test files (969 tests, 100% passing, 75% coverage)
-├── examples/            # Example ARM assembly programs (44 programs)
+├── tests/               # Test files (1385 tests, 100% passing, 75% coverage)
+├── examples/            # Example ARM assembly programs (48 programs)
 └── docs/                # User and developer documentation
 ```
 

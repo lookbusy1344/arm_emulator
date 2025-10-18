@@ -2,7 +2,7 @@
 
 This directory contains example ARM assembly programs that demonstrate various features of the ARM2 emulator.
 
-**Total Examples:** 44 programs covering basic operations, algorithms, data structures, advanced features, and comprehensive stress tests.
+**Total Examples:** 48 programs covering basic operations, algorithms, data structures, advanced features, syscall demonstrations, and comprehensive stress tests.
 
 ## Quick Navigation
 
@@ -12,6 +12,7 @@ This directory contains example ARM assembly programs that demonstrate various f
 - [Advanced Examples](#advanced-examples) - Functions, conditionals, loops, recursion
 - [Bit Manipulation Examples](#bit-manipulation-examples) - Bit operations and ciphers
 - [System & I/O Examples](#system--io-examples) - File I/O, system calls, stress tests
+- [Syscall Demonstration Programs](#syscall-demonstration-programs) - System call reference examples
 - [Test Programs](#test-programs) - Assembler feature and edge case tests
 - [Running Examples](#running-examples) - How to run these programs
 - [Features Demonstrated](#features-demonstrated) - Complete feature reference
@@ -506,6 +507,84 @@ ALL TESTS PASSED
 [file_io] PASS
 ```
 
+## Syscall Demonstration Programs
+
+These programs demonstrate specific system call (SWI) functionality and serve as reference examples:
+
+### test_get_time.s
+**GET_TIME Syscall (0x30) Demonstration**
+- Retrieves system timestamps in milliseconds
+- Calculates elapsed time between two calls
+- Demonstrates time measurement and formatting
+- **Features:** GET_TIME syscall, time arithmetic, decimal output
+
+**Example Output:**
+```
+=== GET_TIME Syscall Test ===
+First timestamp:  1234567890
+Second timestamp: 1234567891
+Elapsed time: 1 ms
+Time progresses forward - Test PASSED
+```
+
+### test_get_random.s
+**GET_RANDOM Syscall (0x31) Demonstration**
+- Generates random 32-bit numbers
+- Displays 10 random values in hexadecimal
+- Performs distribution analysis (100 samples)
+- Checks bit frequency for randomness validation
+- **Features:** GET_RANDOM syscall, hexadecimal output, statistical analysis
+
+**Example Output:**
+```
+=== GET_RANDOM Syscall Test ===
+Random: 0x6c7f4dce
+Random: 0xeb7a0552
+...
+Distribution test (100 samples):
+High bit set: 48/100
+Low bit set:  51/100
+```
+
+### test_get_arguments.s
+**GET_ARGUMENTS Syscall (0x32) Demonstration**
+- Retrieves program argument count (argc)
+- Retrieves argument vector pointer (argv)
+- Displays both in appropriate formats
+- Handles zero arguments gracefully
+- **Features:** GET_ARGUMENTS syscall, formatted output
+
+**Example Output:**
+```
+=== GET_ARGUMENTS Syscall Test ===
+Argument count (argc): 0
+Argument pointer (argv): 0x0
+Program has no arguments
+```
+
+### test_debug_syscalls.s
+**Debugging Syscalls (0xF0-0xF4) Comprehensive Demo**
+- **DEBUG_PRINT (0xF0)**: Prints debug messages to stderr
+- **DUMP_REGISTERS (0xF2)**: Shows all 15 registers + PC + CPSR flags
+- **DUMP_MEMORY (0xF3)**: Hex dump with ASCII view (16-byte pattern)
+- **ASSERT (0xF4)**: Demonstrates assertion testing
+- Sets up test data to verify output formatting
+- **Features:** All debug syscalls, register dump, memory dump, assertions
+
+**Example Output:**
+```
+=== Debug Syscalls Test (0xF0-0xF4) ===
+Test 1: DEBUG_PRINT... DONE
+Test 2: DUMP_REGISTERS...
+=== Register Dump ===
+R0  = 0x0000002A (42)
+...
+Test 3: DUMP_MEMORY...
+000082D0: 00 11 22 33 44 55 66 77 88 99 AA BB CC DD EE FF
+...
+All debug syscalls working - Test PASSED
+```
+
 ## Test Programs
 
 These programs test specific assembler features and edge cases:
@@ -641,6 +720,17 @@ These examples collectively demonstrate:
   - `0x13` WRITE - Write to file
   - `0x14` SEEK - Seek in file
   - `0x15` TELL - Get file position
+- **System Information**:
+  - `0x30` GET_TIME - Get timestamp in milliseconds
+  - `0x31` GET_RANDOM - Get random 32-bit number
+  - `0x32` GET_ARGUMENTS - Get program arguments (argc/argv)
+  - `0x33` GET_ENVIRONMENT - Get environment variables
+- **Debugging Support**:
+  - `0xF0` DEBUG_PRINT - Print debug message to stderr
+  - `0xF1` BREAKPOINT - Trigger debugger breakpoint
+  - `0xF2` DUMP_REGISTERS - Dump all registers and CPSR
+  - `0xF3` DUMP_MEMORY - Hex dump memory region
+  - `0xF4` ASSERT - Assert condition with message
 - **Control**:
   - `0x00` EXIT - Exit program
 
