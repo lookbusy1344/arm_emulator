@@ -649,23 +649,63 @@ func (t *TUI) UpdateDisassemblyView() {
 
 	var lines []string
 
-	// Show 16 instructions around PC
-	startAddr := pc - 32 // 8 instructions before
-	if startAddr > pc {  // Handle underflow
-		startAddr = 0
-	}
+	// Strategy: Collect instructions before and after PC separately
+	// This ensures we always show PC and instructions after it, even if there are gaps before
+	const targetBefore = 5
+	const targetAfter = 10
 
-	for i := 0; i < 16; i++ {
-		offset, err := vm.SafeIntToUint32(i * 4)
+	// Collect instructions BEFORE PC (up to targetBefore)
+	var beforeLines []string
+	for offset := targetBefore * 4; offset > 0; offset -= 4 {
+		offsetU32, err := vm.SafeIntToUint32(offset)
 		if err != nil {
-			break // Should never happen
+			continue
 		}
-		addr := startAddr + offset
+		addr := pc - offsetU32
+		if addr > pc { // Handle underflow
+			continue
+		}
 
 		// Read instruction
 		instr, err := t.Debugger.VM.Memory.ReadWord(addr)
 		if err != nil {
-			continue
+			continue // Skip invalid addresses
+		}
+
+		// Check for breakpoint
+		marker := "  "
+		if t.Debugger.Breakpoints.GetBreakpoint(addr) != nil {
+			marker = "* "
+		}
+
+		// Simple disassembly
+		line := fmt.Sprintf("[white]%s 0x%08X: 0x%08X[white]", marker, addr, instr)
+
+		// Try to add symbol
+		if sym := t.findSymbolForAddress(addr); sym != "" {
+			line = fmt.Sprintf("[white]%s 0x%08X: 0x%08X  <%s>[white]", marker, addr, instr, sym)
+		}
+
+		beforeLines = append(beforeLines, line)
+	}
+
+	// Reverse the before lines so they appear in ascending address order
+	for i := len(beforeLines) - 1; i >= 0; i-- {
+		lines = append(lines, beforeLines[i])
+	}
+
+	// Collect instructions AT and AFTER PC (current + targetAfter)
+	for i := 0; i <= targetAfter; i++ {
+		offset, err := vm.SafeIntToUint32(i * 4)
+		if err != nil {
+			break
+		}
+		addr := pc + offset
+
+		// Read instruction
+		instr, err := t.Debugger.VM.Memory.ReadWord(addr)
+		if err != nil {
+			continue // Skip invalid addresses
 		}
 
 		// Highlight current instruction
@@ -681,7 +721,7 @@ func (t *TUI) UpdateDisassemblyView() {
 			marker = "* "
 		}
 
-		// Simple disassembly (just show hex for now)
+		// Simple disassembly
 		line := fmt.Sprintf("[%s]%s 0x%08X: 0x%08X[white]", color, marker, addr, instr)
 
 		// Try to add symbol
