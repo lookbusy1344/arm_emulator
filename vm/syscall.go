@@ -67,11 +67,9 @@ const (
 )
 
 // FD table helpers
-var fdMu sync.Mutex
-
 func (vm *VM) getFile(fd uint32) (*os.File, error) {
-	fdMu.Lock()
-	defer fdMu.Unlock()
+	vm.fdMu.Lock()
+	defer vm.fdMu.Unlock()
 	if int(fd) < 0 || int(fd) >= len(vm.files) {
 		return nil, errors.New("bad fd")
 	}
@@ -95,8 +93,8 @@ func (vm *VM) getFile(fd uint32) (*os.File, error) {
 }
 
 func (vm *VM) allocFD(f *os.File) uint32 {
-	fdMu.Lock()
-	defer fdMu.Unlock()
+	vm.fdMu.Lock()
+	defer vm.fdMu.Unlock()
 	for i := 3; i < len(vm.files); i++ {
 		if vm.files[i] == nil {
 			vm.files[i] = f
@@ -110,8 +108,8 @@ func (vm *VM) allocFD(f *os.File) uint32 {
 }
 
 func (vm *VM) closeFD(fd uint32) error {
-	fdMu.Lock()
-	defer fdMu.Unlock()
+	vm.fdMu.Lock()
+	defer vm.fdMu.Unlock()
 	if int(fd) < 0 || int(fd) >= len(vm.files) || vm.files[fd] == nil {
 		return errors.New("bad fd")
 	}

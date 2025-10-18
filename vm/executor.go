@@ -82,6 +82,7 @@ type VM struct {
 
 	// File descriptor table (simple)
 	files []*os.File
+	fdMu  sync.Mutex
 }
 
 // NewVM creates a new virtual machine instance
