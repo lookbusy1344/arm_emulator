@@ -178,11 +178,11 @@ func (t *TUI) buildLayout() {
 		AddItem(t.MemoryView, 0, 1, false).
 		AddItem(t.StackView, 0, 1, false)
 
-	// Right panel: Top + Breakpoints
+	// Right panel: Top + Breakpoints (dynamic height based on content)
 	t.RightPanel = tview.NewFlex().
 		SetDirection(tview.FlexRow).
 		AddItem(rightTop, 0, 3, false).
-		AddItem(t.BreakpointsView, 8, 0, false)
+		AddItem(t.BreakpointsView, 4, 0, false) // Start with minimal height, updated dynamically
 
 	// Main content: Left and Right panels
 	mainContent := tview.NewFlex().
@@ -754,6 +754,20 @@ func (t *TUI) UpdateBreakpointsView() {
 	}
 
 	t.BreakpointsView.SetText(strings.Join(lines, "\n"))
+
+	// Dynamically adjust the height based on content
+	// Calculate needed height: borders (2) + content lines, with min of 4 and max of 12
+	numLines := len(lines)
+	height := numLines + 2 // Add 2 for border
+	if height < 4 {
+		height = 4 // Minimum height when no breakpoints
+	}
+	if height > 12 {
+		height = 12 // Maximum height to prevent taking too much space
+	}
+
+	// Update the layout with new height
+	t.RightPanel.ResizeItem(t.BreakpointsView, height, 0)
 }
 
 // findSymbolForAddress finds a symbol name for an address
