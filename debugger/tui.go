@@ -273,14 +273,17 @@ func (t *TUI) executeUntilBreak() {
 	// Run execution in the background to keep TUI responsive
 	go func() {
 		for t.Debugger.Running {
-			// Check for breakpoint before execution
-			if shouldBreak, reason := t.Debugger.ShouldBreak(); shouldBreak {
-				t.Debugger.Running = false
-				t.App.QueueUpdateDraw(func() {
-					t.WriteOutput(fmt.Sprintf("[yellow]Stopped:[white] %s at PC=0x%08X\n", reason, t.Debugger.VM.CPU.PC))
-					t.RefreshAll()
-				})
-				break
+			// For single-step mode, execute instruction first before checking if we should break
+			// For other modes, check breakpoints before execution
+			if t.Debugger.StepMode != StepSingle {
+				if shouldBreak, reason := t.Debugger.ShouldBreak(); shouldBreak {
+					t.Debugger.Running = false
+					t.App.QueueUpdateDraw(func() {
+						t.WriteOutput(fmt.Sprintf("[yellow]Stopped:[white] %s at PC=0x%08X\n", reason, t.Debugger.VM.CPU.PC))
+						t.RefreshAll()
+					})
+					break
+				}
 			}
 
 			// Execute one step
@@ -299,6 +302,18 @@ func (t *TUI) executeUntilBreak() {
 					t.RefreshAll()
 				})
 				break
+			}
+
+			// For single-step mode, check if we should break after execution
+			if t.Debugger.StepMode == StepSingle {
+				if shouldBreak, reason := t.Debugger.ShouldBreak(); shouldBreak {
+					t.Debugger.Running = false
+					t.App.QueueUpdateDraw(func() {
+						t.WriteOutput(fmt.Sprintf("[yellow]Stopped:[white] %s at PC=0x%08X\n", reason, t.Debugger.VM.CPU.PC))
+						t.RefreshAll()
+					})
+					break
+				}
 			}
 
 			// Update display periodically during long runs

@@ -44,11 +44,14 @@ func RunCLI(dbg *Debugger) error {
 		// If running, execute until breakpoint or halt
 		if dbg.Running {
 			for dbg.Running {
-				// Check for breakpoint before execution
-				if shouldBreak, reason := dbg.ShouldBreak(); shouldBreak {
-					dbg.Running = false
-					fmt.Printf("Stopped: %s at PC=0x%08X\n", reason, dbg.VM.CPU.PC)
-					break
+				// For single-step mode, execute instruction first before checking if we should break
+				// For other modes, check breakpoints before execution
+				if dbg.StepMode != StepSingle {
+					if shouldBreak, reason := dbg.ShouldBreak(); shouldBreak {
+						dbg.Running = false
+						fmt.Printf("Stopped: %s at PC=0x%08X\n", reason, dbg.VM.CPU.PC)
+						break
+					}
 				}
 
 				// Execute one step
@@ -61,6 +64,15 @@ func RunCLI(dbg *Debugger) error {
 					fmt.Printf("Runtime error: %v\n", err)
 					dbg.Running = false
 					break
+				}
+
+				// For single-step mode, check if we should break after execution
+				if dbg.StepMode == StepSingle {
+					if shouldBreak, reason := dbg.ShouldBreak(); shouldBreak {
+						dbg.Running = false
+						fmt.Printf("Stopped: %s at PC=0x%08X\n", reason, dbg.VM.CPU.PC)
+						break
+					}
 				}
 			}
 		}
