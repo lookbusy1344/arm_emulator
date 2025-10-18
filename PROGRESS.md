@@ -2,11 +2,101 @@
 
 **Last Updated:** 2025-10-18
 **Current Phase:** Phase 11 Complete + ARMv3 Extensions + Register Trace + Code Coverage + Flag Preservation + Dynamic Literal Pool Sizing ✅
-**Test Suite:** 1200+ tests passing (100% ✅), 0 lint issues, 75.0% code coverage
+**Test Suite:** 1383 tests passing (100% ✅), 0 lint issues, 75.0% code coverage
 
 ---
 
 ## Recent Updates
+
+### 2025-10-18: Comprehensive Syscall Testing - System Information and Debugging Syscalls ✅
+**Status:** Complete test coverage and example programs for syscalls 0x30-0x33 and 0xF0-0xF4
+
+**New Example Programs (4 total):**
+1. **test_get_time.s** - GET_TIME syscall (0x30)
+   - Retrieves two timestamps and calculates elapsed time
+   - Demonstrates time progression measurement
+   - Shows decimal formatting of timestamp values
+
+2. **test_get_random.s** - GET_RANDOM syscall (0x31)
+   - Generates 10 random numbers displayed in hexadecimal
+   - Distribution test with 100 samples analyzing high/low bit frequency
+   - Demonstrates randomness quality verification
+
+3. **test_get_arguments.s** - GET_ARGUMENTS syscall (0x32)
+   - Retrieves argument count (argc) and argv pointer
+   - Handles zero arguments gracefully
+   - Shows both decimal argc and hexadecimal argv values
+
+4. **test_debug_syscalls.s** - Debugging syscalls (0xF0-0xF4)
+   - DEBUG_PRINT (0xF0): Prints debug messages to stderr
+   - DUMP_REGISTERS (0xF2): Shows all 15 registers + PC + CPSR flags
+   - DUMP_MEMORY (0xF3): Hex dump with ASCII view (16-byte test pattern)
+   - ASSERT (0xF4): Demonstrates passing assertion
+
+**Unit Tests Added (13 total):**
+- System Information (0x30-0x33): 5 tests
+  - TestSWI_GetTime (enhanced with time progression check)
+  - TestSWI_GetRandom (verifies multiple calls return different values)
+  - TestSWI_GetArguments (tests with 3 arguments)
+  - TestSWI_GetArguments_Empty (tests with no arguments)
+  - TestSWI_GetEnvironment (verifies envp pointer)
+
+- Debugging Support (0xF0-0xF4): 8 tests
+  - TestSWI_DebugPrint (valid message)
+  - TestSWI_DebugPrint_InvalidAddress (error handling)
+  - TestSWI_Breakpoint (existing test)
+  - TestSWI_DumpRegisters (verifies register dump output)
+  - TestSWI_DumpMemory (verifies hex dump)
+  - TestSWI_DumpMemory_LargeLength (tests 1KB clamping)
+  - TestSWI_Assert_Pass (existing test)
+  - TestSWI_Assert_Fail (existing test)
+
+**Integration Tests Added (9 total):**
+- TestSyscall_GetTime - Verifies time doesn't go backwards
+- TestSyscall_GetRandom - Verifies random numbers are generated (not all zero)
+- TestSyscall_GetArguments - Verifies argc is correct
+- TestSyscall_GetEnvironment - Verifies envp syscall executes
+- TestSyscall_DebugPrint - Verifies debug output to stderr
+- TestSyscall_DumpRegisters - Verifies register dump output
+- TestSyscall_DumpMemory - Verifies memory dump output
+- TestSyscall_AssertPass - Verifies passing assertion doesn't halt
+- TestSyscall_AssertFail - Verifies failing assertion halts with error
+
+**Test Coverage Summary:**
+
+| Syscall | Name | Unit Tests | Integration Tests | Example Program | Status |
+|---------|------|------------|-------------------|-----------------|--------|
+| 0x30 | GET_TIME | ✅ (1) | ✅ (1) | ✅ | Complete |
+| 0x31 | GET_RANDOM | ✅ (1) | ✅ (1) | ✅ | Complete |
+| 0x32 | GET_ARGUMENTS | ✅ (2) | ✅ (1) | ✅ | Complete |
+| 0x33 | GET_ENVIRONMENT | ✅ (1) | ✅ (1) | Part of args | Complete |
+| 0xF0 | DEBUG_PRINT | ✅ (2) | ✅ (1) | ✅ | Complete |
+| 0xF1 | BREAKPOINT | ✅ (1) | N/A | N/A | Complete |
+| 0xF2 | DUMP_REGISTERS | ✅ (1) | ✅ (1) | ✅ | Complete |
+| 0xF3 | DUMP_MEMORY | ✅ (2) | ✅ (1) | ✅ | Complete |
+| 0xF4 | ASSERT | ✅ (2) | ✅ (2) | ✅ | Complete |
+
+**Files Modified/Created:**
+- Created: examples/test_get_time.s (67 lines)
+- Created: examples/test_get_random.s (84 lines)
+- Created: examples/test_get_arguments.s (72 lines)
+- Created: examples/test_debug_syscalls.s (153 lines)
+- Modified: tests/unit/vm/syscall_test.go (+13 unit tests)
+- Modified: tests/integration/syscalls_test.go (+9 integration tests)
+
+**Test Results:**
+- Total tests: 1383 (previously 1374)
+- New tests: +9 integration tests
+- Pass rate: 100% ✅
+- Linter issues: 0
+- All 4 example programs execute successfully
+
+**Impact:**
+- Complete documentation of System Information syscalls through working examples
+- Complete documentation of Debugging Support syscalls through working examples
+- Comprehensive test coverage ensures syscall reliability
+- Example programs serve as reference documentation for ARM assembly developers
+- All syscalls in categories 0x30-0x33 and 0xF0-0xF4 now fully tested
 
 ### 2025-10-18: Critical Bug Fixes - Heap Allocator, File Descriptors, and REALLOCATE Syscall ✅
 **Status:** Five critical bugs fixed with comprehensive test coverage

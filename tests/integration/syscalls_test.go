@@ -713,3 +713,235 @@ msg:
 		t.Errorf("expected string with Hello and World, got %q", stdout)
 	}
 }
+
+// Test GET_TIME syscall (0x30)
+func TestSyscall_GetTime(t *testing.T) {
+	code := `
+		.org 0x8000
+_start:
+		; Get first timestamp
+		SWI #0x30
+		MOV R4, R0
+
+		; Get second timestamp
+		SWI #0x30
+		MOV R5, R0
+
+		; Time should not go backwards
+		CMP R5, R4
+		MOVLT R0, #1       ; Error code if time went backwards
+		MOVGE R0, #0       ; Success
+		SWI #0x00
+`
+	_, _, exitCode, err := runAssembly(t, code)
+	if err != nil && !strings.Contains(err.Error(), "exited with code") {
+		t.Fatalf("execution failed: %v", err)
+	}
+
+	if exitCode != 0 {
+		t.Errorf("time went backwards - test failed")
+	}
+}
+
+// Test GET_RANDOM syscall (0x31)
+func TestSyscall_GetRandom(t *testing.T) {
+	code := `
+		.org 0x8000
+_start:
+		; Get 5 random numbers and verify they're not all zero
+		MOV R4, #5
+		MOV R5, #0        ; OR of all random values
+
+loop:
+		SWI #0x31         ; GET_RANDOM
+		ORR R5, R5, R0    ; Accumulate bits
+		SUBS R4, R4, #1
+		BNE loop
+
+		; If R5 is 0, all random values were 0 (extremely unlikely)
+		CMP R5, #0
+		MOVEQ R0, #1      ; Error
+		MOVNE R0, #0      ; Success
+		SWI #0x00
+`
+	_, _, exitCode, err := runAssembly(t, code)
+	if err != nil && !strings.Contains(err.Error(), "exited with code") {
+		t.Fatalf("execution failed: %v", err)
+	}
+
+	if exitCode != 0 {
+		t.Errorf("all random numbers were zero - test failed")
+	}
+}
+
+// Test GET_ARGUMENTS syscall (0x32)
+func TestSyscall_GetArguments(t *testing.T) {
+	code := `
+		.org 0x8000
+_start:
+		SWI #0x32         ; GET_ARGUMENTS
+		; R0 contains argc, R1 contains argv pointer
+		; For now, argc should be 0 (no args passed to test)
+		CMP R0, #0
+		MOVEQ R0, #0      ; Success
+		MOVNE R0, #1      ; Unexpected arguments
+		SWI #0x00
+`
+	_, _, exitCode, err := runAssembly(t, code)
+	if err != nil && !strings.Contains(err.Error(), "exited with code") {
+		t.Fatalf("execution failed: %v", err)
+	}
+
+	if exitCode != 0 {
+		t.Errorf("GET_ARGUMENTS failed - unexpected argc value")
+	}
+}
+
+// Test GET_ENVIRONMENT syscall (0x33)
+func TestSyscall_GetEnvironment(t *testing.T) {
+	code := `
+		.org 0x8000
+_start:
+		SWI #0x33         ; GET_ENVIRONMENT
+		; R0 should contain envp pointer (currently 0 in implementation)
+		MOV R0, #0        ; Success
+		SWI #0x00
+`
+	_, _, exitCode, err := runAssembly(t, code)
+	if err != nil && !strings.Contains(err.Error(), "exited with code") {
+		t.Fatalf("execution failed: %v", err)
+	}
+
+	if exitCode != 0 {
+		t.Errorf("GET_ENVIRONMENT failed")
+	}
+}
+
+// Test DEBUG_PRINT syscall (0xF0)
+func TestSyscall_DebugPrint(t *testing.T) {
+	code := `
+		.org 0x8000
+_start:
+		LDR R0, =msg
+		SWI #0xF0         ; DEBUG_PRINT
+		MOV R0, #0
+		SWI #0x00
+msg:
+		.asciz "Debug message test"
+`
+	_, stderr, exitCode, err := runAssembly(t, code)
+	if err != nil {
+		t.Fatalf("execution failed: %v", err)
+	}
+
+	if exitCode != 0 {
+		t.Errorf("expected exit code 0, got %d", exitCode)
+	}
+
+	// DEBUG_PRINT should write to stderr
+	if !strings.Contains(stderr, "Debug message test") {
+		t.Errorf("expected debug message in stderr, got %q", stderr)
+	}
+}
+
+// Test DUMP_REGISTERS syscall (0xF2)
+func TestSyscall_DumpRegisters(t *testing.T) {
+	code := `
+		.org 0x8000
+_start:
+		MOV R0, #42
+		MOV R1, #100
+		SWI #0xF2         ; DUMP_REGISTERS
+		MOV R0, #0
+		SWI #0x00
+`
+	stdout, _, exitCode, err := runAssembly(t, code)
+	if err != nil {
+		t.Fatalf("execution failed: %v", err)
+	}
+
+	if exitCode != 0 {
+		t.Errorf("expected exit code 0, got %d", exitCode)
+	}
+
+	// Should contain register dump
+	if !strings.Contains(stdout, "Register Dump") {
+		t.Errorf("expected register dump in stdout, got %q", stdout)
+	}
+}
+
+// Test DUMP_MEMORY syscall (0xF3)
+func TestSyscall_DumpMemory(t *testing.T) {
+	code := `
+		.org 0x8000
+_start:
+		LDR R0, =data     ; Address
+		MOV R1, #4        ; Length
+		SWI #0xF3         ; DUMP_MEMORY
+		MOV R0, #0
+		SWI #0x00
+data:
+		.byte 0x11, 0x22, 0x33, 0x44
+`
+	stdout, _, exitCode, err := runAssembly(t, code)
+	if err != nil {
+		t.Fatalf("execution failed: %v", err)
+	}
+
+	if exitCode != 0 {
+		t.Errorf("expected exit code 0, got %d", exitCode)
+	}
+
+	// Should contain memory dump
+	if !strings.Contains(stdout, "Memory Dump") {
+		t.Errorf("expected memory dump in stdout, got %q", stdout)
+	}
+}
+
+// Test ASSERT syscall pass (0xF4)
+func TestSyscall_AssertPass(t *testing.T) {
+	code := `
+		.org 0x8000
+_start:
+		MOV R0, #1        ; True condition
+		LDR R1, =msg
+		SWI #0xF4         ; ASSERT
+		MOV R0, #0        ; Should reach here
+		SWI #0x00
+msg:
+		.asciz "Assertion message"
+`
+	_, _, exitCode, err := runAssembly(t, code)
+	if err != nil {
+		t.Fatalf("execution failed: %v", err)
+	}
+
+	if exitCode != 0 {
+		t.Errorf("assert with true condition should not fail")
+	}
+}
+
+// Test ASSERT syscall fail (0xF4)
+func TestSyscall_AssertFail(t *testing.T) {
+	code := `
+		.org 0x8000
+_start:
+		MOV R0, #0        ; False condition
+		LDR R1, =msg
+		SWI #0xF4         ; ASSERT - should halt
+		MOV R0, #0        ; Should NOT reach here
+		SWI #0x00
+msg:
+		.asciz "This should fail"
+`
+	_, _, _, err := runAssembly(t, code)
+
+	// Should get an error for failed assertion
+	if err == nil {
+		t.Error("expected error for failed assertion")
+	}
+
+	if !strings.Contains(err.Error(), "ASSERTION FAILED") {
+		t.Errorf("expected assertion failure message, got %v", err)
+	}
+}
