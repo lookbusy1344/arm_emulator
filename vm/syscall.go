@@ -8,7 +8,6 @@ import (
 	"os"
 	"strconv"
 	"strings"
-	"sync"
 	"time"
 )
 
@@ -67,11 +66,9 @@ const (
 )
 
 // FD table helpers
-var fdMu sync.Mutex
-
 func (vm *VM) getFile(fd uint32) (*os.File, error) {
-	fdMu.Lock()
-	defer fdMu.Unlock()
+	vm.fdMu.Lock()
+	defer vm.fdMu.Unlock()
 	if int(fd) < 0 || int(fd) >= len(vm.files) {
 		return nil, errors.New("bad fd")
 	}
@@ -95,8 +92,8 @@ func (vm *VM) getFile(fd uint32) (*os.File, error) {
 }
 
 func (vm *VM) allocFD(f *os.File) uint32 {
-	fdMu.Lock()
-	defer fdMu.Unlock()
+	vm.fdMu.Lock()
+	defer vm.fdMu.Unlock()
 	for i := 3; i < len(vm.files); i++ {
 		if vm.files[i] == nil {
 			vm.files[i] = f
@@ -110,8 +107,8 @@ func (vm *VM) allocFD(f *os.File) uint32 {
 }
 
 func (vm *VM) closeFD(fd uint32) error {
-	fdMu.Lock()
-	defer fdMu.Unlock()
+	vm.fdMu.Lock()
+	defer vm.fdMu.Unlock()
 	if int(fd) < 0 || int(fd) >= len(vm.files) || vm.files[fd] == nil {
 		return errors.New("bad fd")
 	}
@@ -644,11 +641,6 @@ func handleWrite(vm *VM) error {
 		//nolint:gosec // G115: n is bounded by reasonable write size
 		vm.CPU.SetRegister(0, uint32(n))
 	}
-	// TEMP debug: if short write print diagnostic
-	//nolint:gosec // G115: n is bounded by reasonable write size
-	if uint32(n) != length {
-		fmt.Fprintf(os.Stderr, "[DEBUG write] requested=%d wrote=%d\n", length, n)
-	}
 	vm.CPU.IncrementPC()
 	return nil
 }
@@ -720,17 +712,63 @@ func handleReallocate(vm *VM) error {
 	oldAddr := vm.CPU.GetRegister(0)
 	newSize := vm.CPU.GetRegister(1)
 
-	// Simplified: allocate new memory and copy
-	// A full implementation would track allocations
+	// Handle NULL pointer (allocate new)
+	if oldAddr == 0 {
+		newAddr, err := vm.Memory.Allocate(newSize)
+		if err != nil {
+			vm.CPU.SetRegister(0, 0) // NULL on failure
+		} else {
+			vm.CPU.SetRegister(0, newAddr)
+		}
+		vm.CPU.IncrementPC()
+		return nil
+	}
+
+	// Get old allocation size from heap tracker
+	oldAlloc, ok := vm.Memory.HeapAllocations[oldAddr]
+	if !ok {
+		// Invalid address - return NULL
+		vm.CPU.SetRegister(0, 0)
+		vm.CPU.IncrementPC()
+		return nil
+	}
+
+	// Allocate new memory
 	newAddr, err := vm.Memory.Allocate(newSize)
 	if err != nil {
 		vm.CPU.SetRegister(0, 0) // NULL on failure
-	} else {
-		// Would copy old data here in full implementation
-		_ = vm.Memory.Free(oldAddr) // Free old memory (ignore error if invalid)
-		vm.CPU.SetRegister(0, newAddr)
+		vm.CPU.IncrementPC()
+		return nil
 	}
 
+	// Copy old data to new location (up to minimum of old and new sizes)
+	copySize := oldAlloc.Size
+	if newSize < copySize {
+		copySize = newSize
+	}
+
+	for i := uint32(0); i < copySize; i++ {
+		b, err := vm.Memory.ReadByteAt(oldAddr + i)
+		if err != nil {
+			// Copy failed, free new allocation and return NULL
+			_ = vm.Memory.Free(newAddr)
+			vm.CPU.SetRegister(0, 0)
+			vm.CPU.IncrementPC()
+			return nil
+		}
+		if err := vm.Memory.WriteByteAt(newAddr+i, b); err != nil {
+			// Copy failed, free new allocation and return NULL
+			_ = vm.Memory.Free(newAddr)
+			vm.CPU.SetRegister(0, 0)
+			vm.CPU.IncrementPC()
+			return nil
+		}
+	}
+
+	// Free old memory
+	_ = vm.Memory.Free(oldAddr)
+
+	vm.CPU.SetRegister(0, newAddr)
 	vm.CPU.IncrementPC()
 	return nil
 }
