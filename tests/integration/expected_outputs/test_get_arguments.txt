@@ -1,0 +1,5 @@
+=== GET_ARGUMENTS Syscall Test ===Argument count (argc): 0
+Argument pointer (argv): 0x0
+Program has no arguments
+
+GET_ARGUMENTS syscall working - Test PASSED

@@ -3,6 +3,7 @@ package integration_test
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -255,6 +256,11 @@ func TestExamplePrograms(t *testing.T) {
 			programFile:    "test_expr.s",
 			expectedOutput: "test_expr.txt",
 		},
+		{
+			name:           "TestGetArguments",
+			programFile:    "test_get_arguments.s",
+			expectedOutput: "test_get_arguments.txt",
+		},
 	}
 
 	for _, tt := range tests {
@@ -293,5 +299,69 @@ func TestExamplePrograms(t *testing.T) {
 					len(expected), expected, len(stdout), stdout)
 			}
 		})
+	}
+}
+
+// TestExampleProgram_DebugSyscalls tests the debug syscalls example program
+// This test uses substring matching instead of exact output comparison because
+// memory addresses and PC values are non-deterministic
+func TestExampleProgram_DebugSyscalls(t *testing.T) {
+	examplePath := filepath.Join("..", "..", "examples", "test_debug_syscalls.s")
+	if _, err := os.Stat(examplePath); os.IsNotExist(err) {
+		t.Skip("examples/test_debug_syscalls.s not found")
+	}
+
+	code, err := os.ReadFile(examplePath)
+	if err != nil {
+		t.Fatalf("failed to read test_debug_syscalls.s: %v", err)
+	}
+
+	stdout, stderr, exitCode, err := runAssemblyWithInput(t, string(code), "")
+	if err != nil {
+		t.Fatalf("execution failed: %v", err)
+	}
+
+	if exitCode != 0 {
+		t.Errorf("expected exit code 0, got %d", exitCode)
+	}
+
+	// Check that key strings appear in stdout
+	requiredStrings := []string{
+		"=== Debug Syscalls Test (0xF0-0xF4) ===",
+		"Test 1: DEBUG_PRINT...",
+		"DONE",
+		"Test 2: DUMP_REGISTERS...",
+		"=== Register Dump ===",
+		"R0  = 0x0000002A (42)",
+		"R1  = 0x00000064 (100)",
+		"R2  = 0x000000FF (255)",
+		"R3  = 0x000000DE (222)",
+		"R4  = 0x0000006F (111)",
+		"CPSR =",
+		"Test 3: DUMP_MEMORY...",
+		"=== Memory Dump",
+		"00 11 22 33 44 55 66 77 88 99 AA BB CC DD EE FF",
+		"Test 4: ASSERT (pass)... PASSED",
+		"Test 5: Multiple DEBUG_PRINT...",
+		"All debug syscalls working - Test PASSED",
+	}
+
+	for _, required := range requiredStrings {
+		if !strings.Contains(stdout, required) {
+			t.Errorf("stdout missing required string: %q", required)
+		}
+	}
+
+	// Check that debug messages appear in stderr
+	requiredStderr := []string{
+		"[DEBUG] This is a debug message from DEBUG_PRINT syscall",
+		"[DEBUG] Debug message 2: Everything is working",
+		"[DEBUG] Debug message 3: All debug syscalls functional",
+	}
+
+	for _, required := range requiredStderr {
+		if !strings.Contains(stderr, required) {
+			t.Errorf("stderr missing required string: %q", required)
+		}
 	}
 }
