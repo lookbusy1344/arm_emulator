@@ -44,14 +44,12 @@ func TestHeapAllocatorPerInstance(t *testing.T) {
 		t.Error("VM2 allocation not tracked in VM2")
 	}
 
-	// Verify VM1's allocation is NOT in VM2's tracking
-	if _, ok := vm2.Memory.HeapAllocations[addr1]; ok {
-		t.Error("VM1 allocation incorrectly tracked in VM2 (global state leak)")
+	// Verify each VM has exactly 1 allocation (not sharing state)
+	if len(vm1.Memory.HeapAllocations) != 1 {
+		t.Errorf("VM1 should have exactly 1 allocation, has %d (global state leak)", len(vm1.Memory.HeapAllocations))
 	}
-
-	// Verify VM2's allocation is NOT in VM1's tracking
-	if _, ok := vm1.Memory.HeapAllocations[addr2]; ok {
-		t.Error("VM2 allocation incorrectly tracked in VM1 (global state leak)")
+	if len(vm2.Memory.HeapAllocations) != 1 {
+		t.Errorf("VM2 should have exactly 1 allocation, has %d (global state leak)", len(vm2.Memory.HeapAllocations))
 	}
 }
 

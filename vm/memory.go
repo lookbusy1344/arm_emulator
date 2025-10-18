@@ -425,6 +425,12 @@ func (m *Memory) Allocate(size uint32) (uint32, error) {
 		return 0, fmt.Errorf("cannot allocate 0 bytes")
 	}
 
+	// Check for overflow BEFORE alignment (alignment can overflow too)
+	// If size > 0xFFFFFFFC, alignment will overflow
+	if size > 0xFFFFFFFC {
+		return 0, fmt.Errorf("allocation size too large (would overflow during alignment)")
+	}
+
 	// Align to 4-byte boundary
 	if size&0x3 != 0 {
 		size = (size + 3) & ^uint32(0x3)
