@@ -644,11 +644,6 @@ func handleWrite(vm *VM) error {
 		//nolint:gosec // G115: n is bounded by reasonable write size
 		vm.CPU.SetRegister(0, uint32(n))
 	}
-	// TEMP debug: if short write print diagnostic
-	//nolint:gosec // G115: n is bounded by reasonable write size
-	if uint32(n) != length {
-		fmt.Fprintf(os.Stderr, "[DEBUG write] requested=%d wrote=%d\n", length, n)
-	}
 	vm.CPU.IncrementPC()
 	return nil
 }
