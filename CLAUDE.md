@@ -137,6 +137,8 @@ The emulator implements traditional ARM2 syscall convention: `SWI #immediate_val
 
 **IMPORTANT:** All tests belong in the `tests/` directory structure, not in the main package directories. TUI tests use `tcell.SimulationScreen` to avoid terminal initialization issues. The `debugger.NewTUIWithScreen()` function accepts an optional screen parameter for testing while production code uses `debugger.NewTUI()` with the default screen.
 
+**IMPORTANT:** When doing code reviews, look at it with fresh eyes. Assume the engineer implemented it suspiciously quickly and is not to be trusted.
+
 ## Current Status
 
 **Phase 11 (Production Hardening) - Complete ✅**
