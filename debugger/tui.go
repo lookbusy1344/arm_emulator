@@ -158,7 +158,7 @@ func (t *TUI) buildLayout() {
 	// Right panel top: Registers, Memory, Stack
 	rightTop := tview.NewFlex().
 		SetDirection(tview.FlexRow).
-		AddItem(t.RegisterView, 10, 0, false).
+		AddItem(t.RegisterView, 13, 0, false).
 		AddItem(t.MemoryView, 0, 1, false).
 		AddItem(t.StackView, 0, 1, false)
 
@@ -396,15 +396,16 @@ func (t *TUI) UpdateSourceView() {
 // UpdateRegisterView updates the register view
 func (t *TUI) UpdateRegisterView() {
 	t.RegisterView.Clear()
+	t.RegisterView.ScrollToBeginning()
 
 	cpu := t.Debugger.VM.CPU
 	var lines []string
 
-	// General purpose registers (4 columns)
-	for i := 0; i < 4; i++ {
+	// General purpose registers (2 columns for better fit)
+	for i := 0; i < 8; i++ {
 		var cols []string
-		for j := 0; j < 4; j++ {
-			reg := i*4 + j
+		for j := 0; j < 2; j++ {
+			reg := i*2 + j
 			name := fmt.Sprintf("R%-2d", reg)
 			var value uint32
 			if reg == 15 {
@@ -419,7 +420,7 @@ func (t *TUI) UpdateRegisterView() {
 			} else {
 				value = cpu.R[reg]
 			}
-			cols = append(cols, fmt.Sprintf("%s: 0x%08X", name, value))
+			cols = append(cols, fmt.Sprintf("%-3s: 0x%08X", name, value))
 		}
 		lines = append(lines, strings.Join(cols, "  "))
 	}
