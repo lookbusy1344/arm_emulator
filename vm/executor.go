@@ -2,6 +2,7 @@ package vm
 
 import (
 	"fmt"
+	"io"
 	"os"
 	"sync"
 )
@@ -70,6 +71,9 @@ type VM struct {
 	ProgramArguments []string
 	ExitCode         int32
 
+	// I/O redirection (for TUI and testing)
+	OutputWriter io.Writer // Writer for program output (defaults to os.Stdout)
+
 	// Tracing and statistics (Phase 10)
 	ExecutionTrace *ExecutionTrace
 	MemoryTrace    *MemoryTrace
@@ -99,6 +103,7 @@ func NewVM() *VM {
 		EntryPoint:       CodeSegmentStart,
 		ProgramArguments: make([]string, 0),
 		ExitCode:         0,
+		OutputWriter:     os.Stdout, // Default to stdout
 		files:            make([]*os.File, 3), // Will be lazily initialized to stdin/stdout/stderr
 	}
 }

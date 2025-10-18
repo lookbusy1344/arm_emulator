@@ -43,6 +43,20 @@ type TUI struct {
 	SourceFile  string
 }
 
+// tuiWriter redirects VM output to the TUI OutputView
+type tuiWriter struct {
+	tui *TUI
+}
+
+// Write implements io.Writer interface
+func (w *tuiWriter) Write(p []byte) (n int, err error) {
+	w.tui.App.QueueUpdateDraw(func() {
+		_, _ = w.tui.OutputView.Write(p) // Ignore write errors in TUI
+		w.tui.OutputView.ScrollToEnd()
+	})
+	return len(p), nil
+}
+
 // NewTUI creates a new text user interface
 func NewTUI(debugger *Debugger) *TUI {
 	return NewTUIWithScreen(debugger, nil)
@@ -68,6 +82,9 @@ func NewTUIWithScreen(debugger *Debugger, screen tcell.Screen) *TUI {
 	tui.initializeViews()
 	tui.buildLayout()
 	tui.setupKeyBindings()
+
+	// Redirect VM output to TUI OutputView
+	debugger.VM.OutputWriter = &tuiWriter{tui: tui}
 
 	return tui
 }

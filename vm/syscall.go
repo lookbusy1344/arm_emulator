@@ -143,7 +143,11 @@ func ExecuteSWI(vm *VM, inst *Instruction) error {
 	case SWI_READ_INT:
 		err = handleReadInt(vm)
 	case SWI_WRITE_NEWLINE:
-		fmt.Println()
+		_, _ = fmt.Fprintln(vm.OutputWriter) // Ignore write errors
+		// Sync if it's os.Stdout
+		if f, ok := vm.OutputWriter.(*os.File); ok {
+			_ = f.Sync() // Ignore sync errors
+		}
 		vm.CPU.IncrementPC()
 
 	// File Operations
@@ -223,8 +227,11 @@ func handleExit(vm *VM) error {
 
 func handleWriteChar(vm *VM) error {
 	char := vm.CPU.GetRegister(0)
-	fmt.Printf("%c", char)
-	_ = os.Stdout.Sync() // Ignore sync errors
+	_, _ = fmt.Fprintf(vm.OutputWriter, "%c", char) // Ignore write errors
+	// Sync if it's os.Stdout
+	if f, ok := vm.OutputWriter.(*os.File); ok {
+		_ = f.Sync() // Ignore sync errors
+	}
 	vm.CPU.IncrementPC()
 	return nil
 }
@@ -251,8 +258,11 @@ func handleWriteString(vm *VM) error {
 		}
 	}
 
-	fmt.Print(string(str))
-	_ = os.Stdout.Sync() // Ignore sync errors
+	_, _ = fmt.Fprint(vm.OutputWriter, string(str)) // Ignore write errors
+	// Sync if it's os.Stdout
+	if f, ok := vm.OutputWriter.(*os.File); ok {
+		_ = f.Sync() // Ignore sync errors
+	}
 	vm.CPU.IncrementPC()
 	return nil
 }
@@ -269,19 +279,22 @@ func handleWriteInt(vm *VM) error {
 
 	switch base {
 	case 2:
-		fmt.Printf("%b", value)
+		_, _ = fmt.Fprintf(vm.OutputWriter, "%b", value) // Ignore write errors
 	case 8:
-		fmt.Printf("%o", value)
+		_, _ = fmt.Fprintf(vm.OutputWriter, "%o", value) // Ignore write errors
 	case 10:
-		fmt.Printf("%d", AsInt32(value))
+		_, _ = fmt.Fprintf(vm.OutputWriter, "%d", AsInt32(value)) // Ignore write errors
 	case 16:
-		fmt.Printf("%x", value)
+		_, _ = fmt.Fprintf(vm.OutputWriter, "%x", value) // Ignore write errors
 	default:
 		// This should never happen due to validation above, but keep for safety
-		fmt.Printf("%d", AsInt32(value))
+		_, _ = fmt.Fprintf(vm.OutputWriter, "%d", AsInt32(value)) // Ignore write errors
 	}
 
-	_ = os.Stdout.Sync() // Ignore sync errors
+	// Sync if it's os.Stdout
+	if f, ok := vm.OutputWriter.(*os.File); ok {
+		_ = f.Sync() // Ignore sync errors
+	}
 	vm.CPU.IncrementPC()
 	return nil
 }
@@ -462,18 +475,18 @@ func handleBreakpoint(vm *VM) error {
 }
 
 func handleDumpRegisters(vm *VM) error {
-	fmt.Println("=== Register Dump ===")
+	_, _ = fmt.Fprintln(vm.OutputWriter, "=== Register Dump ===") // Ignore write errors
 	for i := 0; i < 15; i++ {
 		// Safe: intentional conversion to show signed interpretation of register value
-		fmt.Printf("R%-2d = 0x%08X (%d)\n", i, vm.CPU.R[i], int32(vm.CPU.R[i])) // #nosec G115 -- intentional uint32->int32 for display
+		_, _ = fmt.Fprintf(vm.OutputWriter, "R%-2d = 0x%08X (%d)\n", i, vm.CPU.R[i], int32(vm.CPU.R[i])) // #nosec G115 -- intentional uint32->int32 for display, ignore write errors
 	}
-	fmt.Printf("PC  = 0x%08X\n", vm.CPU.PC)
-	fmt.Printf("CPSR = [%s%s%s%s]\n",
+	_, _ = fmt.Fprintf(vm.OutputWriter, "PC  = 0x%08X\n", vm.CPU.PC) // Ignore write errors
+	_, _ = fmt.Fprintf(vm.OutputWriter, "CPSR = [%s%s%s%s]\n", // Ignore write errors
 		map[bool]string{true: "N", false: "-"}[vm.CPU.CPSR.N],
 		map[bool]string{true: "Z", false: "-"}[vm.CPU.CPSR.Z],
 		map[bool]string{true: "C", false: "-"}[vm.CPU.CPSR.C],
 		map[bool]string{true: "V", false: "-"}[vm.CPU.CPSR.V])
-	fmt.Println("====================")
+	_, _ = fmt.Fprintln(vm.OutputWriter, "====================") // Ignore write errors
 
 	vm.CPU.IncrementPC()
 	return nil
@@ -487,35 +500,35 @@ func handleDumpMemory(vm *VM) error {
 		length = 1024 // Limit to 1KB
 	}
 
-	fmt.Printf("=== Memory Dump at 0x%08X (length=%d) ===\n", addr, length)
+	_, _ = fmt.Fprintf(vm.OutputWriter, "=== Memory Dump at 0x%08X (length=%d) ===\n", addr, length) // Ignore write errors
 
 	for i := uint32(0); i < length; i += 16 {
-		fmt.Printf("%08X: ", addr+i)
+		_, _ = fmt.Fprintf(vm.OutputWriter, "%08X: ", addr+i) // Ignore write errors
 
 		// Hex bytes
 		for j := uint32(0); j < 16 && i+j < length; j++ {
 			b, err := vm.Memory.ReadByteAt(addr + i + j)
 			if err != nil {
-				fmt.Printf("?? ")
+				_, _ = fmt.Fprint(vm.OutputWriter, "?? ") // Ignore write errors
 			} else {
-				fmt.Printf("%02X ", b)
+				_, _ = fmt.Fprintf(vm.OutputWriter, "%02X ", b) // Ignore write errors
 			}
 		}
 
 		// ASCII representation
-		fmt.Print(" |")
+		_, _ = fmt.Fprint(vm.OutputWriter, " |") // Ignore write errors
 		for j := uint32(0); j < 16 && i+j < length; j++ {
 			b, err := vm.Memory.ReadByteAt(addr + i + j)
 			if err != nil || b < 32 || b > 126 {
-				fmt.Print(".")
+				_, _ = fmt.Fprint(vm.OutputWriter, ".") // Ignore write errors
 			} else {
-				fmt.Printf("%c", b)
+				_, _ = fmt.Fprintf(vm.OutputWriter, "%c", b) // Ignore write errors
 			}
 		}
-		fmt.Println("|")
+		_, _ = fmt.Fprintln(vm.OutputWriter, "|") // Ignore write errors
 	}
 
-	fmt.Println("=======================================")
+	_, _ = fmt.Fprintln(vm.OutputWriter, "=======================================") // Ignore write errors
 	vm.CPU.IncrementPC()
 	return nil
 }
