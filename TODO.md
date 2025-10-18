@@ -16,10 +16,15 @@ This file tracks outstanding work only. Completed items are in `PROGRESS.md`.
 
 ## High Priority Tasks
 
+None
+
+---
+
+## Medium Priority Tasks
+
 ### TUI Help Command Display Issue
 **Status:** BLOCKED - Needs Investigation
-**Effort:** Unknown
-**Priority:** HIGH
+**Priority:** MEDIUM
 
 **Problem:**
 When typing `help` (or pressing F1) in the TUI debugger, the help text appears as black-on-black (invisible until highlighted). The text IS being written to the OutputView (confirmed via debug logging showing 1040 bytes), but is not visible.
@@ -55,9 +60,6 @@ When typing `help` (or pressing F1) in the TUI debugger, the help text appears a
 - Test simpler approach without goroutines
 - Consider filing tview library issue if bug is in library
 
----
-
-## Medium Priority Tasks
 
 ### Additional Diagnostic Modes
 
@@ -66,6 +68,7 @@ When typing `help` (or pressing F1) in the TUI debugger, the help text appears a
 - [ ] **Cycle-Accurate Timing Simulation** (8-10 hours) - Estimate ARM2 instruction timing, pipeline stall simulation, memory access latency, performance bottleneck identification
 - [ ] **Memory Region Heatmap Visualization** (4-6 hours) - Track access frequency per region, HTML/graphical output, color-coded visualization
 - [ ] **Reverse Execution Log** (10-12 hours) - Record state for backwards stepping, circular buffer of previous N instructions, time-travel debugging
+
 
 ### Performance & Benchmarking
 **Effort:** 10-15 hours
