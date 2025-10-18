@@ -112,6 +112,27 @@ func TestTUIWriteOutput(t *testing.T) {
 	}
 }
 
+// TestTUIWriteStatus tests status message writing
+func TestTUIWriteStatus(t *testing.T) {
+	tui, screen := createTestTUI()
+	defer screen.Fini()
+
+	// Write some status
+	tui.WriteStatus("Stopped at breakpoint\n")
+
+	// Check that status was written to StatusView (not OutputView)
+	statusText := tui.StatusView.GetText(false)
+	if statusText != "Stopped at breakpoint\n" {
+		t.Errorf("Expected 'Stopped at breakpoint\\n', got '%s'", statusText)
+	}
+
+	// Ensure OutputView is still empty
+	outputText := tui.OutputView.GetText(false)
+	if outputText != "" {
+		t.Errorf("Expected OutputView to be empty, got '%s'", outputText)
+	}
+}
+
 // TestTUIExecuteCommand tests command execution
 func TestTUIExecuteCommand(t *testing.T) {
 	tui, screen := createTestTUI()

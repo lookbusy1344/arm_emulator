@@ -29,7 +29,8 @@ type TUI struct {
 	StackView       *tview.TextView
 	DisassemblyView *tview.TextView
 	BreakpointsView *tview.TextView
-	OutputView      *tview.TextView
+	StatusView      *tview.TextView // Status messages (breakpoints, stepping, errors)
+	OutputView      *tview.TextView // Program output only
 	CommandInput    *tview.InputField
 
 	// State
@@ -139,12 +140,19 @@ func (t *TUI) initializeViews() {
 		SetWrap(false)
 	t.BreakpointsView.SetBorder(true).SetTitle(" Breakpoints/Watchpoints ")
 
-	// Output View
+	// Status View - for debugger messages
+	t.StatusView = tview.NewTextView().
+		SetDynamicColors(true).
+		SetScrollable(true).
+		SetWrap(true)
+	t.StatusView.SetBorder(true).SetTitle(" Status ")
+
+	// Output View - for program output only
 	t.OutputView = tview.NewTextView().
 		SetDynamicColors(true).
 		SetScrollable(true).
 		SetWrap(true)
-	t.OutputView.SetBorder(true).SetTitle(" Output ")
+	t.OutputView.SetBorder(true).SetTitle(" Program Output ")
 
 	// Command Input
 	t.CommandInput = tview.NewInputField().
@@ -156,11 +164,12 @@ func (t *TUI) initializeViews() {
 
 // buildLayout constructs the TUI layout
 func (t *TUI) buildLayout() {
-	// Left panel: Source and Disassembly
+	// Left panel: Source, Disassembly, and Status
 	t.LeftPanel = tview.NewFlex().
 		SetDirection(tview.FlexRow).
 		AddItem(t.SourceView, 0, 3, false).
-		AddItem(t.DisassemblyView, 0, 2, false)
+		AddItem(t.DisassemblyView, 0, 2, false).
+		AddItem(t.StatusView, 4, 0, false) // Fixed height for status messages
 
 	// Right panel top: Registers, Memory, Stack
 	rightTop := tview.NewFlex().
@@ -246,7 +255,7 @@ func (t *TUI) executeCommand(cmd string) {
 	cmdLower := strings.ToLower(strings.TrimSpace(cmd))
 	if cmdLower == "quit" || cmdLower == "q" || cmdLower == "exit" {
 		go t.App.QueueUpdateDraw(func() {
-			t.WriteOutput("[yellow]Exiting debugger...[white]\n")
+			t.WriteStatus("[yellow]Exiting debugger...[white]\n")
 		})
 		t.App.Stop()
 		return
@@ -261,10 +270,10 @@ func (t *TUI) executeCommand(cmd string) {
 	// Display output and refresh (in goroutine to avoid blocking)
 	go t.App.QueueUpdateDraw(func() {
 		if err != nil {
-			t.WriteOutput(fmt.Sprintf("[red]Error:[white] %v\n", err))
+			t.WriteStatus(fmt.Sprintf("[red]Error:[white] %v\n", err))
 		}
 		if output != "" {
-			t.WriteOutput(output)
+			t.WriteStatus(output)
 		}
 		t.RefreshAll()
 	})
@@ -286,7 +295,7 @@ func (t *TUI) executeUntilBreak() {
 				if shouldBreak, reason := t.Debugger.ShouldBreak(); shouldBreak {
 					t.Debugger.Running = false
 					t.App.QueueUpdateDraw(func() {
-						t.WriteOutput(fmt.Sprintf("[yellow]Stopped:[white] %s at PC=0x%08X\n", reason, t.Debugger.VM.CPU.PC))
+						t.WriteStatus(fmt.Sprintf("[yellow]Stopped:[white] %s at PC=0x%08X\n", reason, t.Debugger.VM.CPU.PC))
 						t.RefreshAll()
 					})
 					break
@@ -301,7 +310,7 @@ func (t *TUI) executeUntilBreak() {
 				if t.Debugger.VM.State == vm.StateHalted {
 					t.Debugger.Running = false
 					t.App.QueueUpdateDraw(func() {
-						t.WriteOutput(fmt.Sprintf("[green]Program exited with code %d[white]\n", t.Debugger.VM.ExitCode))
+						t.WriteStatus(fmt.Sprintf("[green]Program exited with code %d[white]\n", t.Debugger.VM.ExitCode))
 						t.DetectRegisterChanges()
 						t.RefreshAll()
 					})
@@ -309,7 +318,7 @@ func (t *TUI) executeUntilBreak() {
 				}
 				t.Debugger.Running = false
 				t.App.QueueUpdateDraw(func() {
-					t.WriteOutput(fmt.Sprintf("[red]Runtime error:[white] %v\n", err))
+					t.WriteStatus(fmt.Sprintf("[red]Runtime error:[white] %v\n", err))
 					t.DetectRegisterChanges()
 					t.RefreshAll()
 				})
@@ -324,7 +333,7 @@ func (t *TUI) executeUntilBreak() {
 				if shouldBreak, reason := t.Debugger.ShouldBreak(); shouldBreak {
 					t.Debugger.Running = false
 					t.App.QueueUpdateDraw(func() {
-						t.WriteOutput(fmt.Sprintf("[yellow]Stopped:[white] %s at PC=0x%08X\n", reason, t.Debugger.VM.CPU.PC))
+						t.WriteStatus(fmt.Sprintf("[yellow]Stopped:[white] %s at PC=0x%08X\n", reason, t.Debugger.VM.CPU.PC))
 						t.RefreshAll()
 					})
 					break
@@ -347,10 +356,16 @@ func (t *TUI) executeUntilBreak() {
 	}()
 }
 
-// WriteOutput writes to the output view
+// WriteOutput writes to the output view (program output only)
 func (t *TUI) WriteOutput(text string) {
 	_, _ = t.OutputView.Write([]byte(text)) // Ignore write errors in TUI
 	t.OutputView.ScrollToEnd()
+}
+
+// WriteStatus writes to the status view (debugger messages)
+func (t *TUI) WriteStatus(text string) {
+	_, _ = t.StatusView.Write([]byte(text)) // Ignore write errors in TUI
+	t.StatusView.ScrollToEnd()
 }
 
 // RefreshAll refreshes all view panels
