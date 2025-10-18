@@ -448,20 +448,20 @@ func (t *TUI) UpdateRegisterView() {
 
 	lines = append(lines, "")
 
-	// CPSR flags - keep individual flag colors
+	// CPSR flags - uppercase yellow when set, lowercase white when clear
 	flags := ""
 	if cpu.CPSR.N {
-		flags += "[red]N[white]"
+		flags += "[yellow]N[white]"
 	} else {
 		flags += "n"
 	}
 	if cpu.CPSR.Z {
-		flags += "[blue]Z[white]"
+		flags += "[yellow]Z[white]"
 	} else {
 		flags += "z"
 	}
 	if cpu.CPSR.C {
-		flags += "[green]C[white]"
+		flags += "[yellow]C[white]"
 	} else {
 		flags += "c"
 	}
@@ -486,7 +486,7 @@ func (t *TUI) UpdateRegisterView() {
 		cpsrValue |= 0x10000000
 	}
 
-	// Highlight CPSR value if flags changed, but preserve individual flag colors
+	// Highlight CPSR value if flags changed
 	if t.ChangedCPSR {
 		lines = append(lines, fmt.Sprintf("[green]CPSR: 0x%08X[white]  Flags: %s", cpsrValue, flags))
 	} else {
