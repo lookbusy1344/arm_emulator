@@ -378,14 +378,45 @@ func (t *TUI) UpdateSourceView() {
 	// Get current PC
 	pc := t.Debugger.VM.CPU.PC
 
-	// Find source lines around current PC
-	var lines []string
-	startAddr := pc - 20 // Show 10 instructions before
-	if startAddr > pc {  // Handle underflow
+	// Target: show ~15 instructions total (5 before + current + 9 after)
+	// But if there aren't enough before, show more after to fill the window
+	const targetBefore = 5
+	const targetAfter = 10
+
+	// Count how many valid instructions exist before PC
+	actualBefore := 0
+	for offset := uint32(4); offset <= targetBefore*4; offset += 4 {
+		checkAddr := pc - offset
+		if checkAddr > pc { // Handle underflow
+			break
+		}
+		if _, exists := t.Debugger.SourceMap[checkAddr]; exists {
+			actualBefore++
+		}
+	}
+
+	// Calculate how many to show after based on what we found before
+	// If we have fewer than target before, show more after to fill the window
+	showAfter := targetAfter + (targetBefore - actualBefore)
+
+	// Determine start address
+	beforeBytes, err := vm.SafeIntToUint32(actualBefore * 4)
+	if err != nil {
+		beforeBytes = 0 // Should never happen with small counts
+	}
+	startAddr := pc - beforeBytes
+	if startAddr > pc { // Handle underflow
 		startAddr = 0
 	}
 
-	for addr := startAddr; addr < pc+40; addr += 4 {
+	// Build the display
+	var lines []string
+	afterBytes, err := vm.SafeIntToUint32(showAfter * 4)
+	if err != nil {
+		afterBytes = 40 // Fallback to default
+	}
+	endAddr := pc + afterBytes
+	for addr := startAddr; addr <= endAddr; addr += 4 {
 		if sourceLine, exists := t.Debugger.SourceMap[addr]; exists {
 			// Highlight current line
 			marker := "  "
