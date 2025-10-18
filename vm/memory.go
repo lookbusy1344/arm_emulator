@@ -427,6 +427,11 @@ func (m *Memory) Allocate(size uint32) (uint32, error) {
 		size = (size + 3) & ^uint32(0x3)
 	}
 
+	// Check for overflow in nextHeapAddress + size
+	if size > 0xFFFFFFFF-nextHeapAddress {
+		return 0, fmt.Errorf("allocation size causes address overflow")
+	}
+
 	// Check if we have space
 	if nextHeapAddress+size >= HeapSegmentStart+HeapSegmentSize {
 		return 0, fmt.Errorf("out of heap memory")
