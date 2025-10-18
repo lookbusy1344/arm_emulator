@@ -164,11 +164,8 @@ func main() {
 
 	// Build source map (address -> source line)
 	for _, inst := range program.Instructions {
-		if inst.Label != "" {
-			if addr, exists := symbols[inst.Label]; exists {
-				sourceMap[addr] = inst.RawLine
-			}
-		}
+		// Map every instruction's address to its raw source line
+		sourceMap[inst.Address] = inst.RawLine
 	}
 
 	if *verboseMode {

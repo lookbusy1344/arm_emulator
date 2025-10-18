@@ -209,8 +209,9 @@ func (p *Parser) firstPass(program *Program) error {
 			inst := p.parseInstruction()
 			if inst != nil {
 				inst.Label = label
-				inst.EncodedLen = 4             // ARM instructions are 4 bytes
-				inst.Address = p.currentAddress // Record address
+				inst.EncodedLen = 4                                 // ARM instructions are 4 bytes
+				inst.Address = p.currentAddress                     // Record address
+				inst.RawLine = p.getRawLineFromInput(inst.Pos.Line) // Capture raw source line
 				program.Instructions = append(program.Instructions, inst)
 				// Safe: EncodedLen is always 4 for ARM instructions
 				p.currentAddress += uint32(inst.EncodedLen) // #nosec G115 -- EncodedLen is always 4
@@ -880,6 +881,21 @@ func (p *Parser) countLiteralsPerPool(program *Program) {
 	for i := range program.LiteralPoolLocs {
 		program.LiteralPoolCounts[i] = len(literalsBeforePool[i])
 	}
+}
+
+// getRawLineFromInput extracts the raw source line for a given line number
+func (p *Parser) getRawLineFromInput(lineNum int) string {
+	if p.lexer == nil || p.lexer.input == "" {
+		return ""
+	}
+
+	lines := strings.Split(p.lexer.input, "\n")
+	if lineNum < 1 || lineNum > len(lines) {
+		return ""
+	}
+
+	// Line numbers are 1-based
+	return lines[lineNum-1]
 }
 
 // Errors returns the error list
