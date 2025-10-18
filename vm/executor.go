@@ -3,6 +3,7 @@ package vm
 import (
 	"fmt"
 	"os"
+	"sync"
 )
 
 // ExecutionMode represents the execution mode of the VM

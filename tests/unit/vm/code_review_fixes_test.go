@@ -96,7 +96,7 @@ func TestResetHeapIndependence(t *testing.T) {
 	vm2 := vm.NewVM()
 
 	// Allocate in both VMs
-	addr1, _ := vm1.Memory.Allocate(100)
+	_, _ = vm1.Memory.Allocate(100)
 	addr2, _ := vm2.Memory.Allocate(100)
 
 	// Reset VM1's heap
