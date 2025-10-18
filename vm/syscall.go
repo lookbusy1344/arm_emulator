@@ -728,7 +728,7 @@ func handleReallocate(vm *VM) error {
 	}
 
 	// Get old allocation size from heap tracker
-	oldAlloc, ok := heapAllocations[oldAddr]
+	oldAlloc, ok := vm.Memory.HeapAllocations[oldAddr]
 	if !ok {
 		// Invalid address - return NULL
 		vm.CPU.SetRegister(0, 0)

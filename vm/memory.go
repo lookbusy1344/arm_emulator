@@ -37,20 +37,24 @@ type MemorySegment struct {
 
 // Memory represents the ARM2 virtual memory system
 type Memory struct {
-	Segments     []*MemorySegment
-	LittleEndian bool
-	StrictAlign  bool
-	AccessCount  uint64
-	ReadCount    uint64
-	WriteCount   uint64
+	Segments        []*MemorySegment
+	LittleEndian    bool
+	StrictAlign     bool
+	AccessCount     uint64
+	ReadCount       uint64
+	WriteCount      uint64
+	HeapAllocations map[uint32]*HeapAllocation
+	NextHeapAddress uint32
 }
 
 // NewMemory creates and initializes a new Memory instance
 func NewMemory() *Memory {
 	m := &Memory{
-		Segments:     make([]*MemorySegment, 0),
-		LittleEndian: true,
-		StrictAlign:  true,
+		Segments:        make([]*MemorySegment, 0),
+		LittleEndian:    true,
+		StrictAlign:     true,
+		HeapAllocations: make(map[uint32]*HeapAllocation),
+		NextHeapAddress: HeapSegmentStart,
 	}
 
 	// Initialize standard memory segments
@@ -383,6 +387,8 @@ func (m *Memory) Reset() {
 	m.AccessCount = 0
 	m.ReadCount = 0
 	m.WriteCount = 0
+	m.HeapAllocations = make(map[uint32]*HeapAllocation)
+	m.NextHeapAddress = HeapSegmentStart
 }
 
 // CheckExecutePermission checks if an address has execute permission
@@ -413,9 +419,6 @@ type HeapAllocation struct {
 	Size    uint32
 }
 
-var heapAllocations = make(map[uint32]*HeapAllocation)
-var nextHeapAddress uint32 = HeapSegmentStart
-
 // Allocate allocates memory from the heap
 func (m *Memory) Allocate(size uint32) (uint32, error) {
 	if size == 0 {
@@ -427,21 +430,21 @@ func (m *Memory) Allocate(size uint32) (uint32, error) {
 		size = (size + 3) & ^uint32(0x3)
 	}
 
-	// Check for overflow in nextHeapAddress + size
-	if size > 0xFFFFFFFF-nextHeapAddress {
+	// Check for overflow in m.NextHeapAddress + size
+	if size > 0xFFFFFFFF-m.NextHeapAddress {
 		return 0, fmt.Errorf("allocation size causes address overflow")
 	}
 
 	// Check if we have space
-	if nextHeapAddress+size >= HeapSegmentStart+HeapSegmentSize {
+	if m.NextHeapAddress+size >= HeapSegmentStart+HeapSegmentSize {
 		return 0, fmt.Errorf("out of heap memory")
 	}
 
-	addr := nextHeapAddress
-	nextHeapAddress += size
+	addr := m.NextHeapAddress
+	m.NextHeapAddress += size
 
 	// Track allocation
-	heapAllocations[addr] = &HeapAllocation{
+	m.HeapAllocations[addr] = &HeapAllocation{
 		Address: addr,
 		Size:    size,
 	}
@@ -460,13 +463,13 @@ func (m *Memory) Free(address uint32) error {
 		return nil // Freeing NULL is a no-op
 	}
 
-	alloc, ok := heapAllocations[address]
+	alloc, ok := m.HeapAllocations[address]
 	if !ok {
 		return fmt.Errorf("invalid free: address 0x%08X was not allocated", address)
 	}
 
 	// Remove from tracking
-	delete(heapAllocations, address)
+	delete(m.HeapAllocations, address)
 
 	// Zero the freed memory (helps catch use-after-free)
 	for i := uint32(0); i < alloc.Size; i++ {
@@ -478,6 +481,6 @@ func (m *Memory) Free(address uint32) error {
 
 // ResetHeap resets the heap allocator
 func (m *Memory) ResetHeap() {
-	heapAllocations = make(map[uint32]*HeapAllocation)
-	nextHeapAddress = HeapSegmentStart
+	m.HeapAllocations = make(map[uint32]*HeapAllocation)
+	m.NextHeapAddress = HeapSegmentStart
 }
