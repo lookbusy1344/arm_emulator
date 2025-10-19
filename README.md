@@ -234,7 +234,7 @@ The emulator includes a powerful debugger with three interface modes:
 - **Resizable layout** - Adjust panel sizes to your preference
 - **Real-time updates** - All views update automatically as program executes
 
-For complete debugger documentation including conditional breakpoints, watchpoints, memory examination, and expression syntax, see [docs/debugger_reference.md](docs/debugger_reference.md). For GUI debugger implementation details, see [docs/gui_assessment.md](docs/gui_assessment.md).
+For complete debugger documentation including conditional breakpoints, watchpoints, memory examination, and expression syntax, see [docs/debugger_reference.md](docs/debugger_reference.md). For GUI debugger implementation details, see [docs/gui_assessment.md](docs/gui_assessment.md). For GUI automated testing information, see [docs/gui_testing.md](docs/gui_testing.md).
 
 ### Symbol Table Dump
 

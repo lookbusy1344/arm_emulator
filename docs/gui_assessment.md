@@ -37,6 +37,7 @@ Both interfaces use the same underlying `Debugger` interface, which provides:
 - **Reasonable Binary Size**: ~10-15MB compiled binaries (acceptable for a debugger)
 - **Built-in Theming**: Dark/light mode support out of the box
 - **Good Performance**: Hardware-accelerated rendering where available
+- **Excellent Testing Support**: Built-in `fyne.io/fyne/v2/test` package for automated GUI testing (headless, CI/CD ready)
 
 **Cons:**
 - Somewhat limited advanced widgets (but adequate for debugger needs)
@@ -302,22 +303,55 @@ Adding Fyne will increase binary size by ~10-15MB (acceptable for a debugger wit
 
 ## Testing Strategy
 
+### Automated Testing with Fyne
+
+**Fyne provides excellent built-in testing support** through the `fyne.io/fyne/v2/test` package:
+
+- **Headless Testing**: Tests run without requiring a display server
+- **CI/CD Ready**: Works in GitHub Actions, GitLab CI, and other automated environments
+- **Widget Interaction**: Simulate clicks, typing, and other user interactions
+- **Visual Testing**: Capture and compare widget renderings
+- **Full Coverage**: Can test all GUI functionality automatically
+
+See `docs/gui_testing.md` for comprehensive testing documentation.
+
 ### Development Testing
-1. Test on Linux first (typically easiest)
-2. Add unit tests for GUI-independent logic
-3. Manual testing of GUI interactions
-4. Automated screenshot comparison tests (optional)
+1. Write automated tests for GUI components (using `fyne.io/fyne/v2/test`)
+2. Test on Linux first (typically easiest)
+3. Add unit tests for GUI-independent logic
+4. Manual testing of GUI interactions
+5. Automated screenshot comparison tests (optional)
+
+### Example Automated Test
+
+```go
+func TestGUIBreakpoints(t *testing.T) {
+    // Create test app (no display needed)
+    app := test.NewApp()
+    defer app.Quit()
+    
+    // Create and test GUI components
+    gui := newGUI(debugger)
+    gui.addBreakpoint()
+    
+    if len(gui.breakpoints) != 1 {
+        t.Error("Breakpoint not added")
+    }
+}
+```
 
 ### Cross-Platform Testing
 1. Use CI/CD to build for all platforms
-2. Manual testing on Mac, Windows, Linux
-3. Community testing through releases
+2. Automated tests run in CI (headless)
+3. Manual testing on Mac, Windows, Linux
+4. Community testing through releases
 
 ### Integration Testing
 1. Verify GUI works with all debugger commands
 2. Test with various ARM programs
 3. Ensure feature parity with TUI where applicable
 4. Test edge cases (no source file, memory errors, etc.)
+5. Automated workflow tests (step, breakpoint, continue, etc.)
 
 ## Documentation Requirements
 
@@ -346,6 +380,7 @@ Adding Fyne will increase binary size by ~10-15MB (acceptable for a debugger wit
 ✅ **No CGO**: Pure Go (mostly) simplifies builds and distribution
 ✅ **Modern**: Professional appearance and good UX
 ✅ **Maintainable**: Active project with good community support
+✅ **Testable**: Built-in headless testing framework for automated GUI tests
 
 ### Next Steps
 
