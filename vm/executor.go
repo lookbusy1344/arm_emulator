@@ -68,6 +68,7 @@ type VM struct {
 
 	// Runtime environment
 	EntryPoint       uint32
+	StackTop         uint32   // Initial stack pointer value for reset
 	ProgramArguments []string
 	ExitCode         int32
 
@@ -124,6 +125,10 @@ func (vm *VM) ResetRegisters() {
 	vm.CPU.Reset()
 	// Restore PC to entry point after reset
 	vm.CPU.PC = vm.EntryPoint
+	// Restore stack pointer to initial value
+	if vm.StackTop != 0 {
+		vm.CPU.SetSP(vm.StackTop)
+	}
 	vm.State = StateHalted
 	vm.InstructionLog = vm.InstructionLog[:0]
 	vm.LastError = nil
@@ -147,6 +152,7 @@ func (vm *VM) SetEntryPoint(address uint32) {
 
 // InitializeStack initializes the stack pointer
 func (vm *VM) InitializeStack(stackTop uint32) {
+	vm.StackTop = stackTop
 	vm.CPU.SetSP(stackTop)
 }
 
