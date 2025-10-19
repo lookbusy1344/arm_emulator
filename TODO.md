@@ -22,6 +22,85 @@ None
 
 ## Medium Priority Tasks
 
+### GUI Debugger Enhancements
+**Status:** IN PROGRESS - Core GUI implemented, enhancements needed
+**Priority:** MEDIUM
+
+**Current State:**
+- ✅ Basic GUI debugger implemented with Fyne framework (`--gui` flag)
+- ✅ Core panels: Source, Registers, Memory, Stack, Breakpoints, Console
+- ✅ Control toolbar: Run, Step, Continue, Stop, Add/Clear Breakpoints
+- ✅ Initial automated tests in `debugger/gui_test.go`
+- ✅ Comprehensive documentation (`docs/gui_assessment.md`, `docs/gui_debugger_guide.md`, `docs/gui_testing.md`)
+
+**CRITICAL REQUIREMENT:** **Full automated testing is VITAL for every GUI feature.** All new GUI functionality must include comprehensive automated tests using Fyne's `fyne.io/fyne/v2/test` package.
+
+**Planned Enhancements (Each requires automated tests):**
+
+**Phase 1: Core Improvements** (8-12 hours)
+- [ ] **Syntax highlighting in source view** - Color-code ARM instructions, registers, labels, comments
+  - **Testing:** Automated tests verifying color tags are applied correctly
+- [ ] **Click-to-set breakpoints** - Click in source view to toggle breakpoints
+  - **Testing:** Automated tests using `test.Tap()` to simulate clicks and verify breakpoint addition/removal
+- [ ] **Keyboard shortcuts** - F5 (Run), F9 (Toggle BP), F10 (Step Over), F11 (Step Into), Ctrl+R (Refresh)
+  - **Testing:** Automated tests using key event simulation to verify shortcuts work
+- [ ] **Register change highlighting** - Color-code registers that changed in last step (green)
+  - **Testing:** Automated tests verifying highlight state after step operations
+
+**Phase 2: Advanced Features** (10-15 hours)
+- [ ] **Memory editing** - Click to edit memory bytes in hex view
+  - **Testing:** Automated tests for edit operations and value validation
+- [ ] **Memory search** - Find byte patterns or strings in memory
+  - **Testing:** Automated tests for search functionality and result navigation
+- [ ] **Watch expressions** - Add custom expressions to watch panel
+  - **Testing:** Automated tests for expression evaluation and display updates
+- [ ] **Goto address** - Jump to specific memory/stack address
+  - **Testing:** Automated tests verifying address navigation
+
+**Phase 3: Polish & UX** (6-8 hours)
+- [ ] **Dark/Light theme toggle** - Switch between color schemes
+  - **Testing:** Automated tests verifying theme changes apply to all panels
+- [ ] **Window state persistence** - Save/restore window size, position, panel sizes
+  - **Testing:** Automated tests for state serialization/deserialization
+- [ ] **Preferences dialog** - Configure GUI settings (font size, colors, etc.)
+  - **Testing:** Automated tests for preference changes and persistence
+- [ ] **Improved source view** - Better handling of long files, line wrapping options
+  - **Testing:** Automated tests for scrolling, wrapping, navigation
+
+**Phase 4: Advanced Debugging** (12-16 hours)
+- [ ] **Conditional breakpoints UI** - Set conditions when creating breakpoints
+  - **Testing:** Automated tests for condition parsing and evaluation
+- [ ] **Breakpoint hit counts** - Track how many times breakpoint was hit
+  - **Testing:** Automated tests verifying hit count tracking
+- [ ] **Mixed source/disassembly view** - Show assembly alongside source
+  - **Testing:** Automated tests for view synchronization
+- [ ] **Instruction tooltips** - Hover to see instruction documentation
+  - **Testing:** Automated tests using mouse hover simulation
+
+**Testing Requirements:**
+- **Every feature MUST have automated tests** before being merged
+- Use `fyne.io/fyne/v2/test` package for headless testing
+- Tests must work in CI/CD without display server
+- Minimum test coverage: 80% for all GUI code
+- Include both unit tests (individual functions) and integration tests (complete workflows)
+- Visual regression tests for UI changes (compare screenshots)
+
+**Example Test Pattern:**
+```go
+func TestFeature(t *testing.T) {
+    app := test.NewApp()  // Headless test app
+    defer app.Quit()
+    
+    gui := newGUI(debugger)
+    
+    // Test setup
+    // Perform action
+    // Verify result
+}
+```
+
+---
+
 ### TUI Help Command Display Issue
 **Status:** BLOCKED - Needs Investigation
 **Priority:** MEDIUM
