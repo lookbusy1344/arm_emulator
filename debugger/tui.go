@@ -309,6 +309,8 @@ func (t *TUI) executeUntilBreak() {
 					t.Debugger.Running = false
 					t.App.QueueUpdateDraw(func() {
 						t.WriteStatus(fmt.Sprintf("[yellow]Stopped:[white] %s at PC=0x%08X\n", reason, t.Debugger.VM.CPU.PC))
+						t.DetectRegisterChanges()
+						t.DetectMemoryWrites()
 						t.RefreshAll()
 					})
 					break
@@ -351,6 +353,8 @@ func (t *TUI) executeUntilBreak() {
 					t.Debugger.Running = false
 					t.App.QueueUpdateDraw(func() {
 						t.WriteStatus(fmt.Sprintf("[yellow]Stopped:[white] %s at PC=0x%08X\n", reason, t.Debugger.VM.CPU.PC))
+						t.DetectRegisterChanges()
+						t.DetectMemoryWrites()
 						t.RefreshAll()
 					})
 					break
@@ -583,6 +587,9 @@ func (t *TUI) UpdateRegisterView() {
 // UpdateMemoryView updates the memory view
 func (t *TUI) UpdateMemoryView() {
 	t.MemoryView.Clear()
+
+	// Debug output
+	t.WriteStatus(fmt.Sprintf("[yellow]DEBUG UpdateMemoryView:[white] RecentWrites has %d addresses\n", len(t.RecentWrites)))
 
 	// Use current memory address or PC if not set
 	addr := t.MemoryAddress
@@ -994,5 +1001,9 @@ func (t *TUI) DetectMemoryWrites() {
 			// Align to 16-byte boundary for better display
 			t.MemoryAddress = firstWriteAddr & 0xFFFFFFF0
 		}
+
+		// Debug output
+		t.WriteStatus(fmt.Sprintf("[yellow]DEBUG DetectMemoryWrites:[white] LastCount=%d, CurrentCount=%d, NewWrites=%d, RecentWrites=%d, FirstAddr=0x%08X\n",
+			t.LastTraceEntryCount, len(entries), len(entries)-t.LastTraceEntryCount, len(t.RecentWrites), firstWriteAddr))
 	}
 }

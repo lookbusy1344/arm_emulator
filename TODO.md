@@ -22,6 +22,70 @@ None
 
 ## Medium Priority Tasks
 
+### TUI Memory Write Highlighting Not Visible
+**Status:** INVESTIGATING - Debug instrumentation added
+**Priority:** MEDIUM
+
+**Problem:**
+When a STR (store) instruction executes in the TUI debugger, the stored memory location should be highlighted in green in the Memory window, but the highlighting is not visible to the user.
+
+**Expected Behavior:**
+After executing a STR instruction (e.g., `STR R1, [R0]`), the 4 bytes written to memory should appear in green in the Memory window for one step, making it easy to see what memory was modified.
+
+**What Works:**
+- MemoryTrace is enabled and recording writes (confirmed via debug output: "RecentWrites=4, MemTrace=true, Entries=3")
+- `DetectMemoryWrites()` is detecting writes and populating the `RecentWrites` map with 4 addresses
+- Stack highlighting works (green highlighting appears in Stack window for PUSH operations)
+- Register highlighting works (changed registers appear in green)
+
+**What Doesn't Work:**
+- Memory window doesn't show green highlighting for written bytes
+- User reports no visible green color after stepping past STR instructions
+
+**Investigation Steps Completed:**
+1. ✅ Fixed stack pointer preservation bug (`ResetRegisters()` now restores SP from `vm.StackTop`)
+2. ✅ Implemented MemoryTrace tracking (enabled automatically in TUI mode)
+3. ✅ Added `CaptureMemoryTraceState()` and `DetectMemoryWrites()` functions
+4. ✅ Fixed source view truncation (square brackets escaped with `tview.Escape()`)
+5. ✅ Fixed memory hex rendering (manually build hex string instead of using `strings.Join()`)
+6. ✅ Added `DetectMemoryWrites()` calls in breakpoint hit paths
+7. ✅ Confirmed MemoryTrace.RecordWrite() is called by STR instruction execution
+8. ✅ Added debug instrumentation to trace RecentWrites map population
+
+**Current Debug Instrumentation:**
+- `DetectMemoryWrites()`: Reports LastCount, CurrentCount, NewWrites, RecentWrites count, FirstAddr
+- `UpdateMemoryView()`: Reports RecentWrites map size
+
+**Technical Details:**
+- File: `debugger/tui.go`
+- Key functions: `DetectMemoryWrites()` (line 966), `UpdateMemoryView()` (line 588)
+- Memory highlighting logic: lines 630-634 (checks `t.RecentWrites[byteAddr]` and renders `[green]XX[white]`)
+- MemoryTrace recording: `vm/inst_memory.go` line 147
+
+**Code Paths to Check:**
+1. Run mode breakpoint hit: lines 307-318 (now calls DetectMemoryWrites)
+2. Step mode breakpoint hit: lines 349-360 (now calls DetectMemoryWrites)
+3. Normal step: lines 345-346 (calls DetectMemoryWrites)
+4. Memory view rendering: lines 630-634 (applies green color)
+
+**Next Steps:**
+1. Run test with debug output: `./arm-emulator --tui examples/test_store_highlight.s`
+2. Execute: `b str_test1`, `r`, `s`
+3. Analyze debug output to determine:
+   - Is `DetectMemoryWrites()` finding the writes?
+   - Is `UpdateMemoryView()` seeing the populated RecentWrites map?
+   - Is the rendering logic being executed?
+4. Possible root causes still to investigate:
+   - tview color tag rendering issue in MemoryView
+   - QueueUpdateDraw timing causing RecentWrites to be stale
+   - Memory window scrolling/focus preventing visibility
+   - Color scheme or terminal compatibility issue
+
+**Test Program:**
+`examples/test_store_highlight.s` - Contains labeled STR instructions for easy breakpoint testing
+
+---
+
 ### TUI Help Command Display Issue
 **Status:** BLOCKED - Needs Investigation
 **Priority:** MEDIUM
