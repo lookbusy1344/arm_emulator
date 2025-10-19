@@ -48,6 +48,10 @@ type TUI struct {
 	PrevCPSR      vm.CPSR      // Previous CPSR flags before last step
 	ChangedRegs   map[int]bool // Registers that changed in the last step
 	ChangedCPSR   bool         // CPSR changed in the last step
+
+	// Memory write tracking for highlighting changes
+	RecentWrites       map[uint32]bool // Memory addresses written in the last step
+	LastTraceEntryCount int             // Number of memory trace entries before last step
 }
 
 // tuiWriter redirects VM output to the TUI OutputView
@@ -85,6 +89,7 @@ func NewTUIWithScreen(debugger *Debugger, screen tcell.Screen) *TUI {
 		StackAddress:   0,
 		Running:        false,
 		ChangedRegs:    make(map[int]bool),
+		RecentWrites:   make(map[uint32]bool),
 	}
 
 	tui.initializeViews()
@@ -93,6 +98,13 @@ func NewTUIWithScreen(debugger *Debugger, screen tcell.Screen) *TUI {
 
 	// Redirect VM output to TUI OutputView
 	debugger.VM.OutputWriter = &tuiWriter{tui: tui}
+
+	// Enable MemoryTrace for tracking memory writes in the TUI
+	if debugger.VM.MemoryTrace == nil {
+		debugger.VM.MemoryTrace = vm.NewMemoryTrace(nil) // nil writer - we only need tracking, not output
+	}
+	debugger.VM.MemoryTrace.Enabled = true
+	debugger.VM.MemoryTrace.Start()
 
 	return tui
 }
@@ -304,6 +316,7 @@ func (t *TUI) executeUntilBreak() {
 
 			// Capture register state before executing
 			t.CaptureRegisterState()
+			t.CaptureMemoryTraceState()
 
 			// Execute one step
 			if err := t.Debugger.VM.Step(); err != nil {
@@ -312,6 +325,7 @@ func (t *TUI) executeUntilBreak() {
 					t.App.QueueUpdateDraw(func() {
 						t.WriteStatus(fmt.Sprintf("[green]Program exited with code %d[white]\n", t.Debugger.VM.ExitCode))
 						t.DetectRegisterChanges()
+						t.DetectMemoryWrites()
 						t.RefreshAll()
 					})
 					break
@@ -320,13 +334,15 @@ func (t *TUI) executeUntilBreak() {
 				t.App.QueueUpdateDraw(func() {
 					t.WriteStatus(fmt.Sprintf("[red]Runtime error:[white] %v\n", err))
 					t.DetectRegisterChanges()
+					t.DetectMemoryWrites()
 					t.RefreshAll()
 				})
 				break
 			}
 
-			// Detect register changes after execution
+			// Detect register and memory changes after execution
 			t.DetectRegisterChanges()
+			t.DetectMemoryWrites()
 
 			// For single-step mode, check if we should break after execution
 			if t.Debugger.StepMode == StepSingle {
@@ -600,7 +616,12 @@ func (t *TUI) UpdateMemoryView() {
 				hexBytes = append(hexBytes, "??")
 				asciiBytes = append(asciiBytes, '.')
 			} else {
-				hexBytes = append(hexBytes, fmt.Sprintf("%02X", b))
+				// Highlight recently written bytes in green
+				if t.RecentWrites[byteAddr] {
+					hexBytes = append(hexBytes, fmt.Sprintf("[green]%02X[white]", b))
+				} else {
+					hexBytes = append(hexBytes, fmt.Sprintf("%02X", b))
+				}
 				if b >= 32 && b < 127 {
 					asciiBytes = append(asciiBytes, b)
 				} else {
@@ -646,7 +667,16 @@ func (t *TUI) UpdateStackView() {
 			marker = "->"
 		}
 
-		line := fmt.Sprintf("%s 0x%08X: 0x%08X", marker, addr, word)
+		// Check if this stack location was recently written
+		isRecentWrite := t.RecentWrites[addr] || t.RecentWrites[addr+1] ||
+		                 t.RecentWrites[addr+2] || t.RecentWrites[addr+3]
+
+		var line string
+		if isRecentWrite {
+			line = fmt.Sprintf("%s 0x%08X: [green]0x%08X[white]", marker, addr, word)
+		} else {
+			line = fmt.Sprintf("%s 0x%08X: 0x%08X", marker, addr, word)
+		}
 
 		// Try to resolve as symbol
 		if sym := t.findSymbolForAddress(word); sym != "" {
@@ -907,5 +937,36 @@ func (t *TUI) DetectRegisterChanges() {
 	if cpu.CPSR.N != t.PrevCPSR.N || cpu.CPSR.Z != t.PrevCPSR.Z ||
 		cpu.CPSR.C != t.PrevCPSR.C || cpu.CPSR.V != t.PrevCPSR.V {
 		t.ChangedCPSR = true
+	}
+}
+
+// CaptureMemoryTraceState captures the current memory trace entry count before stepping
+func (t *TUI) CaptureMemoryTraceState() {
+	if t.Debugger.VM.MemoryTrace != nil && t.Debugger.VM.MemoryTrace.Enabled {
+		entries := t.Debugger.VM.MemoryTrace.GetEntries()
+		t.LastTraceEntryCount = len(entries)
+	}
+}
+
+// DetectMemoryWrites tracks memory writes from the last step using MemoryTrace
+func (t *TUI) DetectMemoryWrites() {
+	// Clear previous writes
+	t.RecentWrites = make(map[uint32]bool)
+
+	// If MemoryTrace is enabled, check for new writes since last step
+	if t.Debugger.VM.MemoryTrace != nil && t.Debugger.VM.MemoryTrace.Enabled {
+		entries := t.Debugger.VM.MemoryTrace.GetEntries()
+		// Only look at new entries since last step
+		for i := t.LastTraceEntryCount; i < len(entries); i++ {
+			if entries[i].Type == "WRITE" {
+				// Mark this address and surrounding bytes as recently written
+				// This handles word writes (4 bytes) and byte writes
+				addr := entries[i].Address
+				t.RecentWrites[addr] = true
+				t.RecentWrites[addr+1] = true
+				t.RecentWrites[addr+2] = true
+				t.RecentWrites[addr+3] = true
+			}
+		}
 	}
 }
