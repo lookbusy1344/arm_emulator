@@ -25,6 +25,7 @@ func main() {
 		showHelp    = flag.Bool("help", false, "Show help information")
 		debugMode   = flag.Bool("debug", false, "Start in debugger mode")
 		tuiMode     = flag.Bool("tui", false, "Use TUI (Text User Interface) debugger")
+		guiMode     = flag.Bool("gui", false, "Use GUI (Graphical User Interface) debugger")
 		maxCycles   = flag.Uint64("max-cycles", 1000000, "Maximum CPU cycles before halt")
 		stackSize   = flag.Uint("stack-size", vm.StackSegmentSize, "Stack size in bytes")
 		entryPoint  = flag.String("entry", "0x8000", "Entry point address (hex or decimal)")
@@ -396,13 +397,19 @@ func main() {
 	}
 
 	// Run in appropriate mode
-	if *debugMode || *tuiMode {
+	if *debugMode || *tuiMode || *guiMode {
 		// Start debugger
 		dbg := debugger.NewDebugger(machine)
 		dbg.LoadSymbols(symbols)
 		dbg.LoadSourceMap(sourceMap)
 
-		if *tuiMode {
+		if *guiMode {
+			// Start GUI interface
+			if err := debugger.RunGUI(dbg); err != nil {
+				fmt.Fprintf(os.Stderr, "GUI error: %v\n", err)
+				os.Exit(1)
+			}
+		} else if *tuiMode {
 			// Start TUI interface
 			if err := debugger.RunTUI(dbg); err != nil {
 				fmt.Fprintf(os.Stderr, "TUI error: %v\n", err)
@@ -868,6 +875,7 @@ Options:
   -version           Show version information
   -debug             Start in debugger mode (CLI)
   -tui               Start in TUI debugger mode
+  -gui               Start in GUI debugger mode
   -max-cycles N      Set maximum CPU cycles (default: 1000000)
   -stack-size N      Set stack size in bytes (default: %d)
   -entry ADDR        Set entry point address (default: 0x8000)
@@ -910,6 +918,9 @@ Examples:
 
   # Run with TUI debugger
   arm-emulator -tui examples/bubble_sort.s
+
+  # Run with GUI debugger
+  arm-emulator -gui examples/fibonacci.s
 
   # Run with custom settings
   arm-emulator -max-cycles 5000000 -entry 0x10000 program.s
