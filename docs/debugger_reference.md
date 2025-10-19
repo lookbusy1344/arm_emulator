@@ -21,15 +21,16 @@ The TUI (Text User Interface) provides a visual debugging environment with multi
 ```
 ┌────────────────────────────────────────────────────────────┐
 │ Source View         │ Registers     │ Memory View          │
-│                     │ R0:  00000000 │ 0x8000: 00 00 00 00 │
-│ 10: _start:         │ R1:  00000000 │ 0x8010: 00 00 00 00 │
+│                     │ R0:  00000000 │ 00008000: 00 00 ... │
+│ 10: _start:         │ R1:  00000000 │ 00008010: 00 00 ... │
 │ 11:   MOV R0, #42  │ ...           │ ...                  │
-│ 12: > ADD R1, R0    │ PC:  00008004 │                      │
-│ 13:   SWI #0x00     │ CPSR: ----    │                      │
+│ 12: > ADD R1, R0    │ PC:  00008004 │ Changed bytes in    │
+│ 13:   SWI #0x00     │ CPSR: ----    │ green highlight     │
 ├────────────────────────────────────────────────────────────┤
 │ Stack View          │ Watchpoints   │ Breakpoints          │
 │ SP: 0xFFFF0000      │               │ 1: 0x8000 (enabled)  │
 │ [SP]: 00000000      │               │ 2: main (enabled)    │
+│ (changed in green)  │               │                      │
 ├────────────────────────────────────────────────────────────┤
 │ Command Input                                              │
 │ (debugger) step                                            │
@@ -40,19 +41,27 @@ The TUI (Text User Interface) provides a visual debugging environment with multi
 └────────────────────────────────────────────────────────────┘
 ```
 
+**Visual Features:**
+- **Current line indicator:** `>` marks the instruction about to execute
+- **Register highlighting:** Changed registers appear in green
+- **Memory write highlighting:** Written bytes appear in green (auto-scrolls to written address)
+- **Stack highlighting:** PUSH/POP operations highlighted in green
+- **Symbol-aware display:** Shows function/label names (e.g., `main`, `loop`) instead of raw addresses
+- **Proper bracket handling:** Source code with `[` and `]` displayed correctly
+
 ### Keyboard Shortcuts
 
 | Key | Action |
 |-----|--------|
 | `F1` | Help |
-| `F5` | Continue |
+| `F5` | Continue execution |
 | `F9` | Toggle breakpoint at current line |
-| `F10` | Step over (next) |
-| `F11` | Step into (step) |
+| `F10` | Step over (next) - executes one instruction, stepping over function calls |
+| `F11` | Step into (step) - executes one instruction, stepping into function calls |
 | `Ctrl+L` | Refresh display |
 | `Ctrl+C` | Quit debugger |
-| `Tab` | Switch between panels |
-| `↑/↓` | Navigate history / scroll |
+| `Tab` | Switch between panels (Source, Registers, Memory, Stack, etc.) |
+| `↑/↓` | Navigate command history / scroll in panels |
 | `PgUp/PgDn` | Scroll active panel |
 
 ## Command Reference
@@ -623,5 +632,5 @@ Use `tbreak` for one-time breakpoints:
 - [TUTORIAL.md](TUTORIAL.md) - Learn ARM2 assembly from scratch
 - [Instruction Set Reference](../INSTRUCTIONS.md) - Detailed instruction documentation
 - [Assembly Reference](assembly_reference.md) - Directives and syntax
-- [Examples](../examples/README.md) - 44 sample programs to debug
+- [Examples](../examples/README.md) - 44 sample programs to practice debugging
 - [FAQ](FAQ.md) - Troubleshooting common issues

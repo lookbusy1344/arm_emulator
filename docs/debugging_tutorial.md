@@ -215,15 +215,18 @@ The TUI mode provides a visual interface that makes debugging easier:
 │  11:                                                         │
 ├──────────────────────────┬──────────────────────────────────┤
 │ Registers                │ Memory View                       │
-│ R0:  0x00000000  (0)    │ 0x0000: E3 A0 00 60             │
-│ R4:  0x00000000  (0)    │ 0x0004: EB 00 00 10             │
-│ R5:  0x00000000  (0)    │                                  │
+│ R0:  0x00000060  (96)   │ 00008000: E3 A0 00 60           │
+│ R4:  0x00000000  (0)    │ 00008010: EB 00 00 10           │
+│ R5:  0x00000000  (0)    │ (written bytes shown in green)  │
 │ R6:  0x00000000  (0)    │                                  │
 │ PC:  0x00000000         │                                  │
 │ CPSR: ----              │                                  │
+│ (changed in green)      │                                  │
 ├──────────────────────────┴──────────────────────────────────┤
-│ Breakpoints              │ Watchpoints                      │
-│ 1: 0x001C (loop)        │                                  │
+│ Stack View               │ Breakpoints    │ Watchpoints     │
+│ SP: 0xFFFF0000          │ 1: loop (on)   │                 │
+│ FFFF0000: 00 00 00 00   │                │                 │
+│ (changes in green)      │                │                 │
 ├─────────────────────────────────────────────────────────────┤
 │ Console Output                                              │
 │ Debugger started. Type 'help' for commands.                │
@@ -239,15 +242,19 @@ The TUI mode provides a visual interface that makes debugging easier:
 4. **F10** to step over instructions
 5. **F11** to step into function calls
 6. **Tab** to switch between panels
-7. Type commands at the bottom prompt
+7. **Ctrl+L** to refresh the display if needed
+8. Type commands at the bottom prompt
 
 #### Advantages of TUI Mode
 
-- See registers update in real-time
-- Visual indication of current line
-- No need to type `info registers` repeatedly
-- Easy breakpoint management with F9
-- Split-screen view of code, registers, and memory
+- **Real-time visual feedback:** See registers update in real-time with green highlighting
+- **Memory write tracking:** Written memory bytes highlighted in green, auto-scrolls to show changes
+- **Stack monitoring:** PUSH/POP operations highlighted in green
+- **Symbol-aware display:** Shows function/label names instead of raw addresses
+- **Visual current line indicator:** `>` marks the instruction about to execute
+- **No repeated commands:** No need to type `info registers` repeatedly
+- **Easy breakpoint management:** F9 to toggle breakpoints at current line
+- **Multi-panel layout:** Split-screen view of code, registers, memory, stack, breakpoints, and console
 
 ## Tutorial 2: Debugging a Calculator (calculator.s)
 
@@ -719,13 +726,19 @@ These modes can help identify:
 | **F1** | Show help |
 | **F5** | Continue execution (run/continue) |
 | **F9** | Toggle breakpoint at current line |
-| **F10** | Step over (next) |
-| **F11** | Step into (step) |
+| **F10** | Step over (next) - executes one instruction, stepping over calls |
+| **F11** | Step into (step) - executes one instruction, stepping into calls |
 | **Ctrl+C** | Stop/interrupt program |
-| **Ctrl+L** | Refresh display |
-| **Tab** | Switch between panels |
-| **↑/↓** | Command history / scroll |
+| **Ctrl+L** | Refresh display (useful if display gets corrupted) |
+| **Tab** | Switch between panels (Source, Registers, Memory, Stack, etc.) |
+| **↑/↓** | Command history / scroll in panels |
 | **PgUp/PgDn** | Scroll active panel |
+
+**TUI Visual Indicators:**
+- **Green highlighting:** Changed registers, written memory bytes, stack operations
+- **`>` symbol:** Current line about to execute
+- **Symbol names:** Function/label names shown in source and other panels
+- **Auto-scroll:** Memory window automatically scrolls to show written addresses
 
 ## Next Steps
 

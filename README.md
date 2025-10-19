@@ -136,7 +136,7 @@ Exciting times. Perhaps I should think of a second more challenging vibe-coding 
 
 ## Features
 
-- **Complete ARM2 instruction set implementation** with 1385 passing tests (100% pass rate, 75% code coverage)
+- **Complete ARM2 instruction set implementation** with 969 passing tests (100% pass rate, 75% code coverage)
   - All 16 data processing instructions (AND, EOR, SUB, RSB, ADD, ADC, SBC, RSC, TST, TEQ, CMP, CMN, ORR, MOV, BIC, MVN)
   - All memory operations (LDR/STR/LDRB/STRB/LDM/STM + halfword extensions)
   - All branch instructions (B/BL/BX)
@@ -209,9 +209,19 @@ The emulator includes a powerful debugger with both command-line and TUI (Text U
 
 **TUI keyboard shortcuts:**
 - `F5` - Continue execution
-- `F9` - Toggle breakpoint
+- `F9` - Toggle breakpoint at current line
 - `F10` - Step over
 - `F11` - Step into
+- `Ctrl+L` - Refresh display
+- `Tab` - Switch between panels
+
+**TUI visual features:**
+- **Register highlighting** - Changed registers shown in green
+- **Memory write highlighting** - Written memory bytes shown in green (auto-scrolls to written address)
+- **Stack highlighting** - PUSH/POP operations highlighted in green
+- **Symbol-aware display** - Function/label names shown instead of raw addresses
+- **Source view** - Shows current line with `>` indicator, handles labels and comments properly
+- **Multi-panel layout** - Source, Registers, Memory, Stack, Breakpoints, Watchpoints, Console
 
 For complete debugger documentation including conditional breakpoints, watchpoints, memory examination, and expression syntax, see [docs/debugger_reference.md](docs/debugger_reference.md).
 
@@ -277,17 +287,19 @@ Advanced debugging tools to help identify and fix issues:
 **Diagnostic features:**
 
 **Code Coverage:**
-- Tracks executed vs unexecuted instructions
+- Tracks executed vs unexecuted instructions with symbol names
 - Reports coverage percentage
 - Shows execution counts for each address
 - Records first and last execution cycle
 - Identifies dead code and untested paths
+- Symbol-aware output (e.g., `0x00008000: executed 1 times [main]`)
 
 **Stack Trace:**
 - Monitors all stack operations (PUSH, POP, SP modifications)
 - Tracks stack depth and maximum usage
 - **Detects and warns on stack overflow/underflow**
 - Detailed trace with addresses and values
+- Symbol-aware output showing function names (e.g., `[000005] nested_call : MOVE SP: 0x00050000 -> 0x0004FFEC`)
 - Helps identify stack-related bugs
 
 **Flag Trace:**
@@ -295,6 +307,7 @@ Advanced debugging tools to help identify and fix issues:
 - Only records actual changes for efficiency
 - Shows before/after states with highlights
 - Statistics on flag change frequency
+- Symbol-aware output showing labels (e.g., `[000012] loop : 0xE355000C ---- -> N*---`)
 - Helps debug conditional logic issues
 
 **Register Access Pattern Analysis:**
@@ -316,7 +329,7 @@ All diagnostic modes support both text and JSON output formats:
 
 ### Example Programs
 
-The `examples/` directory contains 48 sample ARM assembly programs that demonstrate various features:
+The `examples/` directory contains 44 sample ARM assembly programs that demonstrate various features (100% working):
 
 **Basic Examples:**
 - **hello.s** - Hello World program
@@ -402,8 +415,8 @@ This triggers the `Build Release` workflow which:
 ├── debugger/            # Debugging utilities with TUI
 ├── config/              # Cross-platform configuration
 ├── tools/               # Development tools (lint, format, xref)
-├── tests/               # Test files (1385 tests, 100% passing, 75% coverage)
-├── examples/            # Example ARM assembly programs (48 programs)
+├── tests/               # Test files (969 tests, 100% passing, 75% coverage)
+├── examples/            # Example ARM assembly programs (44 programs)
 └── docs/                # User and developer documentation
 ```
 
