@@ -435,9 +435,8 @@ func (t *TUI) UpdateSourceView() {
 		if sourceLine, exists := t.Debugger.SourceMap[addr]; exists {
 			// Check if there's a label at this address and prepend it
 			if label := t.findSymbolForAddress(addr); label != "" {
-				// Show label on its own line with distinctive marker
-				// Using white color but with a visual marker to make it stand out
-				labelLine := fmt.Sprintf("[white]>> %s:[white]", label)
+				// Show label on its own line with distinctive marker in green
+				labelLine := fmt.Sprintf("[green]>> %s:[white]", label)
 				lines = append(lines, labelLine)
 			}
 
