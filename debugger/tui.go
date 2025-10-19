@@ -180,15 +180,15 @@ func (t *TUI) buildLayout() {
 	// Left panel: Source, Disassembly, and Status
 	t.LeftPanel = tview.NewFlex().
 		SetDirection(tview.FlexRow).
-		AddItem(t.SourceView, 0, 3, false).
+		AddItem(t.SourceView, 0, 2, false).   // Source gets flex weight 2 (same as Registers proportion below)
 		AddItem(t.DisassemblyView, 0, 2, false).
 		AddItem(t.StatusView, 4, 0, false) // Fixed height for status messages
 
 	// Right panel top: Registers, Memory, Stack
 	rightTop := tview.NewFlex().
 		SetDirection(tview.FlexRow).
-		AddItem(t.RegisterView, 13, 0, false).
-		AddItem(t.MemoryView, 0, 1, false).
+		AddItem(t.RegisterView, 0, 2, false). // Registers gets flex weight 2 (same height as Source)
+		AddItem(t.MemoryView, 0, 2, false).
 		AddItem(t.StackView, 0, 1, false)
 
 	// Right panel: Top + Breakpoints (dynamic height based on content)
@@ -198,11 +198,11 @@ func (t *TUI) buildLayout() {
 		AddItem(t.BreakpointsView, 4, 0, false) // Start with minimal height, updated dynamically
 
 	// Main content: Left and Right panels
-	// Give right panel more width to accommodate full memory display (80+ chars)
+	// Left panel (Source) is wider (flex 3), Right panel (Registers) is narrower (flex 2)
 	mainContent := tview.NewFlex().
 		SetDirection(tview.FlexColumn).
-		AddItem(t.LeftPanel, 0, 1, false).
-		AddItem(t.RightPanel, 0, 1, false)
+		AddItem(t.LeftPanel, 0, 3, false).  // Source window gets more width (flex weight 3)
+		AddItem(t.RightPanel, 0, 2, false)  // Registers window gets less width (flex weight 2)
 
 	// Main layout: Content + Output + Command
 	t.MainLayout = tview.NewFlex().
@@ -594,7 +594,7 @@ func (t *TUI) UpdateMemoryView() {
 	}
 
 	var lines []string
-	lines = append(lines, fmt.Sprintf("[yellow]Address: %08X[white]", addr))
+	lines = append(lines, fmt.Sprintf("[yellow]Address: %08X (Lines end with .)[white]", addr))
 
 	// Show 16 rows of 16 bytes each
 	for row := 0; row < 16; row++ {
@@ -636,8 +636,8 @@ func (t *TUI) UpdateMemoryView() {
 			}
 		}
 
-		// Just show hex bytes without ASCII to save space
-		line += hexPart
+		// Add end-of-line marker
+		line += hexPart + "."
 
 		lines = append(lines, line)
 	}
@@ -652,7 +652,7 @@ func (t *TUI) UpdateStackView() {
 	sp := t.Debugger.VM.CPU.R[13] // Stack pointer
 
 	var lines []string
-	lines = append(lines, fmt.Sprintf("[yellow]Stack Pointer: 0x%08X[white]", sp))
+	lines = append(lines, fmt.Sprintf("[yellow]Stack Pointer: 0x%08X (Lines end with .)[white]", sp))
 
 	// Show 16 words (64 bytes) from stack
 	for i := 0; i < 16; i++ {
@@ -665,7 +665,7 @@ func (t *TUI) UpdateStackView() {
 		// Read word
 		word, err := t.Debugger.VM.Memory.ReadWord(addr)
 		if err != nil {
-			lines = append(lines, fmt.Sprintf("0x%08X: ????????", addr))
+			lines = append(lines, fmt.Sprintf("0x%08X: ????????.", addr))
 			continue
 		}
 
@@ -690,6 +690,9 @@ func (t *TUI) UpdateStackView() {
 		if sym := t.findSymbolForAddress(word); sym != "" {
 			line += fmt.Sprintf(" <%s>", sym)
 		}
+
+		// Add end-of-line marker
+		line += "."
 
 		lines = append(lines, line)
 	}
