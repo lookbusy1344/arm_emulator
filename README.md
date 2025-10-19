@@ -187,7 +187,7 @@ The emulator will execute the program starting from `_start` (or `main` if `_sta
 
 ### Using the Debugger
 
-The emulator includes a powerful debugger with both command-line and TUI (Text User Interface) modes:
+The emulator includes a powerful debugger with three interface modes:
 
 ```bash
 # Command-line debugger mode
@@ -195,6 +195,9 @@ The emulator includes a powerful debugger with both command-line and TUI (Text U
 
 # TUI mode with visual panels for source, registers, memory, etc.
 ./arm-emulator --tui program.s
+
+# GUI mode with graphical interface (requires display)
+./arm-emulator --gui program.s
 ```
 
 **Quick debugger commands:**
@@ -223,7 +226,15 @@ The emulator includes a powerful debugger with both command-line and TUI (Text U
 - **Source view** - Shows current line with `>` indicator, handles labels and comments properly
 - **Multi-panel layout** - Source, Registers, Memory, Stack, Breakpoints, Watchpoints, Console
 
-For complete debugger documentation including conditional breakpoints, watchpoints, memory examination, and expression syntax, see [docs/debugger_reference.md](docs/debugger_reference.md).
+**GUI features:**
+- **Modern graphical interface** - Cross-platform GUI using Fyne framework (Mac, Windows, Linux)
+- **Multiple panels** - Source code, registers, memory viewer, stack view, console output
+- **Control toolbar** - Play/Step/Continue/Stop buttons, breakpoint management
+- **Tabbed interface** - Switch between Memory, Stack, and Console views
+- **Resizable layout** - Adjust panel sizes to your preference
+- **Real-time updates** - All views update automatically as program executes
+
+For complete debugger documentation including conditional breakpoints, watchpoints, memory examination, and expression syntax, see [docs/debugger_reference.md](docs/debugger_reference.md). For GUI debugger implementation details, see [docs/gui_assessment.md](docs/gui_assessment.md).
 
 ### Symbol Table Dump
 
