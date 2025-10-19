@@ -1,12 +1,67 @@
 # ARM2 Emulator Implementation Progress
 
-**Last Updated:** 2025-10-18
-**Current Phase:** Phase 11 Complete + ARMv3 Extensions + Register Trace + Code Coverage + Flag Preservation + Dynamic Literal Pool Sizing ✅
-**Test Suite:** 1383 tests passing (100% ✅), 0 lint issues, 75.0% code coverage
+**Last Updated:** 2025-10-19
+**Current Phase:** Phase 11 Complete + ARMv3 Extensions + Register Trace + Code Coverage + Flag Preservation + Dynamic Literal Pool Sizing + TUI Memory Highlighting ✅
+**Test Suite:** 969 tests passing (100% ✅), 0 lint issues, 75.0% code coverage
 
 ---
 
 ## Recent Updates
+
+### 2025-10-19: TUI Memory Write Highlighting Feature ✅
+**Status:** Complete - Memory writes now visually highlighted in green in TUI debugger
+
+**Problem Solved:**
+When STR/STRB/STRH instructions execute, the written memory locations were not being highlighted in the TUI Memory window, making it difficult to track memory modifications during debugging.
+
+**Implementation:**
+1. **Memory Trace Integration**
+   - Enabled `MemoryTrace` automatically in TUI mode (`debugger/tui.go` lines 102-107)
+   - Tracks all memory writes via existing `vm.MemoryTrace.RecordWrite()` infrastructure
+   - Zero performance overhead (nil writer, tracking only)
+
+2. **Write Detection**
+   - `CaptureMemoryTraceState()`: Captures trace entry count before each step
+   - `DetectMemoryWrites()`: Compares entry counts to detect new writes
+   - Populates `RecentWrites` map with written byte addresses (4 bytes per word write)
+   - Auto-focuses Memory window to written address (aligned to 16-byte boundary)
+
+3. **Visual Highlighting**
+   - Written bytes rendered in green: `[green]2A[white]`
+   - Highlighting persists for one step, then clears
+   - Also works for Stack window (green highlighting for PUSH operations)
+
+4. **Bug Fixes Required**
+   - **Stack Pointer Bug**: Fixed `ResetRegisters()` to restore SP from `vm.StackTop` (was being zeroed)
+   - **Source View Truncation**: Fixed square brackets being interpreted as color tags (use `tview.Escape()`)
+   - **Memory Window Layout**: Changed panel proportions from 2:1 to 1:1 to show full 16 bytes per row
+   - **Address Format**: Removed "0x" prefix to save 2 characters per line
+   - **ASCII Column**: Removed to maximize space for hex bytes (saved ~18 characters)
+   - **Breakpoint Detection**: Added `DetectMemoryWrites()` calls in both run mode and step mode breakpoint paths
+
+5. **Test Program Created**
+   - `examples/test_store_highlight.s` - Contains labeled STR instructions for easy testing
+   - Tests: simple STR, STR with offset, PUSH (STMFD), STRB (byte store)
+
+**Technical Details:**
+- Files modified: `debugger/tui.go`, `vm/executor.go`
+- New fields: `TUI.RecentWrites map[uint32]bool`, `TUI.LastTraceEntryCount int`, `VM.StackTop uint32`
+- Memory display format: `000080A0: 6C 65 74 65 21 00 00 00 2A 00 00 00 00 00 00 00` (green bytes highlighted)
+- Display: 16 rows × 16 bytes = 256 bytes visible
+
+**User Experience:**
+- Set breakpoint before STR: `b str_test1`
+- Run to breakpoint: `r`
+- Step to execute STR: `s`
+- **Result**: Memory window shows written bytes in green, auto-scrolls to written address
+
+**Benefits:**
+- Instant visual feedback on memory modifications
+- Easy to track data flow and side effects
+- Complements existing register highlighting (green for changed registers)
+- Works for all store instructions: STR, STRB, STRH, STMFD, etc.
+
+---
 
 ### 2025-10-18: Comprehensive Syscall Testing - System Information and Debugging Syscalls ✅
 **Status:** Complete test coverage and example programs for syscalls 0x30-0x33 and 0xF0-0xF4

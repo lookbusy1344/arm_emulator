@@ -198,9 +198,10 @@ func (t *TUI) buildLayout() {
 		AddItem(t.BreakpointsView, 4, 0, false) // Start with minimal height, updated dynamically
 
 	// Main content: Left and Right panels
+	// Give right panel more width to accommodate full memory display (80+ chars)
 	mainContent := tview.NewFlex().
 		SetDirection(tview.FlexColumn).
-		AddItem(t.LeftPanel, 0, 2, false).
+		AddItem(t.LeftPanel, 0, 1, false).
 		AddItem(t.RightPanel, 0, 1, false)
 
 	// Main layout: Content + Output + Command
@@ -586,11 +587,6 @@ func (t *TUI) UpdateRegisterView() {
 
 // UpdateMemoryView updates the memory view
 func (t *TUI) UpdateMemoryView() {
-	t.MemoryView.Clear()
-
-	// Debug output
-	t.WriteStatus(fmt.Sprintf("[yellow]DEBUG UpdateMemoryView:[white] RecentWrites has %d addresses\n", len(t.RecentWrites)))
-
 	// Use current memory address or PC if not set
 	addr := t.MemoryAddress
 	if addr == 0 {
@@ -598,7 +594,7 @@ func (t *TUI) UpdateMemoryView() {
 	}
 
 	var lines []string
-	lines = append(lines, fmt.Sprintf("[yellow]Address: 0x%08X[white]", addr))
+	lines = append(lines, fmt.Sprintf("[yellow]Address: %08X[white]", addr))
 
 	// Show 16 rows of 16 bytes each
 	for row := 0; row < 16; row++ {
@@ -608,12 +604,11 @@ func (t *TUI) UpdateMemoryView() {
 		}
 		rowAddr := addr + rowOffset
 
-		// Address
-		line := fmt.Sprintf("0x%08X: ", rowAddr)
+		// Address (without 0x prefix to save space)
+		line := fmt.Sprintf("%08X: ", rowAddr)
 
 		// Hex bytes - build manually to handle color tags properly
 		var hexPart string
-		var asciiBytes []byte
 
 		for col := 0; col < 16; col++ {
 			colOffset, err := vm.SafeIntToUint32(col)
@@ -627,7 +622,6 @@ func (t *TUI) UpdateMemoryView() {
 					hexPart += " "
 				}
 				hexPart += "??"
-				asciiBytes = append(asciiBytes, '.')
 			} else {
 				// Add space before byte (except first)
 				if col > 0 {
@@ -639,15 +633,12 @@ func (t *TUI) UpdateMemoryView() {
 				} else {
 					hexPart += fmt.Sprintf("%02X", b)
 				}
-				if b >= 32 && b < 127 {
-					asciiBytes = append(asciiBytes, b)
-				} else {
-					asciiBytes = append(asciiBytes, '.')
-				}
 			}
 		}
 
-		line += hexPart + "  " + string(asciiBytes)
+		// Just show hex bytes without ASCII to save space
+		line += hexPart
+
 		lines = append(lines, line)
 	}
 
@@ -1001,9 +992,5 @@ func (t *TUI) DetectMemoryWrites() {
 			// Align to 16-byte boundary for better display
 			t.MemoryAddress = firstWriteAddr & 0xFFFFFFF0
 		}
-
-		// Debug output
-		t.WriteStatus(fmt.Sprintf("[yellow]DEBUG DetectMemoryWrites:[white] LastCount=%d, CurrentCount=%d, NewWrites=%d, RecentWrites=%d, FirstAddr=0x%08X\n",
-			t.LastTraceEntryCount, len(entries), len(entries)-t.LastTraceEntryCount, len(t.RecentWrites), firstWriteAddr))
 	}
 }
