@@ -92,15 +92,21 @@ Also working on TUI debugging, which had a number of problems and doesn't seem t
 
 Go code is now 44,073 lines.
 
-## Summary, some thoughts after 10 days
+**Day 12 - 19 Oct** - Final polish on the TUI, highlighting altered memory locations in green and showing labels properly in the Source window. UI testing is much slower because I need to manually run it, observe changes I'd like, ask Claude and repeat the loop.
+
+Go code is now 44,276 lines. About 3,600 lines per day, and that's only in a few hours per day!
+
+## Summary, some thoughts
 
 At this stage I’ve probably taken vibing as far as I can go without actually writing some ARM2 assembly and trying to run and debug it by hand. So far every test program has been written by Claude (or Copilot, when Claude limits were exceeded).
 
-In terms of developer experience, *Claude Code* is amazing. It’s easy to get jaded and blasé about current AI progress, but if you told me 2 years ago this would be possible I would have said you were dreaming! Already these AI tools can out-perform science fiction depictions in shows like *Star Trek*, and we are only 2 years into the revolution. What will be possible in another 2 years? This will revolutionise the whole workplace.
+In terms of developer experience, *Claude Code* is amazing for backend/API and when testing can be automated. It’s easy to get jaded and blasé about current AI progress, but if you told me 2 years ago this would be possible I would have said you were dreaming! It's not so good when work is highly visual (the TUI debugger), and automated testing doesn't seem very useful. This would probably extend to websites.
 
 My criticisms are minor. You need to lean on Claude to preserve tests that fail, and actually fix the issue not delete the test. Instructions in CLAUDE.md should be strong in this regard. The only time I’ve applied detailed pressure and closely monitored code was when instructing Claude to write comprehensive integration tests, running the example programs and checking the output against expected results. Even then, some failing examples survived unnoticed between days 7-10. This might be less of an issue when Claude is writing something less esoteric and more easily seen, like a website. In this project, the goals were always loosely defined and many example programs were pretty open-ended.
 
-Claude continues to evolve quickly. Even during these 10 days, it has had 2 significant updates: first with Sonnet 4.5 and then today the faster Haiku 4.5 for simple tasks. It completed small doc updates and automatic release workflows almost instantly.
+Giving Claude strong instructions to "Look at it with fresh eyes" is vital for getting good code reviews.
+
+Claude continues to evolve quickly. Even during these 2 weeks, it has had 2 significant updates: first with Sonnet 4.5 and then today the faster Haiku 4.5 for simple tasks. Haiku completed small doc updates and automatic release workflows almost instantly.
 
 Exciting times. Perhaps I should think of a second more challenging vibe-coding project!
 
