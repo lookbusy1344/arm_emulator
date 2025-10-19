@@ -115,7 +115,8 @@ func (t *TUI) initializeViews() {
 	t.SourceView = tview.NewTextView().
 		SetDynamicColors(true).
 		SetScrollable(true).
-		SetWrap(false)
+		SetWrap(true).
+		SetWordWrap(true)
 	t.SourceView.SetBorder(true).SetTitle(" Source ")
 
 	// Register View
@@ -480,7 +481,9 @@ func (t *TUI) UpdateSourceView() {
 				marker = "* "
 			}
 
-			line := fmt.Sprintf("[%s]%s 0x%08X: %s[white]", color, marker, addr, displayLine)
+			// Escape square brackets in displayLine so tview doesn't interpret them as color tags
+			escapedLine := tview.Escape(displayLine)
+			line := fmt.Sprintf("[%s]%s 0x%08X: %s[white]", color, marker, addr, escapedLine)
 			lines = append(lines, line)
 		}
 	}
@@ -601,8 +604,8 @@ func (t *TUI) UpdateMemoryView() {
 		// Address
 		line := fmt.Sprintf("0x%08X: ", rowAddr)
 
-		// Hex bytes
-		var hexBytes []string
+		// Hex bytes - build manually to handle color tags properly
+		var hexPart string
 		var asciiBytes []byte
 
 		for col := 0; col < 16; col++ {
@@ -613,14 +616,21 @@ func (t *TUI) UpdateMemoryView() {
 			byteAddr := rowAddr + colOffset
 			b, err := t.Debugger.VM.Memory.ReadByteAt(byteAddr)
 			if err != nil {
-				hexBytes = append(hexBytes, "??")
+				if col > 0 {
+					hexPart += " "
+				}
+				hexPart += "??"
 				asciiBytes = append(asciiBytes, '.')
 			} else {
+				// Add space before byte (except first)
+				if col > 0 {
+					hexPart += " "
+				}
 				// Highlight recently written bytes in green
 				if t.RecentWrites[byteAddr] {
-					hexBytes = append(hexBytes, fmt.Sprintf("[green]%02X[white]", b))
+					hexPart += fmt.Sprintf("[green]%02X[white]", b)
 				} else {
-					hexBytes = append(hexBytes, fmt.Sprintf("%02X", b))
+					hexPart += fmt.Sprintf("%02X", b)
 				}
 				if b >= 32 && b < 127 {
 					asciiBytes = append(asciiBytes, b)
@@ -630,7 +640,7 @@ func (t *TUI) UpdateMemoryView() {
 			}
 		}
 
-		line += strings.Join(hexBytes, " ") + "  " + string(asciiBytes)
+		line += hexPart + "  " + string(asciiBytes)
 		lines = append(lines, line)
 	}
 
@@ -956,6 +966,9 @@ func (t *TUI) DetectMemoryWrites() {
 	// If MemoryTrace is enabled, check for new writes since last step
 	if t.Debugger.VM.MemoryTrace != nil && t.Debugger.VM.MemoryTrace.Enabled {
 		entries := t.Debugger.VM.MemoryTrace.GetEntries()
+		var firstWriteAddr uint32
+		foundWrite := false
+
 		// Only look at new entries since last step
 		for i := t.LastTraceEntryCount; i < len(entries); i++ {
 			if entries[i].Type == "WRITE" {
@@ -966,7 +979,20 @@ func (t *TUI) DetectMemoryWrites() {
 				t.RecentWrites[addr+1] = true
 				t.RecentWrites[addr+2] = true
 				t.RecentWrites[addr+3] = true
+
+				// Track first write address to auto-focus memory view
+				if !foundWrite {
+					firstWriteAddr = addr
+					foundWrite = true
+				}
 			}
+		}
+
+		// Auto-focus Memory window on first written address
+		// Only update if it's not in the stack region (let stack view handle that)
+		if foundWrite && firstWriteAddr < vm.StackSegmentStart {
+			// Align to 16-byte boundary for better display
+			t.MemoryAddress = firstWriteAddr & 0xFFFFFFF0
 		}
 	}
 }

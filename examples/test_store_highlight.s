@@ -11,35 +11,46 @@ _start:
         SWI     #0x07           ; WRITE_NEWLINE
 
         ; Test 1: Simple STR to a known memory location
+test1:
         LDR     R0, =value1     ; R0 = address of value1
         MOV     R1, #42         ; R1 = 42
-        STR     R1, [R0]        ; Store 42 to value1 (BREAKPOINT HERE - line 17)
+str_test1:
+        STR     R1, [R0]        ; Store 42 to value1 (breakpoint: str_test1)
 
         ; Test 2: STR with offset
+test2:
         LDR     R0, =array      ; R0 = address of array
         MOV     R1, #100
-        STR     R1, [R0, #0]    ; Store 100 to array[0] (BREAKPOINT HERE - line 22)
+str_test2:
+        STR     R1, [R0, #0]    ; Store 100 to array[0] (breakpoint: str_test2)
 
         MOV     R1, #200
-        STR     R1, [R0, #4]    ; Store 200 to array[1] (BREAKPOINT HERE - line 25)
+str_test3:
+        STR     R1, [R0, #4]    ; Store 200 to array[1] (breakpoint: str_test3)
 
         MOV     R1, #300
-        STR     R1, [R0, #8]    ; Store 300 to array[2] (BREAKPOINT HERE - line 28)
+str_test4:
+        STR     R1, [R0, #8]    ; Store 300 to array[2] (breakpoint: str_test4)
 
         ; Test 3: PUSH onto stack (store multiple)
+test3:
         MOV     R1, #11
         MOV     R2, #22
         MOV     R3, #33
         MOV     R4, #44
-        STMFD   SP!, {R1-R4}    ; Push R1-R4 onto stack (BREAKPOINT HERE - line 35)
+push_test:
+        STMFD   SP!, {R1-R4}    ; Push R1-R4 onto stack (breakpoint: push_test)
 
         ; Test 4: POP from stack (load multiple)
-        LDMFD   SP!, {R5-R8}    ; Pop into R5-R8 (BREAKPOINT HERE - line 38)
+pop_test:
+        LDMFD   SP!, {R5-R8}    ; Pop into R5-R8 (breakpoint: pop_test)
 
         ; Test 5: Store byte
+test5:
         LDR     R0, =byte_val
         MOV     R1, #0xFF
-        STRB    R1, [R0]        ; Store byte (BREAKPOINT HERE - line 43)
+strb_test:
+        STRB    R1, [R0]        ; Store byte (breakpoint: strb_test)
 
         ; Print success message
         LDR     R0, =msg_done
