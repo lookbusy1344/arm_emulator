@@ -168,6 +168,15 @@ func main() {
 		sourceMap[inst.Address] = inst.RawLine
 	}
 
+	// Add data directives to source map (prefixed with [DATA] for TUI differentiation)
+	for _, dir := range program.Directives {
+		// Include directives that generate data in memory
+		if dir.Name == ".word" || dir.Name == ".byte" || dir.Name == ".ascii" || dir.Name == ".asciz" || dir.Name == ".space" {
+			// Prefix with [DATA] so TUI can display these in a different color
+			sourceMap[dir.Address] = "[DATA]" + dir.RawLine
+		}
+	}
+
 	if *verboseMode {
 		fmt.Printf("Entry point: 0x%08X\n", entryAddr)
 		fmt.Printf("Stack: 0x%08X - 0x%08X (%d bytes)\n",

@@ -200,7 +200,8 @@ func (p *Parser) firstPass(program *Program) error {
 			directive := p.parseDirective()
 			if directive != nil {
 				directive.Label = label
-				directive.Address = p.currentAddress // Record address before processing
+				directive.Address = p.currentAddress                          // Record address before processing
+				directive.RawLine = p.getRawLineFromInput(directive.Pos.Line) // Capture raw source line
 				program.Directives = append(program.Directives, directive)
 				p.handleDirective(directive, program)
 			}

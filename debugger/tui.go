@@ -433,12 +433,31 @@ func (t *TUI) UpdateSourceView() {
 	endAddr := pc + afterBytes
 	for addr := startAddr; addr <= endAddr; addr += 4 {
 		if sourceLine, exists := t.Debugger.SourceMap[addr]; exists {
+			// Check if there's a label at this address and prepend it
+			if label := t.findSymbolForAddress(addr); label != "" {
+				// Show label on its own line with distinctive marker
+				// Using white color but with a visual marker to make it stand out
+				labelLine := fmt.Sprintf("[white]>> %s:[white]", label)
+				lines = append(lines, labelLine)
+			}
+
+			// Check if this is a data directive (prefixed with [DATA])
+			isData := false
+			displayLine := sourceLine
+			if strings.HasPrefix(sourceLine, "[DATA]") {
+				isData = true
+				displayLine = strings.TrimPrefix(sourceLine, "[DATA]")
+			}
+
 			// Highlight current line
 			marker := "  "
 			color := "white"
 			if addr == pc {
 				marker = "->"
 				color = "yellow"
+			} else if isData {
+				// Data directives display in green when not at PC
+				color = "green"
 			}
 
 			// Check for breakpoint
@@ -446,7 +465,7 @@ func (t *TUI) UpdateSourceView() {
 				marker = "* "
 			}
 
-			line := fmt.Sprintf("[%s]%s 0x%08X: %s[white]", color, marker, addr, sourceLine)
+			line := fmt.Sprintf("[%s]%s 0x%08X: %s[white]", color, marker, addr, displayLine)
 			lines = append(lines, line)
 		}
 	}

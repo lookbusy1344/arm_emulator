@@ -176,3 +176,78 @@ _start:
 	t.Logf("Old method: %d entries, New method: %d entries (out of %d instructions)",
 		len(oldSourceMap), mappedCount, instructionCount)
 }
+
+// TestSourceMapWithDataDirectives tests that data directives are included in the source map
+func TestSourceMapWithDataDirectives(t *testing.T) {
+	code := `
+		.org 0x8000
+_start:
+		LDR R0, =message
+		SWI #0x02
+		SWI #0x00
+
+		.align 2
+message:
+		.asciz "Hello"
+		.align 2
+value:
+		.word 42
+buffer:
+		.space 16
+`
+
+	// Parse the assembly
+	p := parser.NewParser(code, "test.s")
+	program, err := p.Parse()
+	if err != nil {
+		t.Fatalf("Parse failed: %v", err)
+	}
+
+	// Build source map the same way main.go does now
+	sourceMap := make(map[uint32]string)
+
+	// Add instructions
+	for _, inst := range program.Instructions {
+		sourceMap[inst.Address] = inst.RawLine
+	}
+
+	// Add data directives (with [DATA] prefix)
+	for _, dir := range program.Directives {
+		if dir.Name == ".word" || dir.Name == ".byte" || dir.Name == ".ascii" || dir.Name == ".asciz" || dir.Name == ".space" {
+			sourceMap[dir.Address] = "[DATA]" + dir.RawLine
+		}
+	}
+
+	// Verify we have instruction entries
+	instructionCount := 0
+	for _, inst := range program.Instructions {
+		if inst.Mnemonic != "" {
+			instructionCount++
+		}
+	}
+
+	if instructionCount == 0 {
+		t.Fatal("No instructions found in parsed program")
+	}
+
+	// Verify we have data directive entries
+	dataCount := 0
+	for addr, line := range sourceMap {
+		if len(line) > 6 && line[:6] == "[DATA]" {
+			dataCount++
+			t.Logf("Data directive at 0x%08X: %s", addr, line[6:])
+		}
+	}
+
+	if dataCount == 0 {
+		t.Error("No data directives found in source map")
+	}
+
+	// We should have at least 3 data directives: .asciz, .word, .space
+	expectedDataDirectives := 3
+	if dataCount < expectedDataDirectives {
+		t.Errorf("Expected at least %d data directives in source map, got %d", expectedDataDirectives, dataCount)
+	}
+
+	t.Logf("Successfully mapped %d instructions and %d data directives", instructionCount, dataCount)
+}
