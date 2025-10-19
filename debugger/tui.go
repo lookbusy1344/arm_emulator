@@ -50,7 +50,7 @@ type TUI struct {
 	ChangedCPSR   bool         // CPSR changed in the last step
 
 	// Memory write tracking for highlighting changes
-	RecentWrites       map[uint32]bool // Memory addresses written in the last step
+	RecentWrites        map[uint32]bool // Memory addresses written in the last step
 	LastTraceEntryCount int             // Number of memory trace entries before last step
 }
 
@@ -180,16 +180,16 @@ func (t *TUI) buildLayout() {
 	// Left panel: Source, Disassembly, and Status
 	t.LeftPanel = tview.NewFlex().
 		SetDirection(tview.FlexRow).
-		AddItem(t.SourceView, 0, 2, false).   // Source gets flex weight 2 (same as Registers proportion below)
-		AddItem(t.DisassemblyView, 0, 2, false).
-		AddItem(t.StatusView, 4, 0, false) // Fixed height for status messages
+		AddItem(t.SourceView, 0, 3, false).      // Source gets flex weight 3 (more space)
+		AddItem(t.DisassemblyView, 0, 1, false). // Disassembly gets flex weight 1 (less space)
+		AddItem(t.StatusView, 4, 0, false)       // Fixed height for status messages
 
 	// Right panel top: Registers, Memory, Stack
 	rightTop := tview.NewFlex().
 		SetDirection(tview.FlexRow).
-		AddItem(t.RegisterView, 0, 2, false). // Registers gets flex weight 2 (same height as Source)
-		AddItem(t.MemoryView, 0, 2, false).
-		AddItem(t.StackView, 0, 1, false)
+		AddItem(t.RegisterView, 9, 0, false). // Fixed height: 5 rows of regs + blank + status line + border = 9
+		AddItem(t.MemoryView, 0, 3, false).   // Memory gets flex weight 3
+		AddItem(t.StackView, 0, 2, false)     // Stack gets flex weight 2
 
 	// Right panel: Top + Breakpoints (dynamic height based on content)
 	t.RightPanel = tview.NewFlex().
@@ -201,8 +201,8 @@ func (t *TUI) buildLayout() {
 	// Left panel (Source) is wider (flex 3), Right panel (Registers) is narrower (flex 2)
 	mainContent := tview.NewFlex().
 		SetDirection(tview.FlexColumn).
-		AddItem(t.LeftPanel, 0, 3, false).  // Source window gets more width (flex weight 3)
-		AddItem(t.RightPanel, 0, 2, false)  // Registers window gets less width (flex weight 2)
+		AddItem(t.LeftPanel, 0, 3, false). // Source window gets more width (flex weight 3)
+		AddItem(t.RightPanel, 0, 2, false) // Registers window gets less width (flex weight 2)
 
 	// Main layout: Content + Output + Command
 	t.MainLayout = tview.NewFlex().
@@ -504,17 +504,17 @@ func (t *TUI) UpdateRegisterView() {
 	cpu := t.Debugger.VM.CPU
 	var lines []string
 
-	// General purpose registers (2 columns for better fit)
-	for i := 0; i < 8; i++ {
+	// General purpose registers (3 columns, R0-R14, PC shown separately below)
+	for i := 0; i < 5; i++ {
 		var cols []string
-		for j := 0; j < 2; j++ {
-			reg := i*2 + j
+		for j := 0; j < 3; j++ {
+			reg := i*3 + j
+			if reg >= 15 {
+				break // Only show R0-R14 here, PC shown on status line
+			}
 			name := fmt.Sprintf("R%-2d", reg)
 			var value uint32
-			if reg == 15 {
-				name = "PC "
-				value = cpu.PC
-			} else if reg == 13 {
+			if reg == 13 {
 				name = "SP "
 				value = cpu.R[reg]
 			} else if reg == 14 {
@@ -531,10 +531,8 @@ func (t *TUI) UpdateRegisterView() {
 				cols = append(cols, fmt.Sprintf("%-3s: 0x%08X", name, value))
 			}
 		}
-		lines = append(lines, strings.Join(cols, "  "))
+		lines = append(lines, strings.Join(cols, " "))
 	}
-
-	lines = append(lines, "")
 
 	// CPSR flags - uppercase yellow when set, lowercase white when clear
 	flags := ""
@@ -574,13 +572,21 @@ func (t *TUI) UpdateRegisterView() {
 		cpsrValue |= 0x10000000
 	}
 
-	// Highlight CPSR value if flags changed
-	if t.ChangedCPSR {
-		lines = append(lines, fmt.Sprintf("[green]CPSR: 0x%08X[white]  Flags: %s", cpsrValue, flags))
-	} else {
-		lines = append(lines, fmt.Sprintf("CPSR: 0x%08X  Flags: %s", cpsrValue, flags))
+	// Blank line separator
+	lines = append(lines, "")
+
+	// Put PC, CPSR, flags, and cycles all on one compact line
+	pcColor := "white"
+	if t.ChangedRegs[15] {
+		pcColor = "green"
 	}
-	lines = append(lines, fmt.Sprintf("Cycles: %d", cpu.Cycles))
+	cpsrColor := "white"
+	if t.ChangedCPSR {
+		cpsrColor = "green"
+	}
+	statusLine := fmt.Sprintf("[%s]PC:0x%08X[white] [%s]CPSR:0x%08X[white] Flags:%s Cyc:%d",
+		pcColor, cpu.PC, cpsrColor, cpsrValue, flags, cpu.Cycles)
+	lines = append(lines, statusLine)
 
 	t.RegisterView.SetText(strings.Join(lines, "\n"))
 }
@@ -677,7 +683,7 @@ func (t *TUI) UpdateStackView() {
 
 		// Check if this stack location was recently written
 		isRecentWrite := t.RecentWrites[addr] || t.RecentWrites[addr+1] ||
-		                 t.RecentWrites[addr+2] || t.RecentWrites[addr+3]
+			t.RecentWrites[addr+2] || t.RecentWrites[addr+3]
 
 		var line string
 		if isRecentWrite {

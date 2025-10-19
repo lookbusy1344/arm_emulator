@@ -68,7 +68,7 @@ type VM struct {
 
 	// Runtime environment
 	EntryPoint       uint32
-	StackTop         uint32   // Initial stack pointer value for reset
+	StackTop         uint32 // Initial stack pointer value for reset
 	ProgramArguments []string
 	ExitCode         int32
 
