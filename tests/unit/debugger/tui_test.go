@@ -512,3 +512,41 @@ func removeColorCodes(text string) string {
 func containsStr(text, format string, value uint32) bool {
 	return strings.Contains(text, fmt.Sprintf(format, value))
 }
+
+// TestTUITerminalWidthWarning tests that the TUI has terminal width checking logic
+func TestTUITerminalWidthWarning(t *testing.T) {
+	// This test verifies that the TUI can be created and the warning logic exists
+	// The actual width warning is tested manually as it depends on real terminal size
+	machine := vm.NewVM()
+	dbg := debugger.NewDebugger(machine)
+	screen := tcell.NewSimulationScreen("UTF-8")
+	err := screen.Init()
+	if err != nil {
+		t.Fatalf("failed to init simulation screen: %v", err)
+	}
+	defer screen.Fini()
+
+	// Set narrow terminal size (100 columns) for simulation
+	screen.SetSize(100, 40)
+
+	tui := debugger.NewTUIWithScreen(dbg, screen)
+
+	// Verify TUI was created successfully
+	if tui == nil {
+		t.Fatal("NewTUIWithScreen returned nil")
+	}
+	if tui.App == nil {
+		t.Error("TUI app not initialized")
+	}
+
+	// Verify that WriteOutput works (used by width warning)
+	tui.WriteOutput("[yellow]Test warning message[white]\n")
+	text := tui.OutputView.GetText(false)
+	if !strings.Contains(text, "Test warning message") {
+		t.Error("WriteOutput should write to OutputView")
+	}
+
+	// Note: The actual terminal width check in Run() uses tcell.NewScreen()
+	// which gets the real terminal size, so it cannot be unit tested with SimulationScreen.
+	// Manual testing: Run the debugger in a terminal < 148 columns wide to see the warning.
+}

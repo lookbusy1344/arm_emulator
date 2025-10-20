@@ -87,6 +87,36 @@ func RunCLI(dbg *Debugger) error {
 
 // RunTUI runs the TUI (Text User Interface) debugger
 func RunTUI(dbg *Debugger) error {
+	// Check terminal width before starting TUI
+	const minWidth = 148
+	fmt.Println(strings.Repeat("=", minWidth))
+	fmt.Printf("The line above is %d characters wide.\n", minWidth)
+	fmt.Print("Does the line above display as a single line without wrapping? (y/n/i=ignore): ")
+
+	var response string
+	_, err := fmt.Scanln(&response)
+	if err != nil {
+		// If there's an error reading (e.g., EOF), just continue
+		fmt.Println("\nCould not read response, continuing anyway...")
+	} else {
+		response = strings.ToLower(strings.TrimSpace(response))
+		if response == "i" {
+			// Ignore - just continue without warning
+			fmt.Println("\nIgnoring width check...")
+		} else if response != "y" {
+			fmt.Println("\nWARNING: Your terminal appears to be less than 148 columns wide.")
+			fmt.Println("The TUI may not display correctly. Consider resizing your terminal.")
+			fmt.Print("\nDo you want to continue anyway? (y/n): ")
+
+			_, err = fmt.Scanln(&response)
+			if err != nil || strings.ToLower(strings.TrimSpace(response)) != "y" {
+				fmt.Println("Exiting. Please resize your terminal and try again.")
+				return nil
+			}
+		}
+	}
+
+	fmt.Println("\nStarting TUI debugger...")
 	tui := NewTUI(dbg)
 	return tui.Run()
 }
