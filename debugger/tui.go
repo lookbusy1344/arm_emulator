@@ -287,29 +287,6 @@ func (t *TUI) initFocusChain() {
 	t.focusIndex = len(t.focusables) - 1
 }
 
-// scrollHandler returns an input capture that handles arrow keys for a TextView
-func (t *TUI) scrollHandler(tv *tview.TextView, onDelta func(delta int)) func(event *tcell.EventKey) *tcell.EventKey {
-	return func(event *tcell.EventKey) *tcell.EventKey {
-		switch event.Key() {
-		case tcell.KeyUp:
-			row, col := tv.GetScrollOffset()
-			if row > 0 {
-				row--
-			}
-			tv.ScrollTo(row, col)
-			onDelta(-1)
-			return nil
-		case tcell.KeyDown:
-			row, col := tv.GetScrollOffset()
-			row++
-			tv.ScrollTo(row, col)
-			onDelta(1)
-			return nil
-		}
-		return event
-	}
-}
-
 // setupKeyBindings sets up keyboard shortcuts
 func (t *TUI) setupKeyBindings() {
 	// Global key handler
