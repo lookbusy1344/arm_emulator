@@ -55,14 +55,17 @@ The TUI (Text User Interface) provides a visual debugging environment with multi
 |-----|--------|
 | `F1` | Help |
 | `F5` | Continue execution |
+| `F6` | Center current PC line in Source and Disassembly views |
 | `F9` | Toggle breakpoint at current line |
 | `F10` | Step over (next) - executes one instruction, stepping over function calls |
 | `F11` | Step into (step) - executes one instruction, stepping into function calls |
 | `Ctrl+L` | Refresh display |
 | `Ctrl+C` | Quit debugger |
 | `Tab` | Switch between panels (Source, Registers, Memory, Stack, etc.) |
-| `↑/↓` | Navigate command history / scroll in panels |
-| `PgUp/PgDn` | Scroll active panel |
+| `Shift+Tab` | Switch between panels (reverse direction) |
+| `↑/↓` | Navigate command history / scroll in focused panel |
+| `PgUp/PgDn` | Scroll focused panel by page |
+| `Home/End` | Scroll to beginning/end of focused panel |
 
 ## Command Reference
 

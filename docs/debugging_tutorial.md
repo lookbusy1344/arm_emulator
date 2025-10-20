@@ -241,9 +241,12 @@ The TUI mode provides a visual interface that makes debugging easier:
 3. Enter "5" when prompted
 4. **F10** to step over instructions
 5. **F11** to step into function calls
-6. **Tab** to switch between panels
-7. **Ctrl+L** to refresh the display if needed
-8. Type commands at the bottom prompt
+6. **F6** to center the current PC line in Source and Disassembly views (useful if you've scrolled away)
+7. **Tab** / **Shift+Tab** to switch between panels
+8. **↑/↓** to scroll within the focused panel
+9. **PgUp/PgDn** to scroll by page, **Home/End** to jump to start/end
+10. **Ctrl+L** to refresh the display if needed
+11. Type commands at the bottom prompt
 
 #### Advantages of TUI Mode
 
@@ -252,6 +255,8 @@ The TUI mode provides a visual interface that makes debugging easier:
 - **Stack monitoring:** PUSH/POP operations highlighted in green
 - **Symbol-aware display:** Shows function/label names instead of raw addresses
 - **Visual current line indicator:** `>` marks the instruction about to execute
+- **Scrollable views:** Navigate through source code, memory, and stack with arrow keys and PgUp/PgDn
+- **PC centering:** Press F6 to bring the current instruction back into view
 - **No repeated commands:** No need to type `info registers` repeatedly
 - **Easy breakpoint management:** F9 to toggle breakpoints at current line
 - **Multi-panel layout:** Split-screen view of code, registers, memory, stack, breakpoints, and console
