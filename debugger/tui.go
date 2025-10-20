@@ -10,6 +10,14 @@ import (
 	"github.com/lookbusy1344/arm-emulator/vm"
 )
 
+// helper: small max for ints
+func max(a, b int) int {
+	if a > b {
+		return a
+	}
+	return b
+}
+
 // TUI represents the text user interface for the debugger
 type TUI struct {
 	// Core components
@@ -32,6 +40,10 @@ type TUI struct {
 	StatusView      *tview.TextView // Status messages (breakpoints, stepping, errors)
 	OutputView      *tview.TextView // Program output only
 	CommandInput    *tview.InputField
+
+	// Focus management
+	focusables []tview.Primitive
+	focusIndex int
 
 	// State
 	CurrentAddress uint32
@@ -80,6 +92,8 @@ func NewTUIWithScreen(debugger *Debugger, screen tcell.Screen) *TUI {
 	if screen != nil {
 		app.SetScreen(screen)
 	}
+	// Enable mouse to allow scrolling in scrollable views (e.g., Source)
+	app.EnableMouse(true)
 
 	tui := &TUI{
 		Debugger:       debugger,
@@ -94,6 +108,8 @@ func NewTUIWithScreen(debugger *Debugger, screen tcell.Screen) *TUI {
 
 	tui.initializeViews()
 	tui.buildLayout()
+	// Setup focus chain before key bindings
+	tui.initFocusChain()
 	tui.setupKeyBindings()
 
 	// Redirect VM output to TUI OutputView
@@ -118,6 +134,45 @@ func (t *TUI) initializeViews() {
 		SetWrap(true).
 		SetWordWrap(true)
 	t.SourceView.SetBorder(true).SetTitle(" Source ")
+	// Keyboard scrolling for Source view
+	t.SourceView.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
+		switch event.Key() {
+		case tcell.KeyUp:
+			row, col := t.SourceView.GetScrollOffset()
+			if row > 0 {
+				row--
+			}
+			t.SourceView.ScrollTo(row, col)
+			return nil
+		case tcell.KeyDown:
+			row, col := t.SourceView.GetScrollOffset()
+			row++
+			t.SourceView.ScrollTo(row, col)
+			return nil
+		case tcell.KeyPgUp:
+			_, _, _, h := t.SourceView.GetRect()
+			row, col := t.SourceView.GetScrollOffset()
+			row -= max(1, h-1)
+			if row < 0 {
+				row = 0
+			}
+			t.SourceView.ScrollTo(row, col)
+			return nil
+		case tcell.KeyPgDn:
+			_, _, _, h := t.SourceView.GetRect()
+			row, col := t.SourceView.GetScrollOffset()
+			row += max(1, h-1)
+			t.SourceView.ScrollTo(row, col)
+			return nil
+		case tcell.KeyHome:
+			t.SourceView.ScrollToBeginning()
+			return nil
+		case tcell.KeyEnd:
+			t.SourceView.ScrollToEnd()
+			return nil
+		}
+		return event
+	})
 
 	// Register View
 	t.RegisterView = tview.NewTextView().
@@ -216,6 +271,45 @@ func (t *TUI) buildLayout() {
 		AddPage("main", t.MainLayout, true, true)
 }
 
+// initFocusChain sets the order of focusable widgets for Tab navigation
+func (t *TUI) initFocusChain() {
+	// Only views we want to focus with Tab (source, disasm, memory, stack, breakpoints, output, command)
+	t.focusables = []tview.Primitive{
+		t.SourceView,
+		t.DisassemblyView,
+		t.MemoryView,
+		t.StackView,
+		t.BreakpointsView,
+		t.OutputView,
+		t.CommandInput,
+	}
+	// Start focusing command input by default (matches Run())
+	t.focusIndex = len(t.focusables) - 1
+}
+
+// scrollHandler returns an input capture that handles arrow keys for a TextView
+func (t *TUI) scrollHandler(tv *tview.TextView, onDelta func(delta int)) func(event *tcell.EventKey) *tcell.EventKey {
+	return func(event *tcell.EventKey) *tcell.EventKey {
+		switch event.Key() {
+		case tcell.KeyUp:
+			row, col := tv.GetScrollOffset()
+			if row > 0 {
+				row--
+			}
+			tv.ScrollTo(row, col)
+			onDelta(-1)
+			return nil
+		case tcell.KeyDown:
+			row, col := tv.GetScrollOffset()
+			row++
+			tv.ScrollTo(row, col)
+			onDelta(1)
+			return nil
+		}
+		return event
+	}
+}
+
 // setupKeyBindings sets up keyboard shortcuts
 func (t *TUI) setupKeyBindings() {
 	// Global key handler
@@ -243,6 +337,16 @@ func (t *TUI) setupKeyBindings() {
 			t.App.QueueUpdateDraw(func() {
 				t.RefreshAll()
 			})
+			return nil
+		case tcell.KeyTAB:
+			// Cycle focus forward
+			t.focusIndex = (t.focusIndex + 1) % len(t.focusables)
+			t.App.SetFocus(t.focusables[t.focusIndex])
+			return nil
+		case tcell.KeyBacktab:
+			// Shift+Tab cycles backward
+			t.focusIndex = (t.focusIndex - 1 + len(t.focusables)) % len(t.focusables)
+			t.App.SetFocus(t.focusables[t.focusIndex])
 			return nil
 		}
 		return event
