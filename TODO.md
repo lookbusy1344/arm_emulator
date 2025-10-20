@@ -16,7 +16,50 @@ This file tracks outstanding work only. Completed items are in `PROGRESS.md`.
 
 ## High Priority Tasks
 
-None
+### TUI Tab Key Navigation Broken
+**Status:** BLOCKED - Critical Issue
+**Priority:** HIGH
+**Added:** 2025-10-20
+
+**Problem:**
+In the TUI debugger, tab should switch between windows and up/down should allow vertical scrolling.
+When attempting to implement the TUI debugger hangs/freezes when the Tab key is pressed. The feature was implemented to allow cycling through windows (Source → Memory → Stack → Disassembly → Command), but the Tab key does not respond.
+
+**What Should Work:**
+- Tab key cycles through focusable windows
+- Up/Down arrow keys scroll the focused window
+- Visual indicator shows which window is focused (yellow title)
+
+**What Actually Happens:**
+- Pressing Tab causes the TUI to hang/freeze
+- No response from the application
+- Must kill the process
+
+**Implementation Details:**
+- File: `debugger/tui.go`
+- Added `FocusableWindow` enum and focus tracking (lines 13-52)
+- Added `cycleFocus()` function (line 375)
+- Added `updateFocus()` to change visual indicators (line 339)
+- Added `scrollFocusedWindow()` for arrow key scrolling (line 358)
+- Added input capture handlers on all widgets (lines 201-232, 312-373)
+
+**Attempted Fixes (All Failed):**
+1. Set `SetScrollable(false)` on TextViews to prevent built-in scrolling
+2. Added `setupViewInputHandlers()` to capture keys in widget handlers
+3. Handled Tab directly in widget's `SetInputCapture` instead of global `App.SetInputCapture`
+4. Added input capture to CommandInput field to intercept Tab before tview processes it
+5. Moved all navigation key handling from global handler to widget-level handlers
+
+**Technical Challenge:**
+The tview library appears to be intercepting Tab key presses at a lower level than our input capture handlers can reach. The key event is not reaching our code at all.
+
+**Next Steps:**
+- Investigate if tview's focus management system needs to be disabled
+- Check tview documentation for custom focus handling
+- May need to override `InputHandler()` method directly on widgets
+- Consider alternative: use different key (like Ctrl+Tab or F6) for window cycling
+- Test with minimal tview example to isolate the issue
+- Potentially file issue with tview library if it's a library bug
 
 ---
 
