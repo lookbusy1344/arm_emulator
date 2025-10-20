@@ -330,6 +330,10 @@ func (t *TUI) setupKeyBindings() {
 		case tcell.KeyF11:
 			go t.executeCommand("step")
 			return nil
+		case tcell.KeyF6:
+			// Center current PC in Source and Disassembly views
+			t.scrollPCIntoView()
+			return nil
 		case tcell.KeyCtrlC:
 			t.App.Stop()
 			return nil
@@ -496,6 +500,53 @@ func (t *TUI) WriteStatus(text string) {
 
 // RefreshAll refreshes all view panels
 // Note: This should be called from within App.QueueUpdateDraw or the main event loop
+
+// scrollPCIntoView scrolls Source and Disassembly views so current PC line is visible and roughly centered.
+func (t *TUI) scrollPCIntoView() {
+	// Source view
+	src := t.SourceView.GetText(true)
+	if src != "" {
+		rows := strings.Split(src, "\n")
+		pcRow := -1
+		for i, r := range rows {
+			if strings.Contains(r, "->") {
+				pcRow = i
+				break
+			}
+		}
+		if pcRow >= 0 {
+			_, _, _, h := t.SourceView.GetRect()
+			row := pcRow - h/2
+			if row < 0 {
+				row = 0
+			}
+			_, col := t.SourceView.GetScrollOffset()
+			t.SourceView.ScrollTo(row, col)
+		}
+	}
+	// Disassembly view
+	dis := t.DisassemblyView.GetText(true)
+	if dis != "" {
+		drows := strings.Split(dis, "\n")
+		dpcRow := -1
+		for i, r := range drows {
+			if strings.Contains(r, "->") {
+				dpcRow = i
+				break
+			}
+		}
+		if dpcRow >= 0 {
+			_, _, _, h := t.DisassemblyView.GetRect()
+			row := dpcRow - h/2
+			if row < 0 {
+				row = 0
+			}
+			_, col := t.DisassemblyView.GetScrollOffset()
+			t.DisassemblyView.ScrollTo(row, col)
+		}
+	}
+}
+
 func (t *TUI) RefreshAll() {
 	t.UpdateSourceView()
 	t.UpdateRegisterView()
