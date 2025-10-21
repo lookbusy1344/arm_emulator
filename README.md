@@ -174,37 +174,11 @@ Pre-built binaries are available for download from the [Releases](https://github
 - **macOS (Apple Silicon):** `arm-emulator-macos-arm64`
 - **Windows:** `arm-emulator-win-amd64.exe` (AMD64/x64) and `arm-emulator-win-arm64.exe` (ARM64)
 
-**Quick start:**
-
-1. Download the binary for your platform from the latest release
-2. Download the `SHA256SUMS` file to verify integrity (optional but recommended)
-
-**On Linux/macOS:**
-```bash
-# Download the binary (replace with actual version number)
-wget https://github.com/lookbusy1344/arm_emulator/releases/download/v1.0.0/arm-emulator-linux-amd64
-
-# Make it executable
-chmod +x arm-emulator-linux-amd64
-
-# Optionally rename it
-mv arm-emulator-linux-amd64 arm-emulator
-
-# Run it
-./arm-emulator program.s
-```
-
-**On Windows:**
-```powershell
-# Download from the Releases page using your browser, then run:
-.\arm-emulator-win-amd64.exe program.s
-```
-
-**Verify download (optional):**
-```bash
-# Download SHA256SUMS file, then verify
-sha256sum -c SHA256SUMS --ignore-missing
-```
+**To install:**
+1. Visit the [Releases](https://github.com/lookbusy1344/arm_emulator/releases) page
+2. Download the binary for your platform
+3. On Linux/macOS, make it executable: `chmod +x arm-emulator-*`
+4. Optionally verify the download using the provided SHA256 checksums
 
 ### Option 2: Build from Source
 
