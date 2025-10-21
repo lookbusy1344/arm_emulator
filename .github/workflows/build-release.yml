@@ -146,6 +146,9 @@ jobs:
             exit 1
           fi
 
+          # Remove individual checksum files to avoid cluttering the release
+          rm -f *.sha256
+
           # Count files
           echo "Release artifacts:"
           ls -lh
