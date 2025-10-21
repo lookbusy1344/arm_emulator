@@ -50,11 +50,27 @@ jobs:
         id: artifact
         shell: bash
         run: |
+          # Map GOOS to user-friendly platform names
+          case "${{ matrix.os }}" in
+            darwin)
+              PLATFORM="macos"
+              ;;
+            windows)
+              PLATFORM="win"
+              ;;
+            linux)
+              PLATFORM="linux"
+              ;;
+            *)
+              PLATFORM="${{ matrix.os }}"
+              ;;
+          esac
+
           if [ "${{ matrix.os }}" = "windows" ]; then
-            ARTIFACT_NAME="arm-emulator-${{ matrix.os }}-${{ matrix.arch }}.exe"
+            ARTIFACT_NAME="arm-emulator-${PLATFORM}-${{ matrix.arch }}.exe"
             cp ${{ matrix.binary_name }} "$ARTIFACT_NAME"
           else
-            ARTIFACT_NAME="arm-emulator-${{ matrix.os }}-${{ matrix.arch }}"
+            ARTIFACT_NAME="arm-emulator-${PLATFORM}-${{ matrix.arch }}"
             cp ${{ matrix.binary_name }} "$ARTIFACT_NAME"
           fi
           echo "artifact_name=$ARTIFACT_NAME" >> $GITHUB_OUTPUT
