@@ -416,7 +416,7 @@ git push origin v1.0.0
 ```
 
 This triggers the `Build Release` workflow which:
-- Builds optimized binaries for **linux-amd64**, **darwin-arm64**, **windows-amd64**, and **windows-arm64**
+- Builds optimized binaries for **linux-amd64**, **macos-arm64**, **windows-amd64**, and **windows-arm64**
 - Generates SHA256 checksums for each binary
 - Creates a GitHub Release with pre-built binaries, individual checksums, and a combined SHA256SUMS file
 - Users can download platform-specific binaries directly from the [Releases](https://github.com/lookbusy1344/arm_emulator/releases) page
