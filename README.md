@@ -160,10 +160,27 @@ Exciting times. Perhaps I should think of a second more challenging vibe-coding 
 
 ## Prerequisites
 
-- Go 1.25 or higher
+- Go 1.25 or higher (only required if building from source)
 - Supported platforms: macOS, Linux, Windows
 
 ## Installation
+
+### Option 1: Download Pre-built Binaries (Recommended)
+
+Pre-built binaries are available for download from the [Releases](https://github.com/lookbusy1344/arm_emulator/releases) page.
+
+**Available platforms:**
+- **Linux (64-bit):** `arm-emulator-linux-amd64`
+- **macOS (Apple Silicon):** `arm-emulator-macos-arm64`
+- **Windows:** `arm-emulator-win-amd64.exe` (AMD64/x64) and `arm-emulator-win-arm64.exe` (ARM64)
+
+**To install:**
+1. Visit the [Releases](https://github.com/lookbusy1344/arm_emulator/releases) page
+2. Download the binary for your platform
+3. On Linux/macOS, make it executable: `chmod +x arm-emulator-*`
+4. Optionally verify the download using the provided SHA256 checksums
+
+### Option 2: Build from Source
 
 Clone the repository and build the project:
 
@@ -399,7 +416,7 @@ git push origin v1.0.0
 ```
 
 This triggers the `Build Release` workflow which:
-- Builds optimized binaries for **linux-amd64**, **darwin-arm64**, **windows-amd64**, and **windows-arm64**
+- Builds optimized binaries for **linux-amd64**, **macos-arm64**, **windows-amd64**, and **windows-arm64**
 - Generates SHA256 checksums for each binary
 - Creates a GitHub Release with pre-built binaries, individual checksums, and a combined SHA256SUMS file
 - Users can download platform-specific binaries directly from the [Releases](https://github.com/lookbusy1344/arm_emulator/releases) page

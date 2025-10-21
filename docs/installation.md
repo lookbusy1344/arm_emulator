@@ -4,7 +4,7 @@ This guide will help you install and set up the ARM2 Emulator on your system.
 
 ## Prerequisites
 
-- **Go 1.21 or later** - The emulator is written in Go
+- **Go 1.21 or later** (only required if building from source)
 - **Git** (optional) - For cloning the repository
 
 ## Supported Platforms
@@ -17,7 +17,22 @@ The ARM2 Emulator is cross-platform and supports:
 
 ## Installation Methods
 
-### Method 1: Build from Source
+### Method 1: Download Pre-built Binary (Recommended)
+
+Pre-built binaries are available for download from the [Releases](https://github.com/lookbusy1344/arm_emulator/releases) page.
+
+**Available platforms:**
+- **Linux (64-bit):** `arm-emulator-linux-amd64`
+- **macOS (Apple Silicon):** `arm-emulator-macos-arm64`
+- **Windows:** `arm-emulator-win-amd64.exe` (AMD64/x64) and `arm-emulator-win-arm64.exe` (ARM64)
+
+**To install:**
+1. Visit the [Releases](https://github.com/lookbusy1344/arm_emulator/releases) page
+2. Download the binary for your platform
+3. On Linux/macOS, make it executable: `chmod +x arm-emulator-*`
+4. Optionally verify the download using the provided SHA256 checksums
+
+### Method 2: Build from Source
 
 #### 1. Clone the Repository
 
@@ -55,22 +70,6 @@ sudo mv arm-emulator /usr/local/bin/
 **On Windows:**
 
 Add the directory containing `arm-emulator.exe` to your PATH environment variable.
-
-### Method 2: Download Pre-built Binary
-
-*(Future releases will include pre-built binaries for download)*
-
-1. Visit the [Releases page](https://github.com/yourusername/arm_emulator/releases)
-2. Download the appropriate binary for your platform:
-   - `arm-emulator-darwin-amd64` (macOS Intel)
-   - `arm-emulator-darwin-arm64` (macOS Apple Silicon)
-   - `arm-emulator-linux-amd64` (Linux 64-bit)
-   - `arm-emulator-windows-amd64.exe` (Windows 64-bit)
-3. Make it executable (macOS/Linux only):
-   ```bash
-   chmod +x arm-emulator-*
-   ```
-4. Move to a directory in your PATH
 
 ## Testing the Installation
 
