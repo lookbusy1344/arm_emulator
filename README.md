@@ -171,8 +171,8 @@ Pre-built binaries are available for download from the [Releases](https://github
 
 **Available platforms:**
 - **Linux (64-bit):** `arm-emulator-linux-amd64`
-- **macOS (Apple Silicon):** `arm-emulator-macos-arm64` (M1/M2/M3 Macs)
-- **Windows (64-bit):** `arm-emulator-win-amd64.exe`
+- **macOS (Apple Silicon):** `arm-emulator-macos-arm64`
+- **Windows:** `arm-emulator-win-amd64.exe` (AMD64/x64) and `arm-emulator-win-arm64.exe` (ARM64)
 
 **Quick start:**
 
