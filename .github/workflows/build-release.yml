@@ -59,6 +59,26 @@ jobs:
           fi
           echo "artifact_name=$ARTIFACT_NAME" >> $GITHUB_OUTPUT
 
+      - name: Generate SHA256 checksum
+        id: checksum
+        shell: bash
+        run: |
+          ARTIFACT_NAME="${{ steps.artifact.outputs.artifact_name }}"
+          CHECKSUM_FILE="${ARTIFACT_NAME}.sha256"
+
+          # Generate SHA256 checksum
+          if [ "$RUNNER_OS" = "Windows" ]; then
+            certutil -hashfile "$ARTIFACT_NAME" SHA256 | findstr /V ":" | findstr /V "CertUtil" > "$CHECKSUM_FILE"
+          else
+            shasum -a 256 "$ARTIFACT_NAME" > "$CHECKSUM_FILE"
+          fi
+
+          echo "checksum_file=$CHECKSUM_FILE" >> $GITHUB_OUTPUT
+
+          # Display checksum for verification
+          echo "Generated checksum:"
+          cat "$CHECKSUM_FILE"
+
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
@@ -66,10 +86,48 @@ jobs:
           path: ${{ steps.artifact.outputs.artifact_name }}
           retention-days: 30
 
+      - name: Upload checksum
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.checksum.outputs.checksum_file }}
+          path: ${{ steps.checksum.outputs.checksum_file }}
+          retention-days: 30
+
       - name: Create GitHub Release
         if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         with:
-          files: ${{ steps.artifact.outputs.artifact_name }}
+          files: |
+            ${{ steps.artifact.outputs.artifact_name }}
+            ${{ steps.checksum.outputs.checksum_file }}
+          draft: false
+          prerelease: false
+
+  create-checksums-file:
+    name: Create SHA256SUMS file
+    runs-on: ubuntu-latest
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/')
+    steps:
+      - name: Download all checksum artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: "*.sha256"
+          path: checksums
+          merge-multiple: true
+
+      - name: Create combined SHA256SUMS file
+        run: |
+          cd checksums
+          # Combine all checksum files into SHA256SUMS
+          cat *.sha256 > SHA256SUMS
+
+          echo "Combined SHA256SUMS file:"
+          cat SHA256SUMS
+
+      - name: Upload SHA256SUMS to release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: checksums/SHA256SUMS
           draft: false
           prerelease: false

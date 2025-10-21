@@ -399,9 +399,31 @@ git push origin v1.0.0
 ```
 
 This triggers the `Build Release` workflow which:
-- Builds optimized binaries for **linux-amd64**, **darwin-arm64**, and **windows-amd64**
-- Creates a GitHub Release with pre-built binaries for each platform
+- Builds optimized binaries for **linux-amd64**, **darwin-arm64**, **windows-amd64**, and **windows-arm64**
+- Generates SHA256 checksums for each binary
+- Creates a GitHub Release with pre-built binaries, individual checksums, and a combined SHA256SUMS file
 - Users can download platform-specific binaries directly from the [Releases](https://github.com/lookbusy1344/arm_emulator/releases) page
+
+**Verifying downloads:**
+
+To verify the integrity of a downloaded binary, use the SHA256 checksums provided in the release:
+
+```bash
+# On Linux/macOS - verify using the combined SHA256SUMS file
+sha256sum -c SHA256SUMS --ignore-missing
+
+# On Linux/macOS - verify a specific binary
+sha256sum arm-emulator-linux-amd64
+# Compare the output with the checksum in the .sha256 file
+
+# On Windows (PowerShell)
+Get-FileHash arm-emulator-windows-amd64.exe -Algorithm SHA256
+# Compare the output with the checksum in the .sha256 file
+```
+
+Each release includes:
+- Individual `.sha256` files for each binary (e.g., `arm-emulator-linux-amd64.sha256`)
+- A combined `SHA256SUMS` file containing all checksums for easy verification
 
 ## Project Structure
 
