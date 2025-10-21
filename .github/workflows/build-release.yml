@@ -68,8 +68,8 @@ jobs:
 
           # Generate SHA256 checksum in standard format (hash  filename)
           if [ "$RUNNER_OS" = "Windows" ]; then
-            # Extract hash and format with filename
-            HASH=$(certutil -hashfile "$ARTIFACT_NAME" SHA256 | findstr /V ":" | findstr /V "CertUtil" | tr -d '[:space:]')
+            # Use PowerShell to extract hash more reliably
+            HASH=$(powershell -Command "(Get-FileHash -Algorithm SHA256 '$ARTIFACT_NAME').Hash.ToLower()")
             echo "$HASH  $ARTIFACT_NAME" > "$CHECKSUM_FILE"
           else
             shasum -a 256 "$ARTIFACT_NAME" > "$CHECKSUM_FILE"
