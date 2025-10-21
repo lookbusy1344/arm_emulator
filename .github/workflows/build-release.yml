@@ -66,9 +66,11 @@ jobs:
           ARTIFACT_NAME="${{ steps.artifact.outputs.artifact_name }}"
           CHECKSUM_FILE="${ARTIFACT_NAME}.sha256"
 
-          # Generate SHA256 checksum
+          # Generate SHA256 checksum in standard format (hash  filename)
           if [ "$RUNNER_OS" = "Windows" ]; then
-            certutil -hashfile "$ARTIFACT_NAME" SHA256 | findstr /V ":" | findstr /V "CertUtil" > "$CHECKSUM_FILE"
+            # Extract hash and format with filename
+            HASH=$(certutil -hashfile "$ARTIFACT_NAME" SHA256 | findstr /V ":" | findstr /V "CertUtil" | tr -d '[:space:]')
+            echo "$HASH  $ARTIFACT_NAME" > "$CHECKSUM_FILE"
           else
             shasum -a 256 "$ARTIFACT_NAME" > "$CHECKSUM_FILE"
           fi
@@ -84,50 +86,58 @@ jobs:
         with:
           name: ${{ steps.artifact.outputs.artifact_name }}
           path: ${{ steps.artifact.outputs.artifact_name }}
-          retention-days: 30
+          retention-days: 7
 
       - name: Upload checksum
         uses: actions/upload-artifact@v4
         with:
           name: ${{ steps.checksum.outputs.checksum_file }}
           path: ${{ steps.checksum.outputs.checksum_file }}
-          retention-days: 30
+          retention-days: 7
 
-      - name: Create GitHub Release
-        if: startsWith(github.ref, 'refs/tags/')
-        uses: softprops/action-gh-release@v2
-        with:
-          files: |
-            ${{ steps.artifact.outputs.artifact_name }}
-            ${{ steps.checksum.outputs.checksum_file }}
-          draft: false
-          prerelease: false
-
-  create-checksums-file:
-    name: Create SHA256SUMS file
+  create-release:
+    name: Create GitHub Release
     runs-on: ubuntu-latest
     needs: build
     if: startsWith(github.ref, 'refs/tags/')
     steps:
-      - name: Download all checksum artifacts
+      - name: Download all artifacts
         uses: actions/download-artifact@v4
         with:
-          pattern: "*.sha256"
-          path: checksums
+          pattern: "arm-emulator-*"
+          path: artifacts
           merge-multiple: true
 
       - name: Create combined SHA256SUMS file
         run: |
-          cd checksums
+          cd artifacts
+
+          # Check if any checksum files exist
+          if ! ls *.sha256 >/dev/null 2>&1; then
+            echo "Error: No checksum files found!"
+            exit 1
+          fi
+
           # Combine all checksum files into SHA256SUMS
           cat *.sha256 > SHA256SUMS
 
           echo "Combined SHA256SUMS file:"
           cat SHA256SUMS
 
-      - name: Upload SHA256SUMS to release
+          # Verify SHA256SUMS is not empty
+          if [ ! -s SHA256SUMS ]; then
+            echo "Error: SHA256SUMS file is empty!"
+            exit 1
+          fi
+
+          # Count files
+          echo "Release artifacts:"
+          ls -lh
+
+      - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          files: checksums/SHA256SUMS
+          files: artifacts/*
           draft: false
           prerelease: false
+          fail_on_unmatched_files: true
