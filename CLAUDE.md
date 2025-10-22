@@ -27,10 +27,18 @@ go clean -testcache
 go test ./...
 ```
 
+## Update dependencies
+
+```bash
+go get -u ./...
+go mod tidy
+go mod verify
+```
+
 ## Run Command
 
 ```bash
-./arm-emulator
+./arm-emulator program.s
 ```
 
 ## Project Structure
