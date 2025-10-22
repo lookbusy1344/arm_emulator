@@ -4,6 +4,10 @@
 
 This is an example of using vibe coding to re-create my first commercial project, from 1992, which implemented an ARM2 emulator. The original code was written in Turbo Pascal for 16-bit MS-DOS and is completely lost.
 
+## Security Notice
+
+⚠️ **Anti-Virus False Positives:** Some anti-virus software may flag the Windows binary as potentially harmful. This is a **false positive** caused by legitimate emulator behavior patterns. The project contains NO malicious code. See [SECURITY.md](SECURITY.md) for a comprehensive security audit proving this software is safe.
+
 Here I am attempting to use Claude Code to generate a Go implementation of an ARM2 emulator, with a simple TUI debugger.
 
 ## Background
@@ -144,6 +148,7 @@ Exciting times. Perhaps I should think of a second more challenging vibe-coding 
 - [SPECIFICATION.md](SPECIFICATION.md) - Detailed specification for the ARM2 emulator
 - [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md) - Implementation roadmap and plan
 - [PROGRESS.md](PROGRESS.md) - Development progress and completed phases
+- **[SECURITY.md](SECURITY.md) - Comprehensive security audit and anti-virus false positive explanation**
 
 ### User Documentation
 - [docs/installation.md](docs/installation.md) - Installation guide and setup
@@ -205,6 +210,9 @@ Pre-built binaries are available for download from the [Releases](https://github
 2. Download the binary for your platform
 3. On Linux/macOS, make it executable: `chmod +x arm-emulator-*`
 4. Optionally verify the download using the provided SHA256 checksums
+
+**Security Note for Windows Users:**
+Some anti-virus software may flag the Windows binary due to heuristic detection of emulator behavior patterns (memory management, file I/O). This is a **false positive** - the software is safe. See [SECURITY.md](SECURITY.md) for a complete security audit. You may need to whitelist the application or build from source.
 
 ### Option 2: Build from Source
 
@@ -496,6 +504,20 @@ This emulator provides **complete ARM2 instruction set coverage** as implemented
 **What's NOT implemented:**
 - Atomic swap instructions (SWP/SWPB) - introduced in ARMv2a (ARM3), not original ARM2
 - Coprocessor instructions (CDP/LDC/STC/MCR/MRC) - optional in ARMv2, rarely used
+
+## Security
+
+This project has undergone a comprehensive security audit. Key findings:
+
+- ✅ **NO network connectivity** - No code to connect to remote servers
+- ✅ **NO downloads** - No capability to download external content  
+- ✅ **NO system file modifications** - Only operates on user-specified files
+- ✅ **Legitimate dependencies** - All third-party libraries are well-known and safe
+- ✅ **Open source** - Full source code available for inspection
+
+**Anti-Virus False Positives:** Some anti-virus software may flag the Windows binary as `Program:Win32/Wacapew.C!ml` due to heuristic detection of legitimate emulator behaviors (memory management, file I/O, code execution patterns). This is a **false positive** - the software contains no malicious code.
+
+For a detailed security analysis, see **[SECURITY.md](SECURITY.md)**.
 
 ## License
 
