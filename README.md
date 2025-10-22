@@ -30,6 +30,32 @@ The prompt for each phase was *"Let’s implement phase X from IMPLEMENTATION_PL
 
 Claude can sometimes suffer from groupthink, just confirming the code is excellent without looking afresh. This prompt helps *"Look at it with fresh eyes. The engineer implemented it suspiciously quickly and I do not trust their work"*
 
+## Project duration and size
+
+Estimated time spent vibing this project, based on git logs:
+
+| Date       | Hours | Tool    |
+|------------|-------|---------|
+| 2025-10-08 | 3.8   | Claude  |
+| 2025-10-09 | 4.6   | Claude  |
+| 2025-10-10 | 3.1   | Claude  |
+| 2025-10-11 | 5.1   | Claude  |
+| 2025-10-12 | 3.3   | Claude  |
+| 2025-10-13 | 5.7   | Claude/Copilot  |
+| 2025-10-14 | 4.2   | **Copilot** |
+| 2025-10-15 | 2.7   | **Copilot** |
+| 2025-10-16 | 3.5   | Claude  |
+| 2025-10-17 | 5.5   | Claude  |
+| 2025-10-18 | 3.9   | Claude  |
+| 2025-10-19 | 4.9   | Claude  |
+| 2025-10-20 | 1.1   | Claude  |
+| 2025-10-21 | 1.6   | Claude  |
+| **Total**  | **53.0** |
+| **Average** | **3.8** |
+
+Length of Go code on 21 Oct 2025 is **44,476 lines**. About 840 lines per hour, or 6,700 lines per standard 8 hour day. This excludes documentation and other files.
+
+
 ## Daily progress
 
 **Day 1 - 8 Oct** - Claude has written a specification, and a staged implementation plan. It's made good progress with phases 1-5 completed.
