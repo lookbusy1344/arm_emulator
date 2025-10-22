@@ -41,9 +41,9 @@ Estimated time spent vibing this project, based on git logs:
 | 2025-10-10 | 3.1   | Claude  |
 | 2025-10-11 | 5.1   | Claude  |
 | 2025-10-12 | 3.3   | Claude  |
-| 2025-10-13 | 5.7   | Claude/Copilot  |
-| 2025-10-14 | 4.2   | **Copilot** |
-| 2025-10-15 | 2.7   | **Copilot** |
+| 2025-10-13 | 5.7   | Copilot VSCode  |
+| 2025-10-14 | 4.2   | Copilot CLI |
+| 2025-10-15 | 2.7   | Copilot CLI |
 | 2025-10-16 | 3.5   | Claude  |
 | 2025-10-17 | 5.5   | Claude  |
 | 2025-10-18 | 3.9   | Claude  |
@@ -106,7 +106,7 @@ Go code is now 40,352 lines and we have 75% code coverage. Note the big jump in 
 
 **Day 10 - 17 Oct** - The project is almost finished and ready for detailed review, a substantial task for over 40k lines of code! Today I have mainly focused on docs, checked through the tutorial and making a list of specific fixes and clarifications I’d like Claude to make. Also worked on a solution for the CPSR issue with 32 bit addresses (this is a small departure from strict ARM2 that used 26 bit addressing, and stored CPU flags in the remaining bits of the PC register). This emulator uses full 32 bit addressing, so we need to store the CPSR flags separately. This is only a theoretical issue for most example programs, because there are no hardware interrupts.
 
-Go code is now 42,481 lines. Estimated total vibing time is around 32 hours, so an average of 1,300 lines of code per hour!
+Go code is now 42,481 lines.
 
 All unit and integration tests are passing, and the test system runs all the example programs and confirms their output.
 
@@ -116,11 +116,11 @@ Release automation added, and v0.9.0 tagged. We now have automatic builds for 4 
 
 Also working on TUI debugging, which had a number of problems and doesn't seem to be well tested. By end of day it's much more usable.
 
-Go code is now 44,073 lines.
+Go code is now 44,073 lines, over approx 45 hours. That's 980 lines per hour.
 
 **Day 12 - 19 Oct** - Final polish on the TUI, highlighting altered memory locations in green and showing labels properly in the Source window. UI testing is much slower because I need to manually run it, observe changes I'd like, ask Claude and repeat the loop.
 
-Go code is now 44,276 lines. About 3,600 lines per day, and that's only in a few hours per day!
+Go code is now 44,276 lines.
 
 ## Summary, some thoughts
 
