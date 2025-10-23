@@ -443,6 +443,24 @@ go mod verify
 
 Create optimized release builds for distribution:
 
+**Using Make (recommended):**
+```bash
+make build
+```
+
+This automatically embeds version information from git tags:
+- Version number from git tag (e.g., `v1.0.1`)
+- Git commit hash
+- Build timestamp
+
+**Manual build with version info:**
+```bash
+VERSION=$(git describe --tags --always --dirty)
+COMMIT=$(git rev-parse --short HEAD)
+DATE=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+go build -ldflags "-X main.Version=$VERSION -X main.Commit=$COMMIT -X main.Date=$DATE" -o arm-emulator
+```
+
 **Local optimized build:**
 ```bash
 go build -ldflags="-s -w" -o arm-emulator

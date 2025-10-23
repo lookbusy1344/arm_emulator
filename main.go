@@ -14,8 +14,12 @@ import (
 	"github.com/lookbusy1344/arm-emulator/vm"
 )
 
-const (
-	version = "1.0.0"
+// Version information - can be overridden at build time with:
+// go build -ldflags "-X main.Version=v1.2.3"
+var (
+	Version = "dev"     // Version number (set by git tag at build time)
+	Commit  = "unknown" // Git commit hash
+	Date    = "unknown" // Build date
 )
 
 func main() {
@@ -63,7 +67,13 @@ func main() {
 
 	// Show version
 	if *showVersion {
-		fmt.Printf("ARM2 Emulator v%s\n", version)
+		fmt.Printf("ARM2 Emulator %s\n", Version)
+		if Commit != "unknown" {
+			fmt.Printf("Commit: %s\n", Commit)
+		}
+		if Date != "unknown" {
+			fmt.Printf("Built: %s\n", Date)
+		}
 		os.Exit(0)
 	}
 
@@ -859,7 +869,7 @@ func loadProgramIntoVM(machine *vm.VM, program *parser.Program, entryPoint uint3
 }
 
 func printHelp() {
-	fmt.Printf(`ARM2 Emulator v%s
+	fmt.Printf(`ARM2 Emulator %s
 
 Usage: arm-emulator [options] <assembly-file>
 
@@ -953,7 +963,7 @@ Debugger Commands (when in -debug mode):
   help               Show debugger help
 
 For more information, see the README.md file.
-`, version, vm.StackSegmentSize)
+`, Version, vm.StackSegmentSize)
 }
 
 // dumpSymbolTable outputs the symbol table in a readable format
