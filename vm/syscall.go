@@ -94,6 +94,10 @@ func (vm *VM) getFile(fd uint32) (*os.File, error) {
 func (vm *VM) allocFD(f *os.File) uint32 {
 	vm.fdMu.Lock()
 	defer vm.fdMu.Unlock()
+
+	// Security: limit maximum number of file descriptors to prevent resource exhaustion
+	const maxFDs = 1024
+
 	for i := 3; i < len(vm.files); i++ {
 		if vm.files[i] == nil {
 			vm.files[i] = f
@@ -101,6 +105,12 @@ func (vm *VM) allocFD(f *os.File) uint32 {
 			return uint32(i)
 		}
 	}
+
+	// Check limit before growing the table
+	if len(vm.files) >= maxFDs {
+		return 0xFFFFFFFF // Return error if limit reached
+	}
+
 	vm.files = append(vm.files, f)
 	//nolint:gosec // G115: len(vm.files)-1 is bounded by reasonable file count
 	return uint32(len(vm.files) - 1)
