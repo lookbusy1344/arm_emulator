@@ -707,8 +707,13 @@ func handleSeek(vm *VM) error {
 	if err != nil {
 		vm.CPU.SetRegister(0, 0xFFFFFFFF)
 	} else {
-		//nolint:gosec // G115: File position conversion, will return error if overflow
-		vm.CPU.SetRegister(0, uint32(npos))
+		// Security: validate file position fits in 32-bit address space
+		if npos > 0xFFFFFFFF {
+			vm.CPU.SetRegister(0, 0xFFFFFFFF)
+		} else {
+			//nolint:gosec // G115: File position validated above
+			vm.CPU.SetRegister(0, uint32(npos))
+		}
 	}
 	vm.CPU.IncrementPC()
 	return nil
@@ -726,8 +731,13 @@ func handleTell(vm *VM) error {
 	if err != nil {
 		vm.CPU.SetRegister(0, 0xFFFFFFFF)
 	} else {
-		//nolint:gosec // G115: File position conversion, will return error if overflow
-		vm.CPU.SetRegister(0, uint32(pos))
+		// Security: validate file position fits in 32-bit address space
+		if pos > 0xFFFFFFFF {
+			vm.CPU.SetRegister(0, 0xFFFFFFFF)
+		} else {
+			//nolint:gosec // G115: File position validated above
+			vm.CPU.SetRegister(0, uint32(pos))
+		}
 	}
 	vm.CPU.IncrementPC()
 	return nil
@@ -750,8 +760,13 @@ func handleFileSize(vm *VM) error {
 		return nil
 	}
 	_, _ = f.Seek(pos, 0) // restore
-	//nolint:gosec // G115: File size conversion, will return error if overflow
-	vm.CPU.SetRegister(0, uint32(end))
+	// Security: validate file size fits in 32-bit address space
+	if end > 0xFFFFFFFF {
+		vm.CPU.SetRegister(0, 0xFFFFFFFF)
+	} else {
+		//nolint:gosec // G115: File size validated above
+		vm.CPU.SetRegister(0, uint32(end))
+	}
 	vm.CPU.IncrementPC()
 	return nil
 }
