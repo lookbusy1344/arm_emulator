@@ -54,10 +54,12 @@ Estimated time spent vibing this project, based on git logs:
 | 2025-10-19 | 4.9   | Claude  |
 | 2025-10-20 | 1.1   | Claude  |
 | 2025-10-21 | 1.6   | Claude  |
-| **Total**  | **53.0** |
-| **Average** | **3.8** |
+| 2025-10-22 | 1.9   | Copilot CLI  |
+| 2025-10-23 | 2.1   | Claude  |
+| **Total**  | **57.0** |
+| **Average** | **3.6** |
 
-Length of Go code on 21 Oct 2025 is **44,476 lines**. About 840 lines per hour, or 6,700 lines per standard 8 hour day. This excludes documentation and other files.
+Length of Go code on 23 Oct 2025 is **45,218 lines**. About 800 lines per hour, or 6,400 lines per standard 8 hour day. This excludes documentation and other files.
 
 
 ## Daily progress
@@ -155,7 +157,7 @@ Exciting times. Perhaps I should think of a second more challenging vibe-coding 
 - [docs/TUTORIAL.md](docs/TUTORIAL.md) - Step-by-step tutorial for learning ARM2 assembly
 - [docs/INSTRUCTIONS.md](docs/INSTRUCTIONS.md) - Complete ARM2 instruction set reference
 - [docs/assembly_reference.md](docs/assembly_reference.md) - ARM2 assembly language reference (directives, syntax)
-- [examples/README.md](examples/README.md) - Example programs and usage instructions (48 programs)
+- [examples/README.md](examples/README.md) - Example programs and usage instructions (49 programs)
 - [docs/debugger_reference.md](docs/debugger_reference.md) - Complete debugger command reference and guide
 - [docs/debugging_tutorial.md](docs/debugging_tutorial.md) - Hands-on debugging tutorials with examples
 - [docs/FAQ.md](docs/FAQ.md) - Frequently asked questions and troubleshooting
@@ -167,7 +169,7 @@ Exciting times. Perhaps I should think of a second more challenging vibe-coding 
 
 ## Features
 
-- **Complete ARM2 instruction set implementation** with 969 passing tests (100% pass rate, 75% code coverage)
+- **Complete ARM2 instruction set implementation** with 1,024 passing tests (100% pass rate, 75% code coverage)
   - All 16 data processing instructions (AND, EOR, SUB, RSB, ADD, ADC, SBC, RSC, TST, TEQ, CMP, CMN, ORR, MOV, BIC, MVN)
   - All memory operations (LDR/STR/LDRB/STRB/LDM/STM + halfword extensions)
   - All branch instructions (B/BL/BX)
@@ -380,7 +382,7 @@ All diagnostic modes support both text and JSON output formats:
 
 ### Example Programs
 
-The `examples/` directory contains 44 sample ARM assembly programs that demonstrate various features (100% working):
+The `examples/` directory contains 49 sample ARM assembly programs that demonstrate various features (100% working):
 
 **Basic Examples:**
 - **hello.s** - Hello World program
@@ -427,6 +429,14 @@ go fmt ./...
 ```bash
 go clean -testcache
 go test ./...
+```
+
+## Update dependencies
+
+```bash
+go get -u ./...
+go mod tidy
+go mod verify
 ```
 
 ### Release Builds
@@ -488,8 +498,8 @@ Each release includes:
 ├── debugger/            # Debugging utilities with TUI
 ├── config/              # Cross-platform configuration
 ├── tools/               # Development tools (lint, format, xref)
-├── tests/               # Test files (969 tests, 100% passing, 75% coverage)
-├── examples/            # Example ARM assembly programs (44 programs)
+├── tests/               # Test files (1,024 tests, 100% passing, 75% coverage)
+├── examples/            # Example ARM assembly programs (49 programs)
 └── docs/                # User and developer documentation
 ```
 

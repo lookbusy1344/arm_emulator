@@ -51,10 +51,10 @@ go mod verify
 - `debugger/` - Debugging utilities with TUI (breakpoints, watchpoints, expression evaluation)
 - `config/` - Cross-platform configuration management
 - `tools/` - Development tools (linter, formatter, cross-reference generator)
-- `tests/` - Test files (969 tests, 100% pass rate)
+- `tests/` - Test files (1,024 tests, 100% pass rate)
   - `tests/unit/` - Unit tests for all packages
   - `tests/integration/` - Integration tests for complete programs
-- `examples/` - Example ARM assembly programs (44 programs, all fully functional including 3 interactive)
+- `examples/` - Example ARM assembly programs (49 programs, all fully functional including 3 interactive)
 - `docs/` - User and developer documentation
 
 ## SWI Syscall Reference
@@ -154,8 +154,8 @@ The emulator implements traditional ARM2 syscall convention: `SWI #immediate_val
 ## Current Status
 
 **Phase 11 (Production Hardening) - Complete ✅**
-- All tests passing (100% pass rate, 969 total tests)
-  - Unit tests: ~905 tests (includes 18 TUI tests using tcell.SimulationScreen, 12 register trace tests)
+- All tests passing (100% pass rate, 1,024 total tests)
+  - Unit tests: ~960 tests (includes 18 TUI tests using tcell.SimulationScreen, 12 register trace tests, security tests)
   - Integration tests: 64 tests (full end-to-end execution pipeline + CLI diagnostic flags + example programs)
 - Code quality tools implemented (golangci-lint with errcheck, unused, govet, ineffassign, misspell)
 - All lint issues resolved (0 issues reported)
@@ -163,13 +163,14 @@ The emulator implements traditional ARM2 syscall convention: `SWI #immediate_val
 - CI updated to Go 1.25 with automated linting
 - Build artifacts added to .gitignore
 - Parser limitations resolved (debugger expression parser rewritten)
-- Example programs: 44 programs total, all fully functional (100% success rate) ✅
-  - 33+ programs with expected output files
+- Example programs: 49 programs total, all fully functional (100% success rate) ✅
+  - 38+ programs with expected output files
   - Table-driven test framework for easy test maintenance
-  - 39 non-interactive programs fully functional
+  - 46 non-interactive programs fully functional
   - 3 interactive programs work correctly with stdin (bubble_sort.s, calculator.s, fibonacci.s)
   - All bugs fixed (calculator.s EOF handling, test_ltorg.s and test_org_0_with_ltorg.s literal pool issues)
 - Recent improvements (Oct 2025):
+  - **Security hardening (Oct 22-23):** Comprehensive buffer overflow protection, address wraparound validation, file size limits (1MB default, 16MB max), thread-safety fixes (stdin reader moved to VM instance), file descriptor table size limit (1024), enhanced validation across all syscalls, wraparound protection verified with additional tests
   - Negative constants in .equ directives now supported
   - MOVW automatic encoding for 16-bit immediates
   - CMP/CMN instruction handling for un-encodable immediates
@@ -249,11 +250,11 @@ Example symbol-aware output:
 
 ### Example Programs Status
 
-#### All Example Programs Working! (43 total, 100%) ✅
+#### All Example Programs Working! (49 total, 100%) ✅
 
-All 43 example programs execute successfully:
+All 49 example programs execute successfully:
 
-**Non-Interactive Programs (40):**
+**Non-Interactive Programs (46):**
 - hello.s, loops.s, arithmetic.s, conditionals.s, functions.s
 - factorial.s, recursive_fib.s, recursive_factorial.s
 - string operations: strings.s, string_reverse.s (with stdin)
