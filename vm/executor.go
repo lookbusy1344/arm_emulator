@@ -91,7 +91,9 @@ type VM struct {
 	files []*os.File
 	fdMu  sync.Mutex
 
-	// Per-instance stdin reader to avoid race conditions
+	// Per-instance stdin reader to avoid race conditions when multiple VMs
+	// run concurrently. Previously this was a global variable shared across
+	// all VM instances, causing data corruption during parallel execution.
 	stdinReader *bufio.Reader
 }
 

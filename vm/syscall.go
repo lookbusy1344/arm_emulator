@@ -11,11 +11,14 @@ import (
 	"time"
 )
 
-// String length limits for syscalls
+// String length limits and size limits for syscalls
 const (
-	maxStringLength   = 1024 * 1024 // 1MB for general strings
-	maxFilenameLength = 4096        // 4KB for filenames (typical filesystem limit)
-	maxAssertMsgLen   = 1024        // 1KB for assertion messages (kept smaller for quick debugging)
+	maxStringLength   = 1024 * 1024      // 1MB for general strings
+	maxFilenameLength = 4096             // 4KB for filenames (typical filesystem limit)
+	maxAssertMsgLen   = 1024             // 1KB for assertion messages (kept smaller for quick debugging)
+	maxReadSize       = 16 * 1024 * 1024 // 16MB for file reads (security limit)
+	maxWriteSize      = 16 * 1024 * 1024 // 16MB for file writes (security limit)
+	maxFDs            = 1024             // Maximum number of file descriptors (security limit)
 )
 
 // ResetStdinReader resets the VM's stdin reader to read from os.Stdin
@@ -98,9 +101,6 @@ func (vm *VM) getFile(fd uint32) (*os.File, error) {
 func (vm *VM) allocFD(f *os.File) uint32 {
 	vm.fdMu.Lock()
 	defer vm.fdMu.Unlock()
-
-	// Security: limit maximum number of file descriptors to prevent resource exhaustion
-	const maxFDs = 1024
 
 	for i := 3; i < len(vm.files); i++ {
 		if vm.files[i] == nil {
@@ -256,10 +256,6 @@ func handleWriteString(vm *VM) error {
 	// Read null-terminated string from memory
 	var str []byte
 	for {
-		// Security: check for address wraparound
-		if addr == 0xFFFFFFFF {
-			return fmt.Errorf("address wraparound while reading string")
-		}
 		b, err := vm.Memory.ReadByteAt(addr)
 		if err != nil {
 			return fmt.Errorf("failed to read string at 0x%08X: %w", addr, err)
@@ -269,6 +265,11 @@ func handleWriteString(vm *VM) error {
 		}
 		str = append(str, b)
 		addr++
+
+		// Security: check for address wraparound after increment
+		if addr == 0 {
+			return fmt.Errorf("address wraparound while reading string")
+		}
 
 		// Prevent infinite loops
 		if len(str) > maxStringLength {
@@ -467,10 +468,6 @@ func handleDebugPrint(vm *VM) error {
 	// Read null-terminated string from memory
 	var str []byte
 	for {
-		// Security: check for address wraparound
-		if addr == 0xFFFFFFFF {
-			return fmt.Errorf("address wraparound while reading debug string")
-		}
 		b, err := vm.Memory.ReadByteAt(addr)
 		if err != nil {
 			return fmt.Errorf("failed to read debug string at 0x%08X: %w", addr, err)
@@ -480,6 +477,11 @@ func handleDebugPrint(vm *VM) error {
 		}
 		str = append(str, b)
 		addr++
+
+		// Security: check for address wraparound after increment
+		if addr == 0 {
+			return fmt.Errorf("address wraparound while reading debug string")
+		}
 
 		if len(str) > maxStringLength {
 			return fmt.Errorf("debug string too long (>%d bytes)", maxStringLength)
@@ -564,12 +566,6 @@ func handleOpen(vm *VM) error {
 	var filename []byte
 	addr := filenameAddr
 	for {
-		// Security: check for address wraparound
-		if addr == 0xFFFFFFFF {
-			vm.CPU.SetRegister(0, 0xFFFFFFFF)
-			vm.CPU.IncrementPC()
-			return nil
-		}
 		b, err := vm.Memory.ReadByteAt(addr)
 		if err != nil {
 			vm.CPU.SetRegister(0, 0xFFFFFFFF)
@@ -581,6 +577,14 @@ func handleOpen(vm *VM) error {
 		}
 		filename = append(filename, b)
 		addr++
+
+		// Security: check for address wraparound after increment
+		if addr == 0 {
+			vm.CPU.SetRegister(0, 0xFFFFFFFF)
+			vm.CPU.IncrementPC()
+			return nil
+		}
+
 		if len(filename) > maxFilenameLength {
 			vm.CPU.SetRegister(0, 0xFFFFFFFF)
 			vm.CPU.IncrementPC()
@@ -635,7 +639,6 @@ func handleRead(vm *VM) error {
 		return nil
 	}
 	// Security: limit read size to prevent memory exhaustion attacks
-	const maxReadSize = 16 * 1024 * 1024 // 16MB
 	if length > maxReadSize {
 		vm.CPU.SetRegister(0, 0xFFFFFFFF)
 		vm.CPU.IncrementPC()
@@ -673,7 +676,6 @@ func handleWrite(vm *VM) error {
 		return nil
 	}
 	// Security: limit write size to prevent memory exhaustion attacks
-	const maxWriteSize = 16 * 1024 * 1024 // 16MB
 	if length > maxWriteSize {
 		vm.CPU.SetRegister(0, 0xFFFFFFFF)
 		vm.CPU.IncrementPC()
@@ -714,8 +716,8 @@ func handleSeek(vm *VM) error {
 	if err != nil {
 		vm.CPU.SetRegister(0, 0xFFFFFFFF)
 	} else {
-		// Security: validate file position fits in 32-bit address space
-		if npos > 0xFFFFFFFF {
+		// Security: validate file position fits in 32-bit address space and is non-negative
+		if npos < 0 || npos > 0xFFFFFFFF {
 			vm.CPU.SetRegister(0, 0xFFFFFFFF)
 		} else {
 			//nolint:gosec // G115: File position validated above
@@ -738,8 +740,8 @@ func handleTell(vm *VM) error {
 	if err != nil {
 		vm.CPU.SetRegister(0, 0xFFFFFFFF)
 	} else {
-		// Security: validate file position fits in 32-bit address space
-		if pos > 0xFFFFFFFF {
+		// Security: validate file position fits in 32-bit address space and is non-negative
+		if pos < 0 || pos > 0xFFFFFFFF {
 			vm.CPU.SetRegister(0, 0xFFFFFFFF)
 		} else {
 			//nolint:gosec // G115: File position validated above
@@ -767,8 +769,8 @@ func handleFileSize(vm *VM) error {
 		return nil
 	}
 	_, _ = f.Seek(pos, 0) // restore
-	// Security: validate file size fits in 32-bit address space
-	if end > 0xFFFFFFFF {
+	// Security: validate file size fits in 32-bit address space and is non-negative
+	if end < 0 || end > 0xFFFFFFFF {
 		vm.CPU.SetRegister(0, 0xFFFFFFFF)
 	} else {
 		//nolint:gosec // G115: File size validated above
@@ -908,16 +910,18 @@ func handleAssert(vm *VM) error {
 		var msg []byte
 		addr := msgAddr
 		for {
-			// Security: check for address wraparound
-			if addr == 0xFFFFFFFF {
-				break
-			}
 			b, err := vm.Memory.ReadByteAt(addr)
 			if err != nil || b == 0 {
 				break
 			}
 			msg = append(msg, b)
 			addr++
+
+			// Security: check for address wraparound after increment
+			if addr == 0 {
+				return fmt.Errorf("address wraparound while reading assertion message")
+			}
+
 			if len(msg) > maxAssertMsgLen {
 				break
 			}
