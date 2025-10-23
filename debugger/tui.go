@@ -531,6 +531,7 @@ func (t *TUI) RefreshAll() {
 	t.UpdateStackView()
 	t.UpdateDisassemblyView()
 	t.UpdateBreakpointsView()
+	t.scrollPCIntoView() // Auto-scroll to keep PC visible
 	// Note: App.Draw() is not called here - caller must use QueueUpdateDraw
 }
 
