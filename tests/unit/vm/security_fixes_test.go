@@ -12,8 +12,8 @@ import (
 // Test 1: 1MB read size limit (handleRead)
 func TestReadSyscall_1MBLimit(t *testing.T) {
 	machine := vm.NewVM()
-	machine.CPU.SetRegister(0, 0) // fd 0 (stdin)
-	machine.CPU.SetRegister(1, 0x00010000) // buffer address
+	machine.CPU.SetRegister(0, 0)           // fd 0 (stdin)
+	machine.CPU.SetRegister(1, 0x00010000)  // buffer address
 	machine.CPU.SetRegister(2, 2*1024*1024) // 2MB - exceeds 1MB default limit
 
 	inst := &vm.Instruction{
@@ -36,8 +36,8 @@ func TestReadSyscall_1MBLimit(t *testing.T) {
 // Test 2: 1MB write size limit (handleWrite)
 func TestWriteSyscall_1MBLimit(t *testing.T) {
 	machine := vm.NewVM()
-	machine.CPU.SetRegister(0, 1) // fd 1 (stdout)
-	machine.CPU.SetRegister(1, 0x00010000) // buffer address
+	machine.CPU.SetRegister(0, 1)           // fd 1 (stdout)
+	machine.CPU.SetRegister(1, 0x00010000)  // buffer address
 	machine.CPU.SetRegister(2, 2*1024*1024) // 2MB - exceeds 1MB default limit
 
 	inst := &vm.Instruction{
@@ -67,8 +67,8 @@ func TestLDMUnderflowProtection(t *testing.T) {
 	// LDM SP!, {R0-R15} - trying to load 16 registers (64 bytes) from SP=16
 	// This would underflow when calculating the starting address
 	inst := &vm.Instruction{
-		Opcode: 0xE8BD8000 | 0xFFFF, // LDMIA SP!, {R0-R15}
-		Type:   vm.InstLoadStoreMultiple,
+		Opcode:  0xE8BD8000 | 0xFFFF, // LDMIA SP!, {R0-R15}
+		Type:    vm.InstLoadStoreMultiple,
 		Address: 0x00008000,
 	}
 
@@ -92,8 +92,8 @@ func TestSTMUnderflowProtection(t *testing.T) {
 	// STMDB SP!, {R0-R15} - trying to store 16 registers (64 bytes) below SP=16
 	// This would underflow when calculating the starting address
 	inst := &vm.Instruction{
-		Opcode: 0xE92D0000 | 0xFFFF, // STMDB SP!, {R0-R15}
-		Type:   vm.InstLoadStoreMultiple,
+		Opcode:  0xE92D0000 | 0xFFFF, // STMDB SP!, {R0-R15}
+		Type:    vm.InstLoadStoreMultiple,
 		Address: 0x00008000,
 	}
 
@@ -182,7 +182,7 @@ func TestOpen_FilenameWraparound(t *testing.T) {
 	// Don't write a null terminator
 
 	machine.CPU.SetRegister(0, 0xFFFFFFF0) // Filename address
-	machine.CPU.SetRegister(1, 0) // Read mode
+	machine.CPU.SetRegister(1, 0)          // Read mode
 
 	inst := &vm.Instruction{
 		Opcode: 0xEF000010, // SWI 0x10 (OPEN)
@@ -214,7 +214,7 @@ func TestAssert_MessageWraparound(t *testing.T) {
 	}
 	// Don't write a null terminator
 
-	machine.CPU.SetRegister(0, 0) // Condition = 0 (fail)
+	machine.CPU.SetRegister(0, 0)          // Condition = 0 (fail)
 	machine.CPU.SetRegister(1, 0xFFFFFFF0) // Message address
 
 	inst := &vm.Instruction{
@@ -322,9 +322,9 @@ func TestStringLengthLimits_Standardization(t *testing.T) {
 // Test 13: Verify read size limit at exactly 1MB (should succeed)
 func TestReadSyscall_ExactlyAtLimit(t *testing.T) {
 	machine := vm.NewVM()
-	machine.CPU.SetRegister(0, 0) // fd 0 (stdin)
+	machine.CPU.SetRegister(0, 0)          // fd 0 (stdin)
 	machine.CPU.SetRegister(1, 0x00100000) // buffer address (higher to avoid issues)
-	machine.CPU.SetRegister(2, 1024*1024) // Exactly 1MB - should be allowed
+	machine.CPU.SetRegister(2, 1024*1024)  // Exactly 1MB - should be allowed
 
 	inst := &vm.Instruction{
 		Opcode: 0xEF000012, // SWI 0x12 (READ)
@@ -353,9 +353,9 @@ func TestWriteSyscall_ExactlyAtLimit(t *testing.T) {
 	// Allocate 1MB of memory for the buffer
 	bufferAddr := uint32(0x01000000)
 
-	machine.CPU.SetRegister(0, 1) // fd 1 (stdout)
+	machine.CPU.SetRegister(0, 1)          // fd 1 (stdout)
 	machine.CPU.SetRegister(1, bufferAddr) // buffer address
-	machine.CPU.SetRegister(2, 1024*1024) // Exactly 1MB
+	machine.CPU.SetRegister(2, 1024*1024)  // Exactly 1MB
 
 	inst := &vm.Instruction{
 		Opcode: 0xEF000013, // SWI 0x13 (WRITE)
@@ -376,9 +376,9 @@ func TestWriteSyscall_ExactlyAtLimit(t *testing.T) {
 // Test 15: Buffer address overflow check in handleRead
 func TestReadSyscall_BufferAddressOverflow(t *testing.T) {
 	machine := vm.NewVM()
-	machine.CPU.SetRegister(0, 0) // fd 0 (stdin)
+	machine.CPU.SetRegister(0, 0)          // fd 0 (stdin)
 	machine.CPU.SetRegister(1, 0xFFFFFF00) // buffer address near end of address space
-	machine.CPU.SetRegister(2, 0x200) // 512 bytes - would overflow
+	machine.CPU.SetRegister(2, 0x200)      // 512 bytes - would overflow
 
 	inst := &vm.Instruction{
 		Opcode: 0xEF000012, // SWI 0x12 (READ)
@@ -400,9 +400,9 @@ func TestReadSyscall_BufferAddressOverflow(t *testing.T) {
 // Test 16: Buffer address overflow check in handleWrite
 func TestWriteSyscall_BufferAddressOverflow(t *testing.T) {
 	machine := vm.NewVM()
-	machine.CPU.SetRegister(0, 1) // fd 1 (stdout)
+	machine.CPU.SetRegister(0, 1)          // fd 1 (stdout)
 	machine.CPU.SetRegister(1, 0xFFFFFF00) // buffer address near end of address space
-	machine.CPU.SetRegister(2, 0x200) // 512 bytes - would overflow
+	machine.CPU.SetRegister(2, 0x200)      // 512 bytes - would overflow
 
 	inst := &vm.Instruction{
 		Opcode: 0xEF000013, // SWI 0x13 (WRITE)
@@ -424,8 +424,8 @@ func TestWriteSyscall_BufferAddressOverflow(t *testing.T) {
 // Test 17: Verify 1MB maximum is enforced (boundary test at just over limit)
 func TestReadSyscall_MaximumSize(t *testing.T) {
 	machine := vm.NewVM()
-	machine.CPU.SetRegister(0, 0) // fd 0 (stdin)
-	machine.CPU.SetRegister(1, 0x00010000) // buffer address
+	machine.CPU.SetRegister(0, 0)             // fd 0 (stdin)
+	machine.CPU.SetRegister(1, 0x00010000)    // buffer address
 	machine.CPU.SetRegister(2, 1*1024*1024+1) // 1MB + 1 byte - exceeds maximum
 
 	inst := &vm.Instruction{
