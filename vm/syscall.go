@@ -242,6 +242,10 @@ func handleWriteString(vm *VM) error {
 	// Read null-terminated string from memory
 	var str []byte
 	for {
+		// Security: check for address wraparound
+		if addr == 0xFFFFFFFF {
+			return fmt.Errorf("address wraparound while reading string")
+		}
 		b, err := vm.Memory.ReadByteAt(addr)
 		if err != nil {
 			return fmt.Errorf("failed to read string at 0x%08X: %w", addr, err)
@@ -449,6 +453,10 @@ func handleDebugPrint(vm *VM) error {
 	// Read null-terminated string from memory
 	var str []byte
 	for {
+		// Security: check for address wraparound
+		if addr == 0xFFFFFFFF {
+			return fmt.Errorf("address wraparound while reading debug string")
+		}
 		b, err := vm.Memory.ReadByteAt(addr)
 		if err != nil {
 			return fmt.Errorf("failed to read debug string at 0x%08X: %w", addr, err)
@@ -542,6 +550,12 @@ func handleOpen(vm *VM) error {
 	var filename []byte
 	addr := filenameAddr
 	for {
+		// Security: check for address wraparound
+		if addr == 0xFFFFFFFF {
+			vm.CPU.SetRegister(0, 0xFFFFFFFF)
+			vm.CPU.IncrementPC()
+			return nil
+		}
 		b, err := vm.Memory.ReadByteAt(addr)
 		if err != nil {
 			vm.CPU.SetRegister(0, 0xFFFFFFFF)
@@ -865,6 +879,10 @@ func handleAssert(vm *VM) error {
 		var msg []byte
 		addr := msgAddr
 		for {
+			// Security: check for address wraparound
+			if addr == 0xFFFFFFFF {
+				break
+			}
 			b, err := vm.Memory.ReadByteAt(addr)
 			if err != nil || b == 0 {
 				break
