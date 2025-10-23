@@ -886,10 +886,8 @@ func (t *TUI) UpdateDisassemblyView() {
 		beforeLines = append(beforeLines, line)
 	}
 
-	// Reverse the before lines so they appear in ascending address order
-	for i := len(beforeLines) - 1; i >= 0; i-- {
-		lines = append(lines, beforeLines[i])
-	}
+	// Append before lines in ascending address order (they're already collected in that order)
+	lines = append(lines, beforeLines...)
 
 	// Collect instructions AT and AFTER PC (current + targetAfter)
 	for i := 0; i <= targetAfter; i++ {
