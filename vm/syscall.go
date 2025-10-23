@@ -11,13 +11,10 @@ import (
 	"time"
 )
 
-// Global stdin reader for consistent input handling across syscalls
-var stdinReader = bufio.NewReader(os.Stdin)
-
-// ResetStdinReader resets the global stdin reader to read from os.Stdin
+// ResetStdinReader resets the VM's stdin reader to read from os.Stdin
 // This is useful for testing when os.Stdin has been redirected
-func ResetStdinReader() {
-	stdinReader = bufio.NewReader(os.Stdin)
+func (vm *VM) ResetStdinReader() {
+	vm.stdinReader = bufio.NewReader(os.Stdin)
 }
 
 // SWI (Software Interrupt) syscall numbers
@@ -316,7 +313,7 @@ func handleWriteInt(vm *VM) error {
 func handleReadChar(vm *VM) error {
 	// Skip any leading whitespace (newlines, spaces, tabs)
 	for {
-		char, err := stdinReader.ReadByte()
+		char, err := vm.stdinReader.ReadByte()
 		if err != nil {
 			vm.CPU.SetRegister(0, 0xFFFFFFFF) // Return -1 on error
 			vm.CPU.IncrementPC()
@@ -340,7 +337,7 @@ func handleReadString(vm *VM) error {
 	}
 
 	// Read string from stdin (up to newline)
-	input, err := stdinReader.ReadString('\n')
+	input, err := vm.stdinReader.ReadString('\n')
 	if err != nil {
 		vm.CPU.SetRegister(0, 0xFFFFFFFF) // Return -1 on error
 		vm.CPU.IncrementPC()
@@ -381,7 +378,7 @@ func handleReadString(vm *VM) error {
 func handleReadInt(vm *VM) error {
 	// Read lines until we get a non-empty one or hit EOF
 	for {
-		line, err := stdinReader.ReadString('\n')
+		line, err := vm.stdinReader.ReadString('\n')
 		if err != nil {
 			vm.CPU.SetRegister(0, 0)
 			vm.CPU.IncrementPC()

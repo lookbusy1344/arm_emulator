@@ -1,6 +1,7 @@
 package vm
 
 import (
+	"bufio"
 	"fmt"
 	"io"
 	"os"
@@ -89,6 +90,9 @@ type VM struct {
 	// File descriptor table (simple)
 	files []*os.File
 	fdMu  sync.Mutex
+
+	// Per-instance stdin reader to avoid race conditions
+	stdinReader *bufio.Reader
 }
 
 // NewVM creates a new virtual machine instance
@@ -104,8 +108,9 @@ func NewVM() *VM {
 		EntryPoint:       CodeSegmentStart,
 		ProgramArguments: make([]string, 0),
 		ExitCode:         0,
-		OutputWriter:     os.Stdout,           // Default to stdout
-		files:            make([]*os.File, 3), // Will be lazily initialized to stdin/stdout/stderr
+		OutputWriter:     os.Stdout,                 // Default to stdout
+		files:            make([]*os.File, 3),       // Will be lazily initialized to stdin/stdout/stderr
+		stdinReader:      bufio.NewReader(os.Stdin), // Per-instance stdin reader
 	}
 }
 
