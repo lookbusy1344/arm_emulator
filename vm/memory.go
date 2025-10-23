@@ -84,6 +84,11 @@ func (m *Memory) findSegment(address uint32) (*MemorySegment, uint32, error) {
 	for _, seg := range m.Segments {
 		// Check if address is in segment range
 		// Use offset-based check to avoid wraparound issues when seg.Start+seg.Size > 0xFFFFFFFF
+		// This approach correctly handles edge cases:
+		// - If address < seg.Start: offset wraps to a large value, fails offset < seg.Size check
+		// - If seg.Start+seg.Size would overflow (e.g., seg at 0xFFFFFF00 with size 0x100):
+		//   For address 0xFFFFFFFF: offset = 0xFF, which is < 0x100, so it's valid
+		//   For address 0x00000000: offset = 0x00000100 (due to wraparound), which is >= 0x100, so invalid
 		if address >= seg.Start {
 			offset := address - seg.Start
 			if offset < seg.Size {

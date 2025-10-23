@@ -218,23 +218,22 @@ func TestOpen_FilenameWraparound(t *testing.T) {
 }
 
 // Test 8: Address wraparound protection in ASSERT
-// NOTE: Currently skipped - ASSERT reads the message successfully but stops at 15 chars
-// This indicates wraparound protection is working (doesn't read infinitely)
 func TestAssert_MessageWraparound(t *testing.T) {
-	t.Skip("ASSERT wraparound behavior needs investigation - currently stops reading at address boundary")
 	machine := vm.NewVM()
 
 	// Add high memory segment for testing wraparound (includes 0xFFFFFFFF)
 	machine.Memory.AddSegment("high-mem", 0xFFFFFF00, 0x00000100, vm.PermRead|vm.PermWrite)
 
-	// Place an assertion message starting at 0xFFFFFFF0 that would wrap around
-	for i := uint32(0); i < 15; i++ {
+	// Place an assertion message starting at 0xFFFFFFF0 that extends to 0xFFFFFFFF
+	// Write 16 characters (0xFFFFFFF0 to 0xFFFFFFFF) without null terminator
+	// This will trigger wraparound detection when trying to read beyond 0xFFFFFFFF
+	for i := uint32(0); i < 16; i++ {
 		err := machine.Memory.WriteByteAt(0xFFFFFFF0+i, byte('A'+i))
 		if err != nil {
 			t.Fatalf("Failed to write test data: %v", err)
 		}
 	}
-	// Don't write a null terminator
+	// Don't write a null terminator - the loop will hit 0xFFFFFFFF and detect wraparound
 
 	machine.CPU.SetRegister(0, 0)          // Condition = 0 (fail)
 	machine.CPU.SetRegister(1, 0xFFFFFFF0) // Message address

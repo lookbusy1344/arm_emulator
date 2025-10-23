@@ -284,12 +284,13 @@ func handleWriteString(vm *VM) error {
 			break
 		}
 		str = append(str, b)
-		addr++
 
-		// Security: check for address wraparound after increment
-		if addr == 0 {
+		// Security: check for address wraparound before incrementing
+		// If addr is at 0xFFFFFFFF, incrementing would wrap to 0
+		if addr == 0xFFFFFFFF {
 			return fmt.Errorf("address wraparound while reading string")
 		}
+		addr++
 
 		// Prevent infinite loops
 		if len(str) > maxStringLength {
@@ -496,12 +497,13 @@ func handleDebugPrint(vm *VM) error {
 			break
 		}
 		str = append(str, b)
-		addr++
 
-		// Security: check for address wraparound after increment
-		if addr == 0 {
+		// Security: check for address wraparound before incrementing
+		// If addr is at 0xFFFFFFFF, incrementing would wrap to 0
+		if addr == 0xFFFFFFFF {
 			return fmt.Errorf("address wraparound while reading debug string")
 		}
+		addr++
 
 		if len(str) > maxStringLength {
 			return fmt.Errorf("debug string too long (>%d bytes)", maxStringLength)
@@ -583,6 +585,8 @@ func handleOpen(vm *VM) error {
 	mode := vm.CPU.GetRegister(1) // 0=read, 1=write, 2=append
 
 	// Read filename from memory
+	// Note: Wraparound detection returns 0xFFFFFFFF (error code) rather than halting VM
+	// This follows the file operation error handling pattern (see error handling philosophy at top of file)
 	var filename []byte
 	addr := filenameAddr
 	for {
@@ -596,14 +600,15 @@ func handleOpen(vm *VM) error {
 			break
 		}
 		filename = append(filename, b)
-		addr++
 
-		// Security: check for address wraparound after increment
-		if addr == 0 {
+		// Security: check for address wraparound before incrementing
+		// If addr is at 0xFFFFFFFF, incrementing would wrap to 0
+		if addr == 0xFFFFFFFF {
 			vm.CPU.SetRegister(0, 0xFFFFFFFF)
 			vm.CPU.IncrementPC()
 			return nil
 		}
+		addr++
 
 		if len(filename) > maxFilenameLength {
 			vm.CPU.SetRegister(0, 0xFFFFFFFF)
@@ -951,12 +956,13 @@ func handleAssert(vm *VM) error {
 				break
 			}
 			msg = append(msg, b)
-			addr++
 
-			// Security: check for address wraparound after increment
-			if addr == 0 {
+			// Security: check for address wraparound before incrementing
+			// If addr is at 0xFFFFFFFF, incrementing would wrap to 0
+			if addr == 0xFFFFFFFF {
 				return fmt.Errorf("address wraparound while reading assertion message")
 			}
+			addr++
 
 			if len(msg) > maxAssertMsgLen {
 				break
