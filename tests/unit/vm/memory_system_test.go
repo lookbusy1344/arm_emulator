@@ -550,3 +550,112 @@ func TestMemory_ConsecutiveErrors(t *testing.T) {
 		}
 	}
 }
+
+// ================================================================================
+// Wraparound Protection Tests
+// ================================================================================
+
+func TestMemory_WraparoundProtection_LargeSegment(t *testing.T) {
+	// This test verifies protection against the reported "wraparound bug"
+	// Scenario: Segment at 0xFFFF0000, size 0x00020000 (128KB)
+	// Attack: Try to access 0x00000100 (should be rejected)
+
+	v := vm.NewVM()
+
+	// Add a large segment at high address
+	v.Memory.AddSegment("test_high", 0xFFFF0000, 0x00020000, vm.PermRead|vm.PermWrite)
+
+	// Valid accesses within the segment should succeed
+	err := v.Memory.WriteWord(0xFFFF0000, 0xDEADBEEF)
+	if err != nil {
+		t.Errorf("Write to segment start should succeed: %v", err)
+	}
+
+	err = v.Memory.WriteWord(0xFFFFFFF0, 0xCAFEBABE)
+	if err != nil {
+		t.Errorf("Write to segment end should succeed: %v", err)
+	}
+
+	// Attack scenario: Try to access address 0x00000100
+	// The bug report claims: offset = 0x00000100 - 0xFFFF0000 = 0x00010100 (wraparound)
+	// And that 0x00010100 < 0x00020000 would incorrectly allow access
+	// But the code checks `if address >= seg.Start` first, which is FALSE for 0x00000100
+	_, err = v.Memory.ReadWord(0x00000100)
+	if err == nil {
+		t.Error("CRITICAL BUG: Wraparound attack succeeded! Access to 0x00000100 should be rejected for segment at 0xFFFF0000")
+	}
+
+	// Also verify we can't access other unmapped addresses
+	// (avoiding 0x8000-0x17FFF which is the code segment)
+	unmappedAddresses := []uint32{0x00000000, 0x00000004, 0x00001000, 0x00007FFC, 0xFFFEFFFF}
+	for _, addr := range unmappedAddresses {
+		_, err = v.Memory.ReadWord(addr)
+		if err == nil {
+			t.Errorf("Access to unmapped address 0x%08X should be rejected", addr)
+		}
+	}
+}
+
+func TestMemory_WraparoundProtection_EdgeCases(t *testing.T) {
+	// Test various edge cases for segment boundary checking
+	v := vm.NewVM()
+
+	// Segment near end of address space: 0xFFFFFFF0, Size: 0x10 (16 bytes)
+	// Valid range: 0xFFFFFFF0 to 0xFFFFFFFF (does NOT wrap to 0x00000000)
+	// The memory system does not support segments that wrap around the 32-bit boundary
+	v.Memory.AddSegment("high_segment", 0xFFFFFFF0, 0x10, vm.PermRead|vm.PermWrite)
+
+	// Valid access at segment start
+	err := v.Memory.WriteWord(0xFFFFFFF0, 0x11111111)
+	if err != nil {
+		t.Errorf("Write to 0xFFFFFFF0 should succeed: %v", err)
+	}
+
+	// Valid access near end (last word at 0xFFFFFFFC)
+	err = v.Memory.WriteWord(0xFFFFFFFC, 0x22222222)
+	if err != nil {
+		t.Errorf("Write to 0xFFFFFFFC should succeed: %v", err)
+	}
+
+	// Invalid access beyond segment
+	// 0xFFFFFFF0 + 0x10 wraps to 0x00000000 due to uint32 overflow
+	segStart := uint32(0xFFFFFFF0)
+	addrBeyond := segStart + 0x10 // This wraps to 0x00000000
+	_, err = v.Memory.ReadWord(addrBeyond)
+	if err == nil {
+		t.Errorf("Access to wrapped address 0x%08X should fail (beyond segment bounds)", addrBeyond)
+	}
+
+	// Invalid access to unrelated low address
+	_, err = v.Memory.ReadWord(0x00000100)
+	if err == nil {
+		t.Error("Access to 0x00000100 should fail (not in high segment)")
+	}
+}
+
+func TestMemory_NoWraparoundInStandardSegments(t *testing.T) {
+	// Verify standard memory segments don't have wraparound issues
+	v := vm.NewVM()
+
+	// Standard segments:
+	// Code: 0x00008000, size 0x00010000 (ends at 0x00017FFF)
+	// Data: 0x00020000, size 0x00010000 (ends at 0x0002FFFF)
+	// Heap: 0x00030000, size 0x00010000 (ends at 0x0003FFFF)
+	// Stack: 0x00040000, size 0x00010000 (ends at 0x0004FFFF)
+
+	// Try to access addresses that would wrap if calculations were wrong
+	invalidAddresses := []uint32{
+		0x00000000, // Before code
+		0x00018000, // After code
+		0x0001FFFF, // Just before data
+		0x00050000, // After stack
+		0xFFFFFFFF, // High address
+	}
+
+	for _, addr := range invalidAddresses {
+		_, err := v.Memory.ReadWord(addr)
+		if err == nil {
+			t.Errorf("Access to unmapped address 0x%08X should fail", addr)
+		}
+	}
+}

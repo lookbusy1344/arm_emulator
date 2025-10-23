@@ -82,13 +82,19 @@ func (m *Memory) AddSegment(name string, start, size uint32, permissions MemoryP
 // findSegment finds the memory segment containing the given address
 func (m *Memory) findSegment(address uint32) (*MemorySegment, uint32, error) {
 	for _, seg := range m.Segments {
-		// Check if address is in segment range
-		// Use offset-based check to avoid wraparound issues when seg.Start+seg.Size > 0xFFFFFFFF
-		// This approach correctly handles edge cases:
-		// - If address < seg.Start: offset wraps to a large value, fails offset < seg.Size check
-		// - If seg.Start+seg.Size would overflow (e.g., seg at 0xFFFFFF00 with size 0x100):
-		//   For address 0xFFFFFFFF: offset = 0xFF, which is < 0x100, so it's valid
-		//   For address 0x00000000: offset = 0x00000100 (due to wraparound), which is >= 0x100, so invalid
+		// Check if address is in segment range using explicit bounds checking
+		// Step 1: Verify address >= seg.Start (protects against wraparound attacks)
+		// Step 2: Calculate offset and verify offset < seg.Size
+		//
+		// This two-step approach correctly handles all edge cases:
+		// - If address < seg.Start: First check fails, never calculates offset
+		// - If address >= seg.Start but beyond segment: offset >= seg.Size, second check fails
+		// - Segments near 0xFFFFFFFF: Addresses that wrap to low memory fail the first check
+		//
+		// Example: Segment at 0xFFFF0000, size 0x00020000
+		//   - Access to 0xFFFF0000-0xFFFFFFFF: Both checks pass (valid)
+		//   - Access to 0x00000100: First check fails (0x00000100 < 0xFFFF0000)
+		//   - No wraparound vulnerability exists in this implementation
 		if address >= seg.Start {
 			offset := address - seg.Start
 			if offset < seg.Size {
