@@ -1474,7 +1474,7 @@ Congratulations! You've learned ARM2 assembly programming fundamentals.
 
 ### Further Reading
 
-- [Instruction Set Reference](../INSTRUCTIONS.md) - Detailed reference for every ARM2 instruction
+- [Instruction Set Reference](INSTRUCTIONS.md) - Detailed reference for every ARM2 instruction
 - [Assembly Reference](assembly_reference.md) - Directives, syntax, and assembler features
 - [Debugger Reference](debugger_reference.md) - Advanced debugging commands and features
 - [Debugging Tutorial](debugging_tutorial.md) - Hands-on debugging walkthroughs

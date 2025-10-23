@@ -2904,7 +2904,7 @@ Overall: 660 total tests across all phases - ALL PASSING ✅
 
 ## Notes
 
-- Project follows IMPLEMENTATION_PLAN.md and SPECIFICATION.md
+- Project follows docs/IMPLEMENTATION_PLAN.md and SPECIFICATION.md
 - Cross-platform compatible (macOS, Windows, Linux)
 - Go 1.25+ with modern dependencies
 - Clean separation of concerns across modules

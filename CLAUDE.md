@@ -59,6 +59,10 @@ go mod verify
 
 ## SWI Syscall Reference
 
+For the complete syscall reference, see [docs/INSTRUCTIONS.md](docs/INSTRUCTIONS.md#system-instructions).
+
+### Quick Reference
+
 The emulator implements traditional ARM2 syscall convention: `SWI #immediate_value` where the syscall number is encoded directly in the instruction. Arguments and return values use registers R0-R2.
 
 ### Console I/O (0x00-0x07)

@@ -700,7 +700,7 @@ go build -o arm-emulator
 **A:**
 1. Start with [TUTORIAL.md](TUTORIAL.md)
 2. Study example programs in `examples/` (44 programs covering all concepts)
-3. Reference [INSTRUCTIONS.md](../INSTRUCTIONS.md) for detailed instruction documentation
+3. Reference [INSTRUCTIONS.md](INSTRUCTIONS.md) for detailed instruction documentation
 4. Read [assembly_reference.md](assembly_reference.md) for directives and syntax
 5. Write small programs and gradually increase complexity
 6. Use debugger (see [debugger_reference.md](debugger_reference.md)) to understand instruction behavior
@@ -732,7 +732,7 @@ go build -o arm-emulator
 
 - **Documentation**: Check `docs/` directory for comprehensive guides
 - **Tutorial**: Work through [TUTORIAL.md](TUTORIAL.md) for hands-on learning
-- **Instruction Reference**: [INSTRUCTIONS.md](../INSTRUCTIONS.md) for every ARM2 instruction
+- **Instruction Reference**: [INSTRUCTIONS.md](INSTRUCTIONS.md) for every ARM2 instruction
 - **Assembly Reference**: [assembly_reference.md](assembly_reference.md) for directives and syntax
 - **Examples**: Browse `examples/` (44 programs) for reference code
 - **Debugger**: [debugger_reference.md](debugger_reference.md) and [debugging_tutorial.md](debugging_tutorial.md)

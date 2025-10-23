@@ -209,7 +209,7 @@ Simply delete the emulator executable and source directory.
 
 - Read the [Tutorial](TUTORIAL.md) to learn ARM2 assembly from scratch
 - Browse the [Example Programs](../examples/README.md) - 44 programs with descriptions
-- Study the [Instruction Set Reference](../INSTRUCTIONS.md) for detailed instruction documentation
+- Study the [Instruction Set Reference](INSTRUCTIONS.md) for detailed instruction documentation
 - Check out the [Assembly Reference](assembly_reference.md) for directives and syntax
 - Learn about the [Debugger](debugger_reference.md) and try the [Debugging Tutorial](debugging_tutorial.md)
 

@@ -756,7 +756,7 @@ These modes can help identify:
 
 - [Debugger Reference](debugger_reference.md) - Complete command reference
 - [TUTORIAL.md](TUTORIAL.md) - Learn ARM2 assembly from scratch
-- [Instruction Set Reference](../INSTRUCTIONS.md) - Detailed instruction documentation
+- [Instruction Set Reference](INSTRUCTIONS.md) - Detailed instruction documentation
 - [Assembly Reference](assembly_reference.md) - Directives and syntax
 - [Examples](../examples/README.md) - 44 sample programs to practice debugging
 - [FAQ](FAQ.md) - Common questions and troubleshooting
