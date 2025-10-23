@@ -37,7 +37,6 @@ func runAssemblyWithInput(t *testing.T, code string, stdin string) (stdout strin
 		}()
 		defer func() {
 			os.Stdin = oldStdin
-			vm.ResetStdinReader() // Reset after restoring stdin
 		}()
 	}
 
@@ -59,7 +58,6 @@ func runAssemblyWithInput(t *testing.T, code string, stdin string) (stdout strin
 	}
 
 	// Create VM after setting stdin so the reader uses the redirected stdin
-	vm.ResetStdinReader()
 	machine := vm.NewVM()
 	machine.CycleLimit = 1000000
 
