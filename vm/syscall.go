@@ -93,6 +93,16 @@ const (
 )
 
 // FD table helpers
+//
+// Thread Safety: File descriptor table access is protected by fdMu. However, the returned
+// *os.File pointer is used after the lock is released. This is safe in the current design
+// because:
+// 1. The emulator executes guest programs single-threaded (one instruction at a time)
+// 2. File descriptors are never removed from the table once allocated (no close invalidation)
+// 3. Standard file descriptors (stdin/stdout/stderr) are never closed or replaced
+//
+// If multi-threaded guest program support is added in the future, file operations would need
+// additional synchronization or reference counting to prevent use-after-close scenarios.
 func (vm *VM) getFile(fd uint32) (*os.File, error) {
 	vm.fdMu.Lock()
 	defer vm.fdMu.Unlock()
@@ -677,6 +687,14 @@ func handleRead(vm *VM) error {
 		vm.CPU.IncrementPC()
 		return nil
 	}
+	// Buffer allocation: We allocate before the read operation rather than after validating
+	// the read will succeed. This is a trade-off for code clarity:
+	// - The file descriptor, size, and buffer range have been validated above
+	// - The only remaining failure mode is I/O errors during read, which are rare
+	// - Go's GC efficiently handles short-lived allocations if the read fails
+	// - The alternative (seeking to check file position, then reading) adds complexity
+	//   and may not be possible for non-seekable files (pipes, stdin, etc.)
+	// - Maximum allocation is capped at 1MB, limiting potential waste
 	data := make([]byte, length)
 	n, err := f.Read(data)
 	if err != nil && n == 0 {
@@ -758,10 +776,14 @@ func handleSeek(vm *VM) error {
 		vm.CPU.SetRegister(0, 0xFFFFFFFF)
 	} else {
 		// Security: validate file position fits in 32-bit address space and is non-negative
+		// This check correctly handles the full int64 range from Go's Seek():
+		// - Rejects negative positions (npos < 0)
+		// - Rejects positions beyond 32-bit range (npos > 0xFFFFFFFF, i.e., npos >= 0x100000000)
+		// - Accepts only positions in [0, 0xFFFFFFFF] which safely fit in ARM2's 32-bit address space
 		if npos < 0 || npos > 0xFFFFFFFF {
 			vm.CPU.SetRegister(0, 0xFFFFFFFF)
 		} else {
-			//nolint:gosec // G115: File position validated above
+			//nolint:gosec // G115: File position validated above to fit in 32-bit range
 			vm.CPU.SetRegister(0, uint32(npos))
 		}
 	}
@@ -782,10 +804,14 @@ func handleTell(vm *VM) error {
 		vm.CPU.SetRegister(0, 0xFFFFFFFF)
 	} else {
 		// Security: validate file position fits in 32-bit address space and is non-negative
+		// This check correctly handles the full int64 range from Go's Seek():
+		// - Rejects negative positions (pos < 0)
+		// - Rejects positions beyond 32-bit range (pos > 0xFFFFFFFF, i.e., pos >= 0x100000000)
+		// - Accepts only positions in [0, 0xFFFFFFFF] which safely fit in ARM2's 32-bit address space
 		if pos < 0 || pos > 0xFFFFFFFF {
 			vm.CPU.SetRegister(0, 0xFFFFFFFF)
 		} else {
-			//nolint:gosec // G115: File position validated above
+			//nolint:gosec // G115: File position validated above to fit in 32-bit range
 			vm.CPU.SetRegister(0, uint32(pos))
 		}
 	}
@@ -811,10 +837,14 @@ func handleFileSize(vm *VM) error {
 	}
 	_, _ = f.Seek(pos, 0) // restore
 	// Security: validate file size fits in 32-bit address space and is non-negative
+	// This check correctly handles the full int64 range from Go's Seek():
+	// - Rejects negative sizes (end < 0)
+	// - Rejects sizes beyond 32-bit range (end > 0xFFFFFFFF, i.e., end >= 0x100000000)
+	// - Accepts only sizes in [0, 0xFFFFFFFF] which safely fit in ARM2's 32-bit address space
 	if end < 0 || end > 0xFFFFFFFF {
 		vm.CPU.SetRegister(0, 0xFFFFFFFF)
 	} else {
-		//nolint:gosec // G115: File size validated above
+		//nolint:gosec // G115: File size validated above to fit in 32-bit range
 		vm.CPU.SetRegister(0, uint32(end))
 	}
 	vm.CPU.IncrementPC()
