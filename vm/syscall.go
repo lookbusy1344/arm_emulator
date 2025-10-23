@@ -11,6 +11,13 @@ import (
 	"time"
 )
 
+// String length limits for syscalls
+const (
+	maxStringLength   = 1024 * 1024 // 1MB for general strings
+	maxFilenameLength = 4096        // 4KB for filenames (typical filesystem limit)
+	maxAssertMsgLen   = 1024        // 1KB for assertion messages (kept smaller for quick debugging)
+)
+
 // ResetStdinReader resets the VM's stdin reader to read from os.Stdin
 // This is useful for testing when os.Stdin has been redirected
 func (vm *VM) ResetStdinReader() {
@@ -264,8 +271,8 @@ func handleWriteString(vm *VM) error {
 		addr++
 
 		// Prevent infinite loops
-		if len(str) > 1024*1024 {
-			return fmt.Errorf("string too long (>1MB)")
+		if len(str) > maxStringLength {
+			return fmt.Errorf("string too long (>%d bytes)", maxStringLength)
 		}
 	}
 
@@ -474,8 +481,8 @@ func handleDebugPrint(vm *VM) error {
 		str = append(str, b)
 		addr++
 
-		if len(str) > 1024*1024 {
-			return fmt.Errorf("debug string too long (>1MB)")
+		if len(str) > maxStringLength {
+			return fmt.Errorf("debug string too long (>%d bytes)", maxStringLength)
 		}
 	}
 
@@ -574,7 +581,7 @@ func handleOpen(vm *VM) error {
 		}
 		filename = append(filename, b)
 		addr++
-		if len(filename) > 1024 {
+		if len(filename) > maxFilenameLength {
 			vm.CPU.SetRegister(0, 0xFFFFFFFF)
 			vm.CPU.IncrementPC()
 			return nil
@@ -911,7 +918,7 @@ func handleAssert(vm *VM) error {
 			}
 			msg = append(msg, b)
 			addr++
-			if len(msg) > 1024 {
+			if len(msg) > maxAssertMsgLen {
 				break
 			}
 		}
