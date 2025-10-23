@@ -46,6 +46,10 @@ func ExecuteLoadStoreMultiple(vm *VM, inst *Instruction) error {
 		if err != nil {
 			return fmt.Errorf("register count too large: %w", err)
 		}
+		// Security: check for underflow before subtraction
+		if offset > baseAddr {
+			return fmt.Errorf("address underflow: baseAddr=0x%08X, offset=0x%08X", baseAddr, offset)
+		}
 		if preIndex == 1 {
 			// Pre-decrement (DB - Decrement Before)
 			addr = baseAddr - offset
@@ -64,6 +68,10 @@ func ExecuteLoadStoreMultiple(vm *VM, inst *Instruction) error {
 	if increment == 1 {
 		newBase = baseAddr + regOffset
 	} else {
+		// Security: check for underflow in writeback calculation
+		if regOffset > baseAddr {
+			return fmt.Errorf("address underflow in writeback: baseAddr=0x%08X, offset=0x%08X", baseAddr, regOffset)
+		}
 		newBase = baseAddr - regOffset
 	}
 

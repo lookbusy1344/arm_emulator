@@ -11,13 +11,40 @@ import (
 	"time"
 )
 
-// Global stdin reader for consistent input handling across syscalls
-var stdinReader = bufio.NewReader(os.Stdin)
+// Error Handling Philosophy:
+//
+// This module uses two different error handling strategies depending on the severity:
+//
+// 1. VM Integrity Errors (return Go errors, halt execution):
+//    - Address wraparound/overflow when reading strings (e.g., handleWriteString, handleDebugPrint, handleAssert)
+//    - These indicate potential memory corruption or security vulnerabilities
+//    - These are VM-level failures that should stop execution immediately
+//    - Returns: fmt.Errorf("...") which halts the VM
+//
+// 2. Expected Operation Failures (return error codes via R0, continue execution):
+//    - File operation errors (file not found, read/write failures, etc.)
+//    - Size limit violations (exceeding maxReadSize, maxWriteSize)
+//    - Invalid file descriptors
+//    - These are normal runtime errors that programs should handle
+//    - Returns: 0xFFFFFFFF in R0 register, execution continues
+//
+// This distinction allows guest programs to handle expected errors (file I/O)
+// while protecting the VM from integrity violations (memory corruption).
 
-// ResetStdinReader resets the global stdin reader to read from os.Stdin
+// String length limits and size limits for syscalls
+const (
+	maxStringLength   = 1024 * 1024 // 1MB for general strings
+	maxFilenameLength = 4096        // 4KB for filenames (typical filesystem limit)
+	maxAssertMsgLen   = 1024        // 1KB for assertion messages (kept smaller for quick debugging)
+	maxReadSize       = 1024 * 1024 // 1MB maximum limit for file reads (security limit)
+	maxWriteSize      = 1024 * 1024 // 1MB maximum limit for file writes (security limit)
+	maxFDs            = 1024        // Maximum number of file descriptors (security limit)
+)
+
+// ResetStdinReader resets the VM's stdin reader to read from os.Stdin
 // This is useful for testing when os.Stdin has been redirected
-func ResetStdinReader() {
-	stdinReader = bufio.NewReader(os.Stdin)
+func (vm *VM) ResetStdinReader() {
+	vm.stdinReader = bufio.NewReader(os.Stdin)
 }
 
 // SWI (Software Interrupt) syscall numbers
@@ -66,6 +93,16 @@ const (
 )
 
 // FD table helpers
+//
+// Thread Safety: File descriptor table access is protected by fdMu. However, the returned
+// *os.File pointer is used after the lock is released. This is safe in the current design
+// because:
+// 1. The emulator executes guest programs single-threaded (one instruction at a time)
+// 2. File descriptors are never removed from the table once allocated (no close invalidation)
+// 3. Standard file descriptors (stdin/stdout/stderr) are never closed or replaced
+//
+// If multi-threaded guest program support is added in the future, file operations would need
+// additional synchronization or reference counting to prevent use-after-close scenarios.
 func (vm *VM) getFile(fd uint32) (*os.File, error) {
 	vm.fdMu.Lock()
 	defer vm.fdMu.Unlock()
@@ -94,6 +131,7 @@ func (vm *VM) getFile(fd uint32) (*os.File, error) {
 func (vm *VM) allocFD(f *os.File) uint32 {
 	vm.fdMu.Lock()
 	defer vm.fdMu.Unlock()
+
 	for i := 3; i < len(vm.files); i++ {
 		if vm.files[i] == nil {
 			vm.files[i] = f
@@ -101,6 +139,12 @@ func (vm *VM) allocFD(f *os.File) uint32 {
 			return uint32(i)
 		}
 	}
+
+	// Check limit before growing the table
+	if len(vm.files) >= maxFDs {
+		return 0xFFFFFFFF // Return error if limit reached
+	}
+
 	vm.files = append(vm.files, f)
 	//nolint:gosec // G115: len(vm.files)-1 is bounded by reasonable file count
 	return uint32(len(vm.files) - 1)
@@ -250,11 +294,17 @@ func handleWriteString(vm *VM) error {
 			break
 		}
 		str = append(str, b)
+
+		// Security: check for address wraparound before incrementing
+		// If addr is at 0xFFFFFFFF, incrementing would wrap to 0
+		if addr == 0xFFFFFFFF {
+			return fmt.Errorf("address wraparound while reading string")
+		}
 		addr++
 
 		// Prevent infinite loops
-		if len(str) > 1024*1024 {
-			return fmt.Errorf("string too long (>1MB)")
+		if len(str) > maxStringLength {
+			return fmt.Errorf("string too long (>%d bytes)", maxStringLength)
 		}
 	}
 
@@ -302,7 +352,7 @@ func handleWriteInt(vm *VM) error {
 func handleReadChar(vm *VM) error {
 	// Skip any leading whitespace (newlines, spaces, tabs)
 	for {
-		char, err := stdinReader.ReadByte()
+		char, err := vm.stdinReader.ReadByte()
 		if err != nil {
 			vm.CPU.SetRegister(0, 0xFFFFFFFF) // Return -1 on error
 			vm.CPU.IncrementPC()
@@ -326,7 +376,7 @@ func handleReadString(vm *VM) error {
 	}
 
 	// Read string from stdin (up to newline)
-	input, err := stdinReader.ReadString('\n')
+	input, err := vm.stdinReader.ReadString('\n')
 	if err != nil {
 		vm.CPU.SetRegister(0, 0xFFFFFFFF) // Return -1 on error
 		vm.CPU.IncrementPC()
@@ -367,7 +417,7 @@ func handleReadString(vm *VM) error {
 func handleReadInt(vm *VM) error {
 	// Read lines until we get a non-empty one or hit EOF
 	for {
-		line, err := stdinReader.ReadString('\n')
+		line, err := vm.stdinReader.ReadString('\n')
 		if err != nil {
 			vm.CPU.SetRegister(0, 0)
 			vm.CPU.IncrementPC()
@@ -457,10 +507,16 @@ func handleDebugPrint(vm *VM) error {
 			break
 		}
 		str = append(str, b)
+
+		// Security: check for address wraparound before incrementing
+		// If addr is at 0xFFFFFFFF, incrementing would wrap to 0
+		if addr == 0xFFFFFFFF {
+			return fmt.Errorf("address wraparound while reading debug string")
+		}
 		addr++
 
-		if len(str) > 1024*1024 {
-			return fmt.Errorf("debug string too long (>1MB)")
+		if len(str) > maxStringLength {
+			return fmt.Errorf("debug string too long (>%d bytes)", maxStringLength)
 		}
 	}
 
@@ -539,6 +595,8 @@ func handleOpen(vm *VM) error {
 	mode := vm.CPU.GetRegister(1) // 0=read, 1=write, 2=append
 
 	// Read filename from memory
+	// Note: Wraparound detection returns 0xFFFFFFFF (error code) rather than halting VM
+	// This follows the file operation error handling pattern (see error handling philosophy at top of file)
 	var filename []byte
 	addr := filenameAddr
 	for {
@@ -552,8 +610,17 @@ func handleOpen(vm *VM) error {
 			break
 		}
 		filename = append(filename, b)
+
+		// Security: check for address wraparound before incrementing
+		// If addr is at 0xFFFFFFFF, incrementing would wrap to 0
+		if addr == 0xFFFFFFFF {
+			vm.CPU.SetRegister(0, 0xFFFFFFFF)
+			vm.CPU.IncrementPC()
+			return nil
+		}
 		addr++
-		if len(filename) > 1024 {
+
+		if len(filename) > maxFilenameLength {
 			vm.CPU.SetRegister(0, 0xFFFFFFFF)
 			vm.CPU.IncrementPC()
 			return nil
@@ -606,6 +673,28 @@ func handleRead(vm *VM) error {
 		vm.CPU.IncrementPC()
 		return nil
 	}
+	// Security: limit read size to prevent memory exhaustion attacks
+	// Maximum allowed: 1MB
+	if length > maxReadSize {
+		vm.CPU.SetRegister(0, 0xFFFFFFFF)
+		vm.CPU.IncrementPC()
+		return nil
+	}
+	// Security: validate buffer address range to prevent overflow
+	// Check that bufferAddr + length doesn't overflow the 32-bit address space
+	if bufferAddr > 0xFFFFFFFF-length {
+		vm.CPU.SetRegister(0, 0xFFFFFFFF)
+		vm.CPU.IncrementPC()
+		return nil
+	}
+	// Buffer allocation: We allocate before the read operation rather than after validating
+	// the read will succeed. This is a trade-off for code clarity:
+	// - The file descriptor, size, and buffer range have been validated above
+	// - The only remaining failure mode is I/O errors during read, which are rare
+	// - Go's GC efficiently handles short-lived allocations if the read fails
+	// - The alternative (seeking to check file position, then reading) adds complexity
+	//   and may not be possible for non-seekable files (pipes, stdin, etc.)
+	// - Maximum allocation is capped at 1MB, limiting potential waste
 	data := make([]byte, length)
 	n, err := f.Read(data)
 	if err != nil && n == 0 {
@@ -633,6 +722,20 @@ func handleWrite(vm *VM) error {
 	length := vm.CPU.GetRegister(2)
 	f, err := vm.getFile(fd)
 	if err != nil {
+		vm.CPU.SetRegister(0, 0xFFFFFFFF)
+		vm.CPU.IncrementPC()
+		return nil
+	}
+	// Security: limit write size to prevent memory exhaustion attacks
+	// Maximum allowed: 1MB
+	if length > maxWriteSize {
+		vm.CPU.SetRegister(0, 0xFFFFFFFF)
+		vm.CPU.IncrementPC()
+		return nil
+	}
+	// Security: validate buffer address range to prevent overflow
+	// Check that bufferAddr + length doesn't overflow the 32-bit address space
+	if bufferAddr > 0xFFFFFFFF-length {
 		vm.CPU.SetRegister(0, 0xFFFFFFFF)
 		vm.CPU.IncrementPC()
 		return nil
@@ -672,8 +775,17 @@ func handleSeek(vm *VM) error {
 	if err != nil {
 		vm.CPU.SetRegister(0, 0xFFFFFFFF)
 	} else {
-		//nolint:gosec // G115: File position conversion, will return error if overflow
-		vm.CPU.SetRegister(0, uint32(npos))
+		// Security: validate file position fits in 32-bit address space and is non-negative
+		// This check correctly handles the full int64 range from Go's Seek():
+		// - Rejects negative positions (npos < 0)
+		// - Rejects positions beyond 32-bit range (npos > 0xFFFFFFFF, i.e., npos >= 0x100000000)
+		// - Accepts only positions in [0, 0xFFFFFFFF] which safely fit in ARM2's 32-bit address space
+		if npos < 0 || npos > 0xFFFFFFFF {
+			vm.CPU.SetRegister(0, 0xFFFFFFFF)
+		} else {
+			//nolint:gosec // G115: File position validated above to fit in 32-bit range
+			vm.CPU.SetRegister(0, uint32(npos))
+		}
 	}
 	vm.CPU.IncrementPC()
 	return nil
@@ -691,8 +803,17 @@ func handleTell(vm *VM) error {
 	if err != nil {
 		vm.CPU.SetRegister(0, 0xFFFFFFFF)
 	} else {
-		//nolint:gosec // G115: File position conversion, will return error if overflow
-		vm.CPU.SetRegister(0, uint32(pos))
+		// Security: validate file position fits in 32-bit address space and is non-negative
+		// This check correctly handles the full int64 range from Go's Seek():
+		// - Rejects negative positions (pos < 0)
+		// - Rejects positions beyond 32-bit range (pos > 0xFFFFFFFF, i.e., pos >= 0x100000000)
+		// - Accepts only positions in [0, 0xFFFFFFFF] which safely fit in ARM2's 32-bit address space
+		if pos < 0 || pos > 0xFFFFFFFF {
+			vm.CPU.SetRegister(0, 0xFFFFFFFF)
+		} else {
+			//nolint:gosec // G115: File position validated above to fit in 32-bit range
+			vm.CPU.SetRegister(0, uint32(pos))
+		}
 	}
 	vm.CPU.IncrementPC()
 	return nil
@@ -715,8 +836,17 @@ func handleFileSize(vm *VM) error {
 		return nil
 	}
 	_, _ = f.Seek(pos, 0) // restore
-	//nolint:gosec // G115: File size conversion, will return error if overflow
-	vm.CPU.SetRegister(0, uint32(end))
+	// Security: validate file size fits in 32-bit address space and is non-negative
+	// This check correctly handles the full int64 range from Go's Seek():
+	// - Rejects negative sizes (end < 0)
+	// - Rejects sizes beyond 32-bit range (end > 0xFFFFFFFF, i.e., end >= 0x100000000)
+	// - Accepts only sizes in [0, 0xFFFFFFFF] which safely fit in ARM2's 32-bit address space
+	if end < 0 || end > 0xFFFFFFFF {
+		vm.CPU.SetRegister(0, 0xFFFFFFFF)
+	} else {
+		//nolint:gosec // G115: File size validated above to fit in 32-bit range
+		vm.CPU.SetRegister(0, uint32(end))
+	}
 	vm.CPU.IncrementPC()
 	return nil
 }
@@ -856,8 +986,15 @@ func handleAssert(vm *VM) error {
 				break
 			}
 			msg = append(msg, b)
+
+			// Security: check for address wraparound before incrementing
+			// If addr is at 0xFFFFFFFF, incrementing would wrap to 0
+			if addr == 0xFFFFFFFF {
+				return fmt.Errorf("address wraparound while reading assertion message")
+			}
 			addr++
-			if len(msg) > 1024 {
+
+			if len(msg) > maxAssertMsgLen {
 				break
 			}
 		}

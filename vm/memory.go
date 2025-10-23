@@ -82,9 +82,24 @@ func (m *Memory) AddSegment(name string, start, size uint32, permissions MemoryP
 // findSegment finds the memory segment containing the given address
 func (m *Memory) findSegment(address uint32) (*MemorySegment, uint32, error) {
 	for _, seg := range m.Segments {
-		if address >= seg.Start && address < seg.Start+seg.Size {
+		// Check if address is in segment range using explicit bounds checking
+		// Step 1: Verify address >= seg.Start (protects against wraparound attacks)
+		// Step 2: Calculate offset and verify offset < seg.Size
+		//
+		// This two-step approach correctly handles all edge cases:
+		// - If address < seg.Start: First check fails, never calculates offset
+		// - If address >= seg.Start but beyond segment: offset >= seg.Size, second check fails
+		// - Segments near 0xFFFFFFFF: Addresses that wrap to low memory fail the first check
+		//
+		// Example: Segment at 0xFFFF0000, size 0x00020000
+		//   - Access to 0xFFFF0000-0xFFFFFFFF: Both checks pass (valid)
+		//   - Access to 0x00000100: First check fails (0x00000100 < 0xFFFF0000)
+		//   - No wraparound vulnerability exists in this implementation
+		if address >= seg.Start {
 			offset := address - seg.Start
-			return seg, offset, nil
+			if offset < seg.Size {
+				return seg, offset, nil
+			}
 		}
 	}
 	return nil, 0, fmt.Errorf("memory access violation: address 0x%08X is not mapped", address)

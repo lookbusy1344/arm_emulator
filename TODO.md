@@ -83,6 +83,30 @@ When typing `help` (or pressing F1) in the TUI debugger, the help text appears a
 
 ## Low Priority Tasks (Optional)
 
+### TestAssert_MessageWraparound Test Investigation
+**Status:** SKIPPED - Low Priority
+**Priority:** LOW
+**Effort:** 2-4 hours
+
+**Current Behavior:**
+The `TestAssert_MessageWraparound` test in `tests/unit/vm/security_fixes_test.go` is currently skipped. The ASSERT syscall does have wraparound protection and stops reading at address boundaries (reads 15 chars instead of wrapping), which is safe behavior. However, the test expects an explicit "wraparound" error message.
+
+**Issue:**
+When ASSERT reads a message starting at 0xFFFFFFF0 with no null terminator:
+- Expects: Error containing "wraparound"
+- Actual: Reads 15 characters (ABCDEFGHIJKLMNO) and returns "ASSERTION FAILED" error
+- The 16th character at 0xFFFFFFFF is not being read
+
+**Investigation Needed:**
+- Determine why reading from address 0xFFFFFFFF fails or returns 0
+- Verify memory segment boundary handling at maximum address
+- Consider if current behavior (stopping at 15 chars) is acceptable
+- Update test expectations or fix ASSERT handler accordingly
+
+**Files:**
+- `tests/unit/vm/security_fixes_test.go` (line 223)
+- `vm/syscall.go` `handleAssert()` function (line 940)
+
 ### Later ARM Architecture Extensions (Optional)
 
 These are **not** part of ARM2 but could be added for broader compatibility:
