@@ -6,7 +6,7 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/lookbusy1344/arm_emulator/vm"
+	"github.com/lookbusy1344/arm-emulator/vm"
 )
 
 // Test 1: 1MB read size limit (handleRead)
@@ -261,8 +261,7 @@ func TestStdinReader_PerVMInstance(t *testing.T) {
 			// Create a VM instance
 			machine := vm.NewVM()
 
-			// Set up a test stdin with some data
-			testInput := "test input"
+			// Reset stdin reader for testing
 			machine.ResetStdinReader()
 
 			// Just verify that each VM has its own stdin reader
@@ -422,12 +421,12 @@ func TestWriteSyscall_BufferAddressOverflow(t *testing.T) {
 	}
 }
 
-// Test 17: Verify 16MB absolute maximum is enforced
-func TestReadSyscall_AbsoluteMaximum(t *testing.T) {
+// Test 17: Verify 1MB maximum is enforced (boundary test at just over limit)
+func TestReadSyscall_MaximumSize(t *testing.T) {
 	machine := vm.NewVM()
 	machine.CPU.SetRegister(0, 0) // fd 0 (stdin)
 	machine.CPU.SetRegister(1, 0x00010000) // buffer address
-	machine.CPU.SetRegister(2, 17*1024*1024) // 17MB - exceeds absolute maximum
+	machine.CPU.SetRegister(2, 1*1024*1024+1) // 1MB + 1 byte - exceeds maximum
 
 	inst := &vm.Instruction{
 		Opcode: 0xEF000012, // SWI 0x12 (READ)
@@ -439,9 +438,9 @@ func TestReadSyscall_AbsoluteMaximum(t *testing.T) {
 		t.Fatalf("ExecuteSWI failed: %v", err)
 	}
 
-	// Should return error (0xFFFFFFFF)
+	// Should return error (0xFFFFFFFF) for exceeding 1MB limit
 	result := machine.CPU.GetRegister(0)
 	if result != 0xFFFFFFFF {
-		t.Errorf("Expected error return (0xFFFFFFFF), got 0x%08X", result)
+		t.Errorf("Expected error return (0xFFFFFFFF) for exceeding 1MB limit, got 0x%08X", result)
 	}
 }

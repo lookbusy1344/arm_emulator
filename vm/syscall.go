@@ -11,15 +11,34 @@ import (
 	"time"
 )
 
+// Error Handling Philosophy:
+//
+// This module uses two different error handling strategies depending on the severity:
+//
+// 1. VM Integrity Errors (return Go errors, halt execution):
+//    - Address wraparound/overflow when reading strings (e.g., handleWriteString, handleDebugPrint, handleAssert)
+//    - These indicate potential memory corruption or security vulnerabilities
+//    - These are VM-level failures that should stop execution immediately
+//    - Returns: fmt.Errorf("...") which halts the VM
+//
+// 2. Expected Operation Failures (return error codes via R0, continue execution):
+//    - File operation errors (file not found, read/write failures, etc.)
+//    - Size limit violations (exceeding maxReadSize, maxWriteSize)
+//    - Invalid file descriptors
+//    - These are normal runtime errors that programs should handle
+//    - Returns: 0xFFFFFFFF in R0 register, execution continues
+//
+// This distinction allows guest programs to handle expected errors (file I/O)
+// while protecting the VM from integrity violations (memory corruption).
+
 // String length limits and size limits for syscalls
 const (
-	maxStringLength   = 1024 * 1024     // 1MB for general strings
-	maxFilenameLength = 4096            // 4KB for filenames (typical filesystem limit)
-	maxAssertMsgLen   = 1024            // 1KB for assertion messages (kept smaller for quick debugging)
-	maxReadSize       = 1024 * 1024     // 1MB default limit for file reads (security limit)
-	maxWriteSize      = 1024 * 1024     // 1MB default limit for file writes (security limit)
-	maxAbsoluteSize   = 16 * 1024 * 1024 // 16MB absolute maximum for read/write operations
-	maxFDs            = 1024            // Maximum number of file descriptors (security limit)
+	maxStringLength   = 1024 * 1024 // 1MB for general strings
+	maxFilenameLength = 4096        // 4KB for filenames (typical filesystem limit)
+	maxAssertMsgLen   = 1024        // 1KB for assertion messages (kept smaller for quick debugging)
+	maxReadSize       = 1024 * 1024 // 1MB maximum limit for file reads (security limit)
+	maxWriteSize      = 1024 * 1024 // 1MB maximum limit for file writes (security limit)
+	maxFDs            = 1024        // Maximum number of file descriptors (security limit)
 )
 
 // ResetStdinReader resets the VM's stdin reader to read from os.Stdin
@@ -640,13 +659,7 @@ func handleRead(vm *VM) error {
 		return nil
 	}
 	// Security: limit read size to prevent memory exhaustion attacks
-	// Use 1MB default limit, but allow up to 16MB absolute maximum
-	if length > maxAbsoluteSize {
-		vm.CPU.SetRegister(0, 0xFFFFFFFF)
-		vm.CPU.IncrementPC()
-		return nil
-	}
-	// Apply default 1MB limit for safety
+	// Maximum allowed: 1MB
 	if length > maxReadSize {
 		vm.CPU.SetRegister(0, 0xFFFFFFFF)
 		vm.CPU.IncrementPC()
@@ -691,13 +704,7 @@ func handleWrite(vm *VM) error {
 		return nil
 	}
 	// Security: limit write size to prevent memory exhaustion attacks
-	// Use 1MB default limit, but allow up to 16MB absolute maximum
-	if length > maxAbsoluteSize {
-		vm.CPU.SetRegister(0, 0xFFFFFFFF)
-		vm.CPU.IncrementPC()
-		return nil
-	}
-	// Apply default 1MB limit for safety
+	// Maximum allowed: 1MB
 	if length > maxWriteSize {
 		vm.CPU.SetRegister(0, 0xFFFFFFFF)
 		vm.CPU.IncrementPC()
