@@ -13,12 +13,13 @@ import (
 
 // String length limits and size limits for syscalls
 const (
-	maxStringLength   = 1024 * 1024      // 1MB for general strings
-	maxFilenameLength = 4096             // 4KB for filenames (typical filesystem limit)
-	maxAssertMsgLen   = 1024             // 1KB for assertion messages (kept smaller for quick debugging)
-	maxReadSize       = 16 * 1024 * 1024 // 16MB for file reads (security limit)
-	maxWriteSize      = 16 * 1024 * 1024 // 16MB for file writes (security limit)
-	maxFDs            = 1024             // Maximum number of file descriptors (security limit)
+	maxStringLength   = 1024 * 1024     // 1MB for general strings
+	maxFilenameLength = 4096            // 4KB for filenames (typical filesystem limit)
+	maxAssertMsgLen   = 1024            // 1KB for assertion messages (kept smaller for quick debugging)
+	maxReadSize       = 1024 * 1024     // 1MB default limit for file reads (security limit)
+	maxWriteSize      = 1024 * 1024     // 1MB default limit for file writes (security limit)
+	maxAbsoluteSize   = 16 * 1024 * 1024 // 16MB absolute maximum for read/write operations
+	maxFDs            = 1024            // Maximum number of file descriptors (security limit)
 )
 
 // ResetStdinReader resets the VM's stdin reader to read from os.Stdin
@@ -639,7 +640,21 @@ func handleRead(vm *VM) error {
 		return nil
 	}
 	// Security: limit read size to prevent memory exhaustion attacks
+	// Use 1MB default limit, but allow up to 16MB absolute maximum
+	if length > maxAbsoluteSize {
+		vm.CPU.SetRegister(0, 0xFFFFFFFF)
+		vm.CPU.IncrementPC()
+		return nil
+	}
+	// Apply default 1MB limit for safety
 	if length > maxReadSize {
+		vm.CPU.SetRegister(0, 0xFFFFFFFF)
+		vm.CPU.IncrementPC()
+		return nil
+	}
+	// Security: validate buffer address range to prevent overflow
+	// Check that bufferAddr + length doesn't overflow the 32-bit address space
+	if bufferAddr > 0xFFFFFFFF-length {
 		vm.CPU.SetRegister(0, 0xFFFFFFFF)
 		vm.CPU.IncrementPC()
 		return nil
@@ -676,7 +691,21 @@ func handleWrite(vm *VM) error {
 		return nil
 	}
 	// Security: limit write size to prevent memory exhaustion attacks
+	// Use 1MB default limit, but allow up to 16MB absolute maximum
+	if length > maxAbsoluteSize {
+		vm.CPU.SetRegister(0, 0xFFFFFFFF)
+		vm.CPU.IncrementPC()
+		return nil
+	}
+	// Apply default 1MB limit for safety
 	if length > maxWriteSize {
+		vm.CPU.SetRegister(0, 0xFFFFFFFF)
+		vm.CPU.IncrementPC()
+		return nil
+	}
+	// Security: validate buffer address range to prevent overflow
+	// Check that bufferAddr + length doesn't overflow the 32-bit address space
+	if bufferAddr > 0xFFFFFFFF-length {
 		vm.CPU.SetRegister(0, 0xFFFFFFFF)
 		vm.CPU.IncrementPC()
 		return nil

@@ -9,12 +9,12 @@ import (
 	"github.com/lookbusy1344/arm_emulator/vm"
 )
 
-// Test 1: 16MB read size limit (handleRead)
-func TestReadSyscall_16MBLimit(t *testing.T) {
+// Test 1: 1MB read size limit (handleRead)
+func TestReadSyscall_1MBLimit(t *testing.T) {
 	machine := vm.NewVM()
 	machine.CPU.SetRegister(0, 0) // fd 0 (stdin)
 	machine.CPU.SetRegister(1, 0x00010000) // buffer address
-	machine.CPU.SetRegister(2, 17*1024*1024) // 17MB - exceeds limit
+	machine.CPU.SetRegister(2, 2*1024*1024) // 2MB - exceeds 1MB default limit
 
 	inst := &vm.Instruction{
 		Opcode: 0xEF000012, // SWI 0x12 (READ)
@@ -33,12 +33,12 @@ func TestReadSyscall_16MBLimit(t *testing.T) {
 	}
 }
 
-// Test 2: 16MB write size limit (handleWrite)
-func TestWriteSyscall_16MBLimit(t *testing.T) {
+// Test 2: 1MB write size limit (handleWrite)
+func TestWriteSyscall_1MBLimit(t *testing.T) {
 	machine := vm.NewVM()
 	machine.CPU.SetRegister(0, 1) // fd 1 (stdout)
 	machine.CPU.SetRegister(1, 0x00010000) // buffer address
-	machine.CPU.SetRegister(2, 17*1024*1024) // 17MB - exceeds limit
+	machine.CPU.SetRegister(2, 2*1024*1024) // 2MB - exceeds 1MB default limit
 
 	inst := &vm.Instruction{
 		Opcode: 0xEF000013, // SWI 0x13 (WRITE)
@@ -320,12 +320,12 @@ func TestStringLengthLimits_Standardization(t *testing.T) {
 	}
 }
 
-// Test 13: Verify read size limit at exactly 16MB (should succeed)
+// Test 13: Verify read size limit at exactly 1MB (should succeed)
 func TestReadSyscall_ExactlyAtLimit(t *testing.T) {
 	machine := vm.NewVM()
 	machine.CPU.SetRegister(0, 0) // fd 0 (stdin)
 	machine.CPU.SetRegister(1, 0x00100000) // buffer address (higher to avoid issues)
-	machine.CPU.SetRegister(2, 16*1024*1024) // Exactly 16MB - should be allowed
+	machine.CPU.SetRegister(2, 1024*1024) // Exactly 1MB - should be allowed
 
 	inst := &vm.Instruction{
 		Opcode: 0xEF000012, // SWI 0x12 (READ)
@@ -337,7 +337,7 @@ func TestReadSyscall_ExactlyAtLimit(t *testing.T) {
 		t.Fatalf("ExecuteSWI failed: %v", err)
 	}
 
-	// At exactly 16MB, it should succeed (though read will fail due to stdin)
+	// At exactly 1MB, it should succeed (though read will fail due to stdin)
 	// We're just testing the size check, not actual reading
 	result := machine.CPU.GetRegister(0)
 	// Result will be 0xFFFFFFFF due to stdin read failure, but not due to size limit
@@ -345,18 +345,18 @@ func TestReadSyscall_ExactlyAtLimit(t *testing.T) {
 	t.Logf("Read result: 0x%08X (expected error from stdin, not size check)", result)
 }
 
-// Test 14: Verify write size limit at exactly 16MB (should succeed)
+// Test 14: Verify write size limit at exactly 1MB (should succeed)
 func TestWriteSyscall_ExactlyAtLimit(t *testing.T) {
 	machine := vm.NewVM()
 	var output bytes.Buffer
 	machine.OutputWriter = &output
 
-	// Allocate 16MB of memory for the buffer
+	// Allocate 1MB of memory for the buffer
 	bufferAddr := uint32(0x01000000)
 
 	machine.CPU.SetRegister(0, 1) // fd 1 (stdout)
 	machine.CPU.SetRegister(1, bufferAddr) // buffer address
-	machine.CPU.SetRegister(2, 16*1024*1024) // Exactly 16MB
+	machine.CPU.SetRegister(2, 1024*1024) // Exactly 1MB
 
 	inst := &vm.Instruction{
 		Opcode: 0xEF000013, // SWI 0x13 (WRITE)
@@ -368,8 +368,80 @@ func TestWriteSyscall_ExactlyAtLimit(t *testing.T) {
 		t.Fatalf("ExecuteSWI failed: %v", err)
 	}
 
-	// At exactly 16MB, it should attempt to write (though it will fail reading the buffer)
+	// At exactly 1MB, it should attempt to write (though it will fail reading the buffer)
 	// We're testing that the size check allows it through
 	result := machine.CPU.GetRegister(0)
 	t.Logf("Write result: 0x%08X", result)
+}
+
+// Test 15: Buffer address overflow check in handleRead
+func TestReadSyscall_BufferAddressOverflow(t *testing.T) {
+	machine := vm.NewVM()
+	machine.CPU.SetRegister(0, 0) // fd 0 (stdin)
+	machine.CPU.SetRegister(1, 0xFFFFFF00) // buffer address near end of address space
+	machine.CPU.SetRegister(2, 0x200) // 512 bytes - would overflow
+
+	inst := &vm.Instruction{
+		Opcode: 0xEF000012, // SWI 0x12 (READ)
+		Type:   vm.InstSWI,
+	}
+
+	err := vm.ExecuteSWI(machine, inst)
+	if err != nil {
+		t.Fatalf("ExecuteSWI failed: %v", err)
+	}
+
+	// Should return error (0xFFFFFFFF) due to address overflow
+	result := machine.CPU.GetRegister(0)
+	if result != 0xFFFFFFFF {
+		t.Errorf("Expected error return (0xFFFFFFFF) for address overflow, got 0x%08X", result)
+	}
+}
+
+// Test 16: Buffer address overflow check in handleWrite
+func TestWriteSyscall_BufferAddressOverflow(t *testing.T) {
+	machine := vm.NewVM()
+	machine.CPU.SetRegister(0, 1) // fd 1 (stdout)
+	machine.CPU.SetRegister(1, 0xFFFFFF00) // buffer address near end of address space
+	machine.CPU.SetRegister(2, 0x200) // 512 bytes - would overflow
+
+	inst := &vm.Instruction{
+		Opcode: 0xEF000013, // SWI 0x13 (WRITE)
+		Type:   vm.InstSWI,
+	}
+
+	err := vm.ExecuteSWI(machine, inst)
+	if err != nil {
+		t.Fatalf("ExecuteSWI failed: %v", err)
+	}
+
+	// Should return error (0xFFFFFFFF) due to address overflow
+	result := machine.CPU.GetRegister(0)
+	if result != 0xFFFFFFFF {
+		t.Errorf("Expected error return (0xFFFFFFFF) for address overflow, got 0x%08X", result)
+	}
+}
+
+// Test 17: Verify 16MB absolute maximum is enforced
+func TestReadSyscall_AbsoluteMaximum(t *testing.T) {
+	machine := vm.NewVM()
+	machine.CPU.SetRegister(0, 0) // fd 0 (stdin)
+	machine.CPU.SetRegister(1, 0x00010000) // buffer address
+	machine.CPU.SetRegister(2, 17*1024*1024) // 17MB - exceeds absolute maximum
+
+	inst := &vm.Instruction{
+		Opcode: 0xEF000012, // SWI 0x12 (READ)
+		Type:   vm.InstSWI,
+	}
+
+	err := vm.ExecuteSWI(machine, inst)
+	if err != nil {
+		t.Fatalf("ExecuteSWI failed: %v", err)
+	}
+
+	// Should return error (0xFFFFFFFF)
+	result := machine.CPU.GetRegister(0)
+	if result != 0xFFFFFFFF {
+		t.Errorf("Expected error return (0xFFFFFFFF), got 0x%08X", result)
+	}
 }
