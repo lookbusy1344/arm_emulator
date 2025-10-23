@@ -606,6 +606,13 @@ func handleRead(vm *VM) error {
 		vm.CPU.IncrementPC()
 		return nil
 	}
+	// Security: limit read size to prevent memory exhaustion attacks
+	const maxReadSize = 16 * 1024 * 1024 // 16MB
+	if length > maxReadSize {
+		vm.CPU.SetRegister(0, 0xFFFFFFFF)
+		vm.CPU.IncrementPC()
+		return nil
+	}
 	data := make([]byte, length)
 	n, err := f.Read(data)
 	if err != nil && n == 0 {
