@@ -644,6 +644,13 @@ func handleWrite(vm *VM) error {
 		vm.CPU.IncrementPC()
 		return nil
 	}
+	// Security: limit write size to prevent memory exhaustion attacks
+	const maxWriteSize = 16 * 1024 * 1024 // 16MB
+	if length > maxWriteSize {
+		vm.CPU.SetRegister(0, 0xFFFFFFFF)
+		vm.CPU.IncrementPC()
+		return nil
+	}
 	data := make([]byte, length)
 	for i := uint32(0); i < length; i++ {
 		b, err2 := vm.Memory.ReadByteAt(bufferAddr + i)
