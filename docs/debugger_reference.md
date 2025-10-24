@@ -633,7 +633,9 @@ Use `tbreak` for one-time breakpoints:
 
 - [Debugging Tutorial](debugging_tutorial.md) - Step-by-step hands-on debugging guide
 - [TUTORIAL.md](TUTORIAL.md) - Learn ARM2 assembly from scratch
-- [Instruction Set Reference](INSTRUCTIONS.md) - Detailed instruction documentation
-- [Assembly Reference](assembly_reference.md) - Directives and syntax
-- [Examples](../examples/README.md) - 44 sample programs to practice debugging
+- [Instruction Set Reference](INSTRUCTIONS.md) - ARM2 CPU instructions and syscalls
+- [Assembler Directives](ASSEMBLER.md) - .text, .data, .word, .ltorg, etc.
+- [Programming Reference](REFERENCE.md) - Condition codes, addressing modes, shifts
+- [Assembly Reference](assembly_reference.md) - Comprehensive assembly syntax guide
+- [Examples](../examples/README.md) - 49 sample programs to practice debugging
 - [FAQ](FAQ.md) - Troubleshooting common issues

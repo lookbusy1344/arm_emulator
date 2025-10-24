@@ -699,16 +699,18 @@ go build -o arm-emulator
 
 **A:**
 1. Start with [TUTORIAL.md](TUTORIAL.md)
-2. Study example programs in `examples/` (44 programs covering all concepts)
-3. Reference [INSTRUCTIONS.md](INSTRUCTIONS.md) for detailed instruction documentation
-4. Read [assembly_reference.md](assembly_reference.md) for directives and syntax
-5. Write small programs and gradually increase complexity
-6. Use debugger (see [debugger_reference.md](debugger_reference.md)) to understand instruction behavior
-7. Practice, practice, practice!
+2. Study example programs in `examples/` (49 programs covering all concepts)
+3. Reference [INSTRUCTIONS.md](INSTRUCTIONS.md) for CPU instructions and syscalls
+4. Learn [ASSEMBLER.md](ASSEMBLER.md) for directives (.text, .data, .word, .ltorg, etc.)
+5. Check [REFERENCE.md](REFERENCE.md) for condition codes, addressing modes, and shifts
+6. Read [assembly_reference.md](assembly_reference.md) for comprehensive syntax guide
+7. Write small programs and gradually increase complexity
+8. Use debugger (see [debugger_reference.md](debugger_reference.md)) to understand instruction behavior
+9. Practice, practice, practice!
 
 ### Q: Where can I find example programs?
 
-**A:** The `examples/` directory contains 44 programs:
+**A:** The `examples/` directory contains 49 programs:
 - **hello.s**: Basic output
 - **arithmetic.s**: Math operations
 - **functions.s**: Function calls and conventions
@@ -732,9 +734,11 @@ go build -o arm-emulator
 
 - **Documentation**: Check `docs/` directory for comprehensive guides
 - **Tutorial**: Work through [TUTORIAL.md](TUTORIAL.md) for hands-on learning
-- **Instruction Reference**: [INSTRUCTIONS.md](INSTRUCTIONS.md) for every ARM2 instruction
-- **Assembly Reference**: [assembly_reference.md](assembly_reference.md) for directives and syntax
-- **Examples**: Browse `examples/` (44 programs) for reference code
+- **Instruction Reference**: [INSTRUCTIONS.md](INSTRUCTIONS.md) - ARM2 CPU instructions and syscalls
+- **Assembler Directives**: [ASSEMBLER.md](ASSEMBLER.md) - .text, .data, .word, .ltorg, etc.
+- **Programming Reference**: [REFERENCE.md](REFERENCE.md) - Condition codes, addressing modes, shifts
+- **Assembly Reference**: [assembly_reference.md](assembly_reference.md) for comprehensive syntax guide
+- **Examples**: Browse `examples/` (49 programs) for reference code
 - **Debugger**: [debugger_reference.md](debugger_reference.md) and [debugging_tutorial.md](debugging_tutorial.md)
 
 **Remember**: The best way to learn is by doing. Write code, make mistakes, debug, and learn!

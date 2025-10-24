@@ -155,7 +155,9 @@ Exciting times. Perhaps I should think of a second more challenging vibe-coding 
 ### User Documentation
 - [docs/installation.md](docs/installation.md) - Installation guide and setup
 - [docs/TUTORIAL.md](docs/TUTORIAL.md) - Step-by-step tutorial for learning ARM2 assembly
-- [docs/INSTRUCTIONS.md](docs/INSTRUCTIONS.md) - Complete ARM2 instruction set reference
+- [docs/INSTRUCTIONS.md](docs/INSTRUCTIONS.md) - ARM2 instruction set reference (CPU instructions and syscalls)
+- [docs/ASSEMBLER.md](docs/ASSEMBLER.md) - Assembler directives and syntax (.text, .data, .word, .ltorg, etc.)
+- [docs/REFERENCE.md](docs/REFERENCE.md) - Programming reference (condition codes, addressing modes, shifts)
 - [docs/assembly_reference.md](docs/assembly_reference.md) - ARM2 assembly language reference (directives, syntax)
 - [examples/README.md](examples/README.md) - Example programs and usage instructions (49 programs)
 - [docs/debugger_reference.md](docs/debugger_reference.md) - Complete debugger command reference and guide

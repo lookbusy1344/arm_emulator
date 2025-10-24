@@ -1474,12 +1474,14 @@ Congratulations! You've learned ARM2 assembly programming fundamentals.
 
 ### Further Reading
 
-- [Instruction Set Reference](INSTRUCTIONS.md) - Detailed reference for every ARM2 instruction
-- [Assembly Reference](assembly_reference.md) - Directives, syntax, and assembler features
+- [Instruction Set Reference](INSTRUCTIONS.md) - ARM2 CPU instructions and syscalls
+- [Assembler Directives](ASSEMBLER.md) - Directives for organizing code (.text, .data, .word, .ltorg, etc.)
+- [Programming Reference](REFERENCE.md) - Condition codes, addressing modes, and shifts
+- [Assembly Reference](assembly_reference.md) - Comprehensive assembly language reference
 - [Debugger Reference](debugger_reference.md) - Advanced debugging commands and features
 - [Debugging Tutorial](debugging_tutorial.md) - Hands-on debugging walkthroughs
 - [FAQ](FAQ.md) - Common questions and solutions
-- [Examples](../examples/README.md) - 44 example programs with descriptions
+- [Examples](../examples/README.md) - 49 example programs with descriptions
 
 ### Resources
 

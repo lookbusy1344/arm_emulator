@@ -715,8 +715,10 @@ Start with a dot:
 ## See Also
 
 - [TUTORIAL.md](TUTORIAL.md) - Step-by-step learning guide
-- [Instruction Set Reference](INSTRUCTIONS.md) - Detailed documentation for every ARM2 instruction
-- [Examples](../examples/README.md) - 44 sample programs
+- [Instruction Set Reference](INSTRUCTIONS.md) - ARM2 CPU instructions and syscalls
+- [Assembler Directives](ASSEMBLER.md) - .text, .data, .word, .ltorg, etc.
+- [Programming Reference](REFERENCE.md) - Condition codes, addressing modes, shifts
+- [Examples](../examples/README.md) - 49 sample programs
 - [Debugger Reference](debugger_reference.md) - Debugging commands and features
 - [Debugging Tutorial](debugging_tutorial.md) - Hands-on debugging walkthroughs
 - [FAQ](FAQ.md) - Common questions and troubleshooting
