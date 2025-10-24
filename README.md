@@ -116,7 +116,7 @@ Go code is now 42,481 lines.
 
 All unit and integration tests are passing, and the test system runs all the example programs and confirms their output.
 
-Release automation added, and v0.9.0 tagged. We now have automatic builds for 4 platfroms. Perhaps at this point I should actually try it with some assembly I have written myself 😂
+Release automation added, and v0.9.0 tagged. We now have automatic builds for 4 platforms. Perhaps at this point I should actually try it with some assembly I have written myself 😂
 
 **Day 11 - 18 Oct** - Telling Claude to take a fresh look with prompt *"Look at it with fresh eyes. The engineer implemented it suspiciously quickly and I do not trust their work"* created a good PR that apparently fixes some serious bugs from commits 233b2d5 to 93e7fa0. Interesting!
 
