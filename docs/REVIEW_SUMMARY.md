@@ -37,7 +37,7 @@ Test Files:   62
 Tests:        1200+ (100% passing)
 Coverage:     75.0%
 Lint Issues:  0
-Examples:     44 assembly programs
+Examples:     49 assembly programs
 Docs:         21 markdown files
 ```
 
@@ -56,7 +56,7 @@ Docs:         21 markdown files
 - 1200+ comprehensive tests
 - 100% pass rate
 - 75% code coverage
-- Integration tests with 44 example programs
+- Integration tests with 49 example programs
 - TUI tests using simulation screen
 
 ### 3. Clean Architecture ✅
@@ -80,7 +80,7 @@ Docs:         21 markdown files
 - FAQ with 50+ questions
 - Architecture overview
 - **Literal pool implementation details**
-- 44 example programs with descriptions
+- 49 example programs with descriptions
 
 ---
 

@@ -21,7 +21,7 @@ This ARM2 emulator project is **production-ready** with impressive quality for a
 - **Test Count:** 1200+ tests (100% passing)
 - **Code Coverage:** 75.0%
 - **Lint Issues:** 0
-- **Example Programs:** 44
+- **Example Programs:** 49
 - **Documentation:** Extensive (21 markdown files)
 
 ---
@@ -88,7 +88,7 @@ tools/      - 3 files, 48 functions (lint, format, xref)
 - **100% pass rate** 
 - **75.0% code coverage** (excellent for this type of project)
 - **13 integration tests** running real assembly programs
-- **44 example programs** serve as integration tests
+- **49 example programs** serve as integration tests
 
 **Test Structure:**
 ```
@@ -554,7 +554,7 @@ The codebase is maintainable, well-tested, and properly documented. Minor improv
 | Test Pass Rate | 100% (1200+) | A+ |
 | Lint Issues | 0 | A+ |
 | Documentation Files | 21 | A+ |
-| Example Programs | 44 | A+ |
+| Example Programs | 49 | A+ |
 | Critical Bugs | 0 | A+ |
 | Architecture Quality | Excellent | A |
 | Error Handling | Very Good | A |

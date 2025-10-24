@@ -1015,6 +1015,6 @@ POP {R4-R11}          ; Pop R4-R11 from stack
 
 - [docs/TUTORIAL.md](docs/TUTORIAL.md) - Learn ARM2 assembly from scratch
 - [docs/assembly_reference.md](docs/assembly_reference.md) - Assembler directives and syntax
-- [examples/README.md](examples/README.md) - 44 example programs demonstrating all instructions
+- [examples/README.md](examples/README.md) - 49 example programs demonstrating all instructions
 - [docs/debugger_reference.md](docs/debugger_reference.md) - Debugging commands and features
 - [docs/FAQ.md](docs/FAQ.md) - Common questions and troubleshooting
