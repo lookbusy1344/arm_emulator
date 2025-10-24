@@ -25,7 +25,9 @@ This document details the ARM assembly instructions supported by this ARM2 emula
 
 **Syntax:** `ADD{cond}{S} Rd, Rn, <operand2>`
 
-**Description:** Adds two values and stores the result
+**Description:** Performs 32-bit integer addition of two operands and stores the result in the destination register.
+This is the fundamental arithmetic operation used for incrementing counters, calculating addresses, and general arithmetic.
+When the S suffix is used, it updates the CPSR flags enabling conditional execution based on the result.
 
 **Operation:** `Rd = Rn + operand2`
 
@@ -43,7 +45,9 @@ ADDNE R0, R0, #1      ; If not equal, R0 = R0 + 1
 
 **Syntax:** `ADC{cond}{S} Rd, Rn, <operand2>`
 
-**Description:** Adds two values plus the carry flag
+**Description:** Performs addition of two operands plus the current value of the carry flag (C bit in CPSR).
+Essential for multi-precision arithmetic operations where results exceed 32 bits, such as 64-bit or 128-bit integer addition.
+The carry flag from a previous addition is propagated to add the upper words correctly.
 
 **Operation:** `Rd = Rn + operand2 + C`
 
@@ -59,7 +63,9 @@ ADCS R3, R3, #0       ; R3 = R3 + C, update flags (for multi-precision)
 
 **Syntax:** `SUB{cond}{S} Rd, Rn, <operand2>`
 
-**Description:** Subtracts operand2 from Rn
+**Description:** Performs 32-bit integer subtraction by subtracting the second operand from the first operand.
+Used for decrementing counters, calculating differences, and comparing values when combined with conditional execution.
+The carry flag is set when the subtraction does not require a borrow (i.e., when Rn >= operand2 for unsigned comparison).
 
 **Operation:** `Rd = Rn - operand2`
 
@@ -76,7 +82,9 @@ SUBGE R4, R5, #10     ; If greater or equal, R4 = R5 - 10
 
 **Syntax:** `SBC{cond}{S} Rd, Rn, <operand2>`
 
-**Description:** Subtracts operand2 from Rn with borrow
+**Description:** Performs subtraction with borrow, subtracting both operand2 and the inverse of the carry flag from Rn.
+Used in multi-precision subtraction to propagate borrows between words, similar to how ADC propagates carries in addition.
+The NOT(C) in the operation means a borrow is subtracted when C=0 (borrow present) and nothing when C=1 (no borrow).
 
 **Operation:** `Rd = Rn - operand2 - NOT(C)`
 
@@ -92,7 +100,9 @@ SBCS R3, R3, #0       ; For multi-precision subtraction
 
 **Syntax:** `RSB{cond}{S} Rd, Rn, <operand2>`
 
-**Description:** Subtracts Rn from operand2
+**Description:** Performs subtraction in reverse order, subtracting Rn from operand2 instead of the usual order.
+Particularly useful for negating values (e.g., RSB Rd, Rn, #0 computes -Rn) and calculating constants minus variables.
+This instruction eliminates the need for separate negation or constant loading in many algorithms.
 
 **Operation:** `Rd = operand2 - Rn`
 
@@ -109,7 +119,9 @@ RSBLT R3, R4, #100    ; If less than, R3 = 100 - R4
 
 **Syntax:** `RSC{cond}{S} Rd, Rn, <operand2>`
 
-**Description:** Subtracts Rn from operand2 with borrow
+**Description:** Performs reverse subtraction with borrow, computing operand2 minus Rn minus the borrow (NOT C).
+Used in multi-precision reverse subtraction operations where the order of operands needs to be reversed.
+Combines the reverse order of RSB with the borrow propagation of SBC for extended precision calculations.
 
 **Operation:** `Rd = operand2 - Rn - NOT(C)`
 
@@ -126,7 +138,9 @@ RSC R0, R1, R2        ; R0 = R2 - R1 - NOT(C)
 
 **Syntax:** `AND{cond}{S} Rd, Rn, <operand2>`
 
-**Description:** Performs bitwise AND
+**Description:** Performs bitwise AND operation between two operands, setting result bits to 1 only where both input bits are 1.
+Commonly used for masking operations to isolate specific bits, clearing unwanted bits, and testing bit patterns.
+Essential for bit manipulation, flag checking, and extracting bit fields from packed data structures.
 
 **Operation:** `Rd = Rn AND operand2`
 
@@ -142,7 +156,9 @@ ANDS R3, R3, #0xFF    ; R3 = R3 & 0xFF, update flags
 
 **Syntax:** `ORR{cond}{S} Rd, Rn, <operand2>`
 
-**Description:** Performs bitwise OR
+**Description:** Performs bitwise OR operation between two operands, setting result bits to 1 where either or both input bits are 1.
+Used for setting specific bits to 1 while preserving others, combining bit flags, and merging bit fields.
+Common in hardware control registers, flag manipulation, and building composite values from multiple sources.
 
 **Operation:** `Rd = Rn OR operand2`
 
@@ -159,7 +175,9 @@ ORRNE R4, R5, #1      ; If not equal, R4 = R5 | 1
 
 **Syntax:** `EOR{cond}{S} Rd, Rn, <operand2>`
 
-**Description:** Performs bitwise exclusive OR
+**Description:** Performs bitwise XOR operation, setting result bits to 1 only where input bits differ (one is 1, the other is 0).
+Used for toggling specific bits, comparing bit patterns, and implementing simple encryption or checksums.
+The idiom EOR Rd, Rn, Rn is a fast way to zero a register (commonly seen as EORS R3, R3, R3 to clear R3 and set Z flag).
 
 **Operation:** `Rd = Rn EOR operand2`
 
@@ -175,7 +193,9 @@ EORS R3, R3, R3       ; R3 = 0, update flags
 
 **Syntax:** `BIC{cond}{S} Rd, Rn, <operand2>`
 
-**Description:** Clears bits in Rn specified by operand2
+**Description:** Clears (sets to 0) specific bits in Rn by ANDing with the complement of operand2.
+Each bit position where operand2 has a 1 will be cleared in the result; bits where operand2 has 0 are preserved.
+Commonly used for clearing flag bits in control registers and removing specific bits from a value without affecting others.
 
 **Operation:** `Rd = Rn AND NOT(operand2)`
 
@@ -193,7 +213,9 @@ BICS R3, R3, #0x0F    ; Clear lower 4 bits, update flags
 
 **Syntax:** `MOV{cond}{S} Rd, <operand2>`
 
-**Description:** Moves a value into a register
+**Description:** Copies a value from the source operand into the destination register, performing no arithmetic or logical operation.
+Used for register-to-register transfers, loading immediate constants, and applying shift operations to values.
+The special case MOVS PC, LR is used to return from subroutines while restoring the CPSR flags from SPSR.
 
 **Operation:** `Rd = operand2`
 
@@ -217,7 +239,9 @@ MOVLE R11, #0         ; If less or equal, R11 = 0
 
 **Syntax:** `MVN{cond}{S} Rd, <operand2>`
 
-**Description:** Moves the bitwise complement of a value
+**Description:** Loads the bitwise complement (NOT) of the source operand into the destination register, inverting all bits.
+Useful for creating inverted bit patterns, generating all-ones values (MVN Rd, #0 yields 0xFFFFFFFF), and complementing masks.
+Often used when the desired immediate constant is more easily expressed in inverted form due to ARM encoding limitations.
 
 **Operation:** `Rd = NOT(operand2)`
 
@@ -235,7 +259,9 @@ MVN R2, #0            ; R2 = 0xFFFFFFFF (-1)
 
 **Syntax:** `CMP{cond} Rn, <operand2>`
 
-**Description:** Compares two values by subtraction
+**Description:** Compares two values by performing subtraction (Rn - operand2) and setting the condition flags based on the result, but discarding the actual result.
+Essential for conditional execution, typically followed by conditional branch or conditional data processing instructions.
+The flags enable both signed comparisons (using N, V flags) and unsigned comparisons (using C, Z flags).
 
 **Operation:** `Rn - operand2` (result discarded)
 
@@ -252,7 +278,9 @@ CMP R3, R4, LSL #1    ; Compare R3 with R4 << 1
 
 **Syntax:** `CMN{cond} Rn, <operand2>`
 
-**Description:** Compares two values by addition
+**Description:** Compares a register with the negative of operand2 by performing addition (Rn + operand2) and updating flags without storing the result.
+Equivalent to comparing Rn with -operand2, useful when you want to test if a register equals the negation of a value.
+Less commonly used than CMP but valuable when working with negated constants or when addition flags are needed for comparison.
 
 **Operation:** `Rn + operand2` (result discarded)
 
@@ -268,7 +296,9 @@ CMN R2, #-5           ; Test if R2 is 5
 
 **Syntax:** `TST{cond} Rn, <operand2>`
 
-**Description:** Tests bits by AND operation
+**Description:** Tests whether specific bits are set by performing a bitwise AND and updating flags based on the result without storing it.
+Commonly used to check if one or more bits are set in a value, test for zero, or verify bit masks.
+Sets the Z flag if the AND result is zero (no bits in common), making it ideal for bit testing in conditional logic.
 
 **Operation:** `Rn AND operand2` (result discarded)
 
@@ -284,7 +314,9 @@ TST R1, R2            ; Test bits in common
 
 **Syntax:** `TEQ{cond} Rn, <operand2>`
 
-**Description:** Tests equality by EOR operation
+**Description:** Tests whether two values are equal by performing exclusive OR and setting flags based on the result without storing it.
+Sets the Z flag if the values are identical (XOR yields zero), making it useful for equality testing without affecting the C or V flags.
+Preferred over CMP for equality tests when you need to preserve carry and overflow flags for subsequent operations.
 
 **Operation:** `Rn EOR operand2` (result discarded)
 
@@ -306,7 +338,9 @@ TEQ R2, #0            ; Test if R2 is zero
 
 **Syntax:** `LDR{cond} Rd, <addressing_mode>`
 
-**Description:** Loads a 32-bit word from memory
+**Description:** Loads a 32-bit word (4 bytes) from memory into the destination register, performing a read from the computed address.
+Supports flexible addressing modes including base register with offset, pre-indexed with writeback, and post-indexed with automatic base register update.
+Essential for accessing variables, array elements, and data structures, with the address automatically aligned to 4-byte boundaries in most implementations.
 
 **Operation:** `Rd = Memory[address]`
 
@@ -322,7 +356,9 @@ LDR R6, [R7, R8]      ; R6 = [R7 + R8]
 
 **Syntax:** `STR{cond} Rd, <addressing_mode>`
 
-**Description:** Stores a 32-bit word to memory
+**Description:** Stores a 32-bit word (4 bytes) from the source register to memory at the computed address, performing a write operation.
+Like LDR, supports various addressing modes with optional base register update for efficient array traversal and pointer manipulation.
+Used for writing variables, storing array elements, and updating data structures in memory with automatic address alignment.
 
 **Operation:** `Memory[address] = Rd`
 
@@ -337,7 +373,9 @@ STR R4, [R5, R6, LSL #2]!  ; [R5 + (R6 << 2)] = R4, writeback
 
 **Syntax:** `LDRB{cond} Rd, <addressing_mode>`
 
-**Description:** Loads an 8-bit byte from memory (zero-extended)
+**Description:** Loads a single 8-bit byte from memory and zero-extends it to 32 bits in the destination register (upper 24 bits set to 0).
+Used for accessing character data, byte arrays, and packed structures where each element is one byte.
+No alignment restrictions apply - bytes can be loaded from any memory address, making this instruction essential for string and byte buffer operations.
 
 **Operation:** `Rd = ZeroExtend(Memory[address])`
 
@@ -351,7 +389,9 @@ LDRB R2, [R3, #1]     ; R2 = byte at [R3 + 1]
 
 **Syntax:** `STRB{cond} Rd, <addressing_mode>`
 
-**Description:** Stores an 8-bit byte to memory
+**Description:** Stores the least significant byte (bits 7:0) of the source register to memory, discarding the upper 24 bits.
+Used for writing character data, updating byte arrays, and modifying individual bytes in packed data structures.
+Can write to any memory address without alignment requirements, making it perfect for string manipulation and byte-oriented I/O operations.
 
 **Operation:** `Memory[address] = Rd[7:0]`
 
@@ -364,7 +404,9 @@ STRB R2, [R3, #10]    ; [R3 + 10] = R2[7:0]
 #### LDRH - Load Halfword
 **Syntax:** `LDRH{cond} Rd, <addressing_mode>`
 
-**Description:** Loads a 16-bit halfword from memory (zero-extended)
+**Description:** Loads a 16-bit halfword (2 bytes) from memory and zero-extends it to 32 bits in the destination register (upper 16 bits set to 0).
+Used for accessing 16-bit data types such as Unicode characters, short integers, and halfword arrays.
+Memory address should typically be 2-byte aligned for optimal performance, though some implementations allow unaligned access.
 
 **Operation:** `Rd = ZeroExtend(Memory[address])`
 
@@ -377,7 +419,9 @@ LDRH R2, [R3, #2]     ; R2 = halfword at [R3 + 2]
 #### STRH - Store Halfword
 **Syntax:** `STRH{cond} Rd, <addressing_mode>`
 
-**Description:** Stores a 16-bit halfword to memory
+**Description:** Stores the least significant halfword (bits 15:0) of the source register to memory as 2 bytes, discarding the upper 16 bits.
+Used for writing 16-bit data types, Unicode characters, and short integer values to memory.
+Like LDRH, addresses should be 2-byte aligned for best performance in accessing 16-bit data structures and arrays.
 
 **Operation:** `Memory[address] = Rd[15:0]`
 
@@ -393,7 +437,9 @@ STRH R2, [R3, #6]     ; [R3 + 6] = R2[15:0]
 
 **Syntax:** `LDM{cond}{mode} Rn{!}, {register_list}{^}`
 
-**Description:** Loads multiple registers from consecutive memory locations
+**Description:** Efficiently loads multiple registers from consecutive 32-bit memory locations in a single instruction, starting from the base address.
+Primarily used for function returns, context restoration, and bulk data loading from memory with automatic address incrementing or decrementing.
+The optional writeback (!) updates the base register, and the caret (^) suffix enables CPSR restoration for exception returns when PC is in the list.
 
 **Modes:** IA (Increment After), IB (Increment Before), DA (Decrement After), DB (Decrement Before)
 
@@ -421,7 +467,9 @@ LDMFD SP!, {R0-R12, LR, PC}^  ; Restore all registers and CPSR from SPSR
 
 **Syntax:** `STM{cond}{mode} Rn{!}, {register_list}{^}`
 
-**Description:** Stores multiple registers to consecutive memory locations
+**Description:** Efficiently stores multiple registers to consecutive 32-bit memory locations in a single instruction, starting from the base address.
+Primarily used for function entry (saving registers to stack), context saving, and bulk data storage with automatic address management.
+The writeback (!) automatically updates the base register, making STM ideal for push operations when combined with appropriate addressing modes.
 
 **Modes:** IA (Increment After), IB (Increment Before), DA (Decrement After), DB (Decrement Before)
 
@@ -446,7 +494,9 @@ STMIA R0!, {R1-R4}      ; Store R1-R4 to memory at R0, increment R0
 
 **Syntax:** `B{cond} label`
 
-**Description:** Branches to a label/address
+**Description:** Performs an unconditional or conditional branch to a target address specified by a label, changing program flow by updating the PC.
+The most fundamental control flow instruction, used for loops, if-then-else logic, and jumping to different code sections.
+Supports all condition codes for conditional execution, enabling efficient implementation of complex control structures without separate compare and jump instructions.
 
 **Operation:** `PC = PC + offset`
 
@@ -469,7 +519,9 @@ BMI minus             ; Branch if minus/negative
 
 **Syntax:** `BL{cond} label`
 
-**Description:** Branches to a subroutine and saves return address
+**Description:** Calls a subroutine by branching to the target label while saving the return address (PC+4) in the link register (LR).
+The fundamental instruction for function calls, enabling modular code with automatic return address management.
+Functions return by moving LR back to PC (typically using MOV PC, LR or BX LR), and nested calls require saving LR to the stack first.
 
 **Operation:** `LR = PC + 4, PC = PC + offset`
 
@@ -485,7 +537,9 @@ BLEQ conditional_fn   ; Call if equal
 
 **Syntax:** `BX{cond} Rm`
 
-**Description:** Branches to address in register (ARM/Thumb interworking)
+**Description:** Branches to the address contained in a register, enabling computed jumps and register-based returns from subroutines.
+Originally designed for ARM/Thumb interworking (bit 0 of Rm indicates mode), but in ARM2 emulation simply branches to the register value.
+The standard way to return from functions (BX LR) and implement jump tables or function pointers for dynamic dispatch.
 
 **Operation:** `PC = Rm & 0xFFFFFFFE` (bit 0 would indicate Thumb mode in later ARM)
 
@@ -499,7 +553,9 @@ BX R0                 ; Branch to address in R0
 
 **Syntax:** `BLX{cond} Rm`
 
-**Description:** Branches to address in register and saves return address (ARM/Thumb interworking)
+**Description:** Calls a function at the address in a register while saving the return address to LR, combining BL's link behavior with BX's register branching.
+Enables indirect function calls through function pointers, virtual method dispatch, and callback mechanisms where the target address is computed at runtime.
+Essential for implementing dynamic dispatch, plugin architectures, and any scenario requiring computed subroutine calls rather than compile-time fixed addresses.
 
 **Operation:** `LR = PC + 4, PC = Rm & 0xFFFFFFFE` (bit 0 would indicate Thumb mode in later ARM)
 
@@ -517,7 +573,9 @@ BLX R0                ; Call function at address in R0
 
 **Syntax:** `MUL{cond}{S} Rd, Rm, Rs`
 
-**Description:** Multiplies two 32-bit values (lower 32 bits of result)
+**Description:** Performs 32-bit integer multiplication of two operands, storing only the lower 32 bits of the 64-bit result in the destination register.
+Used for basic multiplication where overflow beyond 32 bits is acceptable or expected to be handled separately.
+Note that Rd and Rm must be different registers due to ARM2 architectural restrictions, and execution time varies (2-16 cycles) based on the multiplier value.
 
 **Operation:** `Rd = (Rm * Rs)[31:0]`
 
@@ -537,7 +595,9 @@ MULS R3, R4, R5       ; R3 = R4 * R5, update flags
 
 **Syntax:** `MLA{cond}{S} Rd, Rm, Rs, Rn`
 
-**Description:** Multiplies and adds to accumulator
+**Description:** Multiplies two 32-bit values and adds a third value (accumulator) to the result, storing the lower 32 bits in the destination register.
+Particularly efficient for dot products, matrix operations, and polynomial evaluation where multiply-add patterns are common.
+Like MUL, Rd and Rm must differ, and the instruction provides significant performance benefits over separate multiply and add operations.
 
 **Operation:** `Rd = (Rm * Rs + Rn)[31:0]`
 
@@ -556,7 +616,9 @@ MLAS R4, R5, R6, R7   ; R4 = R5 * R6 + R7, update flags
 #### UMULL - Unsigned Multiply Long
 **Syntax:** `UMULL{cond}{S} RdLo, RdHi, Rm, Rs`
 
-**Description:** Multiplies two 32-bit unsigned values producing 64-bit result
+**Description:** Performs unsigned multiplication of two 32-bit values, producing a full 64-bit result stored in two registers (RdHi:RdLo).
+Essential for multi-precision arithmetic, large integer calculations, and situations where the full product of two numbers must be preserved.
+The lower 32 bits go to RdLo and upper 32 bits to RdHi, with all three output registers (RdLo, RdHi, Rm) required to be distinct.
 
 **Operation:** `RdHi:RdLo = Rm * Rs`
 
@@ -573,7 +635,9 @@ UMULLS R4, R5, R6, R7  ; R5:R4 = R6 * R7, update flags
 #### UMLAL - Unsigned Multiply-Accumulate Long
 **Syntax:** `UMLAL{cond}{S} RdLo, RdHi, Rm, Rs`
 
-**Description:** Unsigned multiply and accumulate with 64-bit result
+**Description:** Performs unsigned multiplication of two 32-bit values and adds the 64-bit result to the existing 64-bit accumulator in RdHi:RdLo.
+Used for multi-precision multiply-accumulate operations, implementing 128-bit or larger arithmetic, and accumulating products in computational algorithms.
+Particularly valuable in cryptographic operations, numerical computing, and any algorithm requiring extended precision accumulation of multiple products.
 
 **Operation:** `RdHi:RdLo = (Rm * Rs) + RdHi:RdLo`
 
@@ -590,7 +654,9 @@ UMLALS R4, R5, R6, R7  ; R5:R4 += R6 * R7, update flags
 #### SMULL - Signed Multiply Long
 **Syntax:** `SMULL{cond}{S} RdLo, RdHi, Rm, Rs`
 
-**Description:** Multiplies two 32-bit signed values producing 64-bit result
+**Description:** Performs signed (two's complement) multiplication of two 32-bit values, producing a full 64-bit signed result in two registers.
+Essential for signed multi-precision arithmetic where negative numbers must be handled correctly, preserving sign extension into the upper word.
+Used in fixed-point arithmetic, financial calculations, and any signed numerical computation requiring the complete product without overflow.
 
 **Operation:** `RdHi:RdLo = Rm * Rs (signed)`
 
@@ -607,7 +673,9 @@ SMULLS R4, R5, R6, R7  ; R5:R4 = R6 * R7 (signed), update flags
 #### SMLAL - Signed Multiply-Accumulate Long
 **Syntax:** `SMLAL{cond}{S} RdLo, RdHi, Rm, Rs`
 
-**Description:** Signed multiply and accumulate with 64-bit result
+**Description:** Performs signed multiplication of two 32-bit values and adds the signed 64-bit product to the existing signed 64-bit accumulator.
+Combines signed long multiplication with accumulation for algorithms requiring repeated signed multiply-add operations with extended precision.
+Critical for digital signal processing, matrix operations with signed values, and numerical algorithms needing signed multi-precision accumulation.
 
 **Operation:** `RdHi:RdLo = (Rm * Rs) + RdHi:RdLo (signed)`
 
@@ -629,7 +697,9 @@ SMLALS R4, R5, R6, R7  ; R5:R4 += R6 * R7 (signed), update flags
 
 **Syntax:** `SWI{cond} #immediate`
 
-**Description:** Generates a software interrupt (system call)
+**Description:** Generates a software interrupt to invoke system services, transferring control to the OS or emulator's syscall handler with the immediate value indicating the requested service.
+This is the ARM2 method for performing I/O, memory allocation, file operations, and other privileged operations that require OS intervention.
+The syscall number is encoded directly in the instruction's immediate field (0-16777215), with arguments passed in registers R0-R2 and results returned in R0.
 
 **Operation:** Transfers control to system call handler
 
@@ -651,7 +721,9 @@ SWI #0x11             ; Write character
 ### MRS - Move PSR to Register
 **Syntax:** `MRS{cond} Rd, PSR`
 
-**Description:** Moves CPSR or SPSR to a register
+**Description:** Reads the Current Program Status Register (CPSR) or Saved Program Status Register (SPSR) and copies all 32 bits into the destination register.
+Used to examine processor flags (N, Z, C, V) and other status bits, typically before modifying them or for context preservation in interrupt handlers.
+Essential for implementing atomic operations, critical sections, and any code that needs to inspect or preserve the processor state.
 
 **Operation:** `Rd = CPSR` (reads all 32 bits of the status register)
 
@@ -671,7 +743,9 @@ MRS R1, CPSR          ; R1 = CPSR
 ### MSR - Move Register to PSR
 **Syntax:** `MSR{cond} PSR_fields, Rm` or `MSR{cond} PSR_fields, #immediate`
 
-**Description:** Moves a register or immediate to CPSR or SPSR flags
+**Description:** Writes to specific fields of the CPSR or SPSR from a register or immediate value, allowing direct manipulation of processor status flags.
+The _f (flags) field specifier controls which bits are updated, typically targeting the condition flags (N, Z, C, V) in bits 31-24.
+Critical for restoring saved processor state, manually setting flags for testing, implementing context switches, and controlling processor modes in operating systems.
 
 **Operation:** `CPSR_flags = Rm` or `CPSR_flags = immediate` (writes to flag bits only)
 
@@ -718,7 +792,9 @@ Assembler directives control how the assembler processes your source code. They 
 
 ### Section Directives
 #### .text
-**Description:** Marks the beginning of the code section (executable instructions)
+**Description:** Marks the beginning of a code section containing executable instructions, directing the assembler to place subsequent statements in the executable program area.
+Essential for organizing assembly programs by separating executable code from data, allowing multiple code sections to be interleaved with data sections.
+The first `.text` directive typically starts at address 0 unless overridden with `.org`, and multiple text sections can appear throughout the source file.
 
 **Syntax:** `.text`
 
@@ -761,7 +837,9 @@ function2:
 ```
 
 #### .data
-**Description:** Marks the beginning of the data section for initialized data
+**Description:** Marks the beginning of a data section for defining initialized variables, constants, strings, and arrays that will be stored in memory.
+Used to organize program data separately from executable code, making the assembly source more readable and maintainable.
+Like `.text`, multiple data sections can be scattered throughout the source file and will be assembled sequentially based on their position and any `.org` directives.
 
 **Syntax:** `.data`
 
@@ -807,7 +885,9 @@ input_buf:  .space 512
 
 ### Symbol Directives
 #### .global
-**Description:** Declares a symbol as global (visible to other modules/exported)
+**Description:** Declares a symbol as globally visible, making it accessible from other object modules during linking in multi-file programs.
+Commonly used to export entry points (like `_start` or `main`), public functions, and shared data that need to be referenced from other compilation units.
+While this emulator treats all symbols as visible (single-module execution), the directive is accepted for compatibility with standard ARM assembly conventions.
 
 **Syntax:** `.global symbol_name`
 
@@ -863,7 +943,9 @@ multiply:
 ```
 
 #### .equ / .set
-**Description:** Defines a constant value for a symbol (similar to #define in C)
+**Description:** Defines a named constant that associates a symbol with a numeric value, functioning like `#define` in C but processed by the assembler.
+Improves code readability and maintainability by replacing magic numbers with meaningful names, supporting decimal, hexadecimal, binary, and character literal values.
+Constants can reference other previously defined constants, and negative values are supported, making it ideal for configuration values, bit flags, and memory addresses.
 
 **Syntax:** `.equ symbol, value` or `.set symbol, value`
 
@@ -934,7 +1016,9 @@ MOV R1, #MINUS_ONE
 
 ### Memory Allocation Directives
 #### .org
-**Description:** Sets the assembly origin address (starting address for code/data)
+**Description:** Sets the current memory address where the assembler will place subsequent instructions and data, effectively controlling the memory layout.
+Used to position code at specific addresses (like interrupt vectors), create memory gaps, or organize data at predetermined locations in memory.
+Can be used multiple times to create non-contiguous sections, with the first `.org` establishing the program's entry point when no explicit origin is set.
 
 **Syntax:** `.org address`
 
@@ -981,7 +1065,9 @@ reset_handler:
 ```
 
 #### .word
-**Description:** Allocates and initializes 32-bit words (4 bytes each)
+**Description:** Allocates and initializes one or more 32-bit words (4 bytes each) in memory with specified values, supporting multiple data formats.
+The fundamental data allocation directive for integers, pointers, addresses, and lookup tables in ARM assembly.
+Values are stored in little-endian format and can be specified as decimal, hexadecimal, binary, character literals, or label addresses.
 
 **Syntax:** `.word value1, value2, ...`
 
@@ -1018,7 +1104,9 @@ fibonacci:  .word 0, 1, 1, 2, 3, 5, 8, 13, 21, 34
 ```
 
 #### .half
-**Description:** Allocates and initializes 16-bit halfwords (2 bytes each)
+**Description:** Allocates and initializes one or more 16-bit halfwords (2 bytes each) in memory, useful for 16-bit data types and space-efficient storage.
+Commonly used for Unicode characters (UTF-16), short integers, packed data structures, and graphics data like RGB565 color values.
+Values larger than 16 bits are truncated, and data is stored in little-endian format like all ARM data.
 
 **Syntax:** `.half value1, value2, ...`
 
@@ -1052,7 +1140,9 @@ port_value: .half 0x5555
 ```
 
 #### .byte
-**Description:** Allocates and initializes 8-bit bytes (1 byte each)
+**Description:** Allocates and initializes one or more 8-bit bytes (1 byte each) in memory, providing the finest granularity for data storage.
+Essential for ASCII characters, byte arrays, status flags, bitmap data, and any raw byte sequences that need explicit control.
+Values larger than 8 bits are truncated to their lower 8 bits, making this directive perfect for packed data and character manipulation.
 
 **Syntax:** `.byte value1, value2, ...`
 
@@ -1092,7 +1182,9 @@ msg:        .byte 'H', 'i', '\n', 0  ; "Hi\n" with null terminator
 ```
 
 #### .ascii
-**Description:** Allocates a string without null terminator
+**Description:** Allocates a string in memory as a sequence of bytes without appending a null terminator, storing the exact characters specified.
+Used when you need precise control over string length, when concatenating multiple strings, or when the null terminator will be added manually.
+Supports standard escape sequences (\n, \t, \\, etc.) for special characters, with each character stored as a single ASCII byte.
 
 **Syntax:** `.ascii "string"`
 
@@ -1123,7 +1215,9 @@ cstring:    .ascii "Manual"
 ```
 
 #### .asciz / .string
-**Description:** Allocates a null-terminated string (C-style string)
+**Description:** Allocates a null-terminated C-style string in memory by storing the specified characters followed by an automatic null byte (0x00).
+The standard way to define strings for system calls, C library functions, and any code expecting null-terminated strings.
+Both `.asciz` and `.string` are equivalent and interchangeable, with full support for escape sequences for special characters.
 
 **Syntax:** `.asciz "string"` or `.string "string"`
 
@@ -1187,7 +1281,9 @@ mixed:      .asciz "Line1\r\nLine2\tTab\0Extra"
 ```
 
 #### .space / .skip
-**Description:** Reserves specified number of bytes (initialized to zero)
+**Description:** Reserves a specified number of bytes in memory, initializing all bytes to zero, creating uninitialized buffers and arrays.
+Both `.space` and `.skip` are equivalent and commonly used for allocating working memory, input/output buffers, stack space, and large data structures.
+Size can be specified as immediate values or constants defined with `.equ`, making it easy to allocate memory based on configuration parameters.
 
 **Syntax:** `.space size` or `.skip size`
 
@@ -1275,7 +1371,9 @@ MOV R3, #'\''          ; Single quote (39)
 
 ### Alignment Directives
 #### .align
-**Description:** Aligns the current address to a 2^n bytes boundary
+**Description:** Aligns the current memory address to a power-of-2 byte boundary (2^n), padding with zero bytes as needed to reach the alignment.
+Critical for performance optimization and hardware requirements, ensuring data structures start at addresses compatible with load/store instructions and cache line boundaries.
+Common uses include word alignment (`.align 2` for 4-byte), double-word alignment (`.align 3` for 8-byte), and cache line alignment (`.align 4` for 16-byte).
 
 **Syntax:** `.align n`
 
@@ -1307,7 +1405,9 @@ function:
 ```
 
 #### .balign
-**Description:** Aligns the current address to the specified byte boundary
+**Description:** Aligns the current memory address to an exact byte boundary specified directly (not as a power of 2), padding with zeros as necessary.
+More intuitive than `.align` when you want specific byte alignments like 4, 8, or 16 bytes without calculating powers of 2.
+Commonly used for word alignment (4 bytes), double-word alignment (8 bytes), and cache line optimization (16 bytes) with straightforward numeric values.
 
 **Syntax:** `.balign boundary`
 
@@ -1348,7 +1448,9 @@ critical_loop:
 
 ### Literal Pool Directive
 #### .ltorg
-**Description:** Places the literal pool at the current location
+**Description:** Explicitly places a literal pool at the current location, storing 32-bit constants used by `LDR Rd, =value` pseudo-instructions within the ±4095 byte range constraint.
+Essential for large programs where automatic literal pool placement at the end might exceed the addressing range, requiring manual pool placement near the instructions that reference them.
+The assembler automatically deduplicates identical constants, aligns the pool to 4-byte boundaries, and reserves the necessary space for all accumulated literals.
 
 **Syntax:** `.ltorg`
 
@@ -2797,7 +2899,9 @@ Pseudo-instructions are assembler conveniences that map to real instructions.
 
 **Syntax:** `ADR{cond} Rd, label`
 
-**Description:** Loads a PC-relative address into a register (pseudo-instruction that generates ADD or SUB)
+**Description:** Calculates and loads the address of a label relative to the program counter, providing position-independent address computation.
+This pseudo-instruction is assembled into either ADD or SUB with PC as the base register, depending on whether the target is ahead or behind the current instruction.
+Essential for position-independent code, accessing nearby data structures, and obtaining addresses of labels without using the literal pool, as long as the offset fits in an ARM immediate value.
 
 **Operation:** `Rd = PC + offset` (generates ADD or SUB instruction based on offset sign)
 
