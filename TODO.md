@@ -24,6 +24,151 @@ None
 
 ## Medium Priority Tasks
 
+### String Building Performance in Trace Output
+**Priority:** MEDIUM
+**Effort:** 2-3 hours
+**Type:** Performance Optimization
+
+**Problem:**
+Multiple trace output files use string concatenation with `+=` in loops:
+- `vm/flag_trace.go` - Statistics output formatting
+- `vm/register_trace.go` - Report generation
+- `vm/statistics.go` - HTML/text output building
+
+Each concatenation allocates a new string and copies previous content, creating O(n²) performance characteristics for large trace outputs.
+
+**Impact:** Trace file generation can be 10-50x slower than necessary for programs with 100,000+ instructions.
+
+**Solution:** Replace string concatenation with `strings.Builder`:
+```go
+var sb strings.Builder
+sb.WriteString("header\n")
+sb.WriteString(fmt.Sprintf("value: %d\n", val))
+output := sb.String()
+```
+
+**Files to Check:**
+- `vm/flag_trace.go` (lines with fmt.Sprintf + +=)
+- `vm/register_trace.go` (report generation)
+- `vm/statistics.go` (HTML/text building)
+
+---
+
+### Memory Allocation Pressure in Hot Path (trace.go)
+**Priority:** MEDIUM
+**Effort:** 3-4 hours
+**Type:** Performance Optimization
+
+**Problem:**
+`vm/trace.go` `RecordInstruction()` creates a new 16-entry map for every instruction:
+```go
+currentRegs := map[string]uint32{
+    "R0": vm.CPU.R[0],
+    "R1": vm.CPU.R[1],
+    // ... repeated per instruction
+}
+```
+
+With 1M+ instructions per program, this creates excessive garbage collection pressure.
+
+**Impact:** Measurable GC overhead in long-running programs. Profile before/after optimization.
+
+**Solution:** Reuse register snapshot structure or use array-based lookups instead of maps.
+
+**Files:**
+- `vm/trace.go` (RecordInstruction method, lines 99-119)
+
+---
+
+### Duplicate Register State Tracking
+**Priority:** MEDIUM
+**Effort:** 4-5 hours
+**Type:** Refactoring/Code Quality
+
+**Problem:**
+Three independent systems track "last register state":
+- `vm/trace.go` - `lastSnapshot` map
+- `vm/register_trace.go` - `lastRegValues` map
+- `debugger/tui.go` - `PrevRegisters` array
+
+Code duplication creates maintenance burden and potential inconsistency in register change detection.
+
+**Solution:** Extract into shared `RegisterSnapshot` type with methods:
+- `ChangedRegs(other *RegisterSnapshot) []string`
+- `Capture(cpu *CPU)`
+- `GetRegister(name string) uint32`
+
+Use consistently across all three locations.
+
+**Files:**
+- `vm/trace.go`
+- `vm/register_trace.go`
+- `debugger/tui.go`
+
+---
+
+### Missing Error Context in Encoder
+**Priority:** MEDIUM
+**Effort:** 3-4 hours
+**Type:** Error Handling
+
+**Problem:**
+Encoder errors lack file:line information, making it hard to locate problematic instructions:
+```go
+return 0, fmt.Errorf("unknown instruction: %s", mnemonic)
+// Missing: which file? which line? what was the actual instruction?
+```
+
+Users must manually search through assembly to find the error.
+
+**Solution:** Create `EncodingError` type that includes instruction context:
+```go
+type EncodingError struct {
+    Instruction *parser.Instruction
+    Message     string
+    Wrapped     error
+}
+```
+
+Propagate source location information through encoder pipeline.
+
+**Files:**
+- `encoder/encoder.go`
+- `encoder/data_processing.go`
+- `encoder/memory.go`
+
+---
+
+### Syscall Error Handling Asymmetry
+**Priority:** MEDIUM
+**Effort:** 3-4 hours
+**Type:** Error Handling
+
+**Problem:**
+Syscall documentation distinguishes between:
+- "VM integrity errors" (should return Go error and halt)
+- "Expected failures" (should return 0xFFFFFFFF in R0, continue)
+
+However, this isn't consistently applied. Some handlers propagate Go errors for validation failures when they should return 0xFFFFFFFF.
+
+**Example:** File operations like `handleOpen()` may panic or return errors instead of 0xFFFFFFFF on failure.
+
+**Solution:** Create error classification system:
+```go
+type SyscallError struct {
+    IsVMError bool // true = halt, false = return 0xFFFFFFFF
+    Message   string
+}
+```
+
+Audit all syscall handlers for consistency.
+
+**Files:**
+- `vm/syscall.go` (all handler functions)
+- Create new file: `vm/syscall_error.go`
+
+---
+
 ### TUI Help Command Display Issue
 **Status:** BLOCKED - Needs Investigation
 **Priority:** MEDIUM
@@ -84,6 +229,58 @@ When typing `help` (or pressing F1) in the TUI debugger, the help text appears a
 ---
 
 ## Low Priority Tasks (Optional)
+
+### Symbol Resolution Caching
+**Priority:** LOW-MEDIUM
+**Effort:** 2-3 hours
+**Type:** Performance Optimization
+
+**Problem:**
+`ResolveAddress()` does binary search for every trace entry. With 100,000+ trace entries, this is 100,000 binary searches. The binary search is already efficient, but locality of reference is ignored.
+
+**Solution:** Add simple cache for recently resolved symbols:
+```go
+type SymbolResolver struct {
+    // existing fields...
+    cacheAddr   uint32
+    cacheName   string
+    cacheOffset uint32
+}
+
+// Check cache (within 256 byte window) before binary search
+```
+
+Expected improvement: 5-15% speedup in trace output generation.
+
+**Files:**
+- `vm/symbol_resolver.go` (ResolveAddress method)
+
+---
+
+### RegisterTrace Memory Bounds
+**Priority:** LOW
+**Effort:** 2-3 hours
+**Type:** Robustness
+
+**Problem:**
+`vm/register_trace.go` `RecordWrite()` can accumulate unlimited entries in `valuesSeen` map. In pathological cases with high register write variety, this could consume excessive memory.
+
+**Solution:** Cap unique values tracking:
+```go
+const maxTrackedUniqueValues = 10000
+
+if len(r.valuesSeen) < maxTrackedUniqueValues && !r.valuesSeen[value] {
+    r.valuesSeen[value] = true
+    r.UniqueValues++
+}
+```
+
+Document the limit in output.
+
+**Files:**
+- `vm/register_trace.go` (RecordWrite method)
+
+---
 
 ### TestAssert_MessageWraparound Test Investigation
 **Status:** SKIPPED - Low Priority
