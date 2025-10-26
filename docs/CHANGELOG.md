@@ -5,6 +5,223 @@ All notable changes to the ARM2 Emulator project will be documented in this file
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### October 2025 Updates
+
+#### 2025-10-23: Security Analysis - Memory Segment Wraparound Protection
+**Status:** Complete - Investigated reported wraparound vulnerability, confirmed code is secure
+
+A security concern was raised regarding potential wraparound vulnerability in `vm/memory.go:92-97`. After comprehensive analysis:
+
+- **Result:** NO VULNERABILITY EXISTS
+- **Root Cause:** Original comment was misleading, suggesting wraparound reliance when code actually uses explicit bounds checking
+- **Actions Taken:**
+  - Added 3 new security tests (wraparound protection scenarios)
+  - Improved documentation in `vm/memory.go` (lines 85-97)
+  - Verified security model with edge case testing
+- **Test Results:** All 1,024 tests pass (100% ✅)
+- **Files Modified:** `vm/memory.go` (documentation), `tests/unit/vm/memory_system_test.go` (new tests)
+
+#### 2025-10-19: TUI Memory Write Highlighting
+**Status:** Complete - Memory writes now visually highlighted in green in TUI debugger
+
+**Features Added:**
+- Automatic memory trace integration in TUI mode
+- Green highlighting for written bytes in Memory window
+- Auto-focus to written addresses
+- Works for all store instructions (STR, STRB, STRH, STMFD, etc.)
+
+**Bug Fixes:**
+- Fixed stack pointer reset in `ResetRegisters()`
+- Fixed source view truncation (square brackets interpreted as color tags)
+- Fixed memory window layout (1:1 proportions for full 16-byte rows)
+- Fixed breakpoint detection in both run and step modes
+
+**Files Modified:** `debugger/tui.go`, `vm/executor.go`
+
+#### 2025-10-18: Comprehensive Syscall Testing
+**Status:** Complete test coverage for syscalls 0x30-0x33 and 0xF0-0xF4
+
+**New Example Programs (4 total):**
+- `test_get_time.s` - GET_TIME syscall demonstration
+- `test_get_random.s` - GET_RANDOM syscall with distribution tests
+- `test_get_arguments.s` - GET_ARGUMENTS syscall
+- `test_debug_syscalls.s` - All debugging syscalls (DEBUG_PRINT, DUMP_REGISTERS, DUMP_MEMORY, ASSERT)
+
+**Tests Added:**
+- 13 new unit tests (system information and debugging syscalls)
+- 9 new integration tests (end-to-end syscall execution)
+- All 4 example programs execute successfully
+
+**Files Modified:** `tests/unit/vm/syscall_test.go`, `tests/integration/syscalls_test.go`
+
+#### 2025-10-18: Critical Bug Fixes - Security Hardening
+**Status:** Five critical bugs fixed with comprehensive test coverage
+
+**Bugs Fixed:**
+
+1. **Global Heap Allocator State Bug (HIGH PRIORITY)**
+   - Problem: Heap allocator used global variables, causing race conditions and state leakage
+   - Fix: Moved state to per-instance fields in Memory struct
+   - Impact: Thread safety for concurrent VM instances
+
+2. **File Descriptor Race Condition (CRITICAL)**
+   - Problem: File descriptor mutex was global variable
+   - Fix: Moved `fdMu` to per-instance VM struct field
+   - Impact: Thread-safe file operations
+
+3. **REALLOCATE Syscall Not Copying Data (HIGH PRIORITY)**
+   - Problem: REALLOCATE allocated new memory but didn't copy old data
+   - Fix: Implemented proper data copying and error handling
+   - Impact: Data preservation during reallocation
+
+4. **Heap Allocation Overflow Not Checked (MEDIUM PRIORITY)**
+   - Problem: No overflow check when `nextHeapAddress + size` wraps
+   - Fix: Added overflow check before allocation
+   - Impact: Prevention of allocations outside heap bounds
+
+5. **Test Logic Flaws**
+   - Fixed `TestHeapAllocatorPerInstance` incorrect expectations
+   - Fixed `TestHeapOverflowCheck` overflow detection order
+
+**Test Suite:** 15 new tests added, all 1,200+ tests passing (100%)
+
+**Files Modified:** `vm/memory.go`, `vm/syscalls.go`, `tests/unit/vm/code_review_fixes_test.go`
+
+#### 2025-10-17: Dynamic Literal Pool Sizing
+**Status:** Literal pool space reservation improved from fixed 64-byte to dynamic allocation
+
+**Features:**
+- Parser counts actual literal usage per pool
+- Encoder validates pool capacity with warnings
+- Better address space utilization
+- Support for pools with 20+ literals
+
+**Implementation:**
+- Added `LiteralPoolCounts []int` tracking
+- Added `ValidatePoolCapacity()` method
+- Environment variable `ARM_WARN_POOLS` for optional warnings
+
+**Critical Bug Fix:** Fixed `findNearestLiteralPoolLocation()` edge case where pool location exactly matches PC address
+
+**Test Suite:** 6 new comprehensive tests
+
+**Files Modified:** `parser/parser.go`, `encoder/encoder.go`, `main.go`, `tests/integration/ltorg_test.go`
+
+#### 2025-10-17: LDM/STM Flag Preservation (S bit)
+**Status:** Complete implementation of ARM6-style S bit behavior
+
+**Features:**
+- Added SPSR (Saved Program Status Register) to CPU
+- Implemented `SaveCPSR()` and `RestoreCPSR()` helper methods
+- LDM with S bit and PC restores CPSR from SPSR (exception return)
+- Foundation for proper exception handling
+
+**Test Suite:** 9 new comprehensive tests (548 lines)
+
+**Documentation:** Updated INSTRUCTIONS.md and TUTORIAL.md with flag preservation guidance
+
+**Files Modified:** `vm/cpu.go`, `vm/memory_multi.go`, `tests/unit/vm/ldm_stm_flags_test.go`, `INSTRUCTIONS.md`
+
+#### 2025-10-16: Code Coverage Improvements
+**Status:** Achieved 75.0% code coverage target (up from 71.7%)
+
+**Tests Added:** 105 new tests across 8 test files
+- `tests/unit/vm/executor_test.go` (20 tests)
+- `tests/unit/vm/cpu_trace_test.go` (10 tests)
+- `tests/unit/vm/memory_helpers_test.go` (18 tests)
+- `tests/unit/parser/errors_test.go` (13 tests)
+- `tests/unit/parser/macros_test.go` (18 tests)
+- `tests/unit/parser/preprocessor_test.go` (13 tests)
+- `tests/unit/parser/lexer_test.go` (4 tests)
+- `tests/unit/parser/symbols_test.go` (9 tests)
+
+**Coverage Results:**
+- VM Package: 71.3% (up from ~68%)
+- Parser Package: 18.2% (up from 16.1%)
+- Total: 75.0% overall
+
+#### 2025-10-16: Register Access Pattern Analysis
+**Status:** New diagnostic mode for analyzing register usage patterns
+
+**Features:**
+- Register access tracking (reads/writes with sequence numbers)
+- Hot register identification (top 10 most accessed)
+- Unused register detection
+- Read-before-write detection (potential bugs)
+- Unique value tracking
+- Both text and JSON output formats
+
+**Files Added:** `vm/register_trace.go` (375 lines)
+
+**Integration:** Added CLI flags `--register-trace` and `--register-trace-format`
+
+#### 2025-10-13: Constant Expression Support
+**Status:** Arithmetic expressions in pseudo-instructions (e.g., `LDR r0, =label + 12`)
+
+**Features:**
+- Addition and subtraction operators in constant expressions
+- Hex offset support
+- Symbol resolution in expressions
+
+**Files Modified:** `parser/parser.go`, `encoder/encoder.go`
+
+#### 2025-10-12: Complete Test Coverage Initiative
+**Status:** All priority levels complete (340 new tests added)
+
+**Test Priorities Completed:**
+- Priority 1 (Critical): 24 tests - LDRH/STRH, BX, conditional execution
+- Priority 2 (Addressing): 35 tests - Memory addressing modes
+- Priority 3 (Register shifts): 56 tests - Data processing with register-specified shifts
+- Priority 4 (Edge cases): 65 tests - Special registers, immediates, flags, multi-register transfers
+- Priority 5 (Condition matrix): 160 tests - Instruction-condition matrix
+
+**Critical Bugs Fixed:**
+- LDRH/STRH decoder bug (halfword instruction recognition)
+- LDRH/STRH execution bug (offset calculation)
+- BX decoder bug (instruction recognition)
+- BX routing bug (execution path)
+- Halfword detection bug (bits 27:25 check added)
+
+**Total Test Suite:** 1,016 tests (up from 660), 100% pass rate
+
+#### 2025-10-11: CLI Diagnostic Flags Integration Tests
+**Status:** Comprehensive integration tests for all CLI diagnostic flags
+
+**Tests Added:** 52 new integration tests
+- Memory trace testing (`--mem-trace`)
+- Code coverage testing (`--coverage`, text and JSON)
+- Stack trace testing (`--stack-trace`, text and JSON)
+- Flag trace testing (`--flag-trace`, text and JSON)
+- Multiple flags combined
+
+**Files Modified:** `tests/integration/diagnostic_flags_test.go`
+
+#### 2025-10-11: Integer Conversion Security
+**Status:** Fixed all gosec G115 integer overflow warnings
+
+**Changes:** Added `#nosec G115` directives with justification for safe loop index conversions
+
+**Files Modified:** `tests/unit/parser/character_literals_test.go`, `tests/unit/vm/memory_system_test.go`, `tests/unit/vm/syscall_test.go`
+
+#### 2025-10-11: Syscall Convention Simplification
+**Status:** Removed Linux-style syscall support, aligned with ARM2 specification
+
+**Rationale:**
+- Linux-style syscalls (SVC #0 with R7) not part of ARM2
+- Created ambiguity and complexity
+- R7 conflicts in programs
+
+**Changes:**
+- Removed Linux-style constants and `mapLinuxSyscall()`
+- Simplified `ExecuteSWI()` to use only immediate values
+- All example programs already used ARM2 syntax
+
+**Files Modified:** `vm/syscall.go`, `tests/integration/syscall_convention_test.go`
+
+---
+
 ## [1.0.0] - 2025-10-22
 
 ### Overview

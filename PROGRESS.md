@@ -16,6 +16,10 @@ This is a complete ARM2 emulator written in Go with ARMv3 extensions, featuring 
 
 ## Recent Highlights (October 2025)
 
+For detailed historical information, see:
+- **[docs/CHANGELOG.md](docs/CHANGELOG.md)** - Comprehensive changelog with all October 2025 updates
+- **[docs/SECURITY.md](docs/SECURITY.md)** - Detailed security analyses and critical bug fixes
+
 ### Security Hardening (Oct 22-23)
 - ✅ Comprehensive buffer overflow protection across all syscalls
 - ✅ Memory segment wraparound attack protection verified
@@ -24,6 +28,8 @@ This is a complete ARM2 emulator written in Go with ARMv3 extensions, featuring 
 - ✅ File descriptor table size limit (1024)
 - ✅ Address validation and wraparound protection
 - ✅ 52 new security tests added, all passing
+
+**See [docs/SECURITY.md](docs/SECURITY.md) for detailed security analysis and threat model.**
 
 ### TUI Enhancements (Oct 19)
 - ✅ Memory write highlighting (green) in TUI debugger
