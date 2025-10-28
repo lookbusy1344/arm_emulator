@@ -412,3 +412,163 @@ main:
 		}
 	}
 }
+
+func TestDebuggerService_GetStack_EdgeCases(t *testing.T) {
+	machine := vm.NewVM()
+	machine.InitializeStack(0x0004FFF0)
+	svc := service.NewDebuggerService(machine)
+
+	program := `
+.org 0x8000
+main:
+    MOV R0, #42
+    SWI #0x00
+`
+	p := parser.NewParser(program, "test.s")
+	parsed, err := p.Parse()
+	if err != nil {
+		t.Fatalf("Failed to parse program: %v", err)
+	}
+
+	err = svc.LoadProgram(parsed, 0x8000)
+	if err != nil {
+		t.Fatalf("Failed to load program: %v", err)
+	}
+
+	tests := []struct {
+		name        string
+		offset      int
+		count       int
+		expectedLen int
+		description string
+	}{
+		{
+			name:        "large_positive_offset",
+			offset:      100001,
+			count:       10,
+			expectedLen: 0,
+			description: "offset > 100000 should return empty (wraparound protection)",
+		},
+		{
+			name:        "large_negative_offset",
+			offset:      -100001,
+			count:       10,
+			expectedLen: 0,
+			description: "offset < -100000 should return empty (wraparound protection)",
+		},
+		{
+			name:        "offset_zero_count_zero",
+			offset:      0,
+			count:       0,
+			expectedLen: 0,
+			description: "count=0 should return empty",
+		},
+		{
+			name:        "count_exceeds_max",
+			offset:      0,
+			count:       1001,
+			expectedLen: 0,
+			description: "count > 1000 should return empty",
+		},
+		{
+			name:        "negative_count",
+			offset:      0,
+			count:       -1,
+			expectedLen: 0,
+			description: "negative count should return empty",
+		},
+		{
+			name:        "max_valid_offset_positive",
+			offset:      100000,
+			count:       1,
+			expectedLen: 0,
+			description: "offset=100000 should be accepted but likely fail on memory read",
+		},
+		{
+			name:        "max_valid_offset_negative",
+			offset:      -100000,
+			count:       1,
+			expectedLen: 0,
+			description: "offset=-100000 should be accepted but likely fail on memory read",
+		},
+		{
+			name:        "valid_offset_and_count",
+			offset:      0,
+			count:       1,
+			expectedLen: 1,
+			description: "valid offset=0, count=1 should work",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			stack := svc.GetStack(tt.offset, tt.count)
+			if len(stack) != tt.expectedLen {
+				t.Errorf("%s: expected %d entries, got %d", tt.description, tt.expectedLen, len(stack))
+			}
+		})
+	}
+}
+
+func TestDebuggerService_GetStack_IntegerOverflow(t *testing.T) {
+	machine := vm.NewVM()
+	// Set SP near the top of address space to test wraparound
+	machine.CPU.R[13] = 0xFFFFFFF0
+	svc := service.NewDebuggerService(machine)
+
+	program := `
+.org 0x8000
+main:
+    MOV R0, #42
+    SWI #0x00
+`
+	p := parser.NewParser(program, "test.s")
+	parsed, err := p.Parse()
+	if err != nil {
+		t.Fatalf("Failed to parse program: %v", err)
+	}
+
+	err = svc.LoadProgram(parsed, 0x8000)
+	if err != nil {
+		t.Fatalf("Failed to load program: %v", err)
+	}
+
+	tests := []struct {
+		name        string
+		offset      int
+		count       int
+		expectedLen int
+		description string
+	}{
+		{
+			name:        "wraparound_positive_offset",
+			offset:      100,
+			count:       10,
+			expectedLen: 0,
+			description: "SP=0xFFFFFFF0 + offset=400 should wraparound and return empty",
+		},
+		{
+			name:        "wraparound_negative_offset_large_sp",
+			offset:      -1073741824, // This would cause wraparound with SP near top
+			count:       10,
+			expectedLen: 0,
+			description: "Large negative offset with high SP should be rejected",
+		},
+		{
+			name:        "small_positive_offset_near_max",
+			offset:      1,
+			count:       1,
+			expectedLen: 0,
+			description: "SP near max + small offset should wraparound and return empty or fail on read",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			stack := svc.GetStack(tt.offset, tt.count)
+			if len(stack) != tt.expectedLen {
+				t.Errorf("%s: expected %d entries, got %d", tt.description, tt.expectedLen, len(stack))
+			}
+		})
+	}
+}

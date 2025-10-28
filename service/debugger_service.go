@@ -402,13 +402,27 @@ func (s *DebuggerService) GetDisassembly(startAddr uint32, count int) []Disassem
 	return lines
 }
 
-// GetStack returns stack contents from SP+offset
+// GetStack returns stack contents from SP+offset.
+// Returns an empty slice if inputs are invalid or memory reads fail.
+//
+// Parameters:
+//   - offset: stack offset in words (multiplied by 4 for byte offset).
+//     Must be in range [-100000, 100000] to prevent wraparound attacks.
+//   - count: number of stack entries to read. Must be positive and <= 1000.
+//
+// The function performs safe arithmetic with overflow detection to prevent
+// integer wraparound vulnerabilities.
 func (s *DebuggerService) GetStack(offset int, count int) []StackEntry {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
 	// Validate inputs
 	if count <= 0 || count > 1000 {
+		return []StackEntry{}
+	}
+
+	// Validate offset to prevent wraparound attacks
+	if offset < -100000 || offset > 100000 {
 		return []StackEntry{}
 	}
 
@@ -419,11 +433,29 @@ func (s *DebuggerService) GetStack(offset int, count int) []StackEntry {
 	entries := make([]StackEntry, 0, count)
 	sp := s.vm.CPU.R[13] // R13 is SP
 
-	// Calculate starting address
-	startAddr := sp + uint32(offset*4)
+	// Safe calculation with overflow check
+	offsetBytes := int64(offset) * 4
+	newAddr := int64(sp) + offsetBytes
+
+	// Check for wraparound
+	if newAddr < 0 || newAddr > 0xFFFFFFFF {
+		return []StackEntry{}
+	}
+
+	startAddr := uint32(newAddr)
 
 	for i := 0; i < count; i++ {
-		addr := startAddr + uint32(i*4)
+		// Safe calculation with overflow check for loop iteration
+		addrOffset := int64(i) * 4
+		nextAddr := int64(startAddr) + addrOffset
+
+		// Check for wraparound during iteration
+		if nextAddr < 0 || nextAddr > 0xFFFFFFFF {
+			// Address wrapped around - return what we have so far
+			break
+		}
+
+		addr := uint32(nextAddr)
 
 		// Read value from memory
 		value, err := s.vm.Memory.ReadWord(addr)
