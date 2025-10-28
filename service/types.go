@@ -20,8 +20,9 @@ type CPSRState struct {
 
 // BreakpointInfo represents a breakpoint for UI display
 type BreakpointInfo struct {
-	Address uint32
-	Enabled bool
+	Address   uint32 `json:"address"`
+	Enabled   bool   `json:"enabled"`
+	Condition string `json:"condition"` // Expression that must evaluate to true
 }
 
 // WatchpointInfo represents a watchpoint for UI display
@@ -62,4 +63,18 @@ func VMStateToExecution(state vm.ExecutionState) ExecutionState {
 	default:
 		return StateHalted
 	}
+}
+
+// DisassemblyLine represents a single disassembled instruction
+type DisassemblyLine struct {
+	Address uint32 `json:"address"`
+	Opcode  uint32 `json:"opcode"`
+	Symbol  string `json:"symbol"` // Symbol at this address, if any
+}
+
+// StackEntry represents a single stack location
+type StackEntry struct {
+	Address uint32 `json:"address"`
+	Value   uint32 `json:"value"`
+	Symbol  string `json:"symbol"` // If value points to a symbol
 }
