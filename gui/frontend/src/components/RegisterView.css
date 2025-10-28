@@ -1,0 +1,102 @@
+.register-view {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 13px;
+  padding: 12px;
+  background: #1e1e1e;
+  color: #d4d4d4;
+  height: 100%;
+  overflow-y: auto;
+}
+
+.register-view-title {
+  font-size: 14px;
+  font-weight: 600;
+  margin: 0 0 12px 0;
+  color: #569cd6;
+}
+
+.register-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 16px;
+}
+
+.register-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 8px;
+  border-radius: 3px;
+  transition: background-color 0.2s;
+}
+
+.register-row:hover {
+  background: #2d2d2d;
+}
+
+.register-changed {
+  background: #3a2d1a !important;
+  animation: highlight-pulse 0.5s ease-out;
+}
+
+@keyframes highlight-pulse {
+  0% { background: #6b5a2d; }
+  100% { background: #3a2d1a; }
+}
+
+.register-name {
+  width: 32px;
+  font-weight: 600;
+  color: #9cdcfe;
+}
+
+.register-value {
+  font-weight: 500;
+  color: #b5cea8;
+  flex: 1;
+}
+
+.register-decimal {
+  color: #808080;
+  font-size: 11px;
+}
+
+.cpsr-section {
+  margin-bottom: 16px;
+  padding-top: 12px;
+  border-top: 1px solid #3e3e3e;
+}
+
+.cpsr-title {
+  font-size: 13px;
+  font-weight: 600;
+  margin: 0 0 8px 0;
+  color: #569cd6;
+}
+
+.cpsr-flags {
+  display: flex;
+  gap: 12px;
+}
+
+.flag {
+  padding: 4px 8px;
+  border-radius: 3px;
+  font-weight: 600;
+}
+
+.flag-set {
+  background: #1e4d1e;
+  color: #4ec94e;
+}
+
+.flag-clear {
+  background: #2d2d2d;
+  color: #808080;
+}
+
+.special-registers {
+  padding-top: 12px;
+  border-top: 1px solid #3e3e3e;
+}
