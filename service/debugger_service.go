@@ -13,13 +13,13 @@ import (
 // DebuggerService provides a thread-safe interface to debugger functionality
 // This service is shared by TUI, GUI, and CLI interfaces
 type DebuggerService struct {
-	mu          sync.RWMutex
-	vm          *vm.VM
-	debugger    *debugger.Debugger
-	symbols     map[string]uint32
-	sourceMap   map[uint32]string
-	program     *parser.Program
-	entryPoint  uint32
+	mu         sync.RWMutex
+	vm         *vm.VM
+	debugger   *debugger.Debugger
+	symbols    map[string]uint32
+	sourceMap  map[uint32]string
+	program    *parser.Program
+	entryPoint uint32
 }
 
 // NewDebuggerService creates a new debugger service
@@ -248,6 +248,20 @@ func (s *DebuggerService) GetSourceLine(address uint32) string {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	return s.sourceMap[address]
+}
+
+// GetSourceMap returns the complete source map (address -> source line)
+func (s *DebuggerService) GetSourceMap() map[uint32]string {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	// Return copy of source map to prevent external modification
+	sourceMap := make(map[uint32]string, len(s.sourceMap))
+	for addr, line := range s.sourceMap {
+		sourceMap[addr] = line
+	}
+
+	return sourceMap
 }
 
 // GetSymbols returns all symbols

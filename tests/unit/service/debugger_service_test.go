@@ -44,3 +44,45 @@ func TestDebuggerService_LoadProgram(t *testing.T) {
 		t.Errorf("expected PC=0x8000, got 0x%08X", machine.CPU.PC)
 	}
 }
+
+func TestDebuggerService_GetSourceMap(t *testing.T) {
+	// Create service with VM
+	machine := vm.NewVM()
+	machine.InitializeStack(0x30001000)
+	svc := service.NewDebuggerService(machine)
+
+	// Load a simple program
+	program := `
+.org 0x8000
+main:
+    MOV R0, #42
+    SWI #0x00
+`
+	p := parser.NewParser(program, "test.s")
+	parsed, err := p.Parse()
+	if err != nil {
+		t.Fatalf("Failed to parse program: %v", err)
+	}
+
+	err = svc.LoadProgram(parsed, 0x8000)
+	if err != nil {
+		t.Fatalf("Failed to load program: %v", err)
+	}
+
+	// Get source map
+	sourceMap := svc.GetSourceMap()
+
+	// Should have entries for the instructions
+	if len(sourceMap) == 0 {
+		t.Error("Expected non-empty source map")
+	}
+
+	// Check that main label exists at 0x8000
+	if source, ok := sourceMap[0x00008000]; ok {
+		if source != "    MOV R0, #42" {
+			t.Errorf("Expected '    MOV R0, #42', got '%s'", source)
+		}
+	} else {
+		t.Error("Expected source line at address 0x00008000")
+	}
+}
