@@ -1,0 +1,251 @@
+package service
+
+import (
+	"fmt"
+	"sync"
+
+	"github.com/lookbusy1344/arm-emulator/debugger"
+	"github.com/lookbusy1344/arm-emulator/encoder"
+	"github.com/lookbusy1344/arm-emulator/parser"
+	"github.com/lookbusy1344/arm-emulator/vm"
+)
+
+// DebuggerService provides a thread-safe interface to debugger functionality
+// This service is shared by TUI, GUI, and CLI interfaces
+type DebuggerService struct {
+	mu          sync.RWMutex
+	vm          *vm.VM
+	debugger    *debugger.Debugger
+	symbols     map[string]uint32
+	sourceMap   map[uint32]string
+	program     *parser.Program
+	entryPoint  uint32
+}
+
+// NewDebuggerService creates a new debugger service
+func NewDebuggerService(machine *vm.VM) *DebuggerService {
+	return &DebuggerService{
+		vm:        machine,
+		debugger:  debugger.NewDebugger(machine),
+		symbols:   make(map[string]uint32),
+		sourceMap: make(map[uint32]string),
+	}
+}
+
+// GetVM returns the underlying VM (for testing)
+func (s *DebuggerService) GetVM() *vm.VM {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	return s.vm
+}
+
+// LoadProgram loads and initializes a parsed program
+func (s *DebuggerService) LoadProgram(program *parser.Program, entryPoint uint32) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	s.program = program
+	s.entryPoint = entryPoint
+
+	// Extract symbols
+	s.symbols = make(map[string]uint32)
+	for name, symbol := range program.SymbolTable.GetAllSymbols() {
+		if symbol.Type == parser.SymbolLabel {
+			s.symbols[name] = symbol.Value
+		}
+	}
+
+	// Build source map
+	s.sourceMap = make(map[uint32]string)
+	for _, inst := range program.Instructions {
+		s.sourceMap[inst.Address] = inst.RawLine
+	}
+	for _, dir := range program.Directives {
+		if dir.Name == ".word" || dir.Name == ".byte" || dir.Name == ".ascii" ||
+			dir.Name == ".asciz" || dir.Name == ".space" {
+			s.sourceMap[dir.Address] = "[DATA]" + dir.RawLine
+		}
+	}
+
+	// Load into debugger
+	s.debugger.LoadSymbols(s.symbols)
+	s.debugger.LoadSourceMap(s.sourceMap)
+
+	// Load into VM memory (simplified version of main.go logic)
+	return s.loadProgramIntoVM(program, entryPoint)
+}
+
+// loadProgramIntoVM is a simplified version of main.go's loadProgramIntoVM
+func (s *DebuggerService) loadProgramIntoVM(program *parser.Program, entryPoint uint32) error {
+	// Create low memory segment if needed
+	if entryPoint < vm.CodeSegmentStart {
+		segmentSize := uint32(vm.CodeSegmentStart)
+		s.vm.Memory.AddSegment("low-memory", 0, segmentSize, vm.PermRead|vm.PermWrite|vm.PermExecute)
+	}
+
+	// Create encoder
+	enc := encoder.NewEncoder(program.SymbolTable)
+	enc.LiteralPoolLocs = append([]uint32(nil), program.LiteralPoolLocs...)
+	enc.LiteralPoolCounts = append([]int(nil), program.LiteralPoolCounts...)
+
+	// Build address map
+	addressMap := make(map[*parser.Instruction]uint32)
+	maxAddr := entryPoint
+	for _, inst := range program.Instructions {
+		addressMap[inst] = inst.Address
+		instEnd := inst.Address + 4
+		if instEnd > maxAddr {
+			maxAddr = instEnd
+		}
+	}
+
+	// Set literal pool start
+	literalPoolStart := (maxAddr + 3) & ^uint32(3)
+	enc.LiteralPoolStart = literalPoolStart
+
+	// Encode and write instructions
+	for _, inst := range program.Instructions {
+		addr := addressMap[inst]
+		opcode, err := enc.EncodeInstruction(inst, addr)
+		if err != nil {
+			return fmt.Errorf("encode error at 0x%08X: %w", addr, err)
+		}
+		if err := s.vm.Memory.WriteWordUnsafe(addr, opcode); err != nil {
+			return fmt.Errorf("write error at 0x%08X: %w", addr, err)
+		}
+	}
+
+	// Write literal pool
+	for addr, value := range enc.LiteralPool {
+		if err := s.vm.Memory.WriteWordUnsafe(addr, value); err != nil {
+			return fmt.Errorf("literal write error at 0x%08X: %w", addr, err)
+		}
+	}
+
+	// Set PC
+	s.vm.CPU.PC = entryPoint
+	s.vm.EntryPoint = entryPoint
+
+	return nil
+}
+
+// GetRegisterState returns current register state (thread-safe)
+func (s *DebuggerService) GetRegisterState() RegisterState {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	// Build 16-register array: R0-R14 + PC at R15
+	var regs [16]uint32
+	copy(regs[:15], s.vm.CPU.R[:])
+	regs[15] = s.vm.CPU.PC
+
+	return RegisterState{
+		Registers: regs,
+		CPSR: CPSRState{
+			N: s.vm.CPU.CPSR.N,
+			Z: s.vm.CPU.CPSR.Z,
+			C: s.vm.CPU.CPSR.C,
+			V: s.vm.CPU.CPSR.V,
+		},
+		PC:     s.vm.CPU.PC,
+		Cycles: s.vm.CPU.Cycles,
+	}
+}
+
+// Step executes a single instruction
+func (s *DebuggerService) Step() error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.vm.Step()
+}
+
+// Continue runs until breakpoint or halt
+func (s *DebuggerService) Continue() error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	s.debugger.Running = true
+	s.debugger.StepMode = debugger.StepNone
+
+	return nil
+}
+
+// Pause pauses execution
+func (s *DebuggerService) Pause() {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.debugger.Running = false
+}
+
+// Reset resets VM to entry point
+func (s *DebuggerService) Reset() error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	s.vm.CPU.PC = s.entryPoint
+	s.vm.State = vm.StateHalted
+	s.debugger.Running = false
+
+	return nil
+}
+
+// GetExecutionState returns current execution state
+func (s *DebuggerService) GetExecutionState() ExecutionState {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	return VMStateToExecution(s.vm.State)
+}
+
+// AddBreakpoint adds a breakpoint at the specified address
+func (s *DebuggerService) AddBreakpoint(address uint32) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.debugger.Breakpoints.AddBreakpoint(address, false, "")
+	return nil
+}
+
+// RemoveBreakpoint removes a breakpoint
+func (s *DebuggerService) RemoveBreakpoint(address uint32) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.debugger.Breakpoints.DeleteBreakpointAt(address)
+}
+
+// GetBreakpoints returns all breakpoints
+func (s *DebuggerService) GetBreakpoints() []BreakpointInfo {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	bps := s.debugger.Breakpoints.GetAllBreakpoints()
+	result := make([]BreakpointInfo, len(bps))
+	for i, bp := range bps {
+		result[i] = BreakpointInfo{
+			Address: bp.Address,
+			Enabled: bp.Enabled,
+		}
+	}
+	return result
+}
+
+// GetMemory returns memory contents for a region
+func (s *DebuggerService) GetMemory(address uint32, size uint32) ([]byte, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	data := make([]byte, size)
+	for i := uint32(0); i < size; i++ {
+		b, err := s.vm.Memory.ReadByteAt(address + i)
+		if err != nil {
+			return nil, err
+		}
+		data[i] = b
+	}
+	return data, nil
+}
+
+// GetSourceLine returns the source line for an address
+func (s *DebuggerService) GetSourceLine(address uint32) string {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	return s.sourceMap[address]
+}
