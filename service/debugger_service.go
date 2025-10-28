@@ -352,10 +352,24 @@ func (s *DebuggerService) GetExitCode() int32 {
 	return s.vm.ExitCode
 }
 
-// GetDisassembly returns disassembled instructions starting at address
+// GetDisassembly returns disassembled instructions starting at address.
+// Returns an empty slice if inputs are invalid or memory reads fail.
+// Truncates the result if memory errors occur before count is reached.
+//
+// Parameters:
+//   - startAddr: must be 4-byte aligned (ARM requirement)
+//   - count: must be positive and <= 1000
 func (s *DebuggerService) GetDisassembly(startAddr uint32, count int) []DisassemblyLine {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
+
+	// Validate inputs
+	if count <= 0 || count > 1000 {
+		return []DisassemblyLine{}
+	}
+	if startAddr&0x3 != 0 { // Check 4-byte alignment
+		return []DisassemblyLine{}
+	}
 
 	if s.vm == nil {
 		return []DisassemblyLine{}
@@ -368,6 +382,7 @@ func (s *DebuggerService) GetDisassembly(startAddr uint32, count int) []Disassem
 		// Read instruction from memory
 		opcode, err := s.vm.Memory.ReadWord(addr)
 		if err != nil {
+			// Memory read error - return what we have so far (truncated result)
 			break
 		}
 

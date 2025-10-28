@@ -249,3 +249,110 @@ main:
 		t.Errorf("Expected 0 lines from invalid address, got %d", len(lines))
 	}
 }
+
+func TestDebuggerService_GetDisassembly_EdgeCases(t *testing.T) {
+	machine := vm.NewVM()
+	machine.InitializeStack(0x30001000)
+	svc := service.NewDebuggerService(machine)
+
+	program := `
+.org 0x8000
+main:
+    MOV R0, #42
+    MOV R1, #10
+    SWI #0x00
+`
+	p := parser.NewParser(program, "test.s")
+	parsed, err := p.Parse()
+	if err != nil {
+		t.Fatalf("Failed to parse program: %v", err)
+	}
+
+	err = svc.LoadProgram(parsed, 0x8000)
+	if err != nil {
+		t.Fatalf("Failed to load program: %v", err)
+	}
+
+	tests := []struct {
+		name        string
+		address     uint32
+		count       int
+		expectedLen int
+		description string
+	}{
+		{
+			name:        "count_zero",
+			address:     0x00008000,
+			count:       0,
+			expectedLen: 0,
+			description: "count=0 should return empty slice",
+		},
+		{
+			name:        "count_one",
+			address:     0x00008000,
+			count:       1,
+			expectedLen: 1,
+			description: "count=1 should return 1 line",
+		},
+		{
+			name:        "negative_count",
+			address:     0x00008000,
+			count:       -1,
+			expectedLen: 0,
+			description: "negative count should return empty slice",
+		},
+		{
+			name:        "count_exceeds_max",
+			address:     0x00008000,
+			count:       1001,
+			expectedLen: 0,
+			description: "count > 1000 should return empty slice",
+		},
+		{
+			name:        "misaligned_address_plus_1",
+			address:     0x00008001,
+			count:       5,
+			expectedLen: 0,
+			description: "misaligned address (addr+1) should return empty slice",
+		},
+		{
+			name:        "misaligned_address_plus_2",
+			address:     0x00008002,
+			count:       5,
+			expectedLen: 0,
+			description: "misaligned address (addr+2) should return empty slice",
+		},
+		{
+			name:        "misaligned_address_plus_3",
+			address:     0x00008003,
+			count:       5,
+			expectedLen: 0,
+			description: "misaligned address (addr+3) should return empty slice",
+		},
+		{
+			name:        "aligned_address_valid",
+			address:     0x00008000,
+			count:       2,
+			expectedLen: 2,
+			description: "properly aligned address should work",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			lines := svc.GetDisassembly(tt.address, tt.count)
+			if len(lines) != tt.expectedLen {
+				t.Errorf("%s: expected %d lines, got %d", tt.description, tt.expectedLen, len(lines))
+			}
+
+			// For valid cases, verify opcodes are non-zero
+			if tt.expectedLen > 0 && len(lines) > 0 {
+				for i, line := range lines {
+					if line.Opcode == 0 {
+						t.Errorf("Line %d has zero opcode", i)
+					}
+				}
+			}
+		})
+	}
+}
