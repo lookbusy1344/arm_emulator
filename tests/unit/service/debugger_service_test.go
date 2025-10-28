@@ -86,3 +86,46 @@ main:
 		t.Error("Expected source line at address 0x00008000")
 	}
 }
+
+func TestDebuggerService_GetSourceMap_DefensiveCopy(t *testing.T) {
+	// Create service with VM
+	machine := vm.NewVM()
+	machine.InitializeStack(0x30001000)
+	svc := service.NewDebuggerService(machine)
+
+	// Load a simple program
+	program := `
+.org 0x8000
+main:
+    MOV R0, #42
+    SWI #0x00
+`
+	p := parser.NewParser(program, "test.s")
+	parsed, err := p.Parse()
+	if err != nil {
+		t.Fatalf("Failed to parse program: %v", err)
+	}
+
+	err = svc.LoadProgram(parsed, 0x8000)
+	if err != nil {
+		t.Fatalf("Failed to load program: %v", err)
+	}
+
+	// Get source map and store original value
+	sourceMap := svc.GetSourceMap()
+	originalLine := sourceMap[0x00008000]
+
+	// Modify the returned map
+	sourceMap[0x00008000] = "MODIFIED LINE"
+	sourceMap[0x00009999] = "NEW ENTRY"
+
+	// Get source map again and verify it's unchanged
+	sourceMap2 := svc.GetSourceMap()
+	if sourceMap2[0x00008000] != originalLine {
+		t.Errorf("Source map was modified externally - defensive copy failed. Expected '%s', got '%s'",
+			originalLine, sourceMap2[0x00008000])
+	}
+	if _, exists := sourceMap2[0x00009999]; exists {
+		t.Error("New entry added to external map affected internal state - defensive copy failed")
+	}
+}
