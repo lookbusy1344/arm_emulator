@@ -401,3 +401,59 @@ func (s *DebuggerService) GetDisassembly(startAddr uint32, count int) []Disassem
 
 	return lines
 }
+
+// GetStack returns stack contents from SP+offset
+func (s *DebuggerService) GetStack(offset int, count int) []StackEntry {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	// Validate inputs
+	if count <= 0 || count > 1000 {
+		return []StackEntry{}
+	}
+
+	if s.vm == nil {
+		return []StackEntry{}
+	}
+
+	entries := make([]StackEntry, 0, count)
+	sp := s.vm.CPU.R[13] // R13 is SP
+
+	// Calculate starting address
+	startAddr := sp + uint32(offset*4)
+
+	for i := 0; i < count; i++ {
+		addr := startAddr + uint32(i*4)
+
+		// Read value from memory
+		value, err := s.vm.Memory.ReadWord(addr)
+		if err != nil {
+			// Memory read error - return what we have so far (truncated result)
+			break
+		}
+
+		// Check if value points to a symbol
+		symbol := s.getSymbolForAddressUnsafe(value)
+
+		entry := StackEntry{
+			Address: addr,
+			Value:   value,
+			Symbol:  symbol,
+		}
+
+		entries = append(entries, entry)
+	}
+
+	return entries
+}
+
+// getSymbolForAddressUnsafe is the internal version without locking
+func (s *DebuggerService) getSymbolForAddressUnsafe(addr uint32) string {
+	// Check if there's a symbol at this address
+	for name, symbolAddr := range s.symbols {
+		if symbolAddr == addr {
+			return name
+		}
+	}
+	return ""
+}

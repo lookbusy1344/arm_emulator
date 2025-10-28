@@ -356,3 +356,59 @@ main:
 		})
 	}
 }
+
+func TestDebuggerService_GetStack(t *testing.T) {
+	machine := vm.NewVM()
+	// Use stack within valid range (0x00040000-0x0004FFFF, stack grows down)
+	machine.InitializeStack(0x0004FFF0)
+	svc := service.NewDebuggerService(machine)
+
+	program := `
+.org 0x8000
+main:
+    MOV R0, #0x12
+    MOV R2, SP
+    STR R0, [R2]
+    MOV R1, #0x56
+    STR R1, [R2, #4]
+    SWI #0x00
+`
+	p := parser.NewParser(program, "test.s")
+	parsed, err := p.Parse()
+	if err != nil {
+		t.Fatalf("Failed to parse program: %v", err)
+	}
+
+	err = svc.LoadProgram(parsed, 0x8000)
+	if err != nil {
+		t.Fatalf("Failed to load program: %v", err)
+	}
+
+	// Execute until we've stored values (5 instructions)
+	for i := 0; i < 5; i++ {
+		svc.Step()
+	}
+
+	// Get stack contents
+	stack := svc.GetStack(0, 4)
+
+	if len(stack) == 0 {
+		t.Error("Expected non-empty stack")
+	}
+
+	// Stack should contain stored values
+	foundValue := false
+	for _, entry := range stack {
+		if entry.Value == 0x56 || entry.Value == 0x12 {
+			foundValue = true
+			break
+		}
+	}
+
+	if !foundValue {
+		t.Errorf("Expected to find pushed values on stack, got %d entries", len(stack))
+		for i, entry := range stack {
+			t.Logf("Stack[%d]: Addr=0x%08X Value=0x%08X Symbol=%s", i, entry.Address, entry.Value, entry.Symbol)
+		}
+	}
+}
