@@ -9,14 +9,18 @@ const mockGo = {
       GetRegisters: vi.fn(),
       Step: vi.fn(),
       Continue: vi.fn(),
+      Pause: vi.fn(),
+      Reset: vi.fn(),
+      AddBreakpoint: vi.fn(),
+      RemoveBreakpoint: vi.fn(),
+      GetBreakpoints: vi.fn(),
+      GetMemory: vi.fn(),
+      GetSourceLine: vi.fn(),
+      GetSymbols: vi.fn(),
+      GetExecutionState: vi.fn(),
+      IsRunning: vi.fn(),
     },
   },
-}
-
-declare global {
-  interface Window {
-    go: typeof mockGo
-  }
 }
 
 beforeEach(() => {
