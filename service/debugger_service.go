@@ -277,6 +277,21 @@ func (s *DebuggerService) GetSymbols() map[string]uint32 {
 	return symbols
 }
 
+// GetSymbolForAddress resolves an address to a symbol name
+func (s *DebuggerService) GetSymbolForAddress(addr uint32) string {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	// Check if there's a symbol at this address
+	for name, symbolAddr := range s.symbols {
+		if symbolAddr == addr {
+			return name
+		}
+	}
+
+	return ""
+}
+
 // RunUntilHalt runs program until halt or breakpoint
 func (s *DebuggerService) RunUntilHalt() error {
 	s.mu.Lock()

@@ -129,3 +129,46 @@ main:
 		t.Error("New entry added to external map affected internal state - defensive copy failed")
 	}
 }
+
+func TestDebuggerService_GetSymbolForAddress(t *testing.T) {
+	machine := vm.NewVM()
+	machine.InitializeStack(0x30001000)
+	svc := service.NewDebuggerService(machine)
+
+	program := `
+.org 0x8000
+main:
+    MOV R0, #1
+loop:
+    ADD R0, R0, #1
+    B loop
+`
+	p := parser.NewParser(program, "test.s")
+	parsed, err := p.Parse()
+	if err != nil {
+		t.Fatalf("Failed to parse program: %v", err)
+	}
+
+	err = svc.LoadProgram(parsed, 0x8000)
+	if err != nil {
+		t.Fatalf("Failed to load program: %v", err)
+	}
+
+	// Get symbol for main (should be at 0x8000)
+	symbol := svc.GetSymbolForAddress(0x00008000)
+	if symbol != "main" {
+		t.Errorf("Expected symbol 'main', got '%s'", symbol)
+	}
+
+	// Get symbol for loop (should be at 0x8004)
+	symbol = svc.GetSymbolForAddress(0x00008004)
+	if symbol != "loop" {
+		t.Errorf("Expected symbol 'loop', got '%s'", symbol)
+	}
+
+	// Get symbol for address without label
+	symbol = svc.GetSymbolForAddress(0x00008008)
+	if symbol != "" {
+		t.Errorf("Expected empty string, got '%s'", symbol)
+	}
+}
