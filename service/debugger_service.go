@@ -250,6 +250,19 @@ func (s *DebuggerService) GetSourceLine(address uint32) string {
 	return s.sourceMap[address]
 }
 
+// GetSymbols returns all symbols
+func (s *DebuggerService) GetSymbols() map[string]uint32 {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	// Return a copy to prevent external modification
+	symbols := make(map[string]uint32, len(s.symbols))
+	for k, v := range s.symbols {
+		symbols[k] = v
+	}
+	return symbols
+}
+
 // RunUntilHalt runs program until halt or breakpoint
 func (s *DebuggerService) RunUntilHalt() error {
 	s.mu.Lock()
