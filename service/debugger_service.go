@@ -351,3 +351,38 @@ func (s *DebuggerService) GetExitCode() int32 {
 	defer s.mu.RUnlock()
 	return s.vm.ExitCode
 }
+
+// GetDisassembly returns disassembled instructions starting at address
+func (s *DebuggerService) GetDisassembly(startAddr uint32, count int) []DisassemblyLine {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	if s.vm == nil {
+		return []DisassemblyLine{}
+	}
+
+	lines := make([]DisassemblyLine, 0, count)
+	addr := startAddr
+
+	for i := 0; i < count; i++ {
+		// Read instruction from memory
+		opcode, err := s.vm.Memory.ReadWord(addr)
+		if err != nil {
+			break
+		}
+
+		// Get symbol at this address if any
+		symbol := s.GetSymbolForAddress(addr)
+
+		line := DisassemblyLine{
+			Address: addr,
+			Opcode:  opcode,
+			Symbol:  symbol,
+		}
+
+		lines = append(lines, line)
+		addr += 4 // ARM instructions are 4 bytes
+	}
+
+	return lines
+}

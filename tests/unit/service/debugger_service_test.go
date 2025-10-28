@@ -172,3 +172,80 @@ loop:
 		t.Errorf("Expected empty string, got '%s'", symbol)
 	}
 }
+
+func TestDebuggerService_GetDisassembly(t *testing.T) {
+	machine := vm.NewVM()
+	machine.InitializeStack(0x30001000)
+	svc := service.NewDebuggerService(machine)
+
+	program := `
+.org 0x8000
+main:
+    MOV R0, #42
+    MOV R1, #10
+    ADD R2, R0, R1
+    SWI #0x00
+`
+	p := parser.NewParser(program, "test.s")
+	parsed, err := p.Parse()
+	if err != nil {
+		t.Fatalf("Failed to parse program: %v", err)
+	}
+
+	err = svc.LoadProgram(parsed, 0x8000)
+	if err != nil {
+		t.Fatalf("Failed to load program: %v", err)
+	}
+
+	// Get disassembly starting at main
+	lines := svc.GetDisassembly(0x00008000, 3)
+
+	if len(lines) != 3 {
+		t.Errorf("Expected 3 disassembly lines, got %d", len(lines))
+	}
+
+	// Check first line is at main
+	if lines[0].Address != 0x00008000 {
+		t.Errorf("Expected address 0x00008000, got 0x%08X", lines[0].Address)
+	}
+	if lines[0].Symbol != "main" {
+		t.Errorf("Expected symbol 'main', got '%s'", lines[0].Symbol)
+	}
+
+	// Check opcodes are valid (non-zero)
+	for i, line := range lines {
+		if line.Opcode == 0 {
+			t.Errorf("Line %d has zero opcode", i)
+		}
+	}
+}
+
+func TestDebuggerService_GetDisassembly_MemoryError(t *testing.T) {
+	machine := vm.NewVM()
+	machine.InitializeStack(0x30001000)
+	svc := service.NewDebuggerService(machine)
+
+	program := `
+.org 0x8000
+main:
+    MOV R0, #1
+`
+	p := parser.NewParser(program, "test.s")
+	parsed, err := p.Parse()
+	if err != nil {
+		t.Fatalf("Failed to parse program: %v", err)
+	}
+
+	err = svc.LoadProgram(parsed, 0x8000)
+	if err != nil {
+		t.Fatalf("Failed to load program: %v", err)
+	}
+
+	// Try to disassemble from an invalid address (should handle gracefully)
+	lines := svc.GetDisassembly(0x99999000, 5)
+
+	// Should return empty or partial results (graceful handling)
+	if len(lines) > 0 {
+		t.Errorf("Expected 0 lines from invalid address, got %d", len(lines))
+	}
+}
