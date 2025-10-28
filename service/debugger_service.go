@@ -249,3 +249,63 @@ func (s *DebuggerService) GetSourceLine(address uint32) string {
 	defer s.mu.RUnlock()
 	return s.sourceMap[address]
 }
+
+// RunUntilHalt runs program until halt or breakpoint
+func (s *DebuggerService) RunUntilHalt() error {
+	s.mu.Lock()
+	s.debugger.Running = true
+	s.vm.State = vm.StateRunning
+	s.mu.Unlock()
+
+	for {
+		s.mu.Lock()
+		if !s.debugger.Running || s.vm.State != vm.StateRunning {
+			s.mu.Unlock()
+			break
+		}
+
+		// Check breakpoints
+		if shouldBreak, _ := s.debugger.ShouldBreak(); shouldBreak {
+			s.debugger.Running = false
+			s.vm.State = vm.StateBreakpoint
+			s.mu.Unlock()
+			break
+		}
+
+		// Execute step (while holding lock)
+		err := s.vm.Step()
+		halted := s.vm.State == vm.StateHalted
+		s.mu.Unlock()
+
+		// If error but VM is halted, it's normal program termination (SWI #0)
+		if err != nil && !halted {
+			s.mu.Lock()
+			s.debugger.Running = false
+			s.mu.Unlock()
+			return err
+		}
+
+		if halted {
+			s.mu.Lock()
+			s.debugger.Running = false
+			s.mu.Unlock()
+			break
+		}
+	}
+
+	return nil
+}
+
+// IsRunning returns whether execution is in progress
+func (s *DebuggerService) IsRunning() bool {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	return s.debugger.Running
+}
+
+// GetExitCode returns the program exit code
+func (s *DebuggerService) GetExitCode() int32 {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	return s.vm.ExitCode
+}
