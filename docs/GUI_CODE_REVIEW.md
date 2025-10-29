@@ -66,7 +66,7 @@ The GUI implementation demonstrates **solid architectural design** with good sep
 
 **Issues:**
 ```go
-// service/debugger_service.go:163-170
+// service/debugger_service.go (Continue method)
 // Continue() doesn't actually run the VM - just sets flags
 func (s *DebuggerService) Continue() error {
     s.mu.Lock()
@@ -393,7 +393,7 @@ Clean, minimal entry point. Well-configured Wails options.
 
 **Minor Issue:**
 ```go
-// Line 163: Continue() is misleading
+// Continue() method is misleading
 func (s *DebuggerService) Continue() error {
     s.mu.Lock()
     defer s.mu.Unlock()
@@ -448,7 +448,7 @@ Well-structured custom hook. Good separation of concerns.
 
 **Issue:**
 ```typescript
-// Line 125: Empty useEffect dependency array is incorrect
+// useEffect with missing dependencies
 useEffect(() => {
   refreshState()
 }, [])  // Should include refreshState or use useCallback
