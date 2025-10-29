@@ -2,9 +2,9 @@
 
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
 
-**Goal:** Implement complete debugging view parity between TUI and GUI with all missing views (Source, Disassembly, Stack, Breakpoints, Output, Status) plus advanced features (command input, expression evaluation, watchpoints, conditional breakpoints).
+**Goal:** Implement complete debugging view parity between TUI and GUI with all missing views (Source, Disassembly, Memory, Stack, Breakpoints, Output, Status) plus advanced features (command input, expression evaluation, watchpoints, conditional breakpoints). Memory view includes full-featured scrollable hex display with yellow highlighting for recently written bytes, matching TUI functionality.
 
-**Architecture:** Wails event-driven approach with extended service APIs. Backend exposes new APIs for source maps, disassembly, stack access, and symbol resolution. Frontend React components subscribe to Wails events and auto-update on VM state changes. Custom event-emitting writer provides real-time output streaming.
+**Architecture:** Wails event-driven approach with extended service APIs. Backend exposes new APIs for source maps, disassembly, memory data with write tracking, stack access, and symbol resolution. Frontend React components subscribe to Wails events and auto-update on VM state changes. Custom event-emitting writer provides real-time output streaming. Memory write detection uses VM MemoryTrace to track changes.
 
 **Tech Stack:** Go (backend services), Wails runtime (event system), React + TypeScript (frontend), allotment (resizable panels), tcell.SimulationScreen (TUI testing)
 
@@ -1384,6 +1384,11 @@ func (a *App) GetOutput() string {
 	return a.service.GetOutput()
 }
 
+// GetMemoryData returns memory data with write tracking
+func (a *App) GetMemoryData(startAddr uint32, length int) service.MemoryData {
+	return a.service.GetMemoryData(startAddr, length)
+}
+
 // StepOver steps over function calls
 func (a *App) StepOver() error {
 	err := a.service.StepOver()
@@ -2598,6 +2603,7 @@ import { Allotment } from 'allotment';
 import 'allotment/dist/style.css';
 import { SourceView } from './components/SourceView';
 import { DisassemblyView } from './components/DisassemblyView';
+import { MemoryView } from './components/MemoryView';
 import { StackView } from './components/StackView';
 import { OutputView } from './components/OutputView';
 import { StatusView } from './components/StatusView';
@@ -2664,7 +2670,7 @@ function App() {
                   <div className="placeholder-view">Register View (existing)</div>
                 </Allotment.Pane>
                 <Allotment.Pane>
-                  <div className="placeholder-view">Memory View (existing)</div>
+                  <MemoryView />
                 </Allotment.Pane>
                 <Allotment.Pane>
                   <StackView />
@@ -2918,7 +2924,7 @@ git commit -m "feat(gui): connect toolbar buttons to debugger actions"
 
 ---
 
-## Task 21: Create CommandInput Component
+## Task 25: Create CommandInput Component
 
 **Files:**
 - Create: `gui/frontend/src/components/CommandInput.tsx`
@@ -3083,7 +3089,642 @@ git commit -m "feat(gui): add CommandInput component with command history"
 
 ---
 
-## Task 22: Create ExpressionEvaluator Component
+## Task 22: Add Memory Read/Write Tracking API
+
+**Files:**
+- Modify: `service/types.go`
+- Modify: `service/debugger_service.go`
+- Test: `tests/unit/service/debugger_service_test.go`
+
+**Step 1: Add MemoryData type**
+
+Add to `service/types.go`:
+
+```go
+// MemoryData represents a chunk of memory with metadata
+type MemoryData struct {
+	Address      uint32   `json:"address"`       // Start address
+	Data         []byte   `json:"data"`          // Raw bytes
+	RecentWrites []uint32 `json:"recent_writes"` // Addresses written since last step
+}
+```
+
+**Step 2: Write failing test for GetMemoryData**
+
+Add to `tests/unit/service/debugger_service_test.go`:
+
+```go
+func TestDebuggerService_GetMemoryData(t *testing.T) {
+	s := service.NewDebuggerService()
+
+	program := `
+main:
+    MOV R0, #0x10000
+    MOV R1, #0x42
+    STR R1, [R0]
+    SWI #0x00
+`
+	err := s.LoadProgram([]byte(program), []string{})
+	if err != nil {
+		t.Fatalf("Failed to load program: %v", err)
+	}
+
+	// Execute first 3 instructions (STR will write to memory)
+	s.Step() // MOV R0
+	s.Step() // MOV R1
+	s.Step() // STR R1, [R0]
+
+	// Get memory data at 0x10000
+	memData := s.GetMemoryData(0x10000, 256)
+
+	if len(memData.Data) != 256 {
+		t.Errorf("Expected 256 bytes, got %d", len(memData.Data))
+	}
+
+	// Check that write was tracked
+	if len(memData.RecentWrites) == 0 {
+		t.Error("Expected recent writes to be tracked")
+	}
+
+	// Verify write address is in recent writes
+	foundWrite := false
+	for _, addr := range memData.RecentWrites {
+		if addr >= 0x10000 && addr <= 0x10003 {
+			foundWrite = true
+			break
+		}
+	}
+
+	if !foundWrite {
+		t.Error("Expected write at 0x10000 to be in recent writes")
+	}
+}
+```
+
+**Step 3: Run test to verify it fails**
+
+Run: `go clean -testcache && go test ./tests/unit/service -v -run TestDebuggerService_GetMemoryData`
+
+Expected: FAIL with "s.GetMemoryData undefined"
+
+**Step 4: Add memory tracking fields to DebuggerService**
+
+Modify `service/debugger_service.go` - add to struct:
+
+```go
+type DebuggerService struct {
+	debugger            *debugger.Debugger
+	mu                  sync.Mutex
+	outputWriter        *EventEmittingWriter
+	ctx                 context.Context
+	recentWrites        map[uint32]bool // Memory addresses written in last step
+	lastTraceEntryCount int             // Number of trace entries before last step
+}
+```
+
+Update `NewDebuggerService`:
+
+```go
+func NewDebuggerService() *DebuggerService {
+	return &DebuggerService{
+		recentWrites: make(map[uint32]bool),
+	}
+}
+```
+
+**Step 5: Implement GetMemoryData method**
+
+Add to `service/debugger_service.go`:
+
+```go
+// GetMemoryData returns a chunk of memory with recent write tracking
+func (s *DebuggerService) GetMemoryData(startAddr uint32, length int) MemoryData {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	if s.debugger == nil || s.debugger.VM == nil {
+		return MemoryData{
+			Address:      startAddr,
+			Data:         []byte{},
+			RecentWrites: []uint32{},
+		}
+	}
+
+	// Read memory data
+	data := make([]byte, length)
+	for i := 0; i < length; i++ {
+		addr := startAddr + uint32(i)
+		b, err := s.debugger.VM.Memory.ReadByteAt(addr)
+		if err != nil {
+			data[i] = 0
+		} else {
+			data[i] = b
+		}
+	}
+
+	// Collect recent write addresses
+	recentWrites := make([]uint32, 0, len(s.recentWrites))
+	for addr := range s.recentWrites {
+		if addr >= startAddr && addr < startAddr+uint32(length) {
+			recentWrites = append(recentWrites, addr)
+		}
+	}
+
+	return MemoryData{
+		Address:      startAddr,
+		Data:         data,
+		RecentWrites: recentWrites,
+	}
+}
+```
+
+**Step 6: Implement memory write detection**
+
+Add to `service/debugger_service.go`:
+
+```go
+// detectMemoryWrites tracks memory writes from the last step
+func (s *DebuggerService) detectMemoryWrites() {
+	// Clear previous writes
+	s.recentWrites = make(map[uint32]bool)
+
+	// Check memory trace for new writes
+	if s.debugger.VM.MemoryTrace != nil && s.debugger.VM.MemoryTrace.Enabled {
+		entries := s.debugger.VM.MemoryTrace.GetEntries()
+
+		// Only look at new entries since last step
+		for i := s.lastTraceEntryCount; i < len(entries); i++ {
+			if entries[i].Type == "WRITE" {
+				addr := entries[i].Address
+				// Mark 4 bytes (word write)
+				s.recentWrites[addr] = true
+				s.recentWrites[addr+1] = true
+				s.recentWrites[addr+2] = true
+				s.recentWrites[addr+3] = true
+			}
+		}
+
+		s.lastTraceEntryCount = len(entries)
+	}
+}
+```
+
+**Step 7: Call detectMemoryWrites in Step method**
+
+Modify existing `Step` method in `service/debugger_service.go`:
+
+```go
+func (s *DebuggerService) Step() error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	if s.debugger == nil {
+		return fmt.Errorf("no program loaded")
+	}
+
+	err := s.debugger.CmdStep()
+	if err == nil {
+		s.detectMemoryWrites()
+	}
+	return err
+}
+```
+
+**Step 8: Run test to verify it passes**
+
+Run: `go clean -testcache && go test ./tests/unit/service -v -run TestDebuggerService_GetMemoryData`
+
+Expected: PASS
+
+**Step 9: Commit memory tracking API**
+
+```bash
+git add service/types.go service/debugger_service.go tests/unit/service/debugger_service_test.go
+git commit -m "feat(service): add GetMemoryData API with write tracking"
+```
+
+---
+
+## Task 23: Create Advanced MemoryView Component
+
+**Files:**
+- Create: `gui/frontend/src/components/MemoryView.tsx`
+- Create: `gui/frontend/src/components/MemoryView.css`
+
+**Step 1: Create MemoryView component with scrolling and highlighting**
+
+Create `gui/frontend/src/components/MemoryView.tsx`:
+
+```tsx
+import React, { useEffect, useState, useRef } from 'react';
+import { EventsOn, EventsOff } from '../../wailsjs/runtime/runtime';
+import { GetMemoryData, GetRegisterState } from '../../wailsjs/go/main/App';
+import { service } from '../../wailsjs/go/models';
+import './MemoryView.css';
+
+interface MemoryRow {
+  address: number;
+  bytes: number[];
+  ascii: string;
+  hasRecentWrite: boolean[];
+}
+
+export const MemoryView: React.FC = () => {
+  const [rows, setRows] = useState<MemoryRow[]>([]);
+  const [baseAddress, setBaseAddress] = useState<number>(0x00008000);
+  const [addressInput, setAddressInput] = useState<string>('00008000');
+  const [bytesPerRow] = useState<number>(16);
+  const [rowCount] = useState<number>(32); // Show 32 rows = 512 bytes
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  const loadMemoryData = async () => {
+    try {
+      const memData: service.MemoryData = await GetMemoryData(
+        baseAddress,
+        bytesPerRow * rowCount
+      );
+
+      // Build set of recently written addresses for fast lookup
+      const recentWriteSet = new Set(memData.recent_writes || []);
+
+      // Convert flat byte array to rows
+      const newRows: MemoryRow[] = [];
+      for (let row = 0; row < rowCount; row++) {
+        const rowAddr = baseAddress + row * bytesPerRow;
+        const rowBytes: number[] = [];
+        const hasWrite: boolean[] = [];
+        let ascii = '';
+
+        for (let col = 0; col < bytesPerRow; col++) {
+          const idx = row * bytesPerRow + col;
+          const byte = idx < memData.data.length ? memData.data[idx] : 0;
+          const byteAddr = rowAddr + col;
+
+          rowBytes.push(byte);
+          hasWrite.push(recentWriteSet.has(byteAddr));
+
+          // ASCII representation (printable chars only)
+          if (byte >= 32 && byte <= 126) {
+            ascii += String.fromCharCode(byte);
+          } else {
+            ascii += '.';
+          }
+        }
+
+        newRows.push({
+          address: rowAddr,
+          bytes: rowBytes,
+          ascii,
+          hasRecentWrite: hasWrite,
+        });
+      }
+
+      setRows(newRows);
+    } catch (error) {
+      console.error('Failed to load memory data:', error);
+    }
+  };
+
+  const handleAddressChange = (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      const addr = parseInt(addressInput, 16);
+      if (!isNaN(addr)) {
+        setBaseAddress(addr);
+      }
+    } catch (error) {
+      console.error('Invalid address:', error);
+    }
+  };
+
+  const handleScroll = (delta: number) => {
+    const newAddr = Math.max(0, baseAddress + delta * bytesPerRow);
+    setBaseAddress(newAddr);
+    setAddressInput(newAddr.toString(16).padStart(8, '0'));
+  };
+
+  const jumpToPC = async () => {
+    try {
+      const regs = await GetRegisterState();
+      const pc = regs.pc;
+      setBaseAddress(pc);
+      setAddressInput(pc.toString(16).padStart(8, '0'));
+    } catch (error) {
+      console.error('Failed to jump to PC:', error);
+    }
+  };
+
+  useEffect(() => {
+    loadMemoryData();
+    EventsOn('vm:state-changed', loadMemoryData);
+
+    return () => {
+      EventsOff('vm:state-changed');
+    };
+  }, [baseAddress]);
+
+  return (
+    <div className="memory-view">
+      <div className="memory-header">
+        <span>Memory View</span>
+        <div className="memory-controls">
+          <form onSubmit={handleAddressChange} className="address-form">
+            <span className="address-label">Addr:</span>
+            <input
+              type="text"
+              className="address-input"
+              value={addressInput}
+              onChange={e => setAddressInput(e.target.value)}
+              placeholder="00008000"
+              maxLength={8}
+            />
+            <button type="submit" className="btn-go">Go</button>
+          </form>
+          <button className="btn-jump" onClick={jumpToPC}>Jump to PC</button>
+          <div className="scroll-buttons">
+            <button className="btn-scroll" onClick={() => handleScroll(-16)}>
+              ▲▲
+            </button>
+            <button className="btn-scroll" onClick={() => handleScroll(-1)}>
+              ▲
+            </button>
+            <button className="btn-scroll" onClick={() => handleScroll(1)}>
+              ▼
+            </button>
+            <button className="btn-scroll" onClick={() => handleScroll(16)}>
+              ▼▼
+            </button>
+          </div>
+        </div>
+      </div>
+      <div className="memory-content" ref={containerRef}>
+        <div className="memory-grid">
+          {/* Header row */}
+          <div className="memory-row memory-row-header">
+            <span className="memory-address">Address</span>
+            <span className="memory-hex-header">
+              {Array.from({ length: bytesPerRow }, (_, i) => (
+                <span key={i} className="hex-col-label">
+                  {i.toString(16).toUpperCase()}
+                </span>
+              ))}
+            </span>
+            <span className="memory-ascii-header">ASCII</span>
+          </div>
+
+          {/* Data rows */}
+          {rows.map((row, rowIdx) => (
+            <div key={rowIdx} className="memory-row">
+              <span className="memory-address">
+                {row.address.toString(16).padStart(8, '0').toUpperCase()}
+              </span>
+              <span className="memory-hex">
+                {row.bytes.map((byte, colIdx) => (
+                  <span
+                    key={colIdx}
+                    className={`hex-byte ${
+                      row.hasRecentWrite[colIdx] ? 'hex-byte-changed' : ''
+                    }`}
+                  >
+                    {byte.toString(16).padStart(2, '0').toUpperCase()}
+                  </span>
+                ))}
+              </span>
+              <span className="memory-ascii">{row.ascii}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+};
+```
+
+**Step 2: Create MemoryView CSS with yellow highlighting**
+
+Create `gui/frontend/src/components/MemoryView.css`:
+
+```css
+.memory-view {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: #1e1e1e;
+  color: #d4d4d4;
+  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+}
+
+.memory-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
+  background: #252525;
+  border-bottom: 1px solid #3e3e3e;
+  font-weight: bold;
+  font-size: 12px;
+}
+
+.memory-controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.address-form {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.address-label {
+  font-size: 11px;
+  color: #858585;
+}
+
+.address-input {
+  width: 80px;
+  background: #1e1e1e;
+  color: #9cdcfe;
+  border: 1px solid #3e3e3e;
+  padding: 4px 6px;
+  font-family: 'Consolas', 'Monaco', monospace;
+  font-size: 11px;
+  text-transform: uppercase;
+  border-radius: 3px;
+}
+
+.address-input:focus {
+  outline: none;
+  border-color: #4ec9b0;
+}
+
+.btn-go,
+.btn-jump,
+.btn-scroll {
+  background: #3e3e3e;
+  color: #d4d4d4;
+  border: none;
+  padding: 4px 8px;
+  border-radius: 3px;
+  cursor: pointer;
+  font-size: 10px;
+  font-weight: 500;
+}
+
+.btn-go:hover,
+.btn-jump:hover,
+.btn-scroll:hover {
+  background: #4e4e4e;
+}
+
+.scroll-buttons {
+  display: flex;
+  gap: 2px;
+}
+
+.btn-scroll {
+  padding: 2px 6px;
+  font-size: 9px;
+  line-height: 1;
+}
+
+.memory-content {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  background: #1e1e1e;
+  padding: 4px;
+}
+
+.memory-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.memory-row {
+  display: flex;
+  gap: 12px;
+  padding: 2px 4px;
+  font-size: 12px;
+  line-height: 1.6;
+  align-items: center;
+}
+
+.memory-row-header {
+  position: sticky;
+  top: 0;
+  background: #252525;
+  border-bottom: 1px solid #3e3e3e;
+  font-weight: bold;
+  font-size: 10px;
+  color: #858585;
+  z-index: 1;
+  padding: 4px;
+}
+
+.memory-address {
+  min-width: 80px;
+  color: #858585;
+  font-weight: normal;
+  user-select: none;
+}
+
+.memory-hex-header {
+  display: flex;
+  gap: 8px;
+  font-family: 'Consolas', 'Monaco', monospace;
+  letter-spacing: 0.5px;
+}
+
+.hex-col-label {
+  display: inline-block;
+  width: 20px;
+  text-align: center;
+  font-size: 9px;
+}
+
+.memory-hex {
+  display: flex;
+  gap: 8px;
+  font-family: 'Consolas', 'Monaco', monospace;
+  letter-spacing: 0.5px;
+}
+
+.hex-byte {
+  display: inline-block;
+  width: 20px;
+  text-align: center;
+  color: #9cdcfe;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+.hex-byte-changed {
+  background-color: #ffeb3b;
+  color: #000000;
+  font-weight: bold;
+  border-radius: 2px;
+  animation: highlight-fade 2s ease-out;
+}
+
+@keyframes highlight-fade {
+  0% {
+    background-color: #ffeb3b;
+  }
+  100% {
+    background-color: #b8860b;
+  }
+}
+
+.memory-ascii-header {
+  min-width: 140px;
+  padding-left: 8px;
+}
+
+.memory-ascii {
+  min-width: 140px;
+  color: #ce9178;
+  font-family: 'Consolas', 'Monaco', monospace;
+  letter-spacing: 1px;
+  padding-left: 8px;
+}
+
+/* Scrollbar styling for webkit browsers */
+.memory-content::-webkit-scrollbar {
+  width: 8px;
+}
+
+.memory-content::-webkit-scrollbar-track {
+  background: #1e1e1e;
+}
+
+.memory-content::-webkit-scrollbar-thumb {
+  background: #3e3e3e;
+  border-radius: 4px;
+}
+
+.memory-content::-webkit-scrollbar-thumb:hover {
+  background: #4e4e4e;
+}
+```
+
+**Step 3: Test build**
+
+Run: `cd gui/frontend && npm run build && cd ../..`
+
+Expected: Builds successfully
+
+**Step 4: Commit MemoryView component**
+
+```bash
+git add gui/frontend/src/components/MemoryView.tsx gui/frontend/src/components/MemoryView.css
+git commit -m "feat(gui): add advanced MemoryView component with scrolling and write highlighting"
+```
+
+---
+
+## Task 24: Create ExpressionEvaluator Component
 
 **Files:**
 - Create: `gui/frontend/src/components/ExpressionEvaluator.tsx`
@@ -3305,7 +3946,7 @@ git commit -m "feat(gui): add ExpressionEvaluator component for debugging expres
 
 ---
 
-## Task 23: Final Testing and Documentation
+## Task 25: Final Testing and Documentation
 
 **Files:**
 - Test: Manual testing with example programs
@@ -3339,7 +3980,20 @@ Expected: GUI opens with new layout and components visible
 4. Verify execution stops at breakpoint
 5. Verify BreakpointsView shows breakpoint
 
-**Step 5: Test output capture**
+**Step 5: Test memory view functionality**
+
+Run program that writes to memory
+
+1. Step through program
+2. Verify MemoryView shows hex dump
+3. Verify bytes written are highlighted in yellow
+4. Type new address in address input and click Go
+5. Verify memory view scrolls to new address
+6. Click scroll buttons to navigate
+7. Click "Jump to PC" button
+8. Verify memory view shows PC location
+
+**Step 6: Test output capture**
 
 Run program that produces output (hello.s)
 
@@ -3348,20 +4002,20 @@ Run program that produces output (hello.s)
 3. Click Clear button
 4. Verify output cleared
 
-**Step 6: Test command input**
+**Step 7: Test command input**
 
 1. Type "info registers" in CommandInput
 2. Press Enter
 3. Verify command executes (check browser console for output)
 
-**Step 7: Test expression evaluator**
+**Step 8: Test expression evaluator**
 
 1. Step through program to set register values
 2. Enter "R0 + R1" in ExpressionEvaluator
 3. Click Evaluate
 4. Verify result shows correct value
 
-**Step 8: Update design document status**
+**Step 9: Update design document status**
 
 Modify `docs/plans/2025-10-28-gui-debugging-views-design.md`:
 
@@ -3402,6 +4056,8 @@ git commit -m "docs: mark GUI debugging views as implemented"
 All tasks completed when:
 
 - ✓ All backend service APIs implemented and tested
+- ✓ Memory write tracking implemented with trace integration
+- ✓ GetMemoryData API returns memory with recent writes
 - ✓ Event-emitting writer functional with real-time output
 - ✓ Wails events emitted for all state changes
 - ✓ All frontend components created and styled
@@ -3409,6 +4065,9 @@ All tasks completed when:
 - ✓ Allotment layout integrated with resizable panels
 - ✓ Breakpoints can be toggled from SourceView
 - ✓ DisassemblyView shows machine code with symbols
+- ✓ MemoryView displays scrollable hex dump with yellow highlighting for recent writes
+- ✓ MemoryView supports address navigation and jump to PC
+- ✓ MemoryView shows ASCII representation alongside hex
 - ✓ StackView displays stack with SP marker
 - ✓ OutputView captures and displays program output
 - ✓ StatusView shows execution state and messages
