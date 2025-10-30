@@ -91,7 +91,51 @@ func (s *DebuggerService) LoadProgram(program *parser.Program, entryPoint uint32
 	return s.loadProgramIntoVM(program, entryPoint)
 }
 
-// loadProgramIntoVM is a simplified version of main.go's loadProgramIntoVM
+// processEscapeSequences processes escape sequences in strings
+func processEscapeSequences(s string) string {
+	result := make([]byte, 0, len(s))
+	i := 0
+	for i < len(s) {
+		if s[i] == '\\' && i+1 < len(s) {
+			// Process escape sequence
+			switch s[i+1] {
+			case 'n':
+				result = append(result, '\n')
+			case 't':
+				result = append(result, '\t')
+			case 'r':
+				result = append(result, '\r')
+			case '\\':
+				result = append(result, '\\')
+			case '0':
+				result = append(result, '\x00')
+			case '"':
+				result = append(result, '"')
+			case '\'':
+				result = append(result, '\'')
+			case 'a':
+				result = append(result, '\a')
+			case 'b':
+				result = append(result, '\b')
+			case 'f':
+				result = append(result, '\f')
+			case 'v':
+				result = append(result, '\v')
+			default:
+				// Unknown escape sequence, keep as is
+				result = append(result, s[i])
+				result = append(result, s[i+1])
+			}
+			i += 2
+		} else {
+			result = append(result, s[i])
+			i++
+		}
+	}
+	return string(result)
+}
+
+// loadProgramIntoVM loads a parsed program into the VM's memory (matches main.go implementation)
 func (s *DebuggerService) loadProgramIntoVM(program *parser.Program, entryPoint uint32) error {
 	// Create low memory segment if needed
 	if entryPoint < vm.CodeSegmentStart {
@@ -112,6 +156,127 @@ func (s *DebuggerService) loadProgramIntoVM(program *parser.Program, entryPoint 
 		instEnd := inst.Address + 4
 		if instEnd > maxAddr {
 			maxAddr = instEnd
+		}
+	}
+
+	// Process data directives (CRITICAL: this was missing!)
+	for _, directive := range program.Directives {
+		dataAddr := directive.Address
+
+		switch directive.Name {
+		case ".org", ".align", ".balign", ".ltorg":
+			// These are handled at parse time or during encoding
+			continue
+
+		case ".word":
+			// Write 32-bit words
+			for _, arg := range directive.Args {
+				var value uint32
+				if _, err := fmt.Sscanf(arg, "0x%x", &value); err != nil {
+					if _, err := fmt.Sscanf(arg, "%d", &value); err != nil {
+						// Try to look up as a symbol
+						symValue, symErr := program.SymbolTable.Get(arg)
+						if symErr != nil {
+							return fmt.Errorf("invalid .word value %q: %w", arg, symErr)
+						}
+						value = symValue
+					}
+				}
+				if err := s.vm.Memory.WriteWordUnsafe(dataAddr, value); err != nil {
+					return fmt.Errorf(".word write error at 0x%08X: %w", dataAddr, err)
+				}
+				dataAddr += 4
+			}
+			if dataAddr > maxAddr {
+				maxAddr = dataAddr
+			}
+
+		case ".byte":
+			// Write bytes
+			for _, arg := range directive.Args {
+				var value uint32
+				// Check for character literal
+				if len(arg) >= 3 && arg[0] == '\'' && arg[len(arg)-1] == '\'' {
+					if len(arg) == 3 {
+						value = uint32(arg[1])
+					} else {
+						return fmt.Errorf("invalid .byte character literal: %s", arg)
+					}
+				} else if _, err := fmt.Sscanf(arg, "0x%x", &value); err != nil {
+					if _, err := fmt.Sscanf(arg, "%d", &value); err != nil {
+						return fmt.Errorf("invalid .byte value: %s", arg)
+					}
+				}
+				if err := s.vm.Memory.WriteByteUnsafe(dataAddr, byte(value)); err != nil {
+					return fmt.Errorf(".byte write error at 0x%08X: %w", dataAddr, err)
+				}
+				dataAddr++
+			}
+			if dataAddr > maxAddr {
+				maxAddr = dataAddr
+			}
+
+		case ".ascii":
+			// Write string without null terminator
+			if len(directive.Args) > 0 {
+				str := directive.Args[0]
+				// Remove quotes
+				if len(str) >= 2 && (str[0] == '"' || str[0] == '\'') {
+					str = str[1 : len(str)-1]
+				}
+				// Process escape sequences
+				processedStr := processEscapeSequences(str)
+				// Write string bytes
+				for i := 0; i < len(processedStr); i++ {
+					if err := s.vm.Memory.WriteByteUnsafe(dataAddr, processedStr[i]); err != nil {
+						return fmt.Errorf(".ascii write error at 0x%08X: %w", dataAddr, err)
+					}
+					dataAddr++
+				}
+			}
+			if dataAddr > maxAddr {
+				maxAddr = dataAddr
+			}
+
+		case ".asciz", ".string":
+			// Write null-terminated string
+			if len(directive.Args) > 0 {
+				str := directive.Args[0]
+				// Remove quotes
+				if len(str) >= 2 && (str[0] == '"' || str[0] == '\'') {
+					str = str[1 : len(str)-1]
+				}
+				// Process escape sequences
+				processedStr := processEscapeSequences(str)
+				// Write string bytes
+				for i := 0; i < len(processedStr); i++ {
+					if err := s.vm.Memory.WriteByteUnsafe(dataAddr, processedStr[i]); err != nil {
+						return fmt.Errorf(".asciz write error at 0x%08X: %w", dataAddr, err)
+					}
+					dataAddr++
+				}
+				// Write null terminator
+				if err := s.vm.Memory.WriteByteUnsafe(dataAddr, 0); err != nil {
+					return fmt.Errorf(".asciz null terminator write error at 0x%08X: %w", dataAddr, err)
+				}
+				dataAddr++
+			}
+			if dataAddr > maxAddr {
+				maxAddr = dataAddr
+			}
+
+		case ".space", ".skip":
+			// Track space reservation
+			if len(directive.Args) > 0 {
+				var size uint32
+				if _, err := fmt.Sscanf(directive.Args[0], "0x%x", &size); err != nil {
+					_, _ = fmt.Sscanf(directive.Args[0], "%d", &size)
+				}
+				endAddr := dataAddr + size
+				if endAddr > maxAddr {
+					maxAddr = endAddr
+				}
+			}
 		}
 	}
 
