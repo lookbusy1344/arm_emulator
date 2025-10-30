@@ -1,8 +1,9 @@
 export namespace service {
 	
 	export class BreakpointInfo {
-	    Address: number;
-	    Enabled: boolean;
+	    address: number;
+	    enabled: boolean;
+	    condition: string;
 	
 	    static createFrom(source: any = {}) {
 	        return new BreakpointInfo(source);
@@ -10,8 +11,9 @@ export namespace service {
 	
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
-	        this.Address = source["Address"];
-	        this.Enabled = source["Enabled"];
+	        this.address = source["address"];
+	        this.enabled = source["enabled"];
+	        this.condition = source["condition"];
 	    }
 	}
 	export class CPSRState {
@@ -30,6 +32,22 @@ export namespace service {
 	        this.Z = source["Z"];
 	        this.C = source["C"];
 	        this.V = source["V"];
+	    }
+	}
+	export class DisassemblyLine {
+	    address: number;
+	    opcode: number;
+	    symbol: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new DisassemblyLine(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.address = source["address"];
+	        this.opcode = source["opcode"];
+	        this.symbol = source["symbol"];
 	    }
 	}
 	export class RegisterState {
@@ -67,6 +85,40 @@ export namespace service {
 		    }
 		    return a;
 		}
+	}
+	export class StackEntry {
+	    address: number;
+	    value: number;
+	    symbol: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new StackEntry(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.address = source["address"];
+	        this.value = source["value"];
+	        this.symbol = source["symbol"];
+	    }
+	}
+	export class WatchpointInfo {
+	    id: number;
+	    address: number;
+	    type: string;
+	    enabled: boolean;
+	
+	    static createFrom(source: any = {}) {
+	        return new WatchpointInfo(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.id = source["id"];
+	        this.address = source["address"];
+	        this.type = source["type"];
+	        this.enabled = source["enabled"];
+	    }
 	}
 
 }

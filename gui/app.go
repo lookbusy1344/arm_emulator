@@ -235,6 +235,11 @@ func (a *App) RemoveWatchpoint(id int) error {
 	return err
 }
 
+// GetWatchpoints returns all watchpoints
+func (a *App) GetWatchpoints() []service.WatchpointInfo {
+	return a.service.GetWatchpoints()
+}
+
 // ExecuteCommand executes a debugger command
 func (a *App) ExecuteCommand(command string) (string, error) {
 	output, err := a.service.ExecuteCommand(command)
