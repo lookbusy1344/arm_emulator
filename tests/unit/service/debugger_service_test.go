@@ -896,6 +896,25 @@ main:
 	if output == "" {
 		t.Error("Expected non-empty command output")
 	}
+
+	// Verify output contains register information
+	if !containsAny(output, []string{"R0", "R1", "R2", "register"}) {
+		t.Errorf("Expected output to contain register information, got: %s", output)
+	}
+}
+
+// Helper function to check if string contains any of the provided substrings
+func containsAny(s string, substrs []string) bool {
+	for _, substr := range substrs {
+		if len(s) >= len(substr) {
+			for i := 0; i <= len(s)-len(substr); i++ {
+				if s[i:i+len(substr)] == substr {
+					return true
+				}
+			}
+		}
+	}
+	return false
 }
 
 func TestDebuggerService_EvaluateExpression(t *testing.T) {
@@ -921,11 +940,11 @@ main:
 		t.Fatalf("Failed to load program: %v", err)
 	}
 
-	// Execute first two instructions
+	// Execute first two instructions to set R0=42, R1=10
 	svc.Step()
 	svc.Step()
 
-	// Evaluate "R0 + R1"
+	// Evaluate "R0 + R1" and verify the actual result value
 	result, err := svc.EvaluateExpression("R0 + R1")
 	if err != nil {
 		t.Errorf("EvaluateExpression failed: %v", err)
@@ -933,6 +952,184 @@ main:
 
 	expected := uint32(52) // 42 + 10
 	if result != expected {
-		t.Errorf("Expected result %d, got %d", expected, result)
+		t.Errorf("Expected result %d (42 + 10), got %d", expected, result)
+	}
+}
+
+func TestDebuggerService_ExecuteCommand_NoProgram(t *testing.T) {
+	machine := vm.NewVM()
+	machine.InitializeStack(0x30001000)
+	svc := service.NewDebuggerService(machine)
+
+	// Try to execute command without loading a program
+	// Note: ExecuteCommand currently doesn't check for program loaded, so this will succeed
+	// but may produce unexpected results. This test documents current behavior.
+	output, err := svc.ExecuteCommand("info registers")
+
+	// Command should work even without program loaded (debugger exists)
+	if err != nil {
+		t.Logf("ExecuteCommand returned error (acceptable): %v", err)
+	}
+
+	// Should still produce some output (even if it's just register dump)
+	if output == "" && err == nil {
+		t.Error("Expected either output or error when executing command")
+	}
+}
+
+func TestDebuggerService_EvaluateExpression_NoProgram(t *testing.T) {
+	machine := vm.NewVM()
+	machine.InitializeStack(0x30001000)
+	svc := service.NewDebuggerService(machine)
+
+	// Try to evaluate expression without loading a program
+	// The evaluator might not be initialized without a program loaded
+	result, err := svc.EvaluateExpression("R0 + R1")
+
+	// If evaluator is not initialized, we should get an error
+	// Otherwise the expression should evaluate (registers start at 0)
+	if err != nil {
+		// Expected behavior - no evaluator without program
+		if result != 0 {
+			t.Errorf("Expected result 0 on error, got %d", result)
+		}
+	} else {
+		// Alternative behavior - evaluator exists but registers are 0
+		// This is acceptable - documents actual behavior
+		t.Logf("EvaluateExpression succeeded without program loaded, result: %d", result)
+	}
+}
+
+func TestDebuggerService_EvaluateExpression_InvalidExpression(t *testing.T) {
+	machine := vm.NewVM()
+	machine.InitializeStack(0x30001000)
+	svc := service.NewDebuggerService(machine)
+
+	program := `
+.org 0x8000
+main:
+    MOV R0, #42
+    SWI #0x00
+`
+	p := parser.NewParser(program, "test.s")
+	parsed, err := p.Parse()
+	if err != nil {
+		t.Fatalf("Failed to parse program: %v", err)
+	}
+
+	err = svc.LoadProgram(parsed, 0x8000)
+	if err != nil {
+		t.Fatalf("Failed to load program: %v", err)
+	}
+
+	// Test various invalid expressions
+	invalidExpressions := []struct {
+		expr        string
+		description string
+		mustFail    bool // If true, MUST return error. If false, either error or 0 is acceptable
+	}{
+		{"R0 +", "Incomplete expression", true},
+		{"+ R1", "Missing left operand", true},
+		{"R0 + + R1", "Double operator", true},
+		{"INVALID_REG", "Invalid register name", true},
+		{"R0 & R1", "Bitwise AND operator", false}, // May or may not be supported
+		{"", "Empty expression", true},
+		{"R0 R1", "Missing operator", true},
+		{"(R0 + R1", "Unclosed parenthesis", true},
+		{"R99", "Invalid register number", true},
+	}
+
+	for _, tc := range invalidExpressions {
+		result, err := svc.EvaluateExpression(tc.expr)
+		if err == nil {
+			if tc.mustFail {
+				t.Errorf("Expected error for invalid expression '%s' (%s), but got result %d",
+					tc.expr, tc.description, result)
+			} else {
+				// Some expressions might be valid in the implementation
+				t.Logf("Expression '%s' (%s) succeeded with result %d (acceptable)",
+					tc.expr, tc.description, result)
+			}
+		}
+	}
+}
+
+func TestDebuggerService_EvaluateExpression_ComplexExpressions(t *testing.T) {
+	machine := vm.NewVM()
+	machine.InitializeStack(0x30001000)
+	svc := service.NewDebuggerService(machine)
+
+	program := `
+.org 0x8000
+main:
+    MOV R0, #10
+    MOV R1, #20
+    MOV R2, #5
+    SWI #0x00
+`
+	p := parser.NewParser(program, "test.s")
+	parsed, err := p.Parse()
+	if err != nil {
+		t.Fatalf("Failed to parse program: %v", err)
+	}
+
+	err = svc.LoadProgram(parsed, 0x8000)
+	if err != nil {
+		t.Fatalf("Failed to load program: %v", err)
+	}
+
+	// Execute first three instructions to set R0=10, R1=20, R2=5
+	svc.Step()
+	svc.Step()
+	svc.Step()
+
+	tests := []struct {
+		name       string
+		expression string
+		expected   uint32
+	}{
+		{
+			name:       "simple_addition",
+			expression: "R0 + R1",
+			expected:   30, // 10 + 20
+		},
+		{
+			name:       "simple_subtraction",
+			expression: "R1 - R2",
+			expected:   15, // 20 - 5
+		},
+		{
+			name:       "multiple_operations",
+			expression: "R0 + R1 + R2",
+			expected:   35, // 10 + 20 + 5
+		},
+		{
+			name:       "single_register",
+			expression: "R0",
+			expected:   10,
+		},
+		{
+			name:       "hex_literal",
+			expression: "0x10",
+			expected:   16,
+		},
+		{
+			name:       "decimal_literal",
+			expression: "42",
+			expected:   42,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result, err := svc.EvaluateExpression(tt.expression)
+			if err != nil {
+				t.Errorf("EvaluateExpression('%s') failed: %v", tt.expression, err)
+			}
+
+			if result != tt.expected {
+				t.Errorf("EvaluateExpression('%s'): expected %d, got %d", tt.expression, tt.expected, result)
+			}
+		})
 	}
 }
