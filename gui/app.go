@@ -90,18 +90,28 @@ func (a *App) Reset() error {
 	err := a.service.Reset()
 	if err == nil {
 		runtime.EventsEmit(a.ctx, "vm:state-changed")
+	} else {
+		runtime.EventsEmit(a.ctx, "vm:error", err.Error())
 	}
 	return err
 }
 
 // AddBreakpoint adds a breakpoint at address
 func (a *App) AddBreakpoint(address uint32) error {
-	return a.service.AddBreakpoint(address)
+	err := a.service.AddBreakpoint(address)
+	if err == nil {
+		runtime.EventsEmit(a.ctx, "vm:state-changed")
+	}
+	return err
 }
 
 // RemoveBreakpoint removes a breakpoint
 func (a *App) RemoveBreakpoint(address uint32) error {
-	return a.service.RemoveBreakpoint(address)
+	err := a.service.RemoveBreakpoint(address)
+	if err == nil {
+		runtime.EventsEmit(a.ctx, "vm:state-changed")
+	}
+	return err
 }
 
 // GetBreakpoints returns all breakpoints
@@ -185,11 +195,6 @@ func (a *App) GetOutput() string {
 	return a.service.GetOutput()
 }
 
-// GetMemoryData returns memory data with write tracking
-func (a *App) GetMemoryData(startAddr uint32, length int) service.MemoryData {
-	return a.service.GetMemoryData(startAddr, length)
-}
-
 // StepOver steps over function calls
 func (a *App) StepOver() error {
 	err := a.service.StepOver()
@@ -222,8 +227,8 @@ func (a *App) AddWatchpoint(address uint32, watchType string) error {
 }
 
 // RemoveWatchpoint removes a watchpoint
-func (a *App) RemoveWatchpoint(address uint32) error {
-	err := a.service.RemoveWatchpoint(address)
+func (a *App) RemoveWatchpoint(id int) error {
+	err := a.service.RemoveWatchpoint(id)
 	if err == nil {
 		runtime.EventsEmit(a.ctx, "vm:state-changed")
 	}
