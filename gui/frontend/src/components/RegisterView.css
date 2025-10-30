@@ -16,9 +16,9 @@
 }
 
 .register-grid {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 4px 12px;
   margin-bottom: 16px;
 }
 
@@ -99,4 +99,7 @@
 .special-registers {
   padding-top: 12px;
   border-top: 1px solid #3e3e3e;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 4px 12px;
 }
