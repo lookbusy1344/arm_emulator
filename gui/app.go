@@ -3,10 +3,12 @@ package main
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/lookbusy1344/arm-emulator/parser"
 	"github.com/lookbusy1344/arm-emulator/service"
 	"github.com/lookbusy1344/arm-emulator/vm"
+	"github.com/wailsapp/wails/v2/pkg/runtime"
 )
 
 // App struct
@@ -30,6 +32,7 @@ func NewApp() *App {
 // startup is called when the app starts
 func (a *App) startup(ctx context.Context) {
 	a.ctx = ctx
+	a.service.SetContext(ctx)
 }
 
 // LoadProgramFromSource parses and loads assembly source code
@@ -50,22 +53,45 @@ func (a *App) GetRegisters() service.RegisterState {
 
 // Step executes a single instruction
 func (a *App) Step() error {
-	return a.service.Step()
+	err := a.service.Step()
+	if err == nil {
+		runtime.EventsEmit(a.ctx, "vm:state-changed")
+	} else {
+		runtime.EventsEmit(a.ctx, "vm:error", err.Error())
+	}
+	return err
 }
 
 // Continue runs until breakpoint or halt
 func (a *App) Continue() error {
-	return a.service.RunUntilHalt()
+	err := a.service.RunUntilHalt()
+	runtime.EventsEmit(a.ctx, "vm:state-changed")
+
+	if err != nil {
+		runtime.EventsEmit(a.ctx, "vm:error", err.Error())
+	}
+
+	// Check if stopped at breakpoint
+	if a.service.GetExecutionState() == service.StateBreakpoint {
+		runtime.EventsEmit(a.ctx, "vm:breakpoint-hit")
+	}
+
+	return err
 }
 
 // Pause pauses execution
 func (a *App) Pause() {
 	a.service.Pause()
+	runtime.EventsEmit(a.ctx, "vm:state-changed")
 }
 
 // Reset resets VM to initial state
 func (a *App) Reset() error {
-	return a.service.Reset()
+	err := a.service.Reset()
+	if err == nil {
+		runtime.EventsEmit(a.ctx, "vm:state-changed")
+	}
+	return err
 }
 
 // AddBreakpoint adds a breakpoint at address
@@ -106,4 +132,128 @@ func (a *App) GetExecutionState() string {
 // IsRunning returns whether execution is active
 func (a *App) IsRunning() bool {
 	return a.service.IsRunning()
+}
+
+// ToggleBreakpoint toggles a breakpoint at the specified address
+func (a *App) ToggleBreakpoint(address uint32) error {
+	bps := a.service.GetBreakpoints()
+	exists := false
+
+	for _, bp := range bps {
+		if bp.Address == address {
+			exists = true
+			break
+		}
+	}
+
+	var err error
+	if exists {
+		err = a.service.RemoveBreakpoint(address)
+	} else {
+		err = a.service.AddBreakpoint(address)
+	}
+
+	if err == nil {
+		runtime.EventsEmit(a.ctx, "vm:state-changed")
+	}
+
+	return err
+}
+
+// GetSourceMap returns the complete source map
+func (a *App) GetSourceMap() map[uint32]string {
+	return a.service.GetSourceMap()
+}
+
+// GetDisassembly returns disassembled instructions
+func (a *App) GetDisassembly(startAddr uint32, count int) []service.DisassemblyLine {
+	return a.service.GetDisassembly(startAddr, count)
+}
+
+// GetStack returns stack contents
+func (a *App) GetStack(offset int, count int) []service.StackEntry {
+	return a.service.GetStack(offset, count)
+}
+
+// GetSymbolForAddress resolves address to symbol
+func (a *App) GetSymbolForAddress(addr uint32) string {
+	return a.service.GetSymbolForAddress(addr)
+}
+
+// GetOutput returns captured output
+func (a *App) GetOutput() string {
+	return a.service.GetOutput()
+}
+
+// GetMemoryData returns memory data with write tracking
+func (a *App) GetMemoryData(startAddr uint32, length int) service.MemoryData {
+	return a.service.GetMemoryData(startAddr, length)
+}
+
+// StepOver steps over function calls
+func (a *App) StepOver() error {
+	err := a.service.StepOver()
+	if err == nil {
+		runtime.EventsEmit(a.ctx, "vm:state-changed")
+	} else {
+		runtime.EventsEmit(a.ctx, "vm:error", err.Error())
+	}
+	return err
+}
+
+// StepOut steps out of current function
+func (a *App) StepOut() error {
+	err := a.service.StepOut()
+	if err == nil {
+		runtime.EventsEmit(a.ctx, "vm:state-changed")
+	} else {
+		runtime.EventsEmit(a.ctx, "vm:error", err.Error())
+	}
+	return err
+}
+
+// AddWatchpoint adds a watchpoint
+func (a *App) AddWatchpoint(address uint32, watchType string) error {
+	err := a.service.AddWatchpoint(address, watchType)
+	if err == nil {
+		runtime.EventsEmit(a.ctx, "vm:state-changed")
+	}
+	return err
+}
+
+// RemoveWatchpoint removes a watchpoint
+func (a *App) RemoveWatchpoint(address uint32) error {
+	err := a.service.RemoveWatchpoint(address)
+	if err == nil {
+		runtime.EventsEmit(a.ctx, "vm:state-changed")
+	}
+	return err
+}
+
+// ExecuteCommand executes a debugger command
+func (a *App) ExecuteCommand(command string) (string, error) {
+	output, err := a.service.ExecuteCommand(command)
+
+	// Check if command modified state
+	if isStateModifyingCommand(command) {
+		runtime.EventsEmit(a.ctx, "vm:state-changed")
+	}
+
+	return output, err
+}
+
+// EvaluateExpression evaluates an expression
+func (a *App) EvaluateExpression(expr string) (uint32, error) {
+	return a.service.EvaluateExpression(expr)
+}
+
+// isStateModifyingCommand checks if command modifies VM state
+func isStateModifyingCommand(command string) bool {
+	stateCommands := []string{"step", "next", "finish", "continue", "set", "break", "delete"}
+	for _, cmd := range stateCommands {
+		if strings.HasPrefix(strings.ToLower(command), cmd) {
+			return true
+		}
+	}
+	return false
 }
