@@ -1,6 +1,8 @@
 package service
 
 import (
+	"bytes"
+	"context"
 	"fmt"
 	"sync"
 
@@ -13,13 +15,15 @@ import (
 // DebuggerService provides a thread-safe interface to debugger functionality
 // This service is shared by TUI, GUI, and CLI interfaces
 type DebuggerService struct {
-	mu         sync.RWMutex
-	vm         *vm.VM
-	debugger   *debugger.Debugger
-	symbols    map[string]uint32
-	sourceMap  map[uint32]string
-	program    *parser.Program
-	entryPoint uint32
+	mu           sync.RWMutex
+	vm           *vm.VM
+	debugger     *debugger.Debugger
+	symbols      map[string]uint32
+	sourceMap    map[uint32]string
+	program      *parser.Program
+	entryPoint   uint32
+	outputWriter *EventEmittingWriter
+	ctx          context.Context
 }
 
 // NewDebuggerService creates a new debugger service
@@ -37,6 +41,13 @@ func (s *DebuggerService) GetVM() *vm.VM {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	return s.vm
+}
+
+// SetContext sets the Wails context for event emission
+func (s *DebuggerService) SetContext(ctx context.Context) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.ctx = ctx
 }
 
 // LoadProgram loads and initializes a parsed program
@@ -66,6 +77,11 @@ func (s *DebuggerService) LoadProgram(program *parser.Program, entryPoint uint32
 			s.sourceMap[dir.Address] = "[DATA]" + dir.RawLine
 		}
 	}
+
+	// Create output buffer with event emission
+	outputBuffer := &bytes.Buffer{}
+	s.outputWriter = NewEventEmittingWriter(outputBuffer, s.ctx)
+	s.vm.OutputWriter = s.outputWriter
 
 	// Load into debugger
 	s.debugger.LoadSymbols(s.symbols)
@@ -350,6 +366,18 @@ func (s *DebuggerService) GetExitCode() int32 {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	return s.vm.ExitCode
+}
+
+// GetOutput returns captured program output (clears buffer)
+func (s *DebuggerService) GetOutput() string {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	if s.outputWriter == nil {
+		return ""
+	}
+
+	return s.outputWriter.GetBufferAndClear()
 }
 
 // GetDisassembly returns disassembled instructions starting at address.

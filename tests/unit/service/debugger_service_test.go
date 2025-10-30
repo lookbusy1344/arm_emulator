@@ -572,3 +572,46 @@ main:
 		})
 	}
 }
+
+func TestDebuggerService_GetOutput(t *testing.T) {
+	machine := vm.NewVM()
+	machine.InitializeStack(0x30001000)
+	svc := service.NewDebuggerService(machine)
+
+	program := `
+.org 0x8000
+main:
+    MOV R0, #42
+    SWI #0x03  ; Write integer
+    SWI #0x00
+`
+	p := parser.NewParser(program, "test.s")
+	parsed, err := p.Parse()
+	if err != nil {
+		t.Fatalf("Failed to parse program: %v", err)
+	}
+
+	err = svc.LoadProgram(parsed, 0x8000)
+	if err != nil {
+		t.Fatalf("Failed to load program: %v", err)
+	}
+
+	// Execute program
+	err = svc.RunUntilHalt()
+	if err != nil {
+		t.Fatalf("RunUntilHalt failed: %v", err)
+	}
+
+	// Get output
+	output := svc.GetOutput()
+
+	if output == "" {
+		t.Error("Expected non-empty output")
+	}
+
+	// Second call should return empty (buffer cleared)
+	output2 := svc.GetOutput()
+	if output2 != "" {
+		t.Errorf("Expected empty output after clear, got '%s'", output2)
+	}
+}
