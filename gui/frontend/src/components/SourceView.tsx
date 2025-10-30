@@ -102,9 +102,9 @@ export const SourceView: React.FC = () => {
               {line.hasBreakpoint && <span className="breakpoint-marker">●</span>}
               {line.address.toString(16).padStart(8, '0')}
             </span>
-            {line.symbol && (
-              <span className="source-line-symbol">{line.symbol}:</span>
-            )}
+            <span className="source-line-symbol">
+              {line.symbol ? `${line.symbol}:` : ''}
+            </span>
             <span className="source-line-text">{line.source}</span>
           </div>
         ))}
