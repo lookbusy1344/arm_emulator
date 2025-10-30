@@ -523,14 +523,12 @@ func (s *DebuggerService) StepOver() error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	if s.debugger == nil {
+	if s.debugger == nil || s.program == nil {
 		return fmt.Errorf("no program loaded")
 	}
 
-	// Store current PC for step over (cmdNext implementation)
-	s.debugger.StepOverPC = s.vm.CPU.PC + 4
-	s.debugger.StepMode = debugger.StepOver
-	s.debugger.Running = true
+	// Use debugger's public method instead of accessing fields directly
+	s.debugger.SetStepOver()
 
 	return nil
 }
@@ -540,13 +538,12 @@ func (s *DebuggerService) StepOut() error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	if s.debugger == nil {
+	if s.debugger == nil || s.program == nil {
 		return fmt.Errorf("no program loaded")
 	}
 
-	// cmdFinish implementation
-	s.debugger.StepMode = debugger.StepOut
-	s.debugger.Running = true
+	// Use debugger's public method instead of accessing fields directly
+	s.debugger.SetStepOut()
 
 	return nil
 }

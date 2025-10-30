@@ -270,3 +270,18 @@ func (d *Debugger) Printf(format string, args ...interface{}) {
 func (d *Debugger) Println(args ...interface{}) {
 	d.Output.WriteString(fmt.Sprintln(args...))
 }
+
+// SetStepOver configures the debugger to step over function calls
+// This should be called while holding the appropriate locks in the calling code
+func (d *Debugger) SetStepOver() {
+	d.StepOverPC = d.VM.CPU.PC + 4
+	d.StepMode = StepOver
+	d.Running = true
+}
+
+// SetStepOut configures the debugger to step out of the current function
+// This should be called while holding the appropriate locks in the calling code
+func (d *Debugger) SetStepOut() {
+	d.StepMode = StepOut
+	d.Running = true
+}

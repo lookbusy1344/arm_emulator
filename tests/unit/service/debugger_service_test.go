@@ -802,3 +802,65 @@ main:
 		t.Error("Expected error for invalid watchpoint type")
 	}
 }
+
+func TestDebuggerService_StepOver_NoProgramLoaded(t *testing.T) {
+	machine := vm.NewVM()
+	machine.InitializeStack(0x30001000)
+	svc := service.NewDebuggerService(machine)
+
+	// Try to step over without loading a program
+	err := svc.StepOver()
+	if err == nil {
+		t.Error("Expected error when stepping over with no program loaded")
+	}
+
+	expectedMsg := "no program loaded"
+	if err.Error() != expectedMsg {
+		t.Errorf("Expected error message '%s', got '%s'", expectedMsg, err.Error())
+	}
+}
+
+func TestDebuggerService_StepOut_NoProgramLoaded(t *testing.T) {
+	machine := vm.NewVM()
+	machine.InitializeStack(0x30001000)
+	svc := service.NewDebuggerService(machine)
+
+	// Try to step out without loading a program
+	err := svc.StepOut()
+	if err == nil {
+		t.Error("Expected error when stepping out with no program loaded")
+	}
+
+	expectedMsg := "no program loaded"
+	if err.Error() != expectedMsg {
+		t.Errorf("Expected error message '%s', got '%s'", expectedMsg, err.Error())
+	}
+}
+
+func TestDebuggerService_RemoveWatchpoint_InvalidID(t *testing.T) {
+	machine := vm.NewVM()
+	machine.InitializeStack(0x30001000)
+	svc := service.NewDebuggerService(machine)
+
+	program := `
+.org 0x8000
+main:
+    SWI #0x00
+`
+	p := parser.NewParser(program, "test.s")
+	parsed, err := p.Parse()
+	if err != nil {
+		t.Fatalf("Failed to parse program: %v", err)
+	}
+
+	err = svc.LoadProgram(parsed, 0x8000)
+	if err != nil {
+		t.Fatalf("Failed to load program: %v", err)
+	}
+
+	// Try to remove watchpoint with invalid ID (no watchpoints exist)
+	err = svc.RemoveWatchpoint(999)
+	if err == nil {
+		t.Error("Expected error when removing watchpoint with invalid ID")
+	}
+}
