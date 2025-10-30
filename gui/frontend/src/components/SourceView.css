@@ -48,6 +48,12 @@
   padding-right: 12px;
 }
 
+.source-line-symbol {
+  color: #4ec9b0;
+  font-weight: bold;
+  padding-right: 8px;
+}
+
 .breakpoint-marker {
   color: #e51400;
   margin-right: 4px;

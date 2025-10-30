@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { EventsOn, EventsOff } from '../../wailsjs/runtime/runtime';
-import { GetSourceMap, GetRegisters, ToggleBreakpoint, GetBreakpoints } from '../../wailsjs/go/main/App';
+import { GetSourceMap, GetRegisters, ToggleBreakpoint, GetBreakpoints, GetSymbolForAddress } from '../../wailsjs/go/main/App';
 import './SourceView.css';
 
 interface SourceLine {
@@ -26,19 +26,25 @@ export const SourceView: React.FC = () => {
       setCurrentPC(pc);
 
       // Convert source map to sorted array
-      const sourceLines: SourceLine[] = [];
       const breakpointAddresses = new Set(breakpoints.map(bp => bp.address));
 
-      for (const [addrStr, source] of Object.entries(sourceMap)) {
+      // Fetch all symbols in parallel
+      const entries = Object.entries(sourceMap);
+      const symbolPromises = entries.map(([addrStr]) =>
+        GetSymbolForAddress(parseInt(addrStr))
+      );
+      const symbols = await Promise.all(symbolPromises);
+
+      const sourceLines: SourceLine[] = entries.map(([addrStr, source], index) => {
         const address = parseInt(addrStr);
-        sourceLines.push({
+        return {
           address,
           source,
           hasBreakpoint: breakpointAddresses.has(address),
           isCurrent: address === pc,
-          symbol: '', // Will be populated if needed
-        });
-      }
+          symbol: symbols[index] || '',
+        };
+      });
 
       // Sort by address
       sourceLines.sort((a, b) => a.address - b.address);
@@ -96,6 +102,9 @@ export const SourceView: React.FC = () => {
               {line.hasBreakpoint && <span className="breakpoint-marker">●</span>}
               {line.address.toString(16).padStart(8, '0')}
             </span>
+            {line.symbol && (
+              <span className="source-line-symbol">{line.symbol}:</span>
+            )}
             <span className="source-line-text">{line.source}</span>
           </div>
         ))}
