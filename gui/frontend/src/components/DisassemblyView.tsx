@@ -73,6 +73,9 @@ export const DisassemblyView: React.FC = () => {
             {line.symbol && (
               <span className="disasm-symbol">{line.symbol}:</span>
             )}
+            {line.mnemonic && (
+              <span className="disasm-mnemonic">{line.mnemonic}</span>
+            )}
           </div>
         ))}
       </div>

@@ -58,6 +58,11 @@
   font-weight: bold;
 }
 
+.disasm-mnemonic {
+  color: #d4d4d4;
+  flex: 1;
+}
+
 .breakpoint-marker {
   color: #e51400;
   margin-right: 4px;
