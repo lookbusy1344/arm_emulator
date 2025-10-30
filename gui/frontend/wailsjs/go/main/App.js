@@ -74,6 +74,10 @@ export function IsRunning() {
   return window['go']['main']['App']['IsRunning']();
 }
 
+export function LoadProgramFromFile() {
+  return window['go']['main']['App']['LoadProgramFromFile']();
+}
+
 export function LoadProgramFromSource(arg1, arg2, arg3) {
   return window['go']['main']['App']['LoadProgramFromSource'](arg1, arg2, arg3);
 }

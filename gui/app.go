@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"os"
 	"strings"
 
 	"github.com/lookbusy1344/arm-emulator/parser"
@@ -44,6 +45,50 @@ func (a *App) LoadProgramFromSource(source string, filename string, entryPoint u
 	}
 
 	return a.service.LoadProgram(program, entryPoint)
+}
+
+// LoadProgramFromFile opens a file dialog and loads an ARM assembly program
+func (a *App) LoadProgramFromFile() error {
+	// Open file dialog
+	filePath, err := runtime.OpenFileDialog(a.ctx, runtime.OpenDialogOptions{
+		Title: "Load ARM Assembly Program",
+		Filters: []runtime.FileFilter{
+			{
+				DisplayName: "ARM Assembly Files (*.s, *.asm)",
+				Pattern:     "*.s;*.asm",
+			},
+			{
+				DisplayName: "All Files (*.*)",
+				Pattern:     "*.*",
+			},
+		},
+	})
+
+	if err != nil {
+		return fmt.Errorf("failed to open file dialog: %w", err)
+	}
+
+	// User cancelled
+	if filePath == "" {
+		return nil
+	}
+
+	// Read file contents
+	source, err := os.ReadFile(filePath)
+	if err != nil {
+		return fmt.Errorf("failed to read file: %w", err)
+	}
+
+	// Parse and load program with default entry point
+	err = a.LoadProgramFromSource(string(source), filePath, 0x8000)
+	if err != nil {
+		runtime.EventsEmit(a.ctx, "vm:error", err.Error())
+		return err
+	}
+
+	runtime.EventsEmit(a.ctx, "vm:state-changed")
+	runtime.EventsEmit(a.ctx, "vm:program-loaded", filePath)
+	return nil
 }
 
 // GetRegisters returns current register state

@@ -17,7 +17,8 @@ import {
   StepOut,
   Continue,
   Pause,
-  Reset
+  Reset,
+  LoadProgramFromFile
 } from '../wailsjs/go/main/App';
 import type { RegisterState } from './types/emulator';
 import './App.css';
@@ -86,13 +87,21 @@ function App() {
     }
   };
 
+  const handleLoad = async () => {
+    try {
+      await LoadProgramFromFile();
+    } catch (error) {
+      console.error('Load failed:', error);
+    }
+  };
+
   return (
     <div className="app-container">
       <Allotment vertical>
         {/* Top toolbar - fixed height */}
         <Allotment.Pane snap minSize={60} maxSize={60}>
           <div className="toolbar">
-            <button onClick={() => {}}>Load</button>
+            <button onClick={handleLoad}>Load</button>
             <button onClick={handleStep}>Step</button>
             <button onClick={handleStepOver}>Step Over</button>
             <button onClick={handleStepOut}>Step Out</button>

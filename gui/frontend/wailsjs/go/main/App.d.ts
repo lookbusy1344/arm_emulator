@@ -38,6 +38,8 @@ export function GetWatchpoints():Promise<Array<service.WatchpointInfo>>;
 
 export function IsRunning():Promise<boolean>;
 
+export function LoadProgramFromFile():Promise<void>;
+
 export function LoadProgramFromSource(arg1:string,arg2:string,arg3:number):Promise<void>;
 
 export function Pause():Promise<void>;
