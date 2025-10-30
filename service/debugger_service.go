@@ -517,3 +517,111 @@ func (s *DebuggerService) getSymbolForAddressUnsafe(addr uint32) string {
 	}
 	return ""
 }
+
+// StepOver executes one instruction, stepping over function calls
+func (s *DebuggerService) StepOver() error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	if s.debugger == nil {
+		return fmt.Errorf("no program loaded")
+	}
+
+	// Store current PC for step over (cmdNext implementation)
+	s.debugger.StepOverPC = s.vm.CPU.PC + 4
+	s.debugger.StepMode = debugger.StepOver
+	s.debugger.Running = true
+
+	return nil
+}
+
+// StepOut executes until the current function returns
+func (s *DebuggerService) StepOut() error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	if s.debugger == nil {
+		return fmt.Errorf("no program loaded")
+	}
+
+	// cmdFinish implementation
+	s.debugger.StepMode = debugger.StepOut
+	s.debugger.Running = true
+
+	return nil
+}
+
+// AddWatchpoint adds a watchpoint at the specified address
+func (s *DebuggerService) AddWatchpoint(address uint32, watchType string) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	if s.debugger == nil {
+		return fmt.Errorf("no program loaded")
+	}
+
+	// Convert string type to debugger.WatchType
+	var wpType debugger.WatchType
+	switch watchType {
+	case "read":
+		wpType = debugger.WatchRead
+	case "write":
+		wpType = debugger.WatchWrite
+	case "readwrite":
+		wpType = debugger.WatchReadWrite
+	default:
+		return fmt.Errorf("invalid watchpoint type: %s", watchType)
+	}
+
+	// Add watchpoint (address watchpoint, not register)
+	// expression is the formatted address, isRegister=false, register=0
+	expression := fmt.Sprintf("[0x%08X]", address)
+	s.debugger.Watchpoints.AddWatchpoint(wpType, expression, address, false, 0)
+
+	return nil
+}
+
+// RemoveWatchpoint removes a watchpoint by ID
+func (s *DebuggerService) RemoveWatchpoint(id int) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	if s.debugger == nil {
+		return fmt.Errorf("no program loaded")
+	}
+
+	return s.debugger.Watchpoints.DeleteWatchpoint(id)
+}
+
+// GetWatchpoints returns all watchpoints
+func (s *DebuggerService) GetWatchpoints() []WatchpointInfo {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	if s.debugger == nil {
+		return []WatchpointInfo{}
+	}
+
+	wps := s.debugger.Watchpoints.GetAllWatchpoints()
+	result := make([]WatchpointInfo, len(wps))
+	for i, wp := range wps {
+		// Convert debugger.WatchType to string
+		var wpType string
+		switch wp.Type {
+		case debugger.WatchRead:
+			wpType = "read"
+		case debugger.WatchWrite:
+			wpType = "write"
+		case debugger.WatchReadWrite:
+			wpType = "readwrite"
+		}
+
+		result[i] = WatchpointInfo{
+			ID:      wp.ID,
+			Address: wp.Address,
+			Type:    wpType,
+			Enabled: wp.Enabled,
+		}
+	}
+	return result
+}

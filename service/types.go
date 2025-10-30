@@ -27,9 +27,10 @@ type BreakpointInfo struct {
 
 // WatchpointInfo represents a watchpoint for UI display
 type WatchpointInfo struct {
-	Address uint32
-	Type    string // "read", "write", "readwrite"
-	Enabled bool
+	ID      int    `json:"id"`
+	Address uint32 `json:"address"`
+	Type    string `json:"type"` // "read", "write", "readwrite"
+	Enabled bool   `json:"enabled"`
 }
 
 // MemoryRegion represents a contiguous memory region

@@ -615,3 +615,190 @@ main:
 		t.Errorf("Expected empty output after clear, got '%s'", output2)
 	}
 }
+
+func TestDebuggerService_StepOver(t *testing.T) {
+	machine := vm.NewVM()
+	machine.InitializeStack(0x30001000)
+	svc := service.NewDebuggerService(machine)
+
+	program := `
+.org 0x8000
+main:
+    BL function
+    MOV R0, #1
+    SWI #0x00
+function:
+    MOV R1, #2
+    MOV PC, LR
+`
+	p := parser.NewParser(program, "test.s")
+	parsed, err := p.Parse()
+	if err != nil {
+		t.Fatalf("Failed to parse program: %v", err)
+	}
+
+	err = svc.LoadProgram(parsed, 0x8000)
+	if err != nil {
+		t.Fatalf("Failed to load program: %v", err)
+	}
+
+	// Step over should set the debugger to step over mode
+	err = svc.StepOver()
+	if err != nil {
+		t.Errorf("StepOver failed: %v", err)
+	}
+
+	// Verify debugger is in step over mode (we can't easily test execution here)
+	// The method should at least not error out
+}
+
+func TestDebuggerService_StepOut(t *testing.T) {
+	machine := vm.NewVM()
+	machine.InitializeStack(0x30001000)
+	svc := service.NewDebuggerService(machine)
+
+	program := `
+.org 0x8000
+main:
+    BL function
+    MOV R0, #1
+    SWI #0x00
+function:
+    MOV R1, #2
+    MOV R2, #3
+    MOV PC, LR
+`
+	p := parser.NewParser(program, "test.s")
+	parsed, err := p.Parse()
+	if err != nil {
+		t.Fatalf("Failed to parse program: %v", err)
+	}
+
+	err = svc.LoadProgram(parsed, 0x8000)
+	if err != nil {
+		t.Fatalf("Failed to load program: %v", err)
+	}
+
+	// Step into function first
+	err = svc.Step()
+	if err != nil {
+		t.Fatalf("Step failed: %v", err)
+	}
+
+	// Now step out should set the debugger to step out mode
+	err = svc.StepOut()
+	if err != nil {
+		t.Errorf("StepOut failed: %v", err)
+	}
+}
+
+func TestDebuggerService_AddWatchpoint(t *testing.T) {
+	machine := vm.NewVM()
+	machine.InitializeStack(0x30001000)
+	svc := service.NewDebuggerService(machine)
+
+	program := `
+.org 0x8000
+main:
+    MOV R0, #0x10000
+    MOV R1, #42
+    STR R1, [R0]
+    SWI #0x00
+`
+	p := parser.NewParser(program, "test.s")
+	parsed, err := p.Parse()
+	if err != nil {
+		t.Fatalf("Failed to parse program: %v", err)
+	}
+
+	err = svc.LoadProgram(parsed, 0x8000)
+	if err != nil {
+		t.Fatalf("Failed to load program: %v", err)
+	}
+
+	// Add watchpoint
+	err = svc.AddWatchpoint(0x10000, "write")
+	if err != nil {
+		t.Errorf("AddWatchpoint failed: %v", err)
+	}
+
+	// Get watchpoints
+	watchpoints := svc.GetWatchpoints()
+	if len(watchpoints) == 0 {
+		t.Error("Expected watchpoint to be added")
+	}
+}
+
+func TestDebuggerService_RemoveWatchpoint(t *testing.T) {
+	machine := vm.NewVM()
+	machine.InitializeStack(0x30001000)
+	svc := service.NewDebuggerService(machine)
+
+	program := `
+.org 0x8000
+main:
+    SWI #0x00
+`
+	p := parser.NewParser(program, "test.s")
+	parsed, err := p.Parse()
+	if err != nil {
+		t.Fatalf("Failed to parse program: %v", err)
+	}
+
+	err = svc.LoadProgram(parsed, 0x8000)
+	if err != nil {
+		t.Fatalf("Failed to load program: %v", err)
+	}
+
+	// Add watchpoint first
+	err = svc.AddWatchpoint(0x10000, "write")
+	if err != nil {
+		t.Fatalf("AddWatchpoint failed: %v", err)
+	}
+
+	// Get watchpoints to find the ID
+	watchpoints := svc.GetWatchpoints()
+	if len(watchpoints) == 0 {
+		t.Fatal("Expected watchpoint to be added")
+	}
+
+	// Remove watchpoint by ID
+	err = svc.RemoveWatchpoint(watchpoints[0].ID)
+	if err != nil {
+		t.Errorf("RemoveWatchpoint failed: %v", err)
+	}
+
+	// Verify removed
+	watchpoints = svc.GetWatchpoints()
+	if len(watchpoints) != 0 {
+		t.Error("Expected watchpoint to be removed")
+	}
+}
+
+func TestDebuggerService_AddWatchpoint_InvalidType(t *testing.T) {
+	machine := vm.NewVM()
+	machine.InitializeStack(0x30001000)
+	svc := service.NewDebuggerService(machine)
+
+	program := `
+.org 0x8000
+main:
+    SWI #0x00
+`
+	p := parser.NewParser(program, "test.s")
+	parsed, err := p.Parse()
+	if err != nil {
+		t.Fatalf("Failed to parse program: %v", err)
+	}
+
+	err = svc.LoadProgram(parsed, 0x8000)
+	if err != nil {
+		t.Fatalf("Failed to load program: %v", err)
+	}
+
+	// Try to add watchpoint with invalid type
+	err = svc.AddWatchpoint(0x10000, "invalid")
+	if err == nil {
+		t.Error("Expected error for invalid watchpoint type")
+	}
+}
