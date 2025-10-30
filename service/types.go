@@ -68,9 +68,10 @@ func VMStateToExecution(state vm.ExecutionState) ExecutionState {
 
 // DisassemblyLine represents a single disassembled instruction
 type DisassemblyLine struct {
-	Address uint32 `json:"address"`
-	Opcode  uint32 `json:"opcode"`
-	Symbol  string `json:"symbol"` // Symbol at this address, if any
+	Address  uint32 `json:"address"`
+	Opcode   uint32 `json:"opcode"`
+	Mnemonic string `json:"mnemonic"` // Disassembled instruction text
+	Symbol   string `json:"symbol"`   // Symbol at this address, if any
 }
 
 // StackEntry represents a single stack location

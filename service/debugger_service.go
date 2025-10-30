@@ -405,6 +405,10 @@ func (s *DebuggerService) GetDisassembly(startAddr uint32, count int) []Disassem
 
 	lines := make([]DisassemblyLine, 0, count)
 	addr := startAddr
+	// Clamp to first mapped code address to avoid empty results when startAddr is below code segment
+	if addr < vm.CodeSegmentStart {
+		addr = vm.CodeSegmentStart
+	}
 
 	for i := 0; i < count; i++ {
 		// Read instruction from memory
@@ -417,10 +421,17 @@ func (s *DebuggerService) GetDisassembly(startAddr uint32, count int) []Disassem
 		// Get symbol at this address if any
 		symbol := s.GetSymbolForAddress(addr)
 
+		// Get mnemonic from source map if available
+		mnemonic := ""
+		if sourceLine, ok := s.sourceMap[addr]; ok {
+			mnemonic = sourceLine
+		}
+
 		line := DisassemblyLine{
-			Address: addr,
-			Opcode:  opcode,
-			Symbol:  symbol,
+			Address:  addr,
+			Opcode:   opcode,
+			Mnemonic: mnemonic,
+			Symbol:   symbol,
 		}
 
 		lines = append(lines, line)

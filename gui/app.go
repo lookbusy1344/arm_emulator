@@ -38,6 +38,11 @@ func (a *App) startup(ctx context.Context) {
 
 // LoadProgramFromSource parses and loads assembly source code
 func (a *App) LoadProgramFromSource(source string, filename string, entryPoint uint32) error {
+	// Prepend .org directive if not already present
+	if !strings.Contains(source, ".org") {
+		source = fmt.Sprintf(".org 0x%X\n%s", entryPoint, source)
+	}
+
 	p := parser.NewParser(source, filename)
 	program, err := p.Parse()
 	if err != nil {

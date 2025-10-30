@@ -65,10 +65,10 @@ export const DisassemblyView: React.FC = () => {
           >
             <span className="disasm-address">
               {line.hasBreakpoint && <span className="breakpoint-marker">●</span>}
-              {line.address.toString(16).padStart(8, '0')}
+              0x{line.address.toString(16).padStart(8, '0')}
             </span>
             <span className="disasm-opcode">
-              {line.opcode.toString(16).padStart(8, '0')}
+              0x{line.opcode.toString(16).padStart(8, '0')}
             </span>
             {line.symbol && (
               <span className="disasm-symbol">{line.symbol}:</span>

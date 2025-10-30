@@ -37,6 +37,7 @@ export namespace service {
 	export class DisassemblyLine {
 	    address: number;
 	    opcode: number;
+	    mnemonic: string;
 	    symbol: string;
 	
 	    static createFrom(source: any = {}) {
@@ -47,6 +48,7 @@ export namespace service {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.address = source["address"];
 	        this.opcode = source["opcode"];
+	        this.mnemonic = source["mnemonic"];
 	        this.symbol = source["symbol"];
 	    }
 	}
