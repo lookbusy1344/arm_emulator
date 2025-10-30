@@ -622,3 +622,33 @@ func (s *DebuggerService) GetWatchpoints() []WatchpointInfo {
 	}
 	return result
 }
+
+// ExecuteCommand executes a debugger command and returns output
+func (s *DebuggerService) ExecuteCommand(command string) (string, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	if s.debugger == nil {
+		return "", fmt.Errorf("no program loaded")
+	}
+
+	// Execute command (debugger writes to its Output buffer)
+	err := s.debugger.ExecuteCommand(command)
+
+	// Get output and clear buffer
+	output := s.debugger.GetOutput()
+
+	return output, err
+}
+
+// EvaluateExpression evaluates an expression and returns the result
+func (s *DebuggerService) EvaluateExpression(expr string) (uint32, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	if s.debugger == nil || s.debugger.Evaluator == nil {
+		return 0, fmt.Errorf("no program loaded")
+	}
+
+	return s.debugger.Evaluator.EvaluateExpression(expr, s.vm, s.symbols)
+}

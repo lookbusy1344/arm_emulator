@@ -864,3 +864,75 @@ main:
 		t.Error("Expected error when removing watchpoint with invalid ID")
 	}
 }
+
+func TestDebuggerService_ExecuteCommand(t *testing.T) {
+	machine := vm.NewVM()
+	machine.InitializeStack(0x30001000)
+	svc := service.NewDebuggerService(machine)
+
+	program := `
+.org 0x8000
+main:
+    MOV R0, #42
+    SWI #0x00
+`
+	p := parser.NewParser(program, "test.s")
+	parsed, err := p.Parse()
+	if err != nil {
+		t.Fatalf("Failed to parse program: %v", err)
+	}
+
+	err = svc.LoadProgram(parsed, 0x8000)
+	if err != nil {
+		t.Fatalf("Failed to load program: %v", err)
+	}
+
+	// Execute "info registers" command
+	output, err := svc.ExecuteCommand("info registers")
+	if err != nil {
+		t.Errorf("ExecuteCommand failed: %v", err)
+	}
+
+	if output == "" {
+		t.Error("Expected non-empty command output")
+	}
+}
+
+func TestDebuggerService_EvaluateExpression(t *testing.T) {
+	machine := vm.NewVM()
+	machine.InitializeStack(0x30001000)
+	svc := service.NewDebuggerService(machine)
+
+	program := `
+.org 0x8000
+main:
+    MOV R0, #42
+    MOV R1, #10
+    SWI #0x00
+`
+	p := parser.NewParser(program, "test.s")
+	parsed, err := p.Parse()
+	if err != nil {
+		t.Fatalf("Failed to parse program: %v", err)
+	}
+
+	err = svc.LoadProgram(parsed, 0x8000)
+	if err != nil {
+		t.Fatalf("Failed to load program: %v", err)
+	}
+
+	// Execute first two instructions
+	svc.Step()
+	svc.Step()
+
+	// Evaluate "R0 + R1"
+	result, err := svc.EvaluateExpression("R0 + R1")
+	if err != nil {
+		t.Errorf("EvaluateExpression failed: %v", err)
+	}
+
+	expected := uint32(52) // 42 + 10
+	if result != expected {
+		t.Errorf("Expected result %d, got %d", expected, result)
+	}
+}
