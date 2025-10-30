@@ -1,0 +1,143 @@
+.expression-evaluator {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: #1e1e1e;
+  color: #d4d4d4;
+  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+}
+
+.expression-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
+  background: #252525;
+  border-bottom: 1px solid #3e3e3e;
+  font-weight: bold;
+  font-size: 12px;
+}
+
+.expression-clear-btn {
+  background: #3e3e3e;
+  color: #d4d4d4;
+  border: none;
+  padding: 4px 8px;
+  border-radius: 3px;
+  cursor: pointer;
+  font-size: 11px;
+}
+
+.expression-clear-btn:hover {
+  background: #4e4e4e;
+}
+
+.expression-form {
+  display: flex;
+  gap: 8px;
+  padding: 12px;
+  background: #252525;
+  border-bottom: 1px solid #3e3e3e;
+}
+
+.expression-input {
+  flex: 1;
+  background: #2d2d2d;
+  color: #d4d4d4;
+  border: 1px solid #3e3e3e;
+  padding: 6px 10px;
+  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+  font-size: 13px;
+  border-radius: 3px;
+  outline: none;
+}
+
+.expression-input:focus {
+  border-color: #4ec9b0;
+}
+
+.expression-input::placeholder {
+  color: #858585;
+}
+
+.expression-eval-btn {
+  background: #4ec9b0;
+  color: #1e1e1e;
+  border: none;
+  padding: 6px 16px;
+  border-radius: 3px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 600;
+  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+}
+
+.expression-eval-btn:hover {
+  background: #5ed9c0;
+}
+
+.expression-results {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px;
+}
+
+.expression-no-results {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: #858585;
+  font-size: 12px;
+}
+
+.expression-result-item {
+  background: #252525;
+  border: 1px solid #3e3e3e;
+  border-radius: 4px;
+  padding: 10px 12px;
+  margin-bottom: 8px;
+}
+
+.expression-result-item.error {
+  border-color: #f48771;
+}
+
+.expression-result-header {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 6px;
+  font-size: 12px;
+}
+
+.expression-result-index {
+  color: #858585;
+  font-weight: bold;
+  min-width: 30px;
+}
+
+.expression-result-expr {
+  color: #4ec9b0;
+  font-weight: 500;
+}
+
+.expression-result-value {
+  display: flex;
+  gap: 12px;
+  font-size: 13px;
+  padding-left: 38px;
+}
+
+.expression-hex {
+  color: #d4d4d4;
+  font-weight: bold;
+}
+
+.expression-decimal {
+  color: #858585;
+}
+
+.expression-error {
+  color: #f48771;
+  font-size: 12px;
+}

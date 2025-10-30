@@ -9,6 +9,8 @@ import { StackView } from './components/StackView';
 import { OutputView } from './components/OutputView';
 import { StatusView } from './components/StatusView';
 import { BreakpointsView } from './components/BreakpointsView';
+import { CommandInput } from './components/CommandInput';
+import { ExpressionEvaluator } from './components/ExpressionEvaluator';
 import {
   Step,
   StepOver,
@@ -22,7 +24,7 @@ import './App.css';
 
 function App() {
   const [leftTab, setLeftTab] = useState<'source' | 'disassembly'>('source');
-  const [bottomTab, setBottomTab] = useState<'output' | 'breakpoints' | 'status'>('output');
+  const [bottomTab, setBottomTab] = useState<'output' | 'breakpoints' | 'status' | 'expressions'>('output');
 
   // Placeholder register state until we wire up real data
   const [registers] = useState<RegisterState>({
@@ -148,7 +150,7 @@ function App() {
           </Allotment>
         </Allotment.Pane>
 
-        {/* Bottom: Output/Breakpoints/Status tabs */}
+        {/* Bottom: Output/Breakpoints/Status/Expressions tabs */}
         <Allotment.Pane snap minSize={150} preferredSize={200}>
           <div className="tabbed-panel">
             <div className="tabs">
@@ -170,13 +172,25 @@ function App() {
               >
                 Status
               </button>
+              <button
+                className={bottomTab === 'expressions' ? 'tab active' : 'tab'}
+                onClick={() => setBottomTab('expressions')}
+              >
+                Expressions
+              </button>
             </div>
             <div className="tab-content">
               {bottomTab === 'output' && <OutputView />}
               {bottomTab === 'breakpoints' && <BreakpointsView />}
               {bottomTab === 'status' && <StatusView />}
+              {bottomTab === 'expressions' && <ExpressionEvaluator />}
             </div>
           </div>
+        </Allotment.Pane>
+
+        {/* Command Input - fixed at very bottom */}
+        <Allotment.Pane snap minSize={40} maxSize={40}>
+          <CommandInput />
         </Allotment.Pane>
       </Allotment>
     </div>
