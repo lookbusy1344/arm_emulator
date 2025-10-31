@@ -23,8 +23,8 @@ func init() {
 	debugEnabled = os.Getenv("ARM_EMULATOR_DEBUG") != ""
 	
 	if debugEnabled {
-		// Create debug log file
-		f, err := os.OpenFile("/tmp/arm-emulator-gui-debug.log", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
+		// Create debug log file with restrictive permissions (0600 = owner read/write only)
+		f, err := os.OpenFile("/tmp/arm-emulator-gui-debug.log", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0600)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Failed to open debug log: %v\n", err)
 			debugLog = log.New(os.Stderr, "GUI: ", log.Ltime|log.Lmicroseconds|log.Lshortfile)
