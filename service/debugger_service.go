@@ -443,14 +443,17 @@ func (s *DebuggerService) GetMemory(address uint32, size uint32) ([]byte, error)
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
+	serviceLog.Printf("GetMemory: address=0x%08X, size=%d", address, size)
 	data := make([]byte, size)
 	for i := uint32(0); i < size; i++ {
 		b, err := s.vm.Memory.ReadByteAt(address + i)
 		if err != nil {
+			serviceLog.Printf("GetMemory: ReadByteAt failed at offset %d: %v", i, err)
 			return nil, err
 		}
 		data[i] = b
 	}
+	serviceLog.Printf("GetMemory: success, returning %d bytes", len(data))
 	return data, nil
 }
 
@@ -463,6 +466,7 @@ func (s *DebuggerService) GetLastMemoryWrite() MemoryWriteInfo {
 		Address:  s.vm.LastMemoryWrite,
 		HasWrite: s.vm.HasMemoryWrite,
 	}
+	serviceLog.Printf("GetLastMemoryWrite: address=0x%08X, hasWrite=%v", result.Address, result.HasWrite)
 	s.vm.HasMemoryWrite = false
 	return result
 }

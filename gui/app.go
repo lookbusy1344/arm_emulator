@@ -219,7 +219,14 @@ func (a *App) GetBreakpoints() []service.BreakpointInfo {
 
 // GetMemory returns memory contents
 func (a *App) GetMemory(address uint32, size uint32) ([]byte, error) {
-	return a.service.GetMemory(address, size)
+	debugLog.Printf("GetMemory called: address=0x%08X, size=%d", address, size)
+	data, err := a.service.GetMemory(address, size)
+	if err != nil {
+		debugLog.Printf("GetMemory error: %v", err)
+	} else {
+		debugLog.Printf("GetMemory success: returned %d bytes", len(data))
+	}
+	return data, err
 }
 
 // GetSourceLine returns source for address
@@ -285,7 +292,9 @@ func (a *App) GetStack(offset int, count int) []service.StackEntry {
 
 // GetLastMemoryWrite returns the address of the last memory write
 func (a *App) GetLastMemoryWrite() service.MemoryWriteInfo {
-	return a.service.GetLastMemoryWrite()
+	result := a.service.GetLastMemoryWrite()
+	debugLog.Printf("GetLastMemoryWrite: address=0x%08X, hasWrite=%v", result.Address, result.HasWrite)
+	return result
 }
 
 // GetSymbolForAddress resolves address to symbol
