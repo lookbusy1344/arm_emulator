@@ -37,15 +37,15 @@ func init() {
 // DebuggerService provides a thread-safe interface to debugger functionality
 // This service is shared by TUI, GUI, and CLI interfaces
 type DebuggerService struct {
-	mu                sync.RWMutex
-	vm                *vm.VM
-	debugger          *debugger.Debugger
-	symbols           map[string]uint32
-	sourceMap         map[uint32]string
-	program           *parser.Program
-	entryPoint        uint32
-	outputWriter      *EventEmittingWriter
-	ctx               context.Context
+	mu                   sync.RWMutex
+	vm                   *vm.VM
+	debugger             *debugger.Debugger
+	symbols              map[string]uint32
+	sourceMap            map[uint32]string
+	program              *parser.Program
+	entryPoint           uint32
+	outputWriter         *EventEmittingWriter
+	ctx                  context.Context
 	stateChangedCallback func() // Callback for GUI state updates
 }
 
@@ -461,7 +461,7 @@ func (s *DebuggerService) GetMemory(address uint32, size uint32) ([]byte, error)
 func (s *DebuggerService) GetLastMemoryWrite() MemoryWriteInfo {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	
+
 	result := MemoryWriteInfo{
 		Address:  s.vm.LastMemoryWrite,
 		HasWrite: s.vm.HasMemoryWrite,
