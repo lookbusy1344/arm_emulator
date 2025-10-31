@@ -10,8 +10,20 @@ The ARM Emulator GUI provides a graphical interface for debugging ARM assembly p
 - **Register View**: Real-time display of all 16 registers, PC, and CPSR flags
 - **Memory View**: Hex dump and ASCII representation of memory
 - **Execution Control**: Step, run, pause, and reset program execution
-- **Breakpoints**: Set and manage breakpoints (coming soon)
-- **Symbol Resolution**: View and navigate to labels and symbols (coming soon)
+- **Breakpoints**: Set and manage breakpoints
+- **Symbol Resolution**: View and navigate to labels and symbols
+- **Keyboard Shortcuts**: Fast debugging with function key shortcuts
+
+### Keyboard Shortcuts
+
+The GUI supports keyboard shortcuts matching the TUI interface:
+
+- **F5** - Continue (run until breakpoint or halt)
+- **F9** - Toggle breakpoint at current PC
+- **F10** - Step Over (next instruction)
+- **F11** - Step (single instruction)
+
+These shortcuts work when focus is not in an input field, providing fast debugging without reaching for the mouse.
 
 ## Building
 
@@ -154,6 +166,7 @@ The GUI is designed for smooth performance even with large programs:
 ## Accessibility
 
 - Keyboard navigation supported throughout
+- Function key shortcuts (F5, F9, F10, F11) for common debugging operations
 - ARIA labels on all interactive elements
 - High contrast color scheme
 - Screen reader compatible (via semantic HTML)

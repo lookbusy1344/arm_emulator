@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Allotment } from 'allotment';
 import 'allotment/dist/style.css';
 import { SourceView } from './components/SourceView';
@@ -18,7 +18,9 @@ import {
   Continue,
   Pause,
   Reset,
-  LoadProgramFromFile
+  LoadProgramFromFile,
+  GetRegisters,
+  ToggleBreakpoint
 } from '../wailsjs/go/main/App';
 import './App.css';
 
@@ -81,6 +83,47 @@ function App() {
       console.error('Load failed:', error);
     }
   };
+
+  const handleToggleBreakpoint = async () => {
+    try {
+      const regs = await GetRegisters();
+      await ToggleBreakpoint(regs.PC);
+    } catch (error) {
+      console.error('Toggle breakpoint failed:', error);
+    }
+  };
+
+  // Keyboard shortcuts matching TUI
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Ignore if typing in input fields
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) {
+        return;
+      }
+
+      switch (e.key) {
+        case 'F5':
+          e.preventDefault();
+          handleRun();
+          break;
+        case 'F9':
+          e.preventDefault();
+          handleToggleBreakpoint();
+          break;
+        case 'F10':
+          e.preventDefault();
+          handleStepOver();
+          break;
+        case 'F11':
+          e.preventDefault();
+          handleStep();
+          break;
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [handleRun, handleToggleBreakpoint, handleStepOver, handleStep]);
 
   return (
     <div className="app-container">

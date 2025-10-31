@@ -60,6 +60,17 @@ cd frontend && npm run build && cd ..
 go build -o ../build/arm-emulator-gui
 ```
 
+## Keyboard Shortcuts
+
+The GUI supports the following keyboard shortcuts for debugging:
+
+- **F5** - Continue (run until breakpoint or halt)
+- **F9** - Toggle breakpoint at current PC
+- **F10** - Step Over (next instruction)
+- **F11** - Step (single instruction)
+
+These shortcuts match the TUI interface for consistent debugging across both UIs. They work when focus is not in an input field.
+
 ## Live Development
 
 To run in live development mode with hot reload:
