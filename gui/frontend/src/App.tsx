@@ -172,10 +172,18 @@ function App() {
               </button>
             </div>
             <div className="tab-content">
-              {bottomTab === 'output' && <OutputView />}
-              {bottomTab === 'breakpoints' && <BreakpointsView />}
-              {bottomTab === 'status' && <StatusView />}
-              {bottomTab === 'expressions' && <ExpressionEvaluator />}
+              <div style={{ display: bottomTab === 'output' ? 'flex' : 'none', flexDirection: 'column', height: '100%' }}>
+                <OutputView />
+              </div>
+              <div style={{ display: bottomTab === 'breakpoints' ? 'flex' : 'none', flexDirection: 'column', height: '100%' }}>
+                <BreakpointsView />
+              </div>
+              <div style={{ display: bottomTab === 'status' ? 'flex' : 'none', flexDirection: 'column', height: '100%' }}>
+                <StatusView />
+              </div>
+              <div style={{ display: bottomTab === 'expressions' ? 'flex' : 'none', flexDirection: 'column', height: '100%' }}>
+                <ExpressionEvaluator />
+              </div>
             </div>
           </div>
         </Allotment.Pane>
