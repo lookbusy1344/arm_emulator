@@ -31,8 +31,7 @@ export const OutputView: React.FC = () => {
 
   return (
     <div className="output-view">
-      <div className="output-header">
-        <span>Program Output</span>
+      <div className="output-toolbar">
         <button className="output-clear-btn" onClick={handleClear}>Clear</button>
       </div>
       <pre className="output-content" ref={contentRef}>

@@ -47,8 +47,6 @@ export const BreakpointsView: React.FC = () => {
 
   return (
     <div className="breakpoints-view">
-      <div className="breakpoints-header">Breakpoints & Watchpoints</div>
-
       <div className="breakpoints-section">
         <div className="section-title">Breakpoints ({breakpoints.length})</div>
         {breakpoints.length === 0 ? (

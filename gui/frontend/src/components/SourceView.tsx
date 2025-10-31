@@ -90,7 +90,6 @@ export const SourceView: React.FC = () => {
 
   return (
     <div className="source-view" ref={containerRef}>
-      <div className="source-header">Source Code</div>
       <div className="source-content">
         {lines.map((line, index) => (
           <div

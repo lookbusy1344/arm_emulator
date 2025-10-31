@@ -7,21 +7,15 @@
   font-family: 'Consolas', 'Monaco', monospace;
 }
 
-.status-header {
+.status-info-bar {
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-start;
+  gap: 16px;
   align-items: center;
-  padding: 8px 12px;
+  padding: 4px 12px;
   background: #252525;
   border-bottom: 1px solid #3e3e3e;
-  font-weight: bold;
-  font-size: 12px;
-}
-
-.status-info {
-  display: flex;
-  gap: 16px;
-  font-weight: normal;
+  font-size: 11px;
 }
 
 .status-state {

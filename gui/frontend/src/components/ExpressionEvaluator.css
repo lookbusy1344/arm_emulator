@@ -7,37 +7,27 @@
   font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
 }
 
-.expression-header {
+.expression-form {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 8px 12px;
+  gap: 8px;
+  padding: 8px;
   background: #252525;
   border-bottom: 1px solid #3e3e3e;
-  font-weight: bold;
-  font-size: 12px;
 }
 
 .expression-clear-btn {
   background: #3e3e3e;
   color: #d4d4d4;
   border: none;
-  padding: 4px 8px;
+  padding: 6px 12px;
   border-radius: 3px;
   cursor: pointer;
-  font-size: 11px;
+  font-size: 12px;
+  font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
 }
 
 .expression-clear-btn:hover {
   background: #4e4e4e;
-}
-
-.expression-form {
-  display: flex;
-  gap: 8px;
-  padding: 12px;
-  background: #252525;
-  border-bottom: 1px solid #3e3e3e;
 }
 
 .expression-input {

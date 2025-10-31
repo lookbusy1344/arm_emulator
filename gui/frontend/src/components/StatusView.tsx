@@ -58,12 +58,9 @@ export const StatusView: React.FC = () => {
 
   return (
     <div className="status-view">
-      <div className="status-header">
-        <span>Debugger Status</span>
-        <div className="status-info">
-          <span className="status-state">{executionState}</span>
-          <span className="status-cycles">Cycles: {cycles}</span>
-        </div>
+      <div className="status-info-bar">
+        <span className="status-state">{executionState}</span>
+        <span className="status-cycles">Cycles: {cycles}</span>
       </div>
       <div className="status-content">
         {messages.map((msg, index) => (

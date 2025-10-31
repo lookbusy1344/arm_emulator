@@ -77,11 +77,6 @@ export const ExpressionEvaluator: React.FC = () => {
 
   return (
     <div className="expression-evaluator">
-      <div className="expression-header">
-        <span>Expression Evaluator</span>
-        <button className="expression-clear-btn" onClick={handleClear}>Clear</button>
-      </div>
-
       <form onSubmit={handleSubmit} className="expression-form">
         <input
           type="text"
@@ -94,6 +89,7 @@ export const ExpressionEvaluator: React.FC = () => {
         <button type="submit" className="expression-eval-btn">
           Evaluate
         </button>
+        <button type="button" className="expression-clear-btn" onClick={handleClear}>Clear</button>
       </form>
 
       <div className="expression-results">

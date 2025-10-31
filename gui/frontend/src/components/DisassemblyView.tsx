@@ -55,7 +55,6 @@ export const DisassemblyView: React.FC = () => {
 
   return (
     <div className="disassembly-view">
-      <div className="disassembly-header">Disassembly</div>
       <div className="disassembly-content">
         {lines.map((line, index) => (
           <div

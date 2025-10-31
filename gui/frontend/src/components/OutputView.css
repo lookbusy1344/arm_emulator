@@ -7,15 +7,13 @@
   font-family: 'Consolas', 'Monaco', monospace;
 }
 
-.output-header {
+.output-toolbar {
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-end;
   align-items: center;
-  padding: 8px 12px;
+  padding: 4px 8px;
   background: #252525;
   border-bottom: 1px solid #3e3e3e;
-  font-weight: bold;
-  font-size: 12px;
 }
 
 .output-clear-btn {
