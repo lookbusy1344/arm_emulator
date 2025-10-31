@@ -18,6 +18,10 @@ import (
 var debugLog *log.Logger
 var debugEnabled bool
 
+// DefaultEntryPoint is the default entry point for loaded programs (0x8000)
+// This is a common convention for ARM programs, matching the standard RAM start address
+const DefaultEntryPoint = uint32(0x8000)
+
 func init() {
 	// Check if debug logging is enabled via environment variable
 	debugEnabled = os.Getenv("ARM_EMULATOR_DEBUG") != ""
@@ -140,7 +144,7 @@ func (a *App) LoadProgramFromFile() error {
 	}
 
 	// Parse and load program with default entry point
-	err = a.LoadProgramFromSource(string(source), filePath, 0x8000)
+	err = a.LoadProgramFromSource(string(source), filePath, DefaultEntryPoint)
 	if err != nil {
 		runtime.EventsEmit(a.ctx, "vm:error", err.Error())
 		return err

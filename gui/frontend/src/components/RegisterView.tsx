@@ -24,22 +24,19 @@ export const RegisterView: React.FC<RegisterViewProps> = ({
   const loadRegisters = useCallback(async () => {
     try {
       const regs = await GetRegisters()
-      
+
       // Track which registers changed
       const changed = new Set<number>()
       regs.Registers.forEach((val, idx) => {
         if (val !== previousRegistersRef.current[idx]) {
           changed.add(idx)
-          console.log(`Register R${idx} changed: ${previousRegistersRef.current[idx]} -> ${val}`)
         }
       })
-      
-      console.log('Changed registers:', Array.from(changed))
-      
+
       previousRegistersRef.current = [...regs.Registers]
       setHighlightedRegs(changed)
       setRegisters(regs)
-      
+
       // Clear highlights after 1 second
       if (changed.size > 0) {
         setTimeout(() => setHighlightedRegs(new Set()), 1000)
@@ -50,18 +47,15 @@ export const RegisterView: React.FC<RegisterViewProps> = ({
   }, [])
 
   useEffect(() => {
-    console.log('RegisterView: Setting up event listener')
     loadRegisters()
 
     const handleStateChange = () => {
-      console.log('RegisterView: vm:state-changed event received')
       loadRegisters()
     }
 
     EventsOn('vm:state-changed', handleStateChange)
 
     return () => {
-      console.log('RegisterView: Cleaning up event listener')
       EventsOff('vm:state-changed', handleStateChange)
     }
   }, [loadRegisters])

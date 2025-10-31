@@ -8,6 +8,8 @@ interface MemoryViewProps {
   highlightAddresses?: Set<number>
 }
 
+// BYTES_PER_ROW defines how many bytes to display per row in the hex dump
+// 16 is standard for hex dumps as it displays nicely and aligns with memory boundaries
 const BYTES_PER_ROW = 16
 
 const formatHex8 = (value: number): string => {
@@ -103,8 +105,6 @@ export const MemoryView: React.FC<MemoryViewProps> = ({
   for (let i = 0; i < memory.length; i += BYTES_PER_ROW) {
     rows.push(memory.slice(i, i + BYTES_PER_ROW))
   }
-  
-  console.log(`MemoryView: memory.length=${memory.length}, rows.length=${rows.length}, baseAddress=0x${baseAddress.toString(16)}`)
 
   return (
     <div className="memory-view">
