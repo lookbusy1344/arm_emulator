@@ -41,7 +41,7 @@ export const StackView: React.FC = () => {
     EventsOn('vm:state-changed', loadStack);
 
     return () => {
-      EventsOff('vm:state-changed');
+      EventsOff('vm:state-changed', loadStack);
     };
   }, []);
 

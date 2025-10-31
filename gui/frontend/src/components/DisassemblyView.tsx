@@ -49,7 +49,7 @@ export const DisassemblyView: React.FC = () => {
     EventsOn('vm:state-changed', loadDisassembly);
 
     return () => {
-      EventsOff('vm:state-changed');
+      EventsOff('vm:state-changed', loadDisassembly);
     };
   }, []);
 

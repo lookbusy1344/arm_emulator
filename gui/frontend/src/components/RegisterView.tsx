@@ -52,17 +52,19 @@ export const RegisterView: React.FC<RegisterViewProps> = ({
   useEffect(() => {
     console.log('RegisterView: Setting up event listener')
     loadRegisters()
-    
-    EventsOn('vm:state-changed', () => {
+
+    const handleStateChange = () => {
       console.log('RegisterView: vm:state-changed event received')
       loadRegisters()
-    })
-    
+    }
+
+    EventsOn('vm:state-changed', handleStateChange)
+
     return () => {
       console.log('RegisterView: Cleaning up event listener')
-      EventsOff('vm:state-changed')
+      EventsOff('vm:state-changed', handleStateChange)
     }
-  }, [])
+  }, [loadRegisters])
 
   if (!registers) {
     return <div className="register-view">Loading...</div>

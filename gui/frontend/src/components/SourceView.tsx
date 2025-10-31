@@ -84,7 +84,7 @@ export const SourceView: React.FC = () => {
     EventsOn('vm:state-changed', loadSourceData);
 
     return () => {
-      EventsOff('vm:state-changed');
+      EventsOff('vm:state-changed', loadSourceData);
     };
   }, []);
 

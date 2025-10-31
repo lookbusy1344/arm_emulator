@@ -25,7 +25,7 @@ export const OutputView: React.FC = () => {
     EventsOn('vm:output', handleOutputEvent);
 
     return () => {
-      EventsOff('vm:output');
+      EventsOff('vm:output', handleOutputEvent);
     };
   }, []);
 

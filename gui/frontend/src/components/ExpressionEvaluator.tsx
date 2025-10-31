@@ -71,7 +71,7 @@ export const ExpressionEvaluator: React.FC = () => {
     EventsOn('vm:state-changed', handleStateChange);
 
     return () => {
-      EventsOff('vm:state-changed');
+      EventsOff('vm:state-changed', handleStateChange);
     };
   }, []);
 

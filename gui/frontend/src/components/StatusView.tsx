@@ -36,23 +36,27 @@ export const StatusView: React.FC = () => {
   useEffect(() => {
     loadState();
 
-    EventsOn('vm:state-changed', () => {
+    const handleStateChange = () => {
       loadState();
       addMessage('info', 'VM state changed');
-    });
+    };
 
-    EventsOn('vm:error', (errorMsg: string) => {
+    const handleError = (errorMsg: string) => {
       addMessage('error', errorMsg);
-    });
+    };
 
-    EventsOn('vm:breakpoint-hit', () => {
+    const handleBreakpoint = () => {
       addMessage('breakpoint', 'Breakpoint hit');
-    });
+    };
+
+    EventsOn('vm:state-changed', handleStateChange);
+    EventsOn('vm:error', handleError);
+    EventsOn('vm:breakpoint-hit', handleBreakpoint);
 
     return () => {
-      EventsOff('vm:state-changed');
-      EventsOff('vm:error');
-      EventsOff('vm:breakpoint-hit');
+      EventsOff('vm:state-changed', handleStateChange);
+      EventsOff('vm:error', handleError);
+      EventsOff('vm:breakpoint-hit', handleBreakpoint);
     };
   }, []);
 

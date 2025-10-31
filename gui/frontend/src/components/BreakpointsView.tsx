@@ -41,7 +41,7 @@ export const BreakpointsView: React.FC = () => {
     EventsOn('vm:state-changed', loadBreakpoints);
 
     return () => {
-      EventsOff('vm:state-changed');
+      EventsOff('vm:state-changed', loadBreakpoints);
     };
   }, []);
 
