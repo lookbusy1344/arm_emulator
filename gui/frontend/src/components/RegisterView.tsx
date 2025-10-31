@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useRef, useCallback } from 'react'
 import type { RegisterState } from '../types/emulator'
 import { GetRegisters } from '../../wailsjs/go/main/App'
 import { EventsOn, EventsOff } from '../../wailsjs/runtime/runtime'
@@ -18,24 +18,25 @@ export const RegisterView: React.FC<RegisterViewProps> = ({
   changedRegisters = new Set(),
 }) => {
   const [registers, setRegisters] = useState<RegisterState | null>(externalRegisters || null)
-  const [previousRegisters, setPreviousRegisters] = useState<number[]>(Array(16).fill(0))
+  const previousRegistersRef = useRef<number[]>(Array(16).fill(0))
   const [highlightedRegs, setHighlightedRegs] = useState<Set<number>>(new Set())
 
-  const loadRegisters = async () => {
+  const loadRegisters = useCallback(async () => {
     try {
       const regs = await GetRegisters()
       
       // Track which registers changed
       const changed = new Set<number>()
-      if (registers) {
-        regs.Registers.forEach((val, idx) => {
-          if (val !== previousRegisters[idx]) {
-            changed.add(idx)
-          }
-        })
-      }
+      regs.Registers.forEach((val, idx) => {
+        if (val !== previousRegistersRef.current[idx]) {
+          changed.add(idx)
+          console.log(`Register R${idx} changed: ${previousRegistersRef.current[idx]} -> ${val}`)
+        }
+      })
       
-      setPreviousRegisters([...regs.Registers])
+      console.log('Changed registers:', Array.from(changed))
+      
+      previousRegistersRef.current = [...regs.Registers]
       setHighlightedRegs(changed)
       setRegisters(regs)
       
@@ -46,12 +47,19 @@ export const RegisterView: React.FC<RegisterViewProps> = ({
     } catch (error) {
       console.error('Failed to load registers:', error)
     }
-  }
+  }, [])
 
   useEffect(() => {
+    console.log('RegisterView: Setting up event listener')
     loadRegisters()
-    EventsOn('vm:state-changed', loadRegisters)
+    
+    EventsOn('vm:state-changed', () => {
+      console.log('RegisterView: vm:state-changed event received')
+      loadRegisters()
+    })
+    
     return () => {
+      console.log('RegisterView: Cleaning up event listener')
       EventsOff('vm:state-changed')
     }
   }, [])

@@ -36,13 +36,13 @@
 }
 
 .register-changed {
-  background: #3a2d1a !important;
+  background: #3a3a00 !important;
   animation: highlight-pulse 0.5s ease-out;
 }
 
 @keyframes highlight-pulse {
-  0% { background: #6b5a2d; }
-  100% { background: #3a2d1a; }
+  0% { background: #ffff00; }
+  100% { background: #3a3a00; }
 }
 
 .register-name {
