@@ -773,8 +773,33 @@ func (s *DebuggerService) StepOver() error {
 		return fmt.Errorf("no program loaded")
 	}
 
-	// Use debugger's public method instead of accessing fields directly
+	// Use debugger's SetStepOver to configure mode
 	s.debugger.SetStepOver()
+
+	// Execute until step completes
+	for s.debugger.Running {
+		// Check if we should break
+		if s.debugger.StepMode != debugger.StepSingle {
+			if shouldBreak, _ := s.debugger.ShouldBreak(); shouldBreak {
+				s.debugger.Running = false
+				break
+			}
+		}
+
+		// Execute one instruction
+		if err := s.vm.Step(); err != nil {
+			s.debugger.Running = false
+			return err
+		}
+
+		// For single-step mode, check after execution
+		if s.debugger.StepMode == debugger.StepSingle {
+			if shouldBreak, _ := s.debugger.ShouldBreak(); shouldBreak {
+				s.debugger.Running = false
+				break
+			}
+		}
+	}
 
 	return nil
 }

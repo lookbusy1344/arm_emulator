@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Allotment } from 'allotment';
 import 'allotment/dist/style.css';
 import { SourceView } from './components/SourceView';
@@ -28,70 +28,70 @@ function App() {
   const [leftTab, setLeftTab] = useState<'source' | 'disassembly'>('source');
   const [bottomTab, setBottomTab] = useState<'output' | 'breakpoints' | 'status' | 'expressions'>('output');
 
-  const handleStep = async () => {
+  const handleStep = useCallback(async () => {
     try {
       await Step();
     } catch (error) {
       console.error('Step failed:', error);
     }
-  };
+  }, []);
 
-  const handleStepOver = async () => {
+  const handleStepOver = useCallback(async () => {
     try {
       await StepOver();
     } catch (error) {
       console.error('Step Over failed:', error);
     }
-  };
+  }, []);
 
-  const handleStepOut = async () => {
+  const handleStepOut = useCallback(async () => {
     try {
       await StepOut();
     } catch (error) {
       console.error('Step Out failed:', error);
     }
-  };
+  }, []);
 
-  const handleRun = async () => {
+  const handleRun = useCallback(async () => {
     try {
       await Continue();
     } catch (error) {
       console.error('Continue failed:', error);
     }
-  };
+  }, []);
 
-  const handlePause = async () => {
+  const handlePause = useCallback(async () => {
     try {
       await Pause();
     } catch (error) {
       console.error('Pause failed:', error);
     }
-  };
+  }, []);
 
-  const handleReset = async () => {
+  const handleReset = useCallback(async () => {
     try {
       await Reset();
     } catch (error) {
       console.error('Reset failed:', error);
     }
-  };
+  }, []);
 
-  const handleLoad = async () => {
+  const handleLoad = useCallback(async () => {
     try {
       await LoadProgramFromFile();
     } catch (error) {
       console.error('Load failed:', error);
     }
-  };
+  }, []);
 
-  const handleToggleBreakpoint = async () => {
+  const handleToggleBreakpoint = useCallback(async () => {
     try {
       const regs = await GetRegisters();
       await ToggleBreakpoint(regs.PC);
     } catch (error) {
       console.error('Toggle breakpoint failed:', error);
     }
-  };
+  }, []);
 
   // Keyboard shortcuts matching TUI
   useEffect(() => {
