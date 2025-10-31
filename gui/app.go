@@ -173,6 +173,8 @@ func (a *App) Step() error {
 // Continue runs until breakpoint or halt (asynchronously)
 func (a *App) Continue() error {
 	debugLog.Println("Continue() called - starting goroutine")
+	// Capture context to avoid race condition
+	ctx := a.ctx
 	// Run in background to avoid blocking GUI
 	go func() {
 		debugLog.Println("Goroutine started, calling RunUntilHalt")
@@ -180,13 +182,13 @@ func (a *App) Continue() error {
 		err := a.service.RunUntilHalt()
 		elapsed := time.Since(start)
 		debugLog.Printf("RunUntilHalt completed in %v, err: %v", elapsed, err)
-		
+
 		debugLog.Println("Emitting vm:state-changed")
-		runtime.EventsEmit(a.ctx, "vm:state-changed")
+		runtime.EventsEmit(ctx, "vm:state-changed")
 
 		if err != nil {
 			debugLog.Printf("Emitting error: %v", err)
-			runtime.EventsEmit(a.ctx, "vm:error", err.Error())
+			runtime.EventsEmit(ctx, "vm:error", err.Error())
 		}
 
 		// Check if stopped at breakpoint
@@ -194,7 +196,7 @@ func (a *App) Continue() error {
 		debugLog.Printf("Execution state: %s", state)
 		if state == service.StateBreakpoint {
 			debugLog.Println("Emitting breakpoint-hit")
-			runtime.EventsEmit(a.ctx, "vm:breakpoint-hit")
+			runtime.EventsEmit(ctx, "vm:breakpoint-hit")
 		}
 		debugLog.Println("Goroutine completed")
 	}()
