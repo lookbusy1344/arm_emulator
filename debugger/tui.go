@@ -548,10 +548,10 @@ func (t *TUI) UpdateSourceView() {
 	// Get current PC
 	pc := t.Debugger.VM.CPU.PC
 
-	// Target: show ~15 instructions total (5 before + current + 9 after)
-	// But if there aren't enough before, show more after to fill the window
-	const targetBefore = 5
-	const targetAfter = 10
+	// Target: show more instructions to fill the window
+	// Show instructions before and after PC to provide context
+	const targetBefore = 20
+	const targetAfter = 80
 
 	// Count how many valid instructions exist before PC
 	actualBefore := 0

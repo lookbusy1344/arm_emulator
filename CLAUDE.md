@@ -41,6 +41,28 @@ go mod verify
 ./arm-emulator program.s
 ```
 
+## GUI Commands (Wails)
+
+**IMPORTANT:** Always use the `-nocolour` flag with `wails build` and `wails dev` to prevent ANSI escape codes in output.
+
+### Build GUI
+
+```bash
+wails build -nocolour
+```
+
+### Run GUI in Development Mode
+
+```bash
+wails dev -nocolour
+```
+
+### Check Wails Environment
+
+```bash
+wails doctor
+```
+
 ## Project Structure
 
 - `main.go` - Entry point and CLI interface

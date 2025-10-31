@@ -1,0 +1,80 @@
+.app-container {
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  background: #1e1e1e;
+}
+
+.toolbar {
+  display: flex;
+  gap: 8px;
+  padding: 12px;
+  background: #252525;
+  border-bottom: 1px solid #3e3e3e;
+  align-items: center;
+}
+
+.toolbar button {
+  background: #3e3e3e;
+  color: #d4d4d4;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 3px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.toolbar button:hover {
+  background: #4e4e4e;
+}
+
+.tabbed-panel {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: #1e1e1e;
+}
+
+.tabs {
+  display: flex;
+  background: #252525;
+  border-bottom: 1px solid #3e3e3e;
+}
+
+.tab {
+  background: transparent;
+  color: #858585;
+  border: none;
+  padding: 8px 16px;
+  cursor: pointer;
+  font-size: 12px;
+  border-bottom: 2px solid transparent;
+  transition: all 0.2s;
+}
+
+.tab:hover {
+  color: #d4d4d4;
+  background: #2a2a2a;
+}
+
+.tab.active {
+  color: #d4d4d4;
+  border-bottom-color: #4ec9b0;
+}
+
+.tab-content {
+  flex: 1;
+  overflow: hidden;
+}
+
+.placeholder-view {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  background: #1e1e1e;
+  color: #858585;
+  font-family: 'Consolas', 'Monaco', monospace;
+  font-size: 12px;
+}

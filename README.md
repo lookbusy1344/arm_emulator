@@ -280,6 +280,25 @@ The emulator includes a powerful debugger with both command-line and TUI (Text U
 
 For complete debugger documentation including conditional breakpoints, watchpoints, memory examination, and expression syntax, see [docs/debugger_reference.md](docs/debugger_reference.md).
 
+### GUI Mode (Graphical Interface)
+
+Run programs in GUI mode with code editor, register view, and memory inspector:
+
+```bash
+cd gui
+wails dev  # Development mode
+```
+
+Or build for production:
+
+```bash
+cd gui
+wails build
+./build/bin/arm-emulator
+```
+
+See [docs/GUI.md](docs/GUI.md) for detailed GUI documentation.
+
 ### Symbol Table Dump
 
 Inspect the parsed symbols from your assembly program:

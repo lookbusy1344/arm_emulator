@@ -113,6 +113,10 @@ func ExecuteLoadStoreMultiple(vm *VM, inst *Instruction) error {
 				return fmt.Errorf("store multiple failed at 0x%08X: %w", addr, err)
 			}
 
+			// Track last memory write for GUI
+			vm.LastMemoryWrite = addr
+			vm.HasMemoryWrite = true
+
 			// Record memory trace if enabled
 			if vm.MemoryTrace != nil {
 				vm.MemoryTrace.RecordWrite(vm.CPU.Cycles, vm.CPU.PC, addr, value, "WORD")

@@ -95,6 +95,10 @@ type VM struct {
 	// run concurrently. Previously this was a global variable shared across
 	// all VM instances, causing data corruption during parallel execution.
 	stdinReader *bufio.Reader
+
+	// Last memory write address for GUI highlighting
+	LastMemoryWrite uint32
+	HasMemoryWrite  bool
 }
 
 // NewVM creates a new virtual machine instance

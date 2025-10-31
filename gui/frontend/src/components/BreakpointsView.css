@@ -1,0 +1,78 @@
+.breakpoints-view {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: #1e1e1e;
+  color: #d4d4d4;
+  font-family: 'Consolas', 'Monaco', monospace;
+  overflow-y: auto;
+}
+
+.breakpoints-section {
+  padding: 12px;
+  border-bottom: 1px solid #3e3e3e;
+}
+
+.section-title {
+  font-size: 11px;
+  font-weight: bold;
+  color: #858585;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+
+.empty-message {
+  color: #858585;
+  font-size: 12px;
+  font-style: italic;
+  padding: 8px 0;
+}
+
+.breakpoints-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.breakpoints-table th {
+  text-align: left;
+  padding: 6px 8px;
+  background: #252525;
+  border-bottom: 1px solid #3e3e3e;
+  font-weight: bold;
+  font-size: 11px;
+}
+
+.breakpoints-table td {
+  padding: 6px 8px;
+  border-bottom: 1px solid #2e2e2e;
+}
+
+.bp-address {
+  color: #9cdcfe;
+  font-family: 'Consolas', 'Monaco', monospace;
+}
+
+.bp-condition,
+.bp-type {
+  color: #ce9178;
+  font-style: italic;
+}
+
+.bp-actions {
+  text-align: right;
+}
+
+.btn-remove {
+  background: #e51400;
+  color: white;
+  border: none;
+  padding: 4px 8px;
+  border-radius: 3px;
+  cursor: pointer;
+  font-size: 11px;
+}
+
+.btn-remove:hover {
+  background: #c51400;
+}

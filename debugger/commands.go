@@ -46,10 +46,26 @@ func (d *Debugger) cmdStep(args []string) error {
 
 // cmdNext steps over function calls (step to next instruction at same level)
 func (d *Debugger) cmdNext(args []string) error {
-	// Store current PC for step over
-	d.StepOverPC = d.VM.CPU.PC + 4
-	d.StepMode = StepOver
-	d.Running = true
+	// Read instruction at current PC
+	instr, err := d.VM.Memory.ReadWord(d.VM.CPU.PC)
+	if err != nil {
+		return fmt.Errorf("failed to read instruction: %w", err)
+	}
+
+	// Check if this is a BL (Branch with Link) instruction
+	// BL: bits[31:28] = condition, bits[27:24] = 1011
+	isBL := (instr & 0x0F000000) == 0x0B000000
+
+	if isBL {
+		// This is a function call - set up step over
+		d.StepOverPC = d.VM.CPU.PC + 4
+		d.StepMode = StepOver
+		d.Running = true
+	} else {
+		// Not a function call - just single step
+		d.StepMode = StepSingle
+		d.Running = true
+	}
 	return nil
 }
 

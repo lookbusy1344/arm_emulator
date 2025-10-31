@@ -270,3 +270,38 @@ func (d *Debugger) Printf(format string, args ...interface{}) {
 func (d *Debugger) Println(args ...interface{}) {
 	d.Output.WriteString(fmt.Sprintln(args...))
 }
+
+// SetStepOver configures the debugger to step over function calls
+// This should be called while holding the appropriate locks in the calling code
+func (d *Debugger) SetStepOver() {
+	// Read instruction at current PC
+	instr, err := d.VM.Memory.ReadWord(d.VM.CPU.PC)
+	if err != nil {
+		// If we can't read the instruction, fall back to single step
+		d.StepMode = StepSingle
+		d.Running = true
+		return
+	}
+
+	// Check if this is a BL (Branch with Link) instruction
+	// BL: bits[31:28] = condition, bits[27:24] = 1011
+	isBL := (instr & 0x0F000000) == 0x0B000000
+
+	if isBL {
+		// This is a function call - set up step over
+		d.StepOverPC = d.VM.CPU.PC + 4
+		d.StepMode = StepOver
+		d.Running = true
+	} else {
+		// Not a function call - just single step
+		d.StepMode = StepSingle
+		d.Running = true
+	}
+}
+
+// SetStepOut configures the debugger to step out of the current function
+// This should be called while holding the appropriate locks in the calling code
+func (d *Debugger) SetStepOut() {
+	d.StepMode = StepOut
+	d.Running = true
+}
