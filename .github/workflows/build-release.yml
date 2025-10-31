@@ -82,6 +82,11 @@ jobs:
           LDFLAGS="-s -w -X main.Version=${{ steps.version.outputs.version }} -X main.Commit=${{ steps.version.outputs.commit }} -X main.Date=${{ steps.version.outputs.date }}"
           wails build -clean -platform ${{ matrix.os }}/${{ matrix.arch }} -ldflags "$LDFLAGS"
       
+      - name: Sign macOS app
+        if: matrix.os == 'darwin'
+        run: |
+          codesign --force --deep --sign - build/bin/arm-emulator.app
+      
       - name: List build artifacts
         shell: bash
         run: |
