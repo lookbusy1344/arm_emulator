@@ -85,6 +85,8 @@ export const MemoryView: React.FC<MemoryViewProps> = ({
   for (let i = 0; i < memory.length; i += BYTES_PER_ROW) {
     rows.push(memory.slice(i, i + BYTES_PER_ROW))
   }
+  
+  console.log(`MemoryView: memory.length=${memory.length}, rows.length=${rows.length}, baseAddress=0x${baseAddress.toString(16)}`)
 
   return (
     <div className="memory-view">

@@ -10,14 +10,30 @@ export const MemoryContainer: React.FC = () => {
   const [baseAddress, setBaseAddress] = useState<number>(0x8000)
 
   const loadMemory = useCallback(async (address: number) => {
-    console.log(`MemoryContainer: loadMemory called with address 0x${address.toString(16)}`)
+    const msg = `MemoryContainer: loadMemory called with address 0x${address.toString(16)}`
+    console.log(msg)
     try {
       const data = await GetMemory(address, MEMORY_WINDOW_SIZE)
-      console.log(`MemoryContainer: received ${data.length} bytes from GetMemory`)
-      setMemory(new Uint8Array(data))
+      console.log(`MemoryContainer: received data, type=${typeof data}, length=${data.length}, isArray=${Array.isArray(data)}`)
+      
+      let uint8Array: Uint8Array
+      if (typeof data === 'string') {
+        // Wails is returning base64 encoded string, decode it
+        const binaryString = atob(data)
+        uint8Array = new Uint8Array(binaryString.length)
+        for (let i = 0; i < binaryString.length; i++) {
+          uint8Array[i] = binaryString.charCodeAt(i)
+        }
+      } else {
+        // If it's already an array, use it directly
+        uint8Array = new Uint8Array(data)
+      }
+      
+      console.log(`MemoryContainer: created Uint8Array, length=${uint8Array.length}`)
+      setMemory(uint8Array)
       setBaseAddress(address)
     } catch (error) {
-      console.error('Failed to load memory:', error)
+      console.error('MemoryContainer: Failed to load memory:', error)
       // Don't update state on error - keep showing previous valid memory
     }
   }, [])
@@ -51,7 +67,8 @@ export const MemoryContainer: React.FC = () => {
   useEffect(() => {
     console.log('MemoryContainer: initial useEffect, loading memory at 0x' + baseAddress.toString(16))
     loadMemory(baseAddress)
-  }, [baseAddress])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   useEffect(() => {
     const handleStateChange = async () => {
