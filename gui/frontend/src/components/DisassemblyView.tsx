@@ -60,7 +60,7 @@ export const DisassemblyView: React.FC = () => {
           <div
             key={index}
             className={`disasm-line ${line.isCurrent ? 'disasm-line-current' : ''} ${line.hasBreakpoint ? 'disasm-line-breakpoint' : ''}`}
-            onClick={() => handleLineClick(line.address)}
+            onDoubleClick={() => handleLineClick(line.address)}
           >
             <span className="disasm-address">
               {line.hasBreakpoint && <span className="breakpoint-marker">●</span>}

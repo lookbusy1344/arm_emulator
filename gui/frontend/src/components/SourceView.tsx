@@ -95,7 +95,7 @@ export const SourceView: React.FC = () => {
           <div
             key={index}
             className={`source-line ${line.isCurrent ? 'source-line-current' : ''} ${line.hasBreakpoint ? 'source-line-breakpoint' : ''}`}
-            onClick={() => handleLineClick(line.address)}
+            onDoubleClick={() => handleLineClick(line.address)}
           >
             <span className="source-line-number">
               {line.hasBreakpoint && <span className="breakpoint-marker">●</span>}

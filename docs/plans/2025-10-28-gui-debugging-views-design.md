@@ -240,7 +240,7 @@ func (a *App) ToggleBreakpoint(address uint32) error {
 - Displays source lines from `GetSourceMap()`
 - Highlights current line (PC address) in yellow
 - Shows breakpoint markers (*) next to line numbers
-- Click on line number to toggle breakpoint via `ToggleBreakpoint(address)`
+- Double-click on line to toggle breakpoint via `ToggleBreakpoint(address)`
 - Auto-scrolls to keep PC in view
 - Shows symbol labels above their addresses in green
 
@@ -253,7 +253,7 @@ func (a *App) ToggleBreakpoint(address uint32) error {
 - Displays: address, opcode (hex), symbol name
 - Highlights current PC line in yellow
 - Breakpoint markers same as SourceView
-- Click address to toggle breakpoint
+- Double-click address to toggle breakpoint
 
 **Data updates:** Subscribes to `vm:state-changed`, refreshes disassembly around current PC
 

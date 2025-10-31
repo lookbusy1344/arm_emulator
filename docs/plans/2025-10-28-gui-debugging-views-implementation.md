@@ -4022,7 +4022,7 @@ Expected: GUI opens with new layout and components visible
 
 **Step 4: Test breakpoint functionality**
 
-1. Click on a source line to set breakpoint
+1. Double-click on a source line to set breakpoint
 2. Verify breakpoint marker appears
 3. Click Run button
 4. Verify execution stops at breakpoint

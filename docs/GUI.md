@@ -10,7 +10,7 @@ The ARM Emulator GUI provides a graphical interface for debugging ARM assembly p
 - **Register View**: Real-time display of all 16 registers, PC, and CPSR flags
 - **Memory View**: Hex dump and ASCII representation of memory
 - **Execution Control**: Step, run, pause, and reset program execution
-- **Breakpoints**: Set and manage breakpoints
+- **Breakpoints**: Set and manage breakpoints (double-click on source or disassembly lines)
 - **Symbol Resolution**: View and navigate to labels and symbols
 - **Keyboard Shortcuts**: Fast debugging with function key shortcuts
 
