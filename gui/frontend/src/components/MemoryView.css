@@ -1,6 +1,6 @@
 .memory-view {
   font-family: 'JetBrains Mono', monospace;
-  font-size: 13px;
+  font-size: 12px;
   padding: 12px;
   background: #1e1e1e;
   color: #d4d4d4;
@@ -13,14 +13,16 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 12px;
+  padding: 8px 12px;
+  background: #252525;
+  border-bottom: 1px solid #3e3e3e;
+  margin: -12px -12px 12px -12px;
 }
 
 .memory-view-title {
-  font-size: 14px;
-  font-weight: 600;
+  font-weight: bold;
   margin: 0;
-  color: #569cd6;
+  line-height: 1.5;
 }
 
 .address-input-form {

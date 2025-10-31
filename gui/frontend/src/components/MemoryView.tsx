@@ -109,7 +109,7 @@ export const MemoryView: React.FC<MemoryViewProps> = ({
   return (
     <div className="memory-view">
       <div className="memory-view-header">
-        <h3 className="memory-view-title">Memory</h3>
+        <div className="memory-view-title">Memory</div>
         <form onSubmit={handleAddressSubmit} className="address-input-form">
           <input
             type="text"

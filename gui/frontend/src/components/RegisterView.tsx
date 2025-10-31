@@ -73,7 +73,7 @@ export const RegisterView: React.FC<RegisterViewProps> = ({
 
   return (
     <div className="register-view">
-      <h3 className="register-view-title">Registers</h3>
+      <div className="register-view-title">Registers</div>
 
       {/* General Purpose Registers */}
       <div className="register-grid">

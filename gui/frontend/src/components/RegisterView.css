@@ -1,6 +1,6 @@
 .register-view {
   font-family: 'JetBrains Mono', monospace;
-  font-size: 13px;
+  font-size: 12px;
   padding: 12px;
   background: #1e1e1e;
   color: #d4d4d4;
@@ -9,10 +9,12 @@
 }
 
 .register-view-title {
-  font-size: 14px;
-  font-weight: 600;
-  margin: 0 0 12px 0;
-  color: #569cd6;
+  padding: 8px 12px;
+  background: #252525;
+  border-bottom: 1px solid #3e3e3e;
+  font-weight: bold;
+  margin: -12px -12px 12px -12px;
+  line-height: 1.5;
 }
 
 .register-grid {
@@ -72,7 +74,7 @@
   font-size: 13px;
   font-weight: 600;
   margin: 0 0 8px 0;
-  color: #569cd6;
+  color: #d4d4d4;
 }
 
 .cpsr-flags {
