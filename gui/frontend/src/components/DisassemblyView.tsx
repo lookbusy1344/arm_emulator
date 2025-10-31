@@ -70,12 +70,12 @@ export const DisassemblyView: React.FC = () => {
             <span className="disasm-opcode">
               0x{line.opcode.toString(16).padStart(8, '0')}
             </span>
-            {line.symbol && (
-              <span className="disasm-symbol">{line.symbol}:</span>
-            )}
-            {line.mnemonic && (
-              <span className="disasm-mnemonic">{line.mnemonic}</span>
-            )}
+            <span className="disasm-symbol">
+              {line.symbol ? `${line.symbol}:` : ''}
+            </span>
+            <span className="disasm-mnemonic">
+              {line.mnemonic || ''}
+            </span>
           </div>
         ))}
       </div>
