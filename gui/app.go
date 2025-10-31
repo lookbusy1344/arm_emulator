@@ -23,8 +23,8 @@ func init() {
 	debugEnabled = os.Getenv("ARM_EMULATOR_DEBUG") != ""
 	
 	if debugEnabled {
-		// Create debug log file
-		f, err := os.OpenFile("/tmp/arm-emulator-gui-debug.log", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
+		// Create debug log file with restrictive permissions (0600 = owner read/write only)
+		f, err := os.OpenFile("/tmp/arm-emulator-gui-debug.log", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0600)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Failed to open debug log: %v\n", err)
 			debugLog = log.New(os.Stderr, "GUI: ", log.Ltime|log.Lmicroseconds|log.Lshortfile)
@@ -65,10 +65,76 @@ func (a *App) startup(ctx context.Context) {
 	debugLog.Println("startup() completed")
 }
 
+// stripComments removes all comments from a line (inline and block)
+// Supports: ; @ // line comments and /* */ block comments
+func stripComments(line string) string {
+	// Handle block comments first (/* */)
+	for {
+		start := strings.Index(line, "/*")
+		if start == -1 {
+			break
+		}
+		end := strings.Index(line[start:], "*/")
+		if end == -1 {
+			// Unclosed block comment, treat rest of line as comment
+			line = line[:start]
+			break
+		}
+		// Remove block comment
+		line = line[:start] + line[start+end+2:]
+	}
+
+	// Find first line comment marker (; @ //)
+	// This ensures we only cut at the first comment, not process each marker separately
+	firstComment := len(line)
+	for _, marker := range []string{";", "@", "//"} {
+		if idx := strings.Index(line, marker); idx != -1 && idx < firstComment {
+			firstComment = idx
+		}
+	}
+	if firstComment < len(line) {
+		line = line[:firstComment]
+	}
+
+	return strings.TrimSpace(line)
+}
+
 // LoadProgramFromSource parses and loads assembly source code
 func (a *App) LoadProgramFromSource(source string, filename string, entryPoint uint32) error {
-	// Prepend .org directive if not already present
-	if !strings.Contains(source, ".org") {
+	// Input validation
+	const maxSourceSize = 1024 * 1024 // 1MB limit
+	if len(source) > maxSourceSize {
+		return fmt.Errorf("source code too large: %d bytes (maximum %d bytes)", len(source), maxSourceSize)
+	}
+
+	// Validate entry point is within valid code segment range
+	// Code segment: 0x8000 to 0x18000 (64KB)
+	if entryPoint < vm.CodeSegmentStart || entryPoint >= vm.CodeSegmentStart+vm.CodeSegmentSize {
+		return fmt.Errorf("invalid entry point: 0x%X (must be between 0x%X and 0x%X)",
+			entryPoint, vm.CodeSegmentStart, vm.CodeSegmentStart+vm.CodeSegmentSize-1)
+	}
+
+	// Check if .org directive is already present by parsing, not just searching
+	// This avoids false positives from comments or strings containing ".org"
+	hasOrgDirective := false
+	for _, line := range strings.Split(source, "\n") {
+		// Strip all comments (inline and block)
+		stripped := stripComments(line)
+		if stripped == "" {
+			continue
+		}
+		// Check for .org directive with word boundary (not .organize, etc.)
+		// Must be followed by whitespace or end of line
+		if strings.HasPrefix(stripped, ".org") {
+			rest := stripped[4:]
+			if len(rest) == 0 || rest[0] == ' ' || rest[0] == '\t' {
+				hasOrgDirective = true
+				break
+			}
+		}
+	}
+
+	if !hasOrgDirective {
 		source = fmt.Sprintf(".org 0x%X\n%s", entryPoint, source)
 	}
 
@@ -107,14 +173,24 @@ func (a *App) LoadProgramFromFile() error {
 		return nil
 	}
 
+	// Validate file size before reading (1MB limit)
+	const maxSourceSize = 1024 * 1024
+	info, err := os.Stat(filePath)
+	if err != nil {
+		return fmt.Errorf("failed to stat file: %w", err)
+	}
+	if info.Size() > maxSourceSize {
+		return fmt.Errorf("file too large: %d bytes (maximum %d bytes)", info.Size(), maxSourceSize)
+	}
+
 	// Read file contents
 	source, err := os.ReadFile(filePath)
 	if err != nil {
 		return fmt.Errorf("failed to read file: %w", err)
 	}
 
-	// Parse and load program with default entry point
-	err = a.LoadProgramFromSource(string(source), filePath, 0x8000)
+	// Parse and load program with default entry point (code segment start)
+	err = a.LoadProgramFromSource(string(source), filePath, vm.CodeSegmentStart)
 	if err != nil {
 		runtime.EventsEmit(a.ctx, "vm:error", err.Error())
 		return err
@@ -147,6 +223,8 @@ func (a *App) Step() error {
 // Continue runs until breakpoint or halt (asynchronously)
 func (a *App) Continue() error {
 	debugLog.Println("Continue() called - starting goroutine")
+	// Capture context to avoid race condition
+	ctx := a.ctx
 	// Run in background to avoid blocking GUI
 	go func() {
 		debugLog.Println("Goroutine started, calling RunUntilHalt")
@@ -154,13 +232,13 @@ func (a *App) Continue() error {
 		err := a.service.RunUntilHalt()
 		elapsed := time.Since(start)
 		debugLog.Printf("RunUntilHalt completed in %v, err: %v", elapsed, err)
-		
+
 		debugLog.Println("Emitting vm:state-changed")
-		runtime.EventsEmit(a.ctx, "vm:state-changed")
+		runtime.EventsEmit(ctx, "vm:state-changed")
 
 		if err != nil {
 			debugLog.Printf("Emitting error: %v", err)
-			runtime.EventsEmit(a.ctx, "vm:error", err.Error())
+			runtime.EventsEmit(ctx, "vm:error", err.Error())
 		}
 
 		// Check if stopped at breakpoint
@@ -168,7 +246,7 @@ func (a *App) Continue() error {
 		debugLog.Printf("Execution state: %s", state)
 		if state == service.StateBreakpoint {
 			debugLog.Println("Emitting breakpoint-hit")
-			runtime.EventsEmit(a.ctx, "vm:breakpoint-hit")
+			runtime.EventsEmit(ctx, "vm:breakpoint-hit")
 		}
 		debugLog.Println("Goroutine completed")
 	}()
@@ -300,6 +378,18 @@ func (a *App) GetLastMemoryWrite() service.MemoryWriteInfo {
 // GetSymbolForAddress resolves address to symbol
 func (a *App) GetSymbolForAddress(addr uint32) string {
 	return a.service.GetSymbolForAddress(addr)
+}
+
+// GetSymbolsForAddresses resolves multiple addresses to symbols in one call
+func (a *App) GetSymbolsForAddresses(addrs []uint32) map[uint32]string {
+	result := make(map[uint32]string, len(addrs))
+	for _, addr := range addrs {
+		symbol := a.service.GetSymbolForAddress(addr)
+		if symbol != "" {
+			result[addr] = symbol
+		}
+	}
+	return result
 }
 
 // GetOutput returns captured output

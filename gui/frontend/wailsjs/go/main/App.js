@@ -70,6 +70,10 @@ export function GetSymbols() {
   return window['go']['main']['App']['GetSymbols']();
 }
 
+export function GetSymbolsForAddresses(arg1) {
+  return window['go']['main']['App']['GetSymbolsForAddresses'](arg1);
+}
+
 export function GetWatchpoints() {
   return window['go']['main']['App']['GetWatchpoints']();
 }

@@ -75,10 +75,10 @@ export const CommandInput: React.FC = () => {
       setResult('');
     };
 
-    EventsOn('vm:state-changed', handleStateChange);
+    const unsubscribe = EventsOn('vm:state-changed', handleStateChange);
 
     return () => {
-      EventsOff('vm:state-changed');
+      unsubscribe();
     };
   }, []);
 

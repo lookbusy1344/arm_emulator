@@ -46,10 +46,10 @@ export const DisassemblyView: React.FC = () => {
 
   useEffect(() => {
     loadDisassembly();
-    EventsOn('vm:state-changed', loadDisassembly);
+    const unsubscribe = EventsOn('vm:state-changed', loadDisassembly);
 
     return () => {
-      EventsOff('vm:state-changed');
+      unsubscribe();
     };
   }, []);
 

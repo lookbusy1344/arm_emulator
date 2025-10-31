@@ -22,10 +22,10 @@ export const OutputView: React.FC = () => {
   };
 
   useEffect(() => {
-    EventsOn('vm:output', handleOutputEvent);
+    const unsubscribe = EventsOn('vm:output', handleOutputEvent);
 
     return () => {
-      EventsOff('vm:output');
+      unsubscribe();
     };
   }, []);
 
