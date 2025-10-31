@@ -69,6 +69,35 @@ func (a *App) startup(ctx context.Context) {
 	debugLog.Println("startup() completed")
 }
 
+// stripComments removes all comments from a line (inline and block)
+// Supports: ; @ // line comments and /* */ block comments
+func stripComments(line string) string {
+	// Handle block comments first (/* */)
+	for {
+		start := strings.Index(line, "/*")
+		if start == -1 {
+			break
+		}
+		end := strings.Index(line[start:], "*/")
+		if end == -1 {
+			// Unclosed block comment, treat rest of line as comment
+			line = line[:start]
+			break
+		}
+		// Remove block comment
+		line = line[:start] + line[start+end+2:]
+	}
+
+	// Handle line comments (; @ //)
+	for _, commentChar := range []string{";", "@", "//"} {
+		if idx := strings.Index(line, commentChar); idx != -1 {
+			line = line[:idx]
+		}
+	}
+
+	return strings.TrimSpace(line)
+}
+
 // LoadProgramFromSource parses and loads assembly source code
 func (a *App) LoadProgramFromSource(source string, filename string, entryPoint uint32) error {
 	// Input validation
@@ -77,24 +106,30 @@ func (a *App) LoadProgramFromSource(source string, filename string, entryPoint u
 		return fmt.Errorf("source code too large: %d bytes (maximum %d bytes)", len(source), maxSourceSize)
 	}
 
-	// Validate entry point is within valid memory range
-	if entryPoint > 0xFFFFFFFF-1024 { // Leave room for code
-		return fmt.Errorf("invalid entry point: 0x%X", entryPoint)
+	// Validate entry point is within valid code segment range
+	// Code segment: 0x8000 to 0x18000 (64KB)
+	if entryPoint < vm.CodeSegmentStart || entryPoint >= vm.CodeSegmentStart+vm.CodeSegmentSize {
+		return fmt.Errorf("invalid entry point: 0x%X (must be between 0x%X and 0x%X)",
+			entryPoint, vm.CodeSegmentStart, vm.CodeSegmentStart+vm.CodeSegmentSize-1)
 	}
 
 	// Check if .org directive is already present by parsing, not just searching
 	// This avoids false positives from comments or strings containing ".org"
 	hasOrgDirective := false
 	for _, line := range strings.Split(source, "\n") {
-		trimmed := strings.TrimSpace(line)
-		// Skip comments
-		if strings.HasPrefix(trimmed, ";") || strings.HasPrefix(trimmed, "@") || strings.HasPrefix(trimmed, "//") {
+		// Strip all comments (inline and block)
+		stripped := stripComments(line)
+		if stripped == "" {
 			continue
 		}
-		// Check for .org at start of line (not in comment)
-		if strings.HasPrefix(trimmed, ".org") {
-			hasOrgDirective = true
-			break
+		// Check for .org directive with word boundary (not .organize, etc.)
+		// Must be followed by whitespace or end of line
+		if strings.HasPrefix(stripped, ".org") {
+			rest := stripped[4:]
+			if len(rest) == 0 || rest[0] == ' ' || rest[0] == '\t' {
+				hasOrgDirective = true
+				break
+			}
 		}
 	}
 
