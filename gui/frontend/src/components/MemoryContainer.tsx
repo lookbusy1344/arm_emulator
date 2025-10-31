@@ -98,7 +98,8 @@ export const MemoryContainer: React.FC = () => {
       console.log('MemoryContainer: cleaning up vm:state-changed listener')
       EventsOff('vm:state-changed')
     }
-  }, [baseAddress, loadMemory, checkMemoryWrite])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   return (
     <MemoryView
