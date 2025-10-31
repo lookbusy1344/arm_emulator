@@ -67,8 +67,34 @@ func (a *App) startup(ctx context.Context) {
 
 // LoadProgramFromSource parses and loads assembly source code
 func (a *App) LoadProgramFromSource(source string, filename string, entryPoint uint32) error {
-	// Prepend .org directive if not already present
-	if !strings.Contains(source, ".org") {
+	// Input validation
+	const maxSourceSize = 1024 * 1024 // 1MB limit
+	if len(source) > maxSourceSize {
+		return fmt.Errorf("source code too large: %d bytes (maximum %d bytes)", len(source), maxSourceSize)
+	}
+
+	// Validate entry point is within valid memory range
+	if entryPoint > 0xFFFFFFFF-1024 { // Leave room for code
+		return fmt.Errorf("invalid entry point: 0x%X", entryPoint)
+	}
+
+	// Check if .org directive is already present by parsing, not just searching
+	// This avoids false positives from comments or strings containing ".org"
+	hasOrgDirective := false
+	for _, line := range strings.Split(source, "\n") {
+		trimmed := strings.TrimSpace(line)
+		// Skip comments
+		if strings.HasPrefix(trimmed, ";") || strings.HasPrefix(trimmed, "@") || strings.HasPrefix(trimmed, "//") {
+			continue
+		}
+		// Check for .org at start of line (not in comment)
+		if strings.HasPrefix(trimmed, ".org") {
+			hasOrgDirective = true
+			break
+		}
+	}
+
+	if !hasOrgDirective {
 		source = fmt.Sprintf(".org 0x%X\n%s", entryPoint, source)
 	}
 
