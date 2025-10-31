@@ -39,6 +39,21 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version: "1.25"
+      
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install Wails
+        shell: bash
+        run: go install github.com/wailsapp/wails/v2/cmd/wails@latest
+
+      - name: Install Linux dependencies
+        if: matrix.os == 'linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.0-dev
 
       - name: Get version info
         id: version
@@ -52,12 +67,19 @@ jobs:
           echo "date=$DATE" >> $GITHUB_OUTPUT
           echo "Building $VERSION (commit: $COMMIT, date: $DATE)"
 
-      - name: Build
+      - name: Build CLI
         run: |
           go build -ldflags="-s -w -X main.Version=${{ steps.version.outputs.version }} -X main.Commit=${{ steps.version.outputs.commit }} -X main.Date=${{ steps.version.outputs.date }}" -o ${{ matrix.binary_name }}
         env:
           GOOS: ${{ matrix.os }}
           GOARCH: ${{ matrix.arch }}
+
+      - name: Build Wails GUI
+        shell: bash
+        working-directory: gui
+        run: |
+          LDFLAGS="-s -w -X main.Version=${{ steps.version.outputs.version }} -X main.Commit=${{ steps.version.outputs.commit }} -X main.Date=${{ steps.version.outputs.date }}"
+          wails build -clean -platform ${{ matrix.os }}/${{ matrix.arch }} -ldflags "$LDFLAGS"
 
       - name: Create release artifact name
         id: artifact
@@ -87,6 +109,31 @@ jobs:
             cp ${{ matrix.binary_name }} "$ARTIFACT_NAME"
           fi
           echo "artifact_name=$ARTIFACT_NAME" >> $GITHUB_OUTPUT
+          
+          # Determine GUI artifact location and name
+          if [ "${{ matrix.os }}" = "darwin" ]; then
+            GUI_SOURCE="../build/bin/arm-emulator-gui.app"
+            GUI_ARTIFACT_NAME="arm-emulator-gui-${PLATFORM}-${{ matrix.arch }}.app.tar.gz"
+            if [ -d "$GUI_SOURCE" ]; then
+              tar -czf "$GUI_ARTIFACT_NAME" -C ../build/bin arm-emulator-gui.app
+            fi
+          elif [ "${{ matrix.os }}" = "windows" ]; then
+            GUI_SOURCE="../build/bin/arm-emulator-gui.exe"
+            GUI_ARTIFACT_NAME="arm-emulator-gui-${PLATFORM}-${{ matrix.arch }}.exe"
+            if [ -f "$GUI_SOURCE" ]; then
+              cp "$GUI_SOURCE" "$GUI_ARTIFACT_NAME"
+            fi
+          else
+            GUI_SOURCE="../build/bin/arm-emulator-gui"
+            GUI_ARTIFACT_NAME="arm-emulator-gui-${PLATFORM}-${{ matrix.arch }}"
+            if [ -f "$GUI_SOURCE" ]; then
+              cp "$GUI_SOURCE" "$GUI_ARTIFACT_NAME"
+            fi
+          fi
+          
+          if [ -n "$GUI_ARTIFACT_NAME" ]; then
+            echo "gui_artifact_name=$GUI_ARTIFACT_NAME" >> $GITHUB_OUTPUT
+          fi
 
       - name: Generate SHA256 checksum
         id: checksum
@@ -109,6 +156,21 @@ jobs:
           # Display checksum for verification
           echo "Generated checksum:"
           cat "$CHECKSUM_FILE"
+          
+          # Generate checksum for GUI artifact if it exists
+          GUI_ARTIFACT_NAME="${{ steps.artifact.outputs.gui_artifact_name }}"
+          if [ -n "$GUI_ARTIFACT_NAME" ] && [ -f "$GUI_ARTIFACT_NAME" ]; then
+            GUI_CHECKSUM_FILE="${GUI_ARTIFACT_NAME}.sha256"
+            if [ "$RUNNER_OS" = "Windows" ]; then
+              HASH=$(powershell -Command "(Get-FileHash -Algorithm SHA256 '$GUI_ARTIFACT_NAME').Hash.ToLower()")
+              echo "$HASH  $GUI_ARTIFACT_NAME" > "$GUI_CHECKSUM_FILE"
+            else
+              shasum -a 256 "$GUI_ARTIFACT_NAME" > "$GUI_CHECKSUM_FILE"
+            fi
+            echo "gui_checksum_file=$GUI_CHECKSUM_FILE" >> $GITHUB_OUTPUT
+            echo "Generated GUI checksum:"
+            cat "$GUI_CHECKSUM_FILE"
+          fi
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
@@ -122,6 +184,22 @@ jobs:
         with:
           name: ${{ steps.checksum.outputs.checksum_file }}
           path: ${{ steps.checksum.outputs.checksum_file }}
+          retention-days: 7
+
+      - name: Upload GUI artifact
+        if: steps.artifact.outputs.gui_artifact_name != ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.artifact.outputs.gui_artifact_name }}
+          path: ${{ steps.artifact.outputs.gui_artifact_name }}
+          retention-days: 7
+
+      - name: Upload GUI checksum
+        if: steps.checksum.outputs.gui_checksum_file != ''
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.checksum.outputs.gui_checksum_file }}
+          path: ${{ steps.checksum.outputs.gui_checksum_file }}
           retention-days: 7
 
   create-release:
