@@ -8,6 +8,7 @@ const MEMORY_WINDOW_SIZE = 256
 export const MemoryContainer: React.FC = () => {
   const [memory, setMemory] = useState<Uint8Array>(new Uint8Array(MEMORY_WINDOW_SIZE))
   const [baseAddress, setBaseAddress] = useState<number>(0x8000)
+  const [highlightAddresses, setHighlightAddresses] = useState<Set<number>>(new Set())
 
   const loadMemory = useCallback(async (address: number) => {
     const msg = `MemoryContainer: loadMemory called with address 0x${address.toString(16)}`
@@ -38,12 +39,16 @@ export const MemoryContainer: React.FC = () => {
     }
   }, [])
 
-  const checkMemoryWrite = useCallback(async (): Promise<number | null> => {
+  const checkMemoryWrite = useCallback(async (): Promise<{ navigateTo: number | null, writeAddress: number | null }> => {
     console.log('MemoryContainer: checkMemoryWrite called')
     try {
       const result = await GetLastMemoryWrite()
       console.log(`MemoryContainer: GetLastMemoryWrite returned address=0x${result.address.toString(16)}, hasWrite=${result.hasWrite}`)
       if (result.hasWrite) {
+        // Highlight the exact byte that was written
+        setHighlightAddresses(new Set([result.address]))
+        setTimeout(() => setHighlightAddresses(new Set()), 1000)
+
         // Align to 16-byte boundary for display
         const alignedAddress = Math.floor(result.address / 16) * 16
         console.log(`MemoryContainer: aligned address to 0x${alignedAddress.toString(16)}`)
@@ -53,14 +58,17 @@ export const MemoryContainer: React.FC = () => {
         const currentEnd = baseAddress + MEMORY_WINDOW_SIZE
         if (result.address < currentStart || result.address >= currentEnd) {
           console.log(`MemoryContainer: write at 0x${result.address.toString(16)} is outside window [0x${currentStart.toString(16)}-0x${currentEnd.toString(16)}], will navigate`)
-          return alignedAddress
+          return { navigateTo: alignedAddress, writeAddress: result.address }
         }
         console.log(`MemoryContainer: write at 0x${result.address.toString(16)} is within current window, reloading`)
+        return { navigateTo: null, writeAddress: result.address }
       }
-      return null
+      // No write, clear any previous highlight
+      setHighlightAddresses(new Set())
+      return { navigateTo: null, writeAddress: null }
     } catch (error) {
       console.error('Failed to check memory write:', error)
-      return null
+      return { navigateTo: null, writeAddress: null }
     }
   }, [baseAddress])
 
@@ -73,10 +81,13 @@ export const MemoryContainer: React.FC = () => {
   useEffect(() => {
     const handleStateChange = async () => {
       console.log('MemoryContainer: vm:state-changed event received')
-      // Just reload current view - don't auto-navigate on memory writes
-      // This avoids issues with writes near segment boundaries
-      console.log(`MemoryContainer: reloading current view at 0x${baseAddress.toString(16)}`)
-      await loadMemory(baseAddress)
+      const decision = await checkMemoryWrite()
+      if (decision.navigateTo !== null) {
+        await loadMemory(decision.navigateTo)
+      } else {
+        console.log(`MemoryContainer: reloading current view at 0x${baseAddress.toString(16)}`)
+        await loadMemory(baseAddress)
+      }
       console.log('MemoryContainer: handleStateChange completed')
     }
 
@@ -87,13 +98,14 @@ export const MemoryContainer: React.FC = () => {
       console.log('MemoryContainer: cleaning up vm:state-changed listener')
       EventsOff('vm:state-changed')
     }
-  }, [baseAddress, loadMemory])
+  }, [baseAddress, loadMemory, checkMemoryWrite])
 
   return (
     <MemoryView
       memory={memory}
       baseAddress={baseAddress}
       onAddressChange={loadMemory}
+      highlightAddresses={highlightAddresses}
     />
   )
 }

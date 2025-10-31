@@ -94,7 +94,9 @@
 }
 
 .memory-byte-highlight {
-  background: #3a2d1a;
+  /* Use the same yellow pulse as changed bytes */
+  background: #3a3a00 !important;
+  animation: memory-highlight-pulse 0.5s ease-out;
   color: #dcdcaa;
   font-weight: 600;
   padding: 0 2px;

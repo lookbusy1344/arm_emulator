@@ -36,6 +36,7 @@ export const MemoryView: React.FC<MemoryViewProps> = ({
   const [changedBytes, setChangedBytes] = useState<Set<number>>(new Set())
   const memoryDumpRef = useRef<HTMLDivElement>(null)
   const changedByteRefs = useRef<Map<number, HTMLSpanElement>>(new Map())
+  const prevBaseAddressRef = useRef<number>(baseAddress)
 
   const handleAddressSubmit = useCallback((e: React.FormEvent) => {
     e.preventDefault()
@@ -55,30 +56,47 @@ export const MemoryView: React.FC<MemoryViewProps> = ({
   }, [addressInput, onAddressChange])
 
   useEffect(() => {
+    const baseChanged = prevBaseAddressRef.current !== baseAddress
     const changed = new Set<number>()
-    for (let i = 0; i < memory.length; i++) {
-      if (memory[i] !== previousMemoryRef.current[i]) {
-        changed.add(baseAddress + i)
+
+    if (!baseChanged) {
+      for (let i = 0; i < memory.length; i++) {
+        if (memory[i] !== previousMemoryRef.current[i]) {
+          changed.add(baseAddress + i)
+        }
       }
+      previousMemoryRef.current = new Uint8Array(memory)
+      setChangedBytes(changed)
+    } else {
+      // When the window jumps to a new base, don't flood with false-positive changes
+      previousMemoryRef.current = new Uint8Array(memory)
+      setChangedBytes(new Set())
     }
-    
-    previousMemoryRef.current = new Uint8Array(memory)
-    setChangedBytes(changed)
-    
-    if (changed.size > 0) {
-      // Scroll first changed byte into view
-      const firstChanged = Math.min(...Array.from(changed))
+
+    // Prefer scrolling to an explicitly highlighted address (from last write),
+    // otherwise fall back to the first changed byte within the window
+    const targets: number[] = []
+    if (highlightAddresses.size > 0) targets.push(...Array.from(highlightAddresses))
+    if (!baseChanged && changed.size > 0) targets.push(...Array.from(changed))
+
+    if (targets.length > 0) {
+      const target = Math.min(...targets)
       setTimeout(() => {
-        const element = changedByteRefs.current.get(firstChanged)
+        const element = changedByteRefs.current.get(target)
         if (element && memoryDumpRef.current) {
           element.scrollIntoView({ behavior: 'smooth', block: 'center' })
         }
       }, 0)
-      
+    }
+
+    // Clear yellow change highlight after a short delay
+    if (!baseChanged && changed.size > 0) {
       const timer = setTimeout(() => setChangedBytes(new Set()), 500)
       return () => clearTimeout(timer)
     }
-  }, [memory, baseAddress])
+
+    prevBaseAddressRef.current = baseAddress
+  }, [memory, baseAddress, highlightAddresses])
 
   // Split memory into rows
   const rows: Uint8Array[] = []
@@ -122,7 +140,7 @@ export const MemoryView: React.FC<MemoryViewProps> = ({
                     <span
                       key={byteIndex}
                       ref={(el) => {
-                        if (el && isChanged) {
+                        if (el && (isChanged || isHighlighted)) {
                           changedByteRefs.current.set(byteAddr, el)
                         }
                       }}
