@@ -20,20 +20,11 @@ import {
   Reset,
   LoadProgramFromFile
 } from '../wailsjs/go/main/App';
-import type { RegisterState } from './types/emulator';
 import './App.css';
 
 function App() {
   const [leftTab, setLeftTab] = useState<'source' | 'disassembly'>('source');
   const [bottomTab, setBottomTab] = useState<'output' | 'breakpoints' | 'status' | 'expressions'>('output');
-
-  // Placeholder register state until we wire up real data
-  const [registers] = useState<RegisterState>({
-    Registers: Array(16).fill(0),
-    CPSR: { N: false, Z: false, C: false, V: false },
-    PC: 0,
-    Cycles: 0
-  });
 
   // Placeholder memory state until we wire up real data
   const [memory] = useState<Uint8Array>(new Uint8Array(256));
@@ -142,7 +133,7 @@ function App() {
             <Allotment.Pane minSize={300} preferredSize={400}>
               <Allotment vertical>
                 <Allotment.Pane>
-                  <RegisterView registers={registers} />
+                  <RegisterView />
                 </Allotment.Pane>
                 <Allotment.Pane>
                   <MemoryView

@@ -1,9 +1,11 @@
-import React from 'react'
+import React, { useEffect, useState } from 'react'
 import type { RegisterState } from '../types/emulator'
+import { GetRegisters } from '../../wailsjs/go/main/App'
+import { EventsOn, EventsOff } from '../../wailsjs/runtime/runtime'
 import './RegisterView.css'
 
 interface RegisterViewProps {
-  registers: RegisterState
+  registers?: RegisterState
   changedRegisters?: Set<number>
 }
 
@@ -12,10 +14,54 @@ const formatHex32 = (value: number): string => {
 }
 
 export const RegisterView: React.FC<RegisterViewProps> = ({
-  registers,
+  registers: externalRegisters,
   changedRegisters = new Set(),
 }) => {
+  const [registers, setRegisters] = useState<RegisterState | null>(externalRegisters || null)
+  const [previousRegisters, setPreviousRegisters] = useState<number[]>(Array(16).fill(0))
+  const [highlightedRegs, setHighlightedRegs] = useState<Set<number>>(new Set())
+
+  const loadRegisters = async () => {
+    try {
+      const regs = await GetRegisters()
+      
+      // Track which registers changed
+      const changed = new Set<number>()
+      if (registers) {
+        regs.Registers.forEach((val, idx) => {
+          if (val !== previousRegisters[idx]) {
+            changed.add(idx)
+          }
+        })
+      }
+      
+      setPreviousRegisters([...regs.Registers])
+      setHighlightedRegs(changed)
+      setRegisters(regs)
+      
+      // Clear highlights after 1 second
+      if (changed.size > 0) {
+        setTimeout(() => setHighlightedRegs(new Set()), 1000)
+      }
+    } catch (error) {
+      console.error('Failed to load registers:', error)
+    }
+  }
+
+  useEffect(() => {
+    loadRegisters()
+    EventsOn('vm:state-changed', loadRegisters)
+    return () => {
+      EventsOff('vm:state-changed')
+    }
+  }, [])
+
+  if (!registers) {
+    return <div className="register-view">Loading...</div>
+  }
+
   const { Registers, CPSR, PC, Cycles } = registers
+  const effectiveHighlights = changedRegisters.size > 0 ? changedRegisters : highlightedRegs
 
   return (
     <div className="register-view">
@@ -26,7 +72,7 @@ export const RegisterView: React.FC<RegisterViewProps> = ({
         {Registers.map((value, index) => (
           <div
             key={index}
-            className={`register-row ${changedRegisters.has(index) ? 'register-changed' : ''}`}
+            className={`register-row ${effectiveHighlights.has(index) ? 'register-changed' : ''}`}
           >
             <span className="register-name">R{index}</span>
             <span className="register-value">{formatHex32(value)}</span>
