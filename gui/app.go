@@ -18,10 +18,6 @@ import (
 var debugLog *log.Logger
 var debugEnabled bool
 
-// DefaultEntryPoint is the default entry point for loaded programs (0x8000)
-// This is a common convention for ARM programs, matching the standard RAM start address
-const DefaultEntryPoint = uint32(0x8000)
-
 func init() {
 	// Check if debug logging is enabled via environment variable
 	debugEnabled = os.Getenv("ARM_EMULATOR_DEBUG") != ""
@@ -88,11 +84,16 @@ func stripComments(line string) string {
 		line = line[:start] + line[start+end+2:]
 	}
 
-	// Handle line comments (; @ //)
-	for _, commentChar := range []string{";", "@", "//"} {
-		if idx := strings.Index(line, commentChar); idx != -1 {
-			line = line[:idx]
+	// Find first line comment marker (; @ //)
+	// This ensures we only cut at the first comment, not process each marker separately
+	firstComment := len(line)
+	for _, marker := range []string{";", "@", "//"} {
+		if idx := strings.Index(line, marker); idx != -1 && idx < firstComment {
+			firstComment = idx
 		}
+	}
+	if firstComment < len(line) {
+		line = line[:firstComment]
 	}
 
 	return strings.TrimSpace(line)
@@ -172,14 +173,24 @@ func (a *App) LoadProgramFromFile() error {
 		return nil
 	}
 
+	// Validate file size before reading (1MB limit)
+	const maxSourceSize = 1024 * 1024
+	info, err := os.Stat(filePath)
+	if err != nil {
+		return fmt.Errorf("failed to stat file: %w", err)
+	}
+	if info.Size() > maxSourceSize {
+		return fmt.Errorf("file too large: %d bytes (maximum %d bytes)", info.Size(), maxSourceSize)
+	}
+
 	// Read file contents
 	source, err := os.ReadFile(filePath)
 	if err != nil {
 		return fmt.Errorf("failed to read file: %w", err)
 	}
 
-	// Parse and load program with default entry point
-	err = a.LoadProgramFromSource(string(source), filePath, DefaultEntryPoint)
+	// Parse and load program with default entry point (code segment start)
+	err = a.LoadProgramFromSource(string(source), filePath, vm.CodeSegmentStart)
 	if err != nil {
 		runtime.EventsEmit(a.ctx, "vm:error", err.Error())
 		return err

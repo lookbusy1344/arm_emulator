@@ -254,6 +254,52 @@ func TestApp_LoadProgramFromSource_OrgDirectiveDetection(t *testing.T) {
 		}
 		// Should have added .org directive since comment .org doesn't count
 	})
+
+	t.Run("auto-inserts .org when missing and loads at correct address", func(t *testing.T) {
+		// Source without .org directive
+		source := "MOV R0, #42\nMOV R1, #1\nSWI #0"
+		entryPoint := uint32(0x8000)
+
+		err := app.LoadProgramFromSource(source, "test.s", entryPoint)
+		if err != nil {
+			t.Fatalf("LoadProgramFromSource failed: %v", err)
+		}
+
+		// Verify PC is at entry point
+		regs := app.GetRegisters()
+		if regs.PC != entryPoint {
+			t.Errorf("expected PC=0x%X, got 0x%X", entryPoint, regs.PC)
+		}
+
+		// Step once and verify we can execute from the correct location
+		err = app.Step()
+		if err != nil {
+			t.Fatalf("Step failed: %v", err)
+		}
+
+		// Verify R0 was set to 42 (first instruction executed)
+		regs = app.GetRegisters()
+		if regs.R[0] != 42 {
+			t.Errorf("expected R0=42 after first instruction, got %d", regs.R[0])
+		}
+	})
+
+	t.Run("auto-inserts .org with custom entry point", func(t *testing.T) {
+		// Source without .org directive
+		source := "MOV R0, #99\nSWI #0"
+		entryPoint := uint32(0x9000) // Custom entry point
+
+		err := app.LoadProgramFromSource(source, "test.s", entryPoint)
+		if err != nil {
+			t.Fatalf("LoadProgramFromSource failed: %v", err)
+		}
+
+		// Verify PC is at custom entry point
+		regs := app.GetRegisters()
+		if regs.PC != entryPoint {
+			t.Errorf("expected PC=0x%X, got 0x%X", entryPoint, regs.PC)
+		}
+	})
 }
 
 // TestApp_GetSymbolsForAddresses tests the batch symbol lookup API
