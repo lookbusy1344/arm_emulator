@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { EventsOn, EventsOff } from '../../wailsjs/runtime/runtime';
-import { GetSourceMap, GetRegisters, ToggleBreakpoint, GetBreakpoints, GetSymbolForAddress } from '../../wailsjs/go/main/App';
+import { GetSourceMap, GetRegisters, ToggleBreakpoint, GetBreakpoints, GetSymbolsForAddresses } from '../../wailsjs/go/main/App';
 import './SourceView.css';
 
 interface SourceLine {
@@ -28,21 +28,19 @@ export const SourceView: React.FC = () => {
       // Convert source map to sorted array
       const breakpointAddresses = new Set(breakpoints.map(bp => bp.address));
 
-      // Fetch all symbols in parallel
+      // Fetch all symbols in a single batch API call
       const entries = Object.entries(sourceMap);
-      const symbolPromises = entries.map(([addrStr]) =>
-        GetSymbolForAddress(parseInt(addrStr))
-      );
-      const symbols = await Promise.all(symbolPromises);
+      const addresses = entries.map(([addrStr]) => parseInt(addrStr));
+      const symbolMap = await GetSymbolsForAddresses(addresses);
 
-      const sourceLines: SourceLine[] = entries.map(([addrStr, source], index) => {
+      const sourceLines: SourceLine[] = entries.map(([addrStr, source]) => {
         const address = parseInt(addrStr);
         return {
           address,
           source,
           hasBreakpoint: breakpointAddresses.has(address),
           isCurrent: address === pc,
-          symbol: symbols[index] || '',
+          symbol: symbolMap[address] || '',
         };
       });
 

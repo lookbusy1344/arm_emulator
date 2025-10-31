@@ -302,6 +302,18 @@ func (a *App) GetSymbolForAddress(addr uint32) string {
 	return a.service.GetSymbolForAddress(addr)
 }
 
+// GetSymbolsForAddresses resolves multiple addresses to symbols in one call
+func (a *App) GetSymbolsForAddresses(addrs []uint32) map[uint32]string {
+	result := make(map[uint32]string, len(addrs))
+	for _, addr := range addrs {
+		symbol := a.service.GetSymbolForAddress(addr)
+		if symbol != "" {
+			result[addr] = symbol
+		}
+	}
+	return result
+}
+
 // GetOutput returns captured output
 func (a *App) GetOutput() string {
 	return a.service.GetOutput()
