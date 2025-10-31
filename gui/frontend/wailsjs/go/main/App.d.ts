@@ -18,6 +18,8 @@ export function GetDisassembly(arg1:number,arg2:number):Promise<Array<service.Di
 
 export function GetExecutionState():Promise<string>;
 
+export function GetLastMemoryWrite():Promise<service.MemoryWriteInfo>;
+
 export function GetMemory(arg1:number,arg2:number):Promise<Array<number>>;
 
 export function GetOutput():Promise<string>;

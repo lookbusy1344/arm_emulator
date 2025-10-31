@@ -51,6 +51,18 @@
   color: #9cdcfe;
 }
 
+.stack-value-changed {
+  background: #3a3a00 !important;
+  animation: stack-highlight-pulse 0.5s ease-out;
+  padding: 0 2px;
+  border-radius: 2px;
+}
+
+@keyframes stack-highlight-pulse {
+  0% { background: #ffff00; }
+  100% { background: #3a3a00; }
+}
+
 .stack-symbol {
   color: #4ec9b0;
   font-style: italic;

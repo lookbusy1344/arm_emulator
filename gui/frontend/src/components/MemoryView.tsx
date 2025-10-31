@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react'
+import React, { useState, useCallback, useRef, useEffect } from 'react'
 import './MemoryView.css'
 
 interface MemoryViewProps {
@@ -32,6 +32,10 @@ export const MemoryView: React.FC<MemoryViewProps> = ({
   highlightAddresses = new Set(),
 }) => {
   const [addressInput, setAddressInput] = useState(formatAddress(baseAddress))
+  const previousMemoryRef = useRef<Uint8Array>(new Uint8Array(memory))
+  const [changedBytes, setChangedBytes] = useState<Set<number>>(new Set())
+  const memoryDumpRef = useRef<HTMLDivElement>(null)
+  const changedByteRefs = useRef<Map<number, HTMLSpanElement>>(new Map())
 
   const handleAddressSubmit = useCallback((e: React.FormEvent) => {
     e.preventDefault()
@@ -49,6 +53,32 @@ export const MemoryView: React.FC<MemoryViewProps> = ({
       onAddressChange(addr)
     }
   }, [addressInput, onAddressChange])
+
+  useEffect(() => {
+    const changed = new Set<number>()
+    for (let i = 0; i < memory.length; i++) {
+      if (memory[i] !== previousMemoryRef.current[i]) {
+        changed.add(baseAddress + i)
+      }
+    }
+    
+    previousMemoryRef.current = new Uint8Array(memory)
+    setChangedBytes(changed)
+    
+    if (changed.size > 0) {
+      // Scroll first changed byte into view
+      const firstChanged = Math.min(...Array.from(changed))
+      setTimeout(() => {
+        const element = changedByteRefs.current.get(firstChanged)
+        if (element && memoryDumpRef.current) {
+          element.scrollIntoView({ behavior: 'smooth', block: 'center' })
+        }
+      }, 0)
+      
+      const timer = setTimeout(() => setChangedBytes(new Set()), 500)
+      return () => clearTimeout(timer)
+    }
+  }, [memory, baseAddress])
 
   // Split memory into rows
   const rows: Uint8Array[] = []
@@ -72,7 +102,7 @@ export const MemoryView: React.FC<MemoryViewProps> = ({
         </form>
       </div>
 
-      <div className="memory-dump">
+      <div className="memory-dump" ref={memoryDumpRef}>
         {rows.map((row, rowIndex) => {
           const rowAddress = baseAddress + rowIndex * BYTES_PER_ROW
 
@@ -84,11 +114,17 @@ export const MemoryView: React.FC<MemoryViewProps> = ({
                 {Array.from(row).map((byte, byteIndex) => {
                   const byteAddr = rowAddress + byteIndex
                   const isHighlighted = highlightAddresses.has(byteAddr)
+                  const isChanged = changedBytes.has(byteAddr)
 
                   return (
                     <span
                       key={byteIndex}
-                      className={`memory-byte ${isHighlighted ? 'memory-byte-highlight' : ''}`}
+                      ref={(el) => {
+                        if (el && isChanged) {
+                          changedByteRefs.current.set(byteAddr, el)
+                        }
+                      }}
+                      className={`memory-byte ${isHighlighted ? 'memory-byte-highlight' : ''} ${isChanged ? 'memory-byte-changed' : ''}`}
                     >
                       {formatHex8(byte)}
                     </span>

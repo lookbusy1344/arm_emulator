@@ -80,3 +80,9 @@ type StackEntry struct {
 	Value   uint32 `json:"value"`
 	Symbol  string `json:"symbol"` // If value points to a symbol
 }
+
+// MemoryWriteInfo represents information about the last memory write
+type MemoryWriteInfo struct {
+	Address  uint32 `json:"address"`
+	HasWrite bool   `json:"hasWrite"`
+}

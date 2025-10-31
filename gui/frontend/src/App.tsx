@@ -4,7 +4,7 @@ import 'allotment/dist/style.css';
 import { SourceView } from './components/SourceView';
 import { DisassemblyView } from './components/DisassemblyView';
 import { RegisterView } from './components/RegisterView';
-import { MemoryView } from './components/MemoryView';
+import { MemoryContainer } from './components/MemoryContainer';
 import { StackView } from './components/StackView';
 import { OutputView } from './components/OutputView';
 import { StatusView } from './components/StatusView';
@@ -25,10 +25,6 @@ import './App.css';
 function App() {
   const [leftTab, setLeftTab] = useState<'source' | 'disassembly'>('source');
   const [bottomTab, setBottomTab] = useState<'output' | 'breakpoints' | 'status' | 'expressions'>('output');
-
-  // Placeholder memory state until we wire up real data
-  const [memory] = useState<Uint8Array>(new Uint8Array(256));
-  const [memoryAddress, setMemoryAddress] = useState<number>(0);
 
   const handleStep = async () => {
     try {
@@ -136,11 +132,7 @@ function App() {
                   <RegisterView />
                 </Allotment.Pane>
                 <Allotment.Pane>
-                  <MemoryView
-                    memory={memory}
-                    baseAddress={memoryAddress}
-                    onAddressChange={setMemoryAddress}
-                  />
+                  <MemoryContainer />
                 </Allotment.Pane>
                 <Allotment.Pane>
                   <StackView />

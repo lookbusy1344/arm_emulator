@@ -101,6 +101,16 @@
   border-radius: 2px;
 }
 
+.memory-byte-changed {
+  background: #3a3a00 !important;
+  animation: memory-highlight-pulse 0.5s ease-out;
+}
+
+@keyframes memory-highlight-pulse {
+  0% { background: #ffff00; }
+  100% { background: #3a3a00; }
+}
+
 .memory-ascii {
   color: #ce9178;
   width: 140px;

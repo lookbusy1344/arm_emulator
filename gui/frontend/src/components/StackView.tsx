@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { EventsOn, EventsOff } from '../../wailsjs/runtime/runtime';
 import { GetStack, GetRegisters } from '../../wailsjs/go/main/App';
 import { service } from '../../wailsjs/go/models';
@@ -6,10 +6,12 @@ import './StackView.css';
 
 interface StackEntryView extends service.StackEntry {
   isSP: boolean;
+  isChanged: boolean;
 }
 
 export const StackView: React.FC = () => {
   const [entries, setEntries] = useState<StackEntryView[]>([]);
+  const previousValuesRef = useRef<Map<number, number>>(new Map());
 
   const loadStack = async () => {
     try {
@@ -20,7 +22,13 @@ export const StackView: React.FC = () => {
       const entriesWithSP = stackData.map(entry => ({
         ...entry,
         isSP: entry.address === sp,
+        isChanged: previousValuesRef.current.has(entry.address) && 
+                   previousValuesRef.current.get(entry.address) !== entry.value,
       }));
+
+      const newValues = new Map<number, number>();
+      stackData.forEach(entry => newValues.set(entry.address, entry.value));
+      previousValuesRef.current = newValues;
 
       setEntries(entriesWithSP);
     } catch (error) {
@@ -47,7 +55,7 @@ export const StackView: React.FC = () => {
             <span className="stack-address">
               {entry.address.toString(16).padStart(8, '0')}
             </span>
-            <span className="stack-value">
+            <span className={`stack-value ${entry.isChanged ? 'stack-value-changed' : ''}`}>
               {entry.value.toString(16).padStart(8, '0')}
             </span>
             {entry.symbol && (

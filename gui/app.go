@@ -283,6 +283,11 @@ func (a *App) GetStack(offset int, count int) []service.StackEntry {
 	return a.service.GetStack(offset, count)
 }
 
+// GetLastMemoryWrite returns the address of the last memory write
+func (a *App) GetLastMemoryWrite() service.MemoryWriteInfo {
+	return a.service.GetLastMemoryWrite()
+}
+
 // GetSymbolForAddress resolves address to symbol
 func (a *App) GetSymbolForAddress(addr uint32) string {
 	return a.service.GetSymbolForAddress(addr)

@@ -454,6 +454,19 @@ func (s *DebuggerService) GetMemory(address uint32, size uint32) ([]byte, error)
 	return data, nil
 }
 
+// GetLastMemoryWrite returns the address of the last memory write and clears the flag
+func (s *DebuggerService) GetLastMemoryWrite() MemoryWriteInfo {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	
+	result := MemoryWriteInfo{
+		Address:  s.vm.LastMemoryWrite,
+		HasWrite: s.vm.HasMemoryWrite,
+	}
+	s.vm.HasMemoryWrite = false
+	return result
+}
+
 // GetSourceLine returns the source line for an address
 func (s *DebuggerService) GetSourceLine(address uint32) string {
 	s.mu.RLock()

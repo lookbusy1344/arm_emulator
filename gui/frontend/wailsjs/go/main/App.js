@@ -34,6 +34,10 @@ export function GetExecutionState() {
   return window['go']['main']['App']['GetExecutionState']();
 }
 
+export function GetLastMemoryWrite() {
+  return window['go']['main']['App']['GetLastMemoryWrite']();
+}
+
 export function GetMemory(arg1, arg2) {
   return window['go']['main']['App']['GetMemory'](arg1, arg2);
 }

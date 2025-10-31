@@ -52,6 +52,20 @@ export namespace service {
 	        this.symbol = source["symbol"];
 	    }
 	}
+	export class MemoryWriteInfo {
+	    address: number;
+	    hasWrite: boolean;
+	
+	    static createFrom(source: any = {}) {
+	        return new MemoryWriteInfo(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.address = source["address"];
+	        this.hasWrite = source["hasWrite"];
+	    }
+	}
 	export class RegisterState {
 	    Registers: number[];
 	    CPSR: CPSRState;
