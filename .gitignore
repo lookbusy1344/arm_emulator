@@ -17,5 +17,4 @@ gui/build/
 gui/frontend/node_modules/
 gui/frontend/dist/
 gui/frontend/.vite/
-gui/wails.json
 /gui/gui
