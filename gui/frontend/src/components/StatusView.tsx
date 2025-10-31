@@ -49,14 +49,14 @@ export const StatusView: React.FC = () => {
       addMessage('breakpoint', 'Breakpoint hit');
     };
 
-    EventsOn('vm:state-changed', handleStateChange);
-    EventsOn('vm:error', handleError);
-    EventsOn('vm:breakpoint-hit', handleBreakpoint);
+    const unsubscribe1 = EventsOn('vm:state-changed', handleStateChange);
+    const unsubscribe2 = EventsOn('vm:error', handleError);
+    const unsubscribe3 = EventsOn('vm:breakpoint-hit', handleBreakpoint);
 
     return () => {
-      EventsOff('vm:state-changed', handleStateChange);
-      EventsOff('vm:error', handleError);
-      EventsOff('vm:breakpoint-hit', handleBreakpoint);
+      unsubscribe1();
+      unsubscribe2();
+      unsubscribe3();
     };
   }, []);
 

@@ -79,10 +79,10 @@ export const SourceView: React.FC = () => {
     loadSourceData();
 
     // Subscribe to VM state changes
-    EventsOn('vm:state-changed', loadSourceData);
+    const unsubscribe = EventsOn('vm:state-changed', loadSourceData);
 
     return () => {
-      EventsOff('vm:state-changed', loadSourceData);
+      unsubscribe();
     };
   }, []);
 

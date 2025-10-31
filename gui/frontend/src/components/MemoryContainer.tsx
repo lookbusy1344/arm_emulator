@@ -78,10 +78,10 @@ export const MemoryContainer: React.FC = () => {
       }
     }
 
-    EventsOn('vm:state-changed', handleStateChange)
+    const unsubscribe = EventsOn('vm:state-changed', handleStateChange)
 
     return () => {
-      EventsOff('vm:state-changed', handleStateChange)
+      unsubscribe()
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])

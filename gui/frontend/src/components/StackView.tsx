@@ -38,10 +38,10 @@ export const StackView: React.FC = () => {
 
   useEffect(() => {
     loadStack();
-    EventsOn('vm:state-changed', loadStack);
+    const unsubscribe = EventsOn('vm:state-changed', loadStack);
 
     return () => {
-      EventsOff('vm:state-changed', loadStack);
+      unsubscribe();
     };
   }, []);
 

@@ -53,10 +53,10 @@ export const RegisterView: React.FC<RegisterViewProps> = ({
       loadRegisters()
     }
 
-    EventsOn('vm:state-changed', handleStateChange)
+    const unsubscribe = EventsOn('vm:state-changed', handleStateChange)
 
     return () => {
-      EventsOff('vm:state-changed', handleStateChange)
+      unsubscribe()
     }
   }, [loadRegisters])
 

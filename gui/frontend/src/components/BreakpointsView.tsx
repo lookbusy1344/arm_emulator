@@ -38,10 +38,10 @@ export const BreakpointsView: React.FC = () => {
 
   useEffect(() => {
     loadBreakpoints();
-    EventsOn('vm:state-changed', loadBreakpoints);
+    const unsubscribe = EventsOn('vm:state-changed', loadBreakpoints);
 
     return () => {
-      EventsOff('vm:state-changed', loadBreakpoints);
+      unsubscribe();
     };
   }, []);
 
