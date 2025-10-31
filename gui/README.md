@@ -153,6 +153,27 @@ Install the Wails CLI:
 go install github.com/wailsapp/wails/v2/cmd/wails@latest
 ```
 
+## Debug Logging
+
+To enable detailed debug logging for troubleshooting GUI issues:
+
+```bash
+# Enable debug logging
+export ARM_EMULATOR_DEBUG=1
+
+# Run the GUI
+./gui/gui
+
+# Or in development mode
+ARM_EMULATOR_DEBUG=1 wails dev
+```
+
+Debug logs are written to:
+- `/tmp/arm-emulator-gui-debug.log` - GUI layer events and method calls
+- `/tmp/arm-emulator-service-debug.log` - Service layer execution and state changes
+
+This is useful for diagnosing issues with program execution, event handling, or state synchronization.
+
 ## Contributing
 
 When making changes to the GUI:

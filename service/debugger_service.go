@@ -4,7 +4,11 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"io"
+	"log"
+	"os"
 	"sync"
+	"time"
 
 	"github.com/lookbusy1344/arm-emulator/debugger"
 	"github.com/lookbusy1344/arm-emulator/encoder"
@@ -12,18 +16,37 @@ import (
 	"github.com/lookbusy1344/arm-emulator/vm"
 )
 
+var serviceLog *log.Logger
+
+func init() {
+	// Check if debug logging is enabled via environment variable
+	if os.Getenv("ARM_EMULATOR_DEBUG") != "" {
+		// Create debug log file
+		f, err := os.OpenFile("/tmp/arm-emulator-service-debug.log", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
+		if err != nil {
+			serviceLog = log.New(os.Stderr, "SERVICE: ", log.Ltime|log.Lmicroseconds|log.Lshortfile)
+		} else {
+			serviceLog = log.New(f, "SERVICE: ", log.Ltime|log.Lmicroseconds|log.Lshortfile)
+		}
+	} else {
+		// Disable logging by default
+		serviceLog = log.New(io.Discard, "", 0)
+	}
+}
+
 // DebuggerService provides a thread-safe interface to debugger functionality
 // This service is shared by TUI, GUI, and CLI interfaces
 type DebuggerService struct {
-	mu           sync.RWMutex
-	vm           *vm.VM
-	debugger     *debugger.Debugger
-	symbols      map[string]uint32
-	sourceMap    map[uint32]string
-	program      *parser.Program
-	entryPoint   uint32
-	outputWriter *EventEmittingWriter
-	ctx          context.Context
+	mu                sync.RWMutex
+	vm                *vm.VM
+	debugger          *debugger.Debugger
+	symbols           map[string]uint32
+	sourceMap         map[uint32]string
+	program           *parser.Program
+	entryPoint        uint32
+	outputWriter      *EventEmittingWriter
+	ctx               context.Context
+	stateChangedCallback func() // Callback for GUI state updates
 }
 
 // NewDebuggerService creates a new debugger service
@@ -48,6 +71,13 @@ func (s *DebuggerService) SetContext(ctx context.Context) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.ctx = ctx
+}
+
+// SetStateChangedCallback sets a callback for GUI state updates during execution
+func (s *DebuggerService) SetStateChangedCallback(callback func()) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.stateChangedCallback = callback
 }
 
 // LoadProgram loads and initializes a parsed program
@@ -475,20 +505,26 @@ func (s *DebuggerService) GetSymbolForAddress(addr uint32) string {
 
 // RunUntilHalt runs program until halt or breakpoint
 func (s *DebuggerService) RunUntilHalt() error {
+	serviceLog.Println("RunUntilHalt() called")
 	s.mu.Lock()
 	s.debugger.Running = true
 	s.vm.State = vm.StateRunning
 	s.mu.Unlock()
 
+	stepCount := 0
+	const stepsBeforeYield = 1000 // Yield every 1000 steps
+
 	for {
 		s.mu.Lock()
 		if !s.debugger.Running || s.vm.State != vm.StateRunning {
+			serviceLog.Printf("Exiting loop: Running=%v, State=%v", s.debugger.Running, s.vm.State)
 			s.mu.Unlock()
 			break
 		}
 
 		// Check breakpoints
 		if shouldBreak, _ := s.debugger.ShouldBreak(); shouldBreak {
+			serviceLog.Println("Breakpoint hit")
 			s.debugger.Running = false
 			s.vm.State = vm.StateBreakpoint
 			s.mu.Unlock()
@@ -496,12 +532,18 @@ func (s *DebuggerService) RunUntilHalt() error {
 		}
 
 		// Execute step (while holding lock)
+		pc := s.vm.CPU.PC
 		err := s.vm.Step()
 		halted := s.vm.State == vm.StateHalted
 		s.mu.Unlock()
 
+		if stepCount == 0 {
+			serviceLog.Printf("Executing at PC=0x%08X", pc)
+		}
+
 		// If error but VM is halted, it's normal program termination (SWI #0)
 		if err != nil && !halted {
+			serviceLog.Printf("Step error: %v", err)
 			s.mu.Lock()
 			s.debugger.Running = false
 			s.mu.Unlock()
@@ -509,13 +551,24 @@ func (s *DebuggerService) RunUntilHalt() error {
 		}
 
 		if halted {
+			serviceLog.Println("VM halted")
 			s.mu.Lock()
 			s.debugger.Running = false
 			s.mu.Unlock()
 			break
 		}
+
+		// Periodically yield to allow GUI to query state
+		stepCount++
+		if stepCount >= stepsBeforeYield {
+			serviceLog.Printf("Yielding after %d steps", stepCount)
+			stepCount = 0
+			// Brief sleep to yield to scheduler and allow GUI queries
+			time.Sleep(1 * time.Millisecond)
+		}
 	}
 
+	serviceLog.Println("RunUntilHalt() completed")
 	return nil
 }
 

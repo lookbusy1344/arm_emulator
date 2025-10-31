@@ -3,14 +3,39 @@ package main
 import (
 	"context"
 	"fmt"
+	"io"
+	"log"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/lookbusy1344/arm-emulator/parser"
 	"github.com/lookbusy1344/arm-emulator/service"
 	"github.com/lookbusy1344/arm-emulator/vm"
 	"github.com/wailsapp/wails/v2/pkg/runtime"
 )
+
+var debugLog *log.Logger
+var debugEnabled bool
+
+func init() {
+	// Check if debug logging is enabled via environment variable
+	debugEnabled = os.Getenv("ARM_EMULATOR_DEBUG") != ""
+	
+	if debugEnabled {
+		// Create debug log file
+		f, err := os.OpenFile("/tmp/arm-emulator-gui-debug.log", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Failed to open debug log: %v\n", err)
+			debugLog = log.New(os.Stderr, "GUI: ", log.Ltime|log.Lmicroseconds|log.Lshortfile)
+		} else {
+			debugLog = log.New(f, "GUI: ", log.Ltime|log.Lmicroseconds|log.Lshortfile)
+		}
+	} else {
+		// Disable logging by default
+		debugLog = log.New(io.Discard, "", 0)
+	}
+}
 
 // App struct
 type App struct {
@@ -22,7 +47,9 @@ type App struct {
 // NewApp creates a new App application struct
 func NewApp() *App {
 	machine := vm.NewVM()
-	machine.InitializeStack(0x30001000) // Default stack
+	// Use correct stack top (stack segment is already created by NewVM)
+	stackTop := uint32(vm.StackSegmentStart + vm.StackSegmentSize)
+	machine.InitializeStack(stackTop)
 
 	return &App{
 		machine: machine,
@@ -32,8 +59,10 @@ func NewApp() *App {
 
 // startup is called when the app starts
 func (a *App) startup(ctx context.Context) {
+	debugLog.Println("startup() called")
 	a.ctx = ctx
 	a.service.SetContext(ctx)
+	debugLog.Println("startup() completed")
 }
 
 // LoadProgramFromSource parses and loads assembly source code
@@ -103,30 +132,49 @@ func (a *App) GetRegisters() service.RegisterState {
 
 // Step executes a single instruction
 func (a *App) Step() error {
+	debugLog.Println("Step() called")
 	err := a.service.Step()
 	if err == nil {
 		runtime.EventsEmit(a.ctx, "vm:state-changed")
 	} else {
+		debugLog.Printf("Step() error: %v", err)
 		runtime.EventsEmit(a.ctx, "vm:error", err.Error())
 	}
+	debugLog.Println("Step() completed")
 	return err
 }
 
-// Continue runs until breakpoint or halt
+// Continue runs until breakpoint or halt (asynchronously)
 func (a *App) Continue() error {
-	err := a.service.RunUntilHalt()
-	runtime.EventsEmit(a.ctx, "vm:state-changed")
+	debugLog.Println("Continue() called - starting goroutine")
+	// Run in background to avoid blocking GUI
+	go func() {
+		debugLog.Println("Goroutine started, calling RunUntilHalt")
+		start := time.Now()
+		err := a.service.RunUntilHalt()
+		elapsed := time.Since(start)
+		debugLog.Printf("RunUntilHalt completed in %v, err: %v", elapsed, err)
+		
+		debugLog.Println("Emitting vm:state-changed")
+		runtime.EventsEmit(a.ctx, "vm:state-changed")
 
-	if err != nil {
-		runtime.EventsEmit(a.ctx, "vm:error", err.Error())
-	}
+		if err != nil {
+			debugLog.Printf("Emitting error: %v", err)
+			runtime.EventsEmit(a.ctx, "vm:error", err.Error())
+		}
 
-	// Check if stopped at breakpoint
-	if a.service.GetExecutionState() == service.StateBreakpoint {
-		runtime.EventsEmit(a.ctx, "vm:breakpoint-hit")
-	}
+		// Check if stopped at breakpoint
+		state := a.service.GetExecutionState()
+		debugLog.Printf("Execution state: %s", state)
+		if state == service.StateBreakpoint {
+			debugLog.Println("Emitting breakpoint-hit")
+			runtime.EventsEmit(a.ctx, "vm:breakpoint-hit")
+		}
+		debugLog.Println("Goroutine completed")
+	}()
 
-	return err
+	debugLog.Println("Continue() returning")
+	return nil
 }
 
 // Pause pauses execution
