@@ -18,9 +18,9 @@ export const DisassemblyView: React.FC = () => {
       const breakpoints = await GetBreakpoints();
       const pc = registerState.PC;
 
-      // Get disassembly around PC
+      // Get disassembly around PC (20 before, current, 80 after = 100 total)
       const startAddr = Math.max(0, pc - 20 * 4);
-      const disasm = await GetDisassembly(startAddr, 15);
+      const disasm = await GetDisassembly(startAddr, 100);
 
       const breakpointAddresses = new Set(breakpoints.map(bp => bp.address));
 
