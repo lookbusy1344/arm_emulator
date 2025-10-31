@@ -53,7 +53,8 @@ jobs:
         if: matrix.os == 'linux'
         run: |
           sudo apt-get update
-          sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.0-dev
+          sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.1-dev pkg-config
+          sudo ln -sf /usr/lib/x86_64-linux-gnu/pkgconfig/webkit2gtk-4.1.pc /usr/lib/x86_64-linux-gnu/pkgconfig/webkit2gtk-4.0.pc || true
 
       - name: Get version info
         id: version
@@ -80,6 +81,12 @@ jobs:
         run: |
           LDFLAGS="-s -w -X main.Version=${{ steps.version.outputs.version }} -X main.Commit=${{ steps.version.outputs.commit }} -X main.Date=${{ steps.version.outputs.date }}"
           wails build -clean -platform ${{ matrix.os }}/${{ matrix.arch }} -ldflags "$LDFLAGS"
+      
+      - name: List build artifacts
+        shell: bash
+        run: |
+          echo "=== Checking build directory ==="
+          ls -laR build/ || echo "No build directory found"
 
       - name: Create release artifact name
         id: artifact
@@ -112,27 +119,26 @@ jobs:
           
           # Determine GUI artifact location and name
           if [ "${{ matrix.os }}" = "darwin" ]; then
-            GUI_SOURCE="../build/bin/arm-emulator-gui.app"
+            GUI_SOURCE="build/bin/arm-emulator-gui.app"
             GUI_ARTIFACT_NAME="arm-emulator-gui-${PLATFORM}-${{ matrix.arch }}.app.tar.gz"
             if [ -d "$GUI_SOURCE" ]; then
-              tar -czf "$GUI_ARTIFACT_NAME" -C ../build/bin arm-emulator-gui.app
+              tar -czf "$GUI_ARTIFACT_NAME" -C build/bin arm-emulator-gui.app
+              echo "gui_artifact_name=$GUI_ARTIFACT_NAME" >> $GITHUB_OUTPUT
             fi
           elif [ "${{ matrix.os }}" = "windows" ]; then
-            GUI_SOURCE="../build/bin/arm-emulator-gui.exe"
+            GUI_SOURCE="build/bin/arm-emulator-gui.exe"
             GUI_ARTIFACT_NAME="arm-emulator-gui-${PLATFORM}-${{ matrix.arch }}.exe"
             if [ -f "$GUI_SOURCE" ]; then
               cp "$GUI_SOURCE" "$GUI_ARTIFACT_NAME"
+              echo "gui_artifact_name=$GUI_ARTIFACT_NAME" >> $GITHUB_OUTPUT
             fi
           else
-            GUI_SOURCE="../build/bin/arm-emulator-gui"
+            GUI_SOURCE="build/bin/arm-emulator-gui"
             GUI_ARTIFACT_NAME="arm-emulator-gui-${PLATFORM}-${{ matrix.arch }}"
             if [ -f "$GUI_SOURCE" ]; then
               cp "$GUI_SOURCE" "$GUI_ARTIFACT_NAME"
+              echo "gui_artifact_name=$GUI_ARTIFACT_NAME" >> $GITHUB_OUTPUT
             fi
-          fi
-          
-          if [ -n "$GUI_ARTIFACT_NAME" ]; then
-            echo "gui_artifact_name=$GUI_ARTIFACT_NAME" >> $GITHUB_OUTPUT
           fi
 
       - name: Generate SHA256 checksum
