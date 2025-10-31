@@ -22,7 +22,7 @@ func init() {
 	// Check if debug logging is enabled via environment variable
 	if os.Getenv("ARM_EMULATOR_DEBUG") != "" {
 		// Create debug log file
-		f, err := os.OpenFile("/tmp/arm-emulator-service-debug.log", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
+		f, err := os.OpenFile("/tmp/arm-emulator-service-debug.log", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0600)
 		if err != nil {
 			serviceLog = log.New(os.Stderr, "SERVICE: ", log.Ltime|log.Lmicroseconds|log.Lshortfile)
 		} else {
