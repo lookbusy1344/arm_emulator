@@ -287,8 +287,8 @@ func handleWriteString(vm *VM) error {
 		str = append(str, b)
 
 		// Security: check for address wraparound before incrementing
-		// If addr is at 0xFFFFFFFF, incrementing would wrap to 0
-		if addr == 0xFFFFFFFF {
+		// If addr is at Address32BitMax, incrementing would wrap to 0
+		if addr == Address32BitMax {
 			return fmt.Errorf("address wraparound while reading string")
 		}
 		addr++
@@ -314,7 +314,7 @@ func handleWriteInt(vm *VM) error {
 
 	// Validate base and default to 10 for invalid values
 	// This handles cases where R1 wasn't explicitly set (e.g., contains error flags from previous syscalls)
-	if base == 0 || base == 0xFFFFFFFF || (base != 2 && base != 8 && base != 10 && base != 16) {
+	if base == 0 || base == SyscallErrorGeneral || (base != 2 && base != 8 && base != 10 && base != 16) {
 		base = 10 // Default to decimal
 	}
 
@@ -345,7 +345,7 @@ func handleReadChar(vm *VM) error {
 	for {
 		char, err := vm.stdinReader.ReadByte()
 		if err != nil {
-			vm.CPU.SetRegister(0, 0xFFFFFFFF) // Return -1 on error
+			vm.CPU.SetRegister(0, SyscallErrorGeneral) // Return -1 on error
 			vm.CPU.IncrementPC()
 			return nil
 		}
@@ -369,7 +369,7 @@ func handleReadString(vm *VM) error {
 	// Read string from stdin (up to newline)
 	input, err := vm.stdinReader.ReadString('\n')
 	if err != nil {
-		vm.CPU.SetRegister(0, 0xFFFFFFFF) // Return -1 on error
+		vm.CPU.SetRegister(0, SyscallErrorGeneral) // Return -1 on error
 		vm.CPU.IncrementPC()
 		return nil
 	}
@@ -387,7 +387,7 @@ func handleReadString(vm *VM) error {
 
 	for i := uint32(0); i < bytesToWrite; i++ {
 		if err := vm.Memory.WriteByteAt(addr+i, input[i]); err != nil {
-			vm.CPU.SetRegister(0, 0xFFFFFFFF) // Return -1 on error
+			vm.CPU.SetRegister(0, SyscallErrorGeneral) // Return -1 on error
 			vm.CPU.IncrementPC()
 			return nil
 		}
@@ -395,7 +395,7 @@ func handleReadString(vm *VM) error {
 
 	// Write null terminator
 	if err := vm.Memory.WriteByteAt(addr+bytesToWrite, 0); err != nil {
-		vm.CPU.SetRegister(0, 0xFFFFFFFF)
+		vm.CPU.SetRegister(0, SyscallErrorGeneral)
 		vm.CPU.IncrementPC()
 		return nil
 	}
@@ -457,7 +457,7 @@ func handleFree(vm *VM) error {
 
 	err := vm.Memory.Free(addr)
 	if err != nil {
-		vm.CPU.SetRegister(0, 0xFFFFFFFF) // Return -1 on error
+		vm.CPU.SetRegister(0, SyscallErrorGeneral) // Return -1 on error
 	} else {
 		vm.CPU.SetRegister(0, 0) // Return 0 on success
 	}
@@ -470,8 +470,8 @@ func handleFree(vm *VM) error {
 func handleGetTime(vm *VM) error {
 	// Return time in milliseconds since Unix epoch
 	millis := time.Now().UnixMilli()
-	// Safe: masking with 0xFFFFFFFF before conversion ensures result fits in uint32
-	vm.CPU.SetRegister(0, uint32(millis&0xFFFFFFFF)) // #nosec G115 -- masked to 32 bits
+	// Safe: masking with Mask32Bit before conversion ensures result fits in uint32
+	vm.CPU.SetRegister(0, uint32(millis&Mask32Bit)) // #nosec G115 -- masked to 32 bits
 	vm.CPU.IncrementPC()
 	return nil
 }
@@ -500,8 +500,8 @@ func handleDebugPrint(vm *VM) error {
 		str = append(str, b)
 
 		// Security: check for address wraparound before incrementing
-		// If addr is at 0xFFFFFFFF, incrementing would wrap to 0
-		if addr == 0xFFFFFFFF {
+		// If addr is at Address32BitMax, incrementing would wrap to 0
+		if addr == Address32BitMax {
 			return fmt.Errorf("address wraparound while reading debug string")
 		}
 		addr++
@@ -593,7 +593,7 @@ func handleOpen(vm *VM) error {
 	for {
 		b, err := vm.Memory.ReadByteAt(addr)
 		if err != nil {
-			vm.CPU.SetRegister(0, 0xFFFFFFFF)
+			vm.CPU.SetRegister(0, SyscallErrorGeneral)
 			vm.CPU.IncrementPC()
 			return nil
 		}
@@ -603,16 +603,16 @@ func handleOpen(vm *VM) error {
 		filename = append(filename, b)
 
 		// Security: check for address wraparound before incrementing
-		// If addr is at 0xFFFFFFFF, incrementing would wrap to 0
-		if addr == 0xFFFFFFFF {
-			vm.CPU.SetRegister(0, 0xFFFFFFFF)
+		// If addr is at Address32BitMax, incrementing would wrap to 0
+		if addr == Address32BitMax {
+			vm.CPU.SetRegister(0, SyscallErrorGeneral)
 			vm.CPU.IncrementPC()
 			return nil
 		}
 		addr++
 
 		if len(filename) > MaxFilenameLength {
-			vm.CPU.SetRegister(0, 0xFFFFFFFF)
+			vm.CPU.SetRegister(0, SyscallErrorGeneral)
 			vm.CPU.IncrementPC()
 			return nil
 		}
@@ -634,7 +634,7 @@ func handleOpen(vm *VM) error {
 		err = errors.New("bad mode")
 	}
 	if err != nil {
-		vm.CPU.SetRegister(0, 0xFFFFFFFF)
+		vm.CPU.SetRegister(0, SyscallErrorGeneral)
 	} else {
 		fd := vm.allocFD(file)
 		vm.CPU.SetRegister(0, fd)
@@ -646,7 +646,7 @@ func handleOpen(vm *VM) error {
 func handleClose(vm *VM) error {
 	fd := vm.CPU.GetRegister(0)
 	if err := vm.closeFD(fd); err != nil {
-		vm.CPU.SetRegister(0, 0xFFFFFFFF)
+		vm.CPU.SetRegister(0, SyscallErrorGeneral)
 	} else {
 		vm.CPU.SetRegister(0, 0)
 	}
@@ -660,21 +660,21 @@ func handleRead(vm *VM) error {
 	length := vm.CPU.GetRegister(2)
 	f, err := vm.getFile(fd)
 	if err != nil {
-		vm.CPU.SetRegister(0, 0xFFFFFFFF)
+		vm.CPU.SetRegister(0, SyscallErrorGeneral)
 		vm.CPU.IncrementPC()
 		return nil
 	}
 	// Security: limit read size to prevent memory exhaustion attacks
 	// Maximum allowed: 1MB
 	if length > MaxReadSize {
-		vm.CPU.SetRegister(0, 0xFFFFFFFF)
+		vm.CPU.SetRegister(0, SyscallErrorGeneral)
 		vm.CPU.IncrementPC()
 		return nil
 	}
 	// Security: validate buffer address range to prevent overflow
 	// Check that bufferAddr + length doesn't overflow the 32-bit address space
-	if bufferAddr > 0xFFFFFFFF-length {
-		vm.CPU.SetRegister(0, 0xFFFFFFFF)
+	if bufferAddr > Address32BitMax-length {
+		vm.CPU.SetRegister(0, SyscallErrorGeneral)
 		vm.CPU.IncrementPC()
 		return nil
 	}
@@ -689,14 +689,14 @@ func handleRead(vm *VM) error {
 	data := make([]byte, length)
 	n, err := f.Read(data)
 	if err != nil && n == 0 {
-		vm.CPU.SetRegister(0, 0xFFFFFFFF)
+		vm.CPU.SetRegister(0, SyscallErrorGeneral)
 		vm.CPU.IncrementPC()
 		return nil
 	}
 	for i := 0; i < n; i++ {
 		//nolint:gosec // G115: i is bounded by n which is from buffer size
 		if err2 := vm.Memory.WriteByteAt(bufferAddr+uint32(i), data[i]); err2 != nil {
-			vm.CPU.SetRegister(0, 0xFFFFFFFF)
+			vm.CPU.SetRegister(0, SyscallErrorGeneral)
 			vm.CPU.IncrementPC()
 			return nil
 		}
@@ -713,21 +713,21 @@ func handleWrite(vm *VM) error {
 	length := vm.CPU.GetRegister(2)
 	f, err := vm.getFile(fd)
 	if err != nil {
-		vm.CPU.SetRegister(0, 0xFFFFFFFF)
+		vm.CPU.SetRegister(0, SyscallErrorGeneral)
 		vm.CPU.IncrementPC()
 		return nil
 	}
 	// Security: limit write size to prevent memory exhaustion attacks
 	// Maximum allowed: 1MB
 	if length > MaxWriteSize {
-		vm.CPU.SetRegister(0, 0xFFFFFFFF)
+		vm.CPU.SetRegister(0, SyscallErrorGeneral)
 		vm.CPU.IncrementPC()
 		return nil
 	}
 	// Security: validate buffer address range to prevent overflow
 	// Check that bufferAddr + length doesn't overflow the 32-bit address space
-	if bufferAddr > 0xFFFFFFFF-length {
-		vm.CPU.SetRegister(0, 0xFFFFFFFF)
+	if bufferAddr > Address32BitMax-length {
+		vm.CPU.SetRegister(0, SyscallErrorGeneral)
 		vm.CPU.IncrementPC()
 		return nil
 	}
@@ -735,7 +735,7 @@ func handleWrite(vm *VM) error {
 	for i := uint32(0); i < length; i++ {
 		b, err2 := vm.Memory.ReadByteAt(bufferAddr + i)
 		if err2 != nil {
-			vm.CPU.SetRegister(0, 0xFFFFFFFF)
+			vm.CPU.SetRegister(0, SyscallErrorGeneral)
 			vm.CPU.IncrementPC()
 			return nil
 		}
@@ -743,7 +743,7 @@ func handleWrite(vm *VM) error {
 	}
 	n, err := f.Write(data)
 	if err != nil {
-		vm.CPU.SetRegister(0, 0xFFFFFFFF)
+		vm.CPU.SetRegister(0, SyscallErrorGeneral)
 	} else {
 		//nolint:gosec // G115: n is bounded by reasonable write size
 		vm.CPU.SetRegister(0, uint32(n))
@@ -758,21 +758,21 @@ func handleSeek(vm *VM) error {
 	whence := int(vm.CPU.GetRegister(2))
 	f, err := vm.getFile(fd)
 	if err != nil {
-		vm.CPU.SetRegister(0, 0xFFFFFFFF)
+		vm.CPU.SetRegister(0, SyscallErrorGeneral)
 		vm.CPU.IncrementPC()
 		return nil
 	}
 	npos, err := f.Seek(offset, whence)
 	if err != nil {
-		vm.CPU.SetRegister(0, 0xFFFFFFFF)
+		vm.CPU.SetRegister(0, SyscallErrorGeneral)
 	} else {
 		// Security: validate file position fits in 32-bit address space and is non-negative
 		// This check correctly handles the full int64 range from Go's Seek():
 		// - Rejects negative positions (npos < 0)
-		// - Rejects positions beyond 32-bit range (npos > 0xFFFFFFFF, i.e., npos >= 0x100000000)
-		// - Accepts only positions in [0, 0xFFFFFFFF] which safely fit in ARM2's 32-bit address space
-		if npos < 0 || npos > 0xFFFFFFFF {
-			vm.CPU.SetRegister(0, 0xFFFFFFFF)
+		// - Rejects positions beyond 32-bit range (npos > Address32BitMax, i.e., npos >= 0x100000000)
+		// - Accepts only positions in [0, Address32BitMax] which safely fit in ARM2's 32-bit address space
+		if npos < 0 || npos > int64(Address32BitMax) {
+			vm.CPU.SetRegister(0, SyscallErrorGeneral)
 		} else {
 			//nolint:gosec // G115: File position validated above to fit in 32-bit range
 			vm.CPU.SetRegister(0, uint32(npos))
@@ -786,21 +786,21 @@ func handleTell(vm *VM) error {
 	fd := vm.CPU.GetRegister(0)
 	f, err := vm.getFile(fd)
 	if err != nil {
-		vm.CPU.SetRegister(0, 0xFFFFFFFF)
+		vm.CPU.SetRegister(0, SyscallErrorGeneral)
 		vm.CPU.IncrementPC()
 		return nil
 	}
 	pos, err := f.Seek(0, io.SeekCurrent) // current position
 	if err != nil {
-		vm.CPU.SetRegister(0, 0xFFFFFFFF)
+		vm.CPU.SetRegister(0, SyscallErrorGeneral)
 	} else {
 		// Security: validate file position fits in 32-bit address space and is non-negative
 		// This check correctly handles the full int64 range from Go's Seek():
 		// - Rejects negative positions (pos < 0)
-		// - Rejects positions beyond 32-bit range (pos > 0xFFFFFFFF, i.e., pos >= 0x100000000)
-		// - Accepts only positions in [0, 0xFFFFFFFF] which safely fit in ARM2's 32-bit address space
-		if pos < 0 || pos > 0xFFFFFFFF {
-			vm.CPU.SetRegister(0, 0xFFFFFFFF)
+		// - Rejects positions beyond 32-bit range (pos > Address32BitMax, i.e., pos >= 0x100000000)
+		// - Accepts only positions in [0, Address32BitMax] which safely fit in ARM2's 32-bit address space
+		if pos < 0 || pos > int64(Address32BitMax) {
+			vm.CPU.SetRegister(0, SyscallErrorGeneral)
 		} else {
 			//nolint:gosec // G115: File position validated above to fit in 32-bit range
 			vm.CPU.SetRegister(0, uint32(pos))
@@ -814,14 +814,14 @@ func handleFileSize(vm *VM) error {
 	fd := vm.CPU.GetRegister(0)
 	f, err := vm.getFile(fd)
 	if err != nil {
-		vm.CPU.SetRegister(0, 0xFFFFFFFF)
+		vm.CPU.SetRegister(0, SyscallErrorGeneral)
 		vm.CPU.IncrementPC()
 		return nil
 	}
 	pos, _ := f.Seek(0, 1)   // save current
 	end, err := f.Seek(0, 2) // seek end
 	if err != nil {
-		vm.CPU.SetRegister(0, 0xFFFFFFFF)
+		vm.CPU.SetRegister(0, SyscallErrorGeneral)
 		_, _ = f.Seek(pos, 0)
 		vm.CPU.IncrementPC()
 		return nil
@@ -830,10 +830,10 @@ func handleFileSize(vm *VM) error {
 	// Security: validate file size fits in 32-bit address space and is non-negative
 	// This check correctly handles the full int64 range from Go's Seek():
 	// - Rejects negative sizes (end < 0)
-	// - Rejects sizes beyond 32-bit range (end > 0xFFFFFFFF, i.e., end >= 0x100000000)
-	// - Accepts only sizes in [0, 0xFFFFFFFF] which safely fit in ARM2's 32-bit address space
-	if end < 0 || end > 0xFFFFFFFF {
-		vm.CPU.SetRegister(0, 0xFFFFFFFF)
+	// - Rejects sizes beyond 32-bit range (end > Address32BitMax, i.e., end >= 0x100000000)
+	// - Accepts only sizes in [0, Address32BitMax] which safely fit in ARM2's 32-bit address space
+	if end < 0 || end > int64(Address32BitMax) {
+		vm.CPU.SetRegister(0, SyscallErrorGeneral)
 	} else {
 		//nolint:gosec // G115: File size validated above to fit in 32-bit range
 		vm.CPU.SetRegister(0, uint32(end))
@@ -913,7 +913,7 @@ func handleGetArguments(vm *VM) error {
 	argLen := len(vm.ProgramArguments)
 	// Validate length fits in uint32
 	if argLen < 0 || argLen > int(^uint32(0)) {
-		vm.CPU.SetRegister(0, 0xFFFFFFFF)
+		vm.CPU.SetRegister(0, SyscallErrorGeneral)
 		vm.CPU.IncrementPC()
 		return nil
 	}
@@ -979,8 +979,8 @@ func handleAssert(vm *VM) error {
 			msg = append(msg, b)
 
 			// Security: check for address wraparound before incrementing
-			// If addr is at 0xFFFFFFFF, incrementing would wrap to 0
-			if addr == 0xFFFFFFFF {
+			// If addr is at Address32BitMax, incrementing would wrap to 0
+			if addr == Address32BitMax {
 				return fmt.Errorf("address wraparound while reading assertion message")
 			}
 			addr++
