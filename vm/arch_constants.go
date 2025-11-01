@@ -40,12 +40,14 @@ const (
 	ByteShift24 = 24 // Shift for byte 3 in multibyte values
 
 	// Alignment constants (grouped together for discoverability)
-	AlignmentWord        = 4          // 4-byte word alignment
-	AlignmentHalfword    = 2          // 2-byte halfword alignment
-	AlignmentByte        = 1          // no alignment required
-	AlignMaskWord        = 0x3        // mask for word alignment check (address & mask == 0 means aligned)
-	AlignMaskHalfword    = 0x1        // mask for halfword alignment check
-	AlignRoundUpMaskWord = 0xFFFFFFFC // mask to round up to word alignment (~0x3)
+	AlignmentWord     = 4 // 4-byte word alignment
+	AlignmentHalfword = 2 // 2-byte halfword alignment
+	AlignmentByte     = 1 // no alignment required
+
+	// Computed alignment masks
+	AlignMaskWord        = AlignmentWord - 1            // mask for word alignment check (address & mask == 0 means aligned)
+	AlignMaskHalfword    = AlignmentHalfword - 1        // mask for halfword alignment check
+	AlignRoundUpMaskWord = ^uint32(AlignMaskWord)       // mask to round up to word alignment
 
 	// Signed integer ranges (for branch offsets, etc.)
 	Int24Max = 0x7FFFFF  // Maximum positive 24-bit signed value
