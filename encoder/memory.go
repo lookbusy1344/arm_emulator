@@ -247,8 +247,8 @@ func (e *Encoder) encodeLDRPseudo(inst *parser.Instruction, cond, rd uint32) (ui
 				if err != nil {
 					return 0, fmt.Errorf("literal pool too large: %v", err)
 				}
-				literalOffset := 0x1000 + poolSize
-				literalAddr = (e.currentAddr & 0xFFFFF000) + literalOffset
+				literalOffset := LiteralPoolOffset + poolSize
+				literalAddr = (e.currentAddr & LiteralPoolAlignmentMask) + literalOffset
 			}
 		}
 
@@ -542,9 +542,9 @@ func (e *Encoder) findNearestLiteralPoolLocation(pc uint32, value uint32) uint32
 func (e *Encoder) countLiteralsAtPool(poolLoc uint32) int {
 	count := 0
 	// Check all assigned literals to see how many are in this pool region
-	// Literals within 1024 bytes of the pool location are considered part of the same pool
+	// Literals within N bytes of the pool location are considered part of the same pool
 	for addr := range e.LiteralPool {
-		if addr >= poolLoc && addr < poolLoc+1024 {
+		if addr >= poolLoc && addr < poolLoc+parser.LiteralPoolRangeBytes {
 			count++
 		}
 	}

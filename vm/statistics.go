@@ -248,9 +248,9 @@ func (s *PerformanceStatistics) ExportJSON(w io.Writer) error {
 		"memory_writes":        s.MemoryWrites,
 		"bytes_read":           s.BytesRead,
 		"bytes_written":        s.BytesWritten,
-		"top_instructions":     s.GetTopInstructions(20),
-		"hot_path":             s.GetTopHotPath(20),
-		"top_functions":        s.GetTopFunctions(20),
+		"top_instructions":     s.GetTopInstructions(DefaultTopItemsCount),
+		"hot_path":             s.GetTopHotPath(DefaultTopItemsCount),
+		"top_functions":        s.GetTopFunctions(DefaultTopItemsCount),
 	}
 
 	encoder := json.NewEncoder(w)
@@ -415,8 +415,8 @@ func (s *PerformanceStatistics) ExportHTML(w io.Writer) error {
 		MemoryWrites:       s.MemoryWrites,
 		BytesRead:          s.BytesRead,
 		BytesWritten:       s.BytesWritten,
-		HotPath:            s.GetTopHotPath(20),
-		TopFunctions:       s.GetTopFunctions(20),
+		HotPath:            s.GetTopHotPath(DefaultTopItemsCount),
+		TopFunctions:       s.GetTopFunctions(DefaultTopItemsCount),
 	}
 
 	// Calculate branch rate
@@ -425,7 +425,7 @@ func (s *PerformanceStatistics) ExportHTML(w io.Writer) error {
 	}
 
 	// Convert top instructions with percentages
-	topInsts := s.GetTopInstructions(20)
+	topInsts := s.GetTopInstructions(DefaultTopItemsCount)
 	for _, inst := range topInsts {
 		percentage := float64(inst.Count) / float64(s.TotalInstructions) * 100
 		data.TopInstructions = append(data.TopInstructions, struct {
@@ -464,7 +464,7 @@ func (s *PerformanceStatistics) String() string {
 	sb.WriteString(fmt.Sprintf("Memory Writes:       %d (%d bytes)\n\n", s.MemoryWrites, s.BytesWritten))
 
 	sb.WriteString("Top Instructions:\n")
-	for i, stat := range s.GetTopInstructions(10) {
+	for i, stat := range s.GetTopInstructions(CompactTopItemsCount) {
 		percentage := float64(stat.Count) / float64(s.TotalInstructions) * 100
 		sb.WriteString(fmt.Sprintf("  %2d. %-8s %8d (%.1f%%)\n", i+1, stat.Mnemonic, stat.Count, percentage))
 	}

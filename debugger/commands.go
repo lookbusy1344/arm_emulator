@@ -586,7 +586,7 @@ func (d *Debugger) cmdList(args []string) error {
 	}
 
 	// Show nearby instructions
-	for offset := uint32(4); offset <= 16; offset += 4 {
+	for offset := uint32(4); offset <= StackInspectionMaxOffset; offset += 4 {
 		addr := pc + offset
 		if source, exists := d.SourceMap[addr]; exists {
 			d.Printf("   0x%08X: %s\n", addr, source)

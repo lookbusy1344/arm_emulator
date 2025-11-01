@@ -291,3 +291,13 @@ const (
 	ASCIIPrintableMin = 32  // Space
 	ASCIIPrintableMax = 126 // Tilde (~)
 )
+
+// Statistics and Reporting Constants
+const (
+	// DefaultTopItemsCount is the default number of top items to show in statistics reports
+	// (e.g., top instructions, hot paths, functions)
+	DefaultTopItemsCount = 20
+
+	// CompactTopItemsCount is the number of top items to show in compact statistics views
+	CompactTopItemsCount = 10
+)
