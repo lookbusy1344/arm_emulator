@@ -247,8 +247,8 @@ func (e *Encoder) encodeLDRPseudo(inst *parser.Instruction, cond, rd uint32) (ui
 				if err != nil {
 					return 0, fmt.Errorf("literal pool too large: %v", err)
 				}
-				literalOffset := 0x1000 + poolSize
-				literalAddr = (e.currentAddr & 0xFFFFF000) + literalOffset
+				literalOffset := LiteralPoolOffset + poolSize
+				literalAddr = (e.currentAddr & LiteralPoolAlignmentMask) + literalOffset
 			}
 		}
 

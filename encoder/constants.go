@@ -66,3 +66,12 @@ const (
 const (
 	WordSize = 4 // ARM instructions and words are 4 bytes
 )
+
+// Literal Pool Address Calculation
+// These constants control how literal pool addresses are calculated when no explicit
+// .ltorg directive is present. The assembler places literals at a 4KB-aligned boundary
+// to ensure they're within the 4KB range accessible by PC-relative addressing.
+const (
+	LiteralPoolOffset        = 0x1000     // 4KB offset for automatic literal pool placement
+	LiteralPoolAlignmentMask = 0xFFFFF000 // Mask to align addresses to 4KB boundaries (clears bottom 12 bits)
+)
