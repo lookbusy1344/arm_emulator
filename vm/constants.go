@@ -1,6 +1,8 @@
 package vm
 
+// ============================================================================
 // ARM2 Architecture Constants
+// ============================================================================
 // These values are defined by the ARM2 specification and should not be modified
 
 const (
@@ -54,8 +56,11 @@ const (
 	Int24Min = -0x800000 // Minimum negative 24-bit signed value
 )
 
-// Instruction decoding bit shift positions
+// ============================================================================
+// Instruction Decoding - Bit Shift Positions
+// ============================================================================
 // These are used to extract fields from encoded ARM instructions
+
 const (
 	// Condition code field
 	ConditionShift = 28 // Bits 31-28: condition code
@@ -89,7 +94,10 @@ const (
 	Bits27_23Shift = 23 // Bits 27-23 starting position
 )
 
-// Instruction decoding bit masks
+// ============================================================================
+// Instruction Decoding - Bit Masks
+// ============================================================================
+
 const (
 	// Field extraction masks (applied after shifting)
 	Mask1Bit = 0x1
@@ -129,7 +137,10 @@ const (
 	MultiplyBit2Mask = 0x3 // 2-bit mask for multiply timing
 )
 
-// Special values
+// ============================================================================
+// Special Values and Offsets
+// ============================================================================
+
 const (
 	// PC offset adjustments
 	PCStoreOffset = 12 // PC+12 when storing PC in STM
@@ -164,7 +175,10 @@ const (
 	MultiRegisterWordSize = 4 // 4 bytes per register in multi-register transfers
 )
 
-// Special instruction encoding patterns
+// ============================================================================
+// Special Instruction Encoding Patterns
+// ============================================================================
+
 const (
 	// BX/BLX patterns are pre-positioned (NOT shift results - the trailing 0 is part of the hex value)
 	// These are the actual bit patterns used directly in instruction encoding
@@ -175,7 +189,10 @@ const (
 	NOPEncoding     = 0xE1A00000 // MOV R0, R0 (unconditional)
 )
 
-// Instruction detection patterns and masks
+// ============================================================================
+// Instruction Detection Patterns and Masks
+// ============================================================================
+
 const (
 	// Multiply instruction patterns
 	MultiplyPattern     = 0x00000090 // MUL/MLA pattern: bits [7:4] = 0b1001
@@ -200,7 +217,10 @@ const (
 	LRInitValue = 0xFFFFFFFF // Initial LR value for exception detection
 )
 
-// Memory layout constants
+// ============================================================================
+// Memory Layout Constants
+// ============================================================================
+
 const (
 	CodeSegmentStart  = 0x00008000 // 32KB offset - code begins at 32KB
 	CodeSegmentSize   = 0x00010000 // 64KB - code segment size
@@ -210,4 +230,81 @@ const (
 	HeapSegmentSize   = 0x00010000 // 64KB - heap segment size
 	StackSegmentStart = 0x00040000 // 256KB - stack segment start
 	StackSegmentSize  = 0x00010000 // 64KB - stack segment size
+)
+
+// ============================================================================
+// VM Execution Limits
+// ============================================================================
+
+const (
+	DefaultMaxCycles   = 1000000 // Default instruction limit
+	DefaultLogCapacity = 1000    // Initial capacity for instruction log
+	DefaultFDTableSize = 3       // Initial FD table size (FDs 0-2: stdin, stdout, stderr)
+)
+
+// ============================================================================
+// Memory Overflow Protection
+// ============================================================================
+
+const (
+	Address32BitMax     = ^uint32(0)
+	Address32BitMaxSafe = 0xFFFFFFFC // Max address allowing 4-byte access without overflow
+)
+
+// ============================================================================
+// Syscall Constants
+// ============================================================================
+
+// Syscall Return Values
+const (
+	SyscallSuccess      = 0
+	SyscallErrorGeneral = 0xFFFFFFFF // -1 in two's complement
+	SyscallNull         = 0          // NULL pointer
+)
+
+// Syscall number extraction
+const (
+	SWIMask = 0x00FFFFFF // Bottom 24 bits contain syscall number
+)
+
+// File operation modes
+const (
+	FileModeRead   = 0 // Read-only
+	FileModeWrite  = 1 // Write (create/truncate)
+	FileModeAppend = 2 // Append (create/read-write)
+)
+
+// File permissions (Unix-style)
+const (
+	FilePermDefault = 0644 // rw-r--r--
+)
+
+// Note: For seek operations, use io.SeekStart, io.SeekCurrent, io.SeekEnd from the standard library
+
+// Standard file descriptors
+const (
+	StdIn       = 0
+	StdOut      = 1
+	StdErr      = 2
+	FirstUserFD = 3 // First available user FD
+)
+
+// Buffer size limits
+const (
+	MaxStringLength     = 1024 * 1024 // 1MB for general strings
+	MaxFilenameLength   = 4096        // 4KB (typical filesystem limit)
+	MaxAssertMsgLen     = 1024        // 1KB for assertion messages
+	MaxReadSize         = 1024 * 1024 // 1MB maximum file read
+	MaxWriteSize        = 1024 * 1024 // 1MB maximum file write
+	MaxFileDescriptors  = 1024        // Maximum number of open FDs
+	DefaultStringBuffer = 256         // Default buffer for READ_STRING
+	MaxMemoryDump       = 1024        // 1KB limit for memory dumps
+)
+
+// Note: Number bases (2, 8, 10, 16) are used directly as literals - they are self-documenting
+
+// ASCII character ranges
+const (
+	ASCIIPrintableMin = 32  // Space
+	ASCIIPrintableMax = 126 // Tilde (~)
 )
