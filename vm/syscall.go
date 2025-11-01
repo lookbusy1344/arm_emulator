@@ -31,14 +31,15 @@ import (
 // This distinction allows guest programs to handle expected errors (file I/O)
 // while protecting the VM from integrity violations (memory corruption).
 
-// String length limits and size limits for syscalls
+// Legacy constants - now defined in syscall_constants.go
+// These are kept for compatibility but should be migrated to the new names
 const (
-	maxStringLength   = 1024 * 1024 // 1MB for general strings
-	maxFilenameLength = 4096        // 4KB for filenames (typical filesystem limit)
-	maxAssertMsgLen   = 1024        // 1KB for assertion messages (kept smaller for quick debugging)
-	maxReadSize       = 1024 * 1024 // 1MB maximum limit for file reads (security limit)
-	maxWriteSize      = 1024 * 1024 // 1MB maximum limit for file writes (security limit)
-	maxFDs            = 1024        // Maximum number of file descriptors (security limit)
+	maxStringLength   = MaxStringLength
+	maxFilenameLength = MaxFilenameLength
+	maxAssertMsgLen   = MaxAssertMsgLen
+	maxReadSize       = MaxReadSize
+	maxWriteSize      = MaxWriteSize
+	maxFDs            = MaxFileDescriptors
 )
 
 // ResetStdinReader resets the VM's stdin reader to read from os.Stdin
@@ -111,14 +112,14 @@ func (vm *VM) getFile(fd uint32) (*os.File, error) {
 	}
 	f := vm.files[fd]
 	// Lazily initialize standard file descriptors
-	if f == nil && fd < 3 {
+	if f == nil && fd < FirstUserFD {
 		switch fd {
-		case 0:
-			vm.files[0] = os.Stdin
-		case 1:
-			vm.files[1] = os.Stdout
-		case 2:
-			vm.files[2] = os.Stderr
+		case StdIn:
+			vm.files[StdIn] = os.Stdin
+		case StdOut:
+			vm.files[StdOut] = os.Stdout
+		case StdErr:
+			vm.files[StdErr] = os.Stderr
 		}
 		f = vm.files[fd]
 	}
@@ -132,7 +133,7 @@ func (vm *VM) allocFD(f *os.File) uint32 {
 	vm.fdMu.Lock()
 	defer vm.fdMu.Unlock()
 
-	for i := 3; i < len(vm.files); i++ {
+	for i := FirstUserFD; i < len(vm.files); i++ {
 		if vm.files[i] == nil {
 			vm.files[i] = f
 			//nolint:gosec // G115: i is bounded by len(vm.files) which is reasonable
@@ -142,7 +143,7 @@ func (vm *VM) allocFD(f *os.File) uint32 {
 
 	// Check limit before growing the table
 	if len(vm.files) >= maxFDs {
-		return 0xFFFFFFFF // Return error if limit reached
+		return SyscallErrorGeneral // Return error if limit reached
 	}
 
 	vm.files = append(vm.files, f)
@@ -168,7 +169,7 @@ func ExecuteSWI(vm *VM, inst *Instruction) error {
 	var err error
 	// Extract the syscall number from the immediate value (bottom 24 bits)
 	// ARM2 traditional convention: SWI #num
-	swiNum := inst.Opcode & 0x00FFFFFF
+	swiNum := inst.Opcode & SWIMask
 
 	switch swiNum {
 	// Console I/O
