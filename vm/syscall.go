@@ -363,7 +363,7 @@ func handleReadString(vm *VM) error {
 	maxLen := vm.CPU.GetRegister(1)
 
 	if maxLen == 0 {
-		maxLen = 256 // Default max length
+		maxLen = DefaultStringBuffer // Default max length
 	}
 
 	// Read string from stdin (up to newline)
@@ -543,8 +543,8 @@ func handleDumpMemory(vm *VM) error {
 	addr := vm.CPU.GetRegister(0)
 	length := vm.CPU.GetRegister(1)
 
-	if length > 1024 {
-		length = 1024 // Limit to 1KB
+	if length > MaxMemoryDump {
+		length = MaxMemoryDump // Limit to 1KB
 	}
 
 	_, _ = fmt.Fprintf(vm.OutputWriter, "=== Memory Dump at 0x%08X (length=%d) ===\n", addr, length) // Ignore write errors
