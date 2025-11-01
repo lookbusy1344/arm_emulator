@@ -7,24 +7,44 @@ import (
 	"github.com/lookbusy1344/arm-emulator/parser"
 )
 
-// Data processing instruction opcodes
+// Data processing instruction opcodes (4-bit values)
 const (
-	opAND = 0x0
-	opEOR = 0x1
-	opSUB = 0x2
-	opRSB = 0x3
-	opADD = 0x4
-	opADC = 0x5
-	opSBC = 0x6
-	opRSC = 0x7
-	opTST = 0x8
-	opTEQ = 0x9
-	opCMP = 0xA
-	opCMN = 0xB
-	opORR = 0xC
-	opMOV = 0xD
-	opBIC = 0xE
-	opMVN = 0xF
+	OpcodeAND = 0x0 // Logical AND
+	OpcodeEOR = 0x1 // Logical XOR
+	OpcodeSUB = 0x2 // Subtract
+	OpcodeRSB = 0x3 // Reverse Subtract
+	OpcodeADD = 0x4 // Add
+	OpcodeADC = 0x5 // Add with Carry
+	OpcodeSBC = 0x6 // Subtract with Carry
+	OpcodeRSC = 0x7 // Reverse Subtract with Carry
+	OpcodeTST = 0x8 // Test (AND, sets flags only)
+	OpcodeTEQ = 0x9 // Test Equivalence (XOR, sets flags only)
+	OpcodeCMP = 0xA // Compare (SUB, sets flags only)
+	OpcodeCMN = 0xB // Compare Negative (ADD, sets flags only)
+	OpcodeORR = 0xC // Logical OR
+	OpcodeMOV = 0xD // Move
+	OpcodeBIC = 0xE // Bit Clear (AND NOT)
+	OpcodeMVN = 0xF // Move Not
+)
+
+// Legacy aliases for backward compatibility
+const (
+	opAND = OpcodeAND
+	opEOR = OpcodeEOR
+	opSUB = OpcodeSUB
+	opRSB = OpcodeRSB
+	opADD = OpcodeADD
+	opADC = OpcodeADC
+	opSBC = OpcodeSBC
+	opRSC = OpcodeRSC
+	opTST = OpcodeTST
+	opTEQ = OpcodeTEQ
+	opCMP = OpcodeCMP
+	opCMN = OpcodeCMN
+	opORR = OpcodeORR
+	opMOV = OpcodeMOV
+	opBIC = OpcodeBIC
+	opMVN = OpcodeMVN
 )
 
 // encodeDataProcessingMove encodes MOV and MVN instructions
