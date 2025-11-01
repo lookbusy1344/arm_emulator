@@ -125,9 +125,9 @@ jobs:
           # Determine GUI artifact location and name
           if [ "${{ matrix.os }}" = "darwin" ]; then
             GUI_SOURCE="build/bin/arm-emulator.app"
-            GUI_ARTIFACT_NAME="arm-emulator-gui-${PLATFORM}-${{ matrix.arch}}.app"
+            GUI_ARTIFACT_NAME="arm-emulator-gui-${PLATFORM}-${{ matrix.arch }}.app.tar.gz"
             if [ -d "$GUI_SOURCE" ]; then
-              cp -R "$GUI_SOURCE" "$GUI_ARTIFACT_NAME"
+              tar -czf "$GUI_ARTIFACT_NAME" -C build/bin arm-emulator.app
               echo "gui_artifact_name=$GUI_ARTIFACT_NAME" >> $GITHUB_OUTPUT
             fi
           elif [ "${{ matrix.os }}" = "windows" ]; then
