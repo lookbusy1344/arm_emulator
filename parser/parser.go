@@ -421,8 +421,7 @@ func (p *Parser) handleDirective(d *Directive, program *Program) {
 		// We reserve a reasonable fixed amount (16 literals = 64 bytes) for each .ltorg
 		// This is a conservative estimate that handles typical usage while not being excessive
 		// The encoder will place actual literals within this space
-		const estimatedLiteralsPerPool = 16
-		p.currentAddress += estimatedLiteralsPerPool * 4
+		p.currentAddress += EstimatedLiteralsPerPool * 4
 	}
 }
 
@@ -737,10 +736,9 @@ func (p *Parser) adjustAddressesForDynamicPools(program *Program) {
 	}
 
 	// Calculate the difference between estimated and actual space for each pool
-	// Estimated: 16 literals = 64 bytes
+	// Estimated: N literals = N*4 bytes
 	// Actual: LiteralPoolCounts[i] literals = LiteralPoolCounts[i] * 4 bytes
-	const estimatedLiteralsPerPool = 16
-	estimatedBytes := estimatedLiteralsPerPool * 4
+	estimatedBytes := EstimatedLiteralsPerPool * 4
 
 	// Track cumulative address offset due to differences
 	cumulativeOffset := int32(0)

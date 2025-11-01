@@ -109,7 +109,7 @@ func NewMacroExpander(macroTable *MacroTable) *MacroExpander {
 	return &MacroExpander{
 		macroTable:     macroTable,
 		expansionDepth: 0,
-		maxDepth:       100, // Maximum nesting depth
+		maxDepth:       MaxMacroNestingDepth,
 		callStack:      make([]string, 0),
 	}
 }

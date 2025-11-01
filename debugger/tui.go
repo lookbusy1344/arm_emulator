@@ -242,9 +242,9 @@ func (t *TUI) buildLayout() {
 	// Right panel top: Registers, Memory, Stack
 	rightTop := tview.NewFlex().
 		SetDirection(tview.FlexRow).
-		AddItem(t.RegisterView, 9, 0, false). // Fixed height: 5 rows of regs + blank + status line + border = 9
-		AddItem(t.MemoryView, 0, 3, false).   // Memory gets flex weight 3
-		AddItem(t.StackView, 0, 2, false)     // Stack gets flex weight 2
+		AddItem(t.RegisterView, RegisterViewRows, 0, false). // Fixed height: 5 rows of regs + blank + status line + border = 9
+		AddItem(t.MemoryView, 0, 3, false).                  // Memory gets flex weight 3
+		AddItem(t.StackView, 0, 2, false)                    // Stack gets flex weight 2
 
 	// Right panel: Top + Breakpoints (dynamic height based on content)
 	t.RightPanel = tview.NewFlex().
@@ -449,7 +449,7 @@ func (t *TUI) executeUntilBreak() {
 
 			// Update display periodically during long runs
 			// (every 100 instructions to keep display responsive)
-			if t.Debugger.VM.CPU.Cycles%100 == 0 {
+			if t.Debugger.VM.CPU.Cycles%DisplayUpdateFrequency == 0 {
 				t.App.QueueUpdateDraw(func() {
 					t.RefreshAll()
 				})
@@ -550,8 +550,8 @@ func (t *TUI) UpdateSourceView() {
 
 	// Target: show more instructions to fill the window
 	// Show instructions before and after PC to provide context
-	const targetBefore = 20
-	const targetAfter = 80
+	const targetBefore = CodeContextLinesBefore
+	const targetAfter = CodeContextLinesAfter
 
 	// Count how many valid instructions exist before PC
 	actualBefore := 0
@@ -735,9 +735,9 @@ func (t *TUI) UpdateMemoryView() {
 	var lines []string
 	lines = append(lines, fmt.Sprintf("[yellow]Address: %08X (Lines end with .)[white]", addr))
 
-	// Show 16 rows of 16 bytes each
-	for row := 0; row < 16; row++ {
-		rowOffset, err := vm.SafeIntToUint32(row * 16)
+	// Show N rows of N bytes each
+	for row := 0; row < MemoryDisplayRows; row++ {
+		rowOffset, err := vm.SafeIntToUint32(row * MemoryDisplayBytesPerRow)
 		if err != nil {
 			break // Should never happen
 		}
@@ -749,7 +749,7 @@ func (t *TUI) UpdateMemoryView() {
 		// Hex bytes - build manually to handle color tags properly
 		var hexPart string
 
-		for col := 0; col < 16; col++ {
+		for col := 0; col < MemoryDisplayColumns; col++ {
 			colOffset, err := vm.SafeIntToUint32(col)
 			if err != nil {
 				break // Should never happen
@@ -793,8 +793,8 @@ func (t *TUI) UpdateStackView() {
 	var lines []string
 	lines = append(lines, fmt.Sprintf("[yellow]Stack Pointer: 0x%08X (Lines end with .)[white]", sp))
 
-	// Show 16 words (64 bytes) from stack
-	for i := 0; i < 16; i++ {
+	// Show N words from stack
+	for i := 0; i < StackDisplayWords; i++ {
 		offset, err := vm.SafeIntToUint32(i * 4)
 		if err != nil {
 			break // Should never happen
@@ -849,8 +849,8 @@ func (t *TUI) UpdateDisassemblyView() {
 
 	// Strategy: Collect instructions before and after PC separately
 	// This ensures we always show PC and instructions after it, even if there are gaps before
-	const targetBefore = 5
-	const targetAfter = 10
+	const targetBefore = CodeContextLinesBeforeCompact
+	const targetAfter = CodeContextLinesAfterCompact
 
 	// Collect instructions BEFORE PC (up to targetBefore)
 	var beforeLines []string

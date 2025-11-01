@@ -542,9 +542,9 @@ func (e *Encoder) findNearestLiteralPoolLocation(pc uint32, value uint32) uint32
 func (e *Encoder) countLiteralsAtPool(poolLoc uint32) int {
 	count := 0
 	// Check all assigned literals to see how many are in this pool region
-	// Literals within 1024 bytes of the pool location are considered part of the same pool
+	// Literals within N bytes of the pool location are considered part of the same pool
 	for addr := range e.LiteralPool {
-		if addr >= poolLoc && addr < poolLoc+1024 {
+		if addr >= poolLoc && addr < poolLoc+parser.LiteralPoolRangeBytes {
 			count++
 		}
 	}

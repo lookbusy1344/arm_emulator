@@ -403,10 +403,8 @@ func (e *Encoder) ValidatePoolCapacity() {
 	}
 
 	// Check each pool against expected capacity
-	const estimatedLiteralsPerPool = 16
-
 	for i, poolLoc := range e.LiteralPoolLocs {
-		expectedCount := estimatedLiteralsPerPool
+		expectedCount := parser.EstimatedLiteralsPerPool
 		if i < len(e.LiteralPoolCounts) {
 			expectedCount = e.LiteralPoolCounts[i]
 		}
@@ -423,11 +421,11 @@ func (e *Encoder) ValidatePoolCapacity() {
 		}
 
 		// Also warn if we're using more than half the reserved space for pools with large margins
-		if expectedCount >= estimatedLiteralsPerPool && actualCount > estimatedLiteralsPerPool/2 {
+		if expectedCount >= parser.EstimatedLiteralsPerPool && actualCount > parser.EstimatedLiteralsPerPool/2 {
 			warning := fmt.Sprintf(
 				"Literal pool at 0x%08X: using %d of %d estimated literals (%.1f%%)",
-				poolLoc, actualCount, estimatedLiteralsPerPool,
-				float64(actualCount)/float64(estimatedLiteralsPerPool)*100,
+				poolLoc, actualCount, parser.EstimatedLiteralsPerPool,
+				float64(actualCount)/float64(parser.EstimatedLiteralsPerPool)*100,
 			)
 			e.PoolWarnings = append(e.PoolWarnings, warning)
 		}
