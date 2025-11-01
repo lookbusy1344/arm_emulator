@@ -231,8 +231,6 @@ func (c *CPSR) EvaluateCondition(cond ConditionCode) bool {
 		return c.Z || (c.N != c.V)
 	case CondAL: // Always
 		return true
-	case CondNV: // Never (deprecated in ARM2, should warn)
-		return false
 	}
 	return false
 }
@@ -256,14 +254,13 @@ const (
 	CondGT                      // 1100 - Signed Greater Than
 	CondLE                      // 1101 - Signed Less or Equal
 	CondAL                      // 1110 - Always (unconditional)
-	CondNV                      // 1111 - Never (deprecated)
 )
 
 // String returns the string representation of a condition code
 func (cc ConditionCode) String() string {
 	names := []string{
 		"EQ", "NE", "CS", "CC", "MI", "PL", "VS", "VC",
-		"HI", "LS", "GE", "LT", "GT", "LE", "AL", "NV",
+		"HI", "LS", "GE", "LT", "GT", "LE", "AL",
 	}
 	if cc >= 0 && int(cc) < len(names) {
 		return names[cc]
@@ -283,7 +280,6 @@ func ParseConditionCode(s string) (ConditionCode, bool) {
 		"GE": CondGE, "LT": CondLT,
 		"GT": CondGT, "LE": CondLE,
 		"AL": CondAL, "": CondAL, // Empty string defaults to AL
-		"NV": CondNV,
 	}
 	cond, ok := conditions[s]
 	return cond, ok

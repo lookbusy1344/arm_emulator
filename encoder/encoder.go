@@ -130,8 +130,6 @@ func (e *Encoder) encodeCondition(cond string) uint32 {
 		return uint32(vm.CondLE)
 	case "", "AL":
 		return uint32(vm.CondAL)
-	case "NV":
-		return 0xF // Never (rarely used)
 	default:
 		return uint32(vm.CondAL) // Default to always
 	}

@@ -9,6 +9,6 @@ const (
 
 // Memory overflow protection
 const (
-	Address32BitMax     = 0xFFFFFFFF // Maximum 32-bit address (also wraps on increment)
+	Address32BitMax     = ^uint32(0)
 	Address32BitMaxSafe = 0xFFFFFFFC // Max address allowing 4-byte access without overflow
 )
