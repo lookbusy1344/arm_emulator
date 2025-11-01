@@ -4,18 +4,6 @@ import (
 	"fmt"
 )
 
-// Memory segments
-const (
-	CodeSegmentStart  = 0x00008000 // 32KB offset
-	CodeSegmentSize   = 0x00010000 // 64KB
-	DataSegmentStart  = 0x00020000
-	DataSegmentSize   = 0x00010000 // 64KB
-	HeapSegmentStart  = 0x00030000
-	HeapSegmentSize   = 0x00010000 // 64KB
-	StackSegmentStart = 0x00040000
-	StackSegmentSize  = 0x00010000 // 64KB
-)
-
 // Memory access permissions
 type MemoryPermission byte
 
@@ -112,15 +100,15 @@ func (m *Memory) checkAlignment(address uint32, size int) error {
 	}
 
 	switch size {
-	case 4: // Word access
-		if address&0x3 != 0 {
+	case AlignmentWord: // Word access
+		if address&AlignMaskWord != 0 {
 			return fmt.Errorf("unaligned word access at 0x%08X (must be 4-byte aligned)", address)
 		}
-	case 2: // Halfword access
-		if address&0x1 != 0 {
+	case AlignmentHalfword: // Halfword access
+		if address&AlignMaskHalfword != 0 {
 			return fmt.Errorf("unaligned halfword access at 0x%08X (must be 2-byte aligned)", address)
 		}
-	case 1: // Byte access - no alignment required
+	case AlignmentByte: // Byte access - no alignment required
 	default:
 		return fmt.Errorf("invalid memory access size: %d", size)
 	}
@@ -162,7 +150,7 @@ func (m *Memory) WriteByteAt(address uint32, value byte) error {
 
 // ReadHalfword reads a 16-bit halfword from memory
 func (m *Memory) ReadHalfword(address uint32) (uint16, error) {
-	if err := m.checkAlignment(address, 2); err != nil {
+	if err := m.checkAlignment(address, AlignmentHalfword); err != nil {
 		return 0, err
 	}
 
@@ -185,16 +173,16 @@ func (m *Memory) ReadHalfword(address uint32) (uint16, error) {
 
 	var value uint16
 	if m.LittleEndian {
-		value = uint16(seg.Data[offset]) | uint16(seg.Data[offset+1])<<8
+		value = uint16(seg.Data[offset]) | uint16(seg.Data[offset+1])<<ByteShift8
 	} else {
-		value = uint16(seg.Data[offset])<<8 | uint16(seg.Data[offset+1])
+		value = uint16(seg.Data[offset])<<ByteShift8 | uint16(seg.Data[offset+1])
 	}
 	return value, nil
 }
 
 // WriteHalfword writes a 16-bit halfword to memory
 func (m *Memory) WriteHalfword(address uint32, value uint16) error {
-	if err := m.checkAlignment(address, 2); err != nil {
+	if err := m.checkAlignment(address, AlignmentHalfword); err != nil {
 		return err
 	}
 
@@ -227,7 +215,7 @@ func (m *Memory) WriteHalfword(address uint32, value uint16) error {
 
 // ReadWord reads a 32-bit word from memory
 func (m *Memory) ReadWord(address uint32) (uint32, error) {
-	if err := m.checkAlignment(address, 4); err != nil {
+	if err := m.checkAlignment(address, AlignmentWord); err != nil {
 		return 0, err
 	}
 
@@ -251,13 +239,13 @@ func (m *Memory) ReadWord(address uint32) (uint32, error) {
 	var value uint32
 	if m.LittleEndian {
 		value = uint32(seg.Data[offset]) |
-			uint32(seg.Data[offset+1])<<8 |
-			uint32(seg.Data[offset+2])<<16 |
-			uint32(seg.Data[offset+3])<<24
+			uint32(seg.Data[offset+1])<<ByteShift8 |
+			uint32(seg.Data[offset+2])<<ByteShift16 |
+			uint32(seg.Data[offset+3])<<ByteShift24
 	} else {
-		value = uint32(seg.Data[offset])<<24 |
-			uint32(seg.Data[offset+1])<<16 |
-			uint32(seg.Data[offset+2])<<8 |
+		value = uint32(seg.Data[offset])<<ByteShift24 |
+			uint32(seg.Data[offset+1])<<ByteShift16 |
+			uint32(seg.Data[offset+2])<<ByteShift8 |
 			uint32(seg.Data[offset+3])
 	}
 	return value, nil
@@ -265,7 +253,7 @@ func (m *Memory) ReadWord(address uint32) (uint32, error) {
 
 // WriteWord writes a 32-bit word to memory
 func (m *Memory) WriteWord(address uint32, value uint32) error {
-	if err := m.checkAlignment(address, 4); err != nil {
+	if err := m.checkAlignment(address, AlignmentWord); err != nil {
 		return err
 	}
 
@@ -441,18 +429,18 @@ func (m *Memory) Allocate(size uint32) (uint32, error) {
 	}
 
 	// Check for overflow BEFORE alignment (alignment can overflow too)
-	// If size > 0xFFFFFFFC, alignment will overflow
-	if size > 0xFFFFFFFC {
+	// If size > Address32BitMaxSafe, alignment will overflow
+	if size > Address32BitMaxSafe {
 		return 0, fmt.Errorf("allocation size too large (would overflow during alignment)")
 	}
 
-	// Align to 4-byte boundary
-	if size&0x3 != 0 {
-		size = (size + 3) & ^uint32(0x3)
+	// Align to 4-byte boundary (round up)
+	if size&AlignMaskWord != 0 {
+		size = (size + AlignMaskWord) & AlignRoundUpMaskWord
 	}
 
 	// Check for overflow in m.NextHeapAddress + size
-	if size > 0xFFFFFFFF-m.NextHeapAddress {
+	if size > Address32BitMax-m.NextHeapAddress {
 		return 0, fmt.Errorf("allocation size causes address overflow")
 	}
 

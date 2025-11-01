@@ -6,14 +6,14 @@ import (
 
 // ExecuteLoadStoreMultiple executes load/store multiple instructions (LDM, STM)
 func ExecuteLoadStoreMultiple(vm *VM, inst *Instruction) error {
-	load := (inst.Opcode >> 20) & 0x1      // L bit: 1=load, 0=store
-	writeBack := (inst.Opcode >> 21) & 0x1 // W bit: write address back to base
-	psr := (inst.Opcode >> 22) & 0x1       // S bit: load/store PSR or force user mode
-	increment := (inst.Opcode >> 23) & 0x1 // U bit: 1=increment, 0=decrement
-	preIndex := (inst.Opcode >> 24) & 0x1  // P bit: 1=pre-increment/decrement, 0=post
+	load := (inst.Opcode >> LBitShift) & Mask1Bit      // L bit: 1=load, 0=store
+	writeBack := (inst.Opcode >> WBitShift) & Mask1Bit // W bit: write address back to base
+	psr := (inst.Opcode >> BBitShift) & Mask1Bit       // S bit: load/store PSR or force user mode
+	increment := (inst.Opcode >> UBitShift) & Mask1Bit // U bit: 1=increment, 0=decrement
+	preIndex := (inst.Opcode >> PBitShift) & Mask1Bit  // P bit: 1=pre-increment/decrement, 0=post
 
-	rn := int((inst.Opcode >> 16) & 0xF) // Base register
-	regList := inst.Opcode & 0xFFFF      // Register list (bits 0-15)
+	rn := int((inst.Opcode >> RnShift) & Mask4Bit) // Base register
+	regList := inst.Opcode & RegisterListMask      // Register list (bits 0-15)
 
 	baseAddr := vm.CPU.GetRegister(rn)
 
@@ -35,14 +35,14 @@ func ExecuteLoadStoreMultiple(vm *VM, inst *Instruction) error {
 		// Incrementing
 		if preIndex == 1 {
 			// Pre-increment (IB - Increment Before)
-			addr = baseAddr + 4
+			addr = baseAddr + MultiRegisterWordSize
 		} else {
 			// Post-increment (IA - Increment After)
 			addr = baseAddr
 		}
 	} else {
 		// Decrementing
-		offset, err := SafeIntToUint32(numRegs * 4)
+		offset, err := SafeIntToUint32(numRegs * MultiRegisterWordSize)
 		if err != nil {
 			return fmt.Errorf("register count too large: %w", err)
 		}
@@ -55,12 +55,12 @@ func ExecuteLoadStoreMultiple(vm *VM, inst *Instruction) error {
 			addr = baseAddr - offset
 		} else {
 			// Post-decrement (DA - Decrement After)
-			addr = baseAddr - offset + 4
+			addr = baseAddr - offset + MultiRegisterWordSize
 		}
 	}
 
 	// Save the start address for writeback calculation
-	regOffset, err := SafeIntToUint32(numRegs * 4)
+	regOffset, err := SafeIntToUint32(numRegs * MultiRegisterWordSize)
 	if err != nil {
 		return fmt.Errorf("register count too large: %w", err)
 	}
@@ -96,7 +96,7 @@ func ExecuteLoadStoreMultiple(vm *VM, inst *Instruction) error {
 
 			vm.CPU.SetRegister(i, value)
 
-			if i == 15 {
+			if i == PCRegister {
 				pcLoaded = true
 			}
 		} else {
@@ -104,8 +104,8 @@ func ExecuteLoadStoreMultiple(vm *VM, inst *Instruction) error {
 			value := vm.CPU.GetRegister(i)
 
 			// If storing R15 (PC), store PC+12 (current instruction + 8 + 4)
-			if i == 15 {
-				value = vm.CPU.PC + 12
+			if i == PCRegister {
+				value = vm.CPU.PC + PCStoreOffset
 			}
 
 			err := vm.Memory.WriteWord(addr, value)
@@ -123,13 +123,13 @@ func ExecuteLoadStoreMultiple(vm *VM, inst *Instruction) error {
 			}
 		}
 
-		addr += 4
+		addr += MultiRegisterWordSize
 	}
 
 	// Write back to base register if requested
-	if writeBack == 1 && rn != 15 {
+	if writeBack == 1 && rn != PCRegister {
 		// If modifying SP (R13), record stack trace
-		if rn == SP && vm.StackTrace != nil {
+		if rn == SPRegister && vm.StackTrace != nil {
 			oldSP := vm.CPU.GetSP()
 			vm.CPU.SetRegister(rn, newBase)
 			vm.StackTrace.RecordSPMove(vm.CPU.Cycles, inst.Address, oldSP, newBase)
@@ -139,7 +139,7 @@ func ExecuteLoadStoreMultiple(vm *VM, inst *Instruction) error {
 	}
 
 	// Also check if SP was loaded (but not base register)
-	if load == 1 && (regList&(1<<SP)) != 0 && rn != SP && vm.StackTrace != nil {
+	if load == 1 && (regList&(1<<SPRegister)) != 0 && rn != SPRegister && vm.StackTrace != nil {
 		// SP was loaded from memory, record as SP move
 		vm.StackTrace.RecordSPMove(vm.CPU.Cycles, inst.Address, baseAddr, vm.CPU.GetSP())
 	}

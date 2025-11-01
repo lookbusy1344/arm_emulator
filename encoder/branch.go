@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/lookbusy1344/arm-emulator/parser"
+	"github.com/lookbusy1344/arm-emulator/vm"
 )
 
 // encodeBranch encodes B, BL, and BX instructions
@@ -46,9 +47,9 @@ func (e *Encoder) encodeBranch(inst *parser.Instruction, cond uint32) (uint32, e
 		}
 	}
 
-	// Calculate offset: (target - PC - 8) / 4
-	// PC is current instruction address + 8 (ARM pipeline)
-	pc := e.currentAddr + 8
+	// Calculate offset: (target - PC - pipeline_offset) / word_size
+	// PC is current instruction address + pipeline offset (ARM2 architecture)
+	pc := e.currentAddr + vm.ARMPipelineOffset
 	// Ensure both targetAddr and pc are safely convertible to int32
 	if targetAddr > math.MaxInt32 {
 		return 0, fmt.Errorf("branch target address out of int32 range: 0x%X", targetAddr)
@@ -59,22 +60,22 @@ func (e *Encoder) encodeBranch(inst *parser.Instruction, cond uint32) (uint32, e
 	offset := int32(targetAddr) - int32(pc) // Safe: both values checked
 
 	// Check if offset is word-aligned
-	if offset&0x3 != 0 {
+	if offset&vm.AlignMaskWord != 0 {
 		return 0, fmt.Errorf("branch target not word-aligned: offset=%d", offset)
 	}
 
-	// Divide by 4 to get word offset
-	wordOffset := offset / 4
+	// Divide by word size to get word offset
+	wordOffset := offset / WordSize
 
 	// Check if offset fits in 24 bits (signed)
-	if wordOffset < -0x800000 || wordOffset > 0x7FFFFF {
+	if wordOffset < MinBranchOffsetNeg || wordOffset > MaxBranchOffsetPos {
 		return 0, fmt.Errorf("branch offset out of range: %d (max ±32MB)", offset)
 	}
 
 	// Encode 24-bit offset (sign-extended)
-	// Safe: wordOffset bounds checked above to be in range [-0x800000, 0x7FFFFF]
+	// Safe: wordOffset bounds checked above to be in range [MinBranchOffsetNeg, MaxBranchOffsetPos]
 	// Intentional conversion for bit pattern encoding
-	encodedOffset := uint32(wordOffset) & 0xFFFFFF // #nosec G115 -- bounds checked, intentional bit encoding
+	encodedOffset := uint32(wordOffset) & vm.Mask24Bit // #nosec G115 -- bounds checked, intentional bit encoding
 
 	// L bit: 1 for BL (link), 0 for B
 	var lBit uint32
@@ -83,7 +84,7 @@ func (e *Encoder) encodeBranch(inst *parser.Instruction, cond uint32) (uint32, e
 	}
 
 	// Format: cccc 101L oooo oooo oooo oooo oooo oooo
-	instruction := (cond << 28) | (5 << 25) | (lBit << 24) | encodedOffset
+	instruction := (cond << ConditionShift) | (BranchTypeValue << TypeShift25) | (lBit << BranchLinkShift) | encodedOffset
 
 	return instruction, nil
 }
@@ -101,7 +102,7 @@ func (e *Encoder) encodeBX(inst *parser.Instruction, cond uint32) (uint32, error
 	}
 
 	// BX format: cccc 0001 0010 1111 1111 1111 0001 mmmm
-	instruction := (cond << 28) | (0x12FFF1 << 4) | rm
+	instruction := (cond << ConditionShift) | vm.BXEncodingBase | rm
 
 	return instruction, nil
 }
@@ -119,7 +120,7 @@ func (e *Encoder) encodeBLX(inst *parser.Instruction, cond uint32) (uint32, erro
 	}
 
 	// BLX format: cccc 0001 0010 1111 1111 1111 0011 mmmm
-	instruction := (cond << 28) | (0x12FFF3 << 4) | rm
+	instruction := (cond << ConditionShift) | vm.BLXEncodingBase | rm
 
 	return instruction, nil
 }

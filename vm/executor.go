@@ -108,15 +108,15 @@ func NewVM() *VM {
 		Memory:           NewMemory(),
 		State:            StateHalted,
 		Mode:             ModeRun,
-		MaxCycles:        1000000, // Default 1M instruction limit
+		MaxCycles:        DefaultMaxCycles, // Default 1M instruction limit
 		CycleLimit:       0,
-		InstructionLog:   make([]uint32, 0, 1000),
+		InstructionLog:   make([]uint32, 0, DefaultLogCapacity),
 		EntryPoint:       CodeSegmentStart,
 		ProgramArguments: make([]string, 0),
 		ExitCode:         0,
-		OutputWriter:     os.Stdout,                 // Default to stdout
-		files:            make([]*os.File, 3),       // Will be lazily initialized to stdin/stdout/stderr
-		stdinReader:      bufio.NewReader(os.Stdin), // Per-instance stdin reader
+		OutputWriter:     os.Stdout,                            // Default to stdout
+		files:            make([]*os.File, DefaultFDTableSize), // Will be lazily initialized to stdin/stdout/stderr
+		stdinReader:      bufio.NewReader(os.Stdin),            // Per-instance stdin reader
 	}
 }
 
@@ -283,46 +283,46 @@ func (vm *VM) Decode(opcode uint32) (*Instruction, error) {
 	inst := &Instruction{
 		Address:   vm.CPU.PC,
 		Opcode:    opcode,
-		Condition: ConditionCode((opcode >> 28) & 0xF),
-		SetFlags:  (opcode & (1 << 20)) != 0, // S bit
+		Condition: ConditionCode((opcode >> ConditionShift) & Mask4Bit),
+		SetFlags:  (opcode & (1 << SBitShift)) != 0, // S bit
 	}
 
 	// Determine instruction type based on bits 27-26
-	bits2726 := (opcode >> 26) & 0x3
+	bits2726 := (opcode >> Bits27_26Shift) & Mask2Bit
 
 	switch bits2726 {
 	case 0: // 00 - Could be data processing, multiply, BX, BLX, or load/store halfword
 		// Check for BX (Branch and Exchange) first: bits [27:4] = 0x12FFF1
-		if (opcode & 0x0FFFFFF0) == 0x012FFF10 {
+		if (opcode & BXPatternMask) == BXEncodingBase {
 			inst.Type = InstBranch
-		} else if (opcode & 0x0FFFFFF0) == 0x012FFF30 {
+		} else if (opcode & BXPatternMask) == BLXEncodingBase {
 			// BLX register form: bits [27:4] = 0x12FFF3
 			inst.Type = InstBranch
-		} else if (opcode & 0x0FC000F0) == 0x00000090 {
+		} else if (opcode & MultiplyMask) == MultiplyPattern {
 			// Multiply instruction pattern (MUL, MLA)
 			inst.Type = InstMultiply
-		} else if (opcode & 0x0F8000F0) == 0x00800090 {
+		} else if (opcode & LongMultiplyMask) == LongMultiplyPattern {
 			// Long multiply instruction pattern (UMULL, UMLAL, SMULL, SMLAL)
 			// Bits [27:23] = 0b00001, bits [7:4] = 0b1001
 			inst.Type = InstMultiply
-		} else if (opcode & 0x0FBF0FFF) == 0x010F0000 {
+		} else if (opcode & MRSMask) == MRSPattern {
 			// MRS instruction: bits [27:23]=00010, [22]=PSR, [21]=0, [20]=0, [19:16]=1111, [11:0]=0
 			// Pattern: cccc 00010 x 00 1111 dddd 0000 0000 0000
 			inst.Type = InstPSRTransfer
-		} else if (opcode & 0x0FB000F0) == 0x01200000 {
+		} else if (opcode & MSRRegMask) == MSRRegPattern {
 			// MSR instruction (register): bits [27:23]=00010, [21]=1, [20]=0, [7:4]=0000
 			// Pattern: cccc 00010 x 10 xxxx 1111 0000 0000 mmmm
 			inst.Type = InstPSRTransfer
-		} else if (opcode & 0x0FB00000) == 0x03200000 {
+		} else if (opcode & MSRImmMask) == MSRImmPattern {
 			// MSR instruction (immediate): bits [27:23]=00110, [21]=1, [20]=0
 			// Pattern: cccc 00110 x 10 xxxx 1111 rrrr iiii iiii
 			inst.Type = InstPSRTransfer
 		} else {
 			// Check for halfword load/store: bit 25 = 0, bit 7 = 1, bit 4 = 1
 			// This distinguishes from data processing with immediate (bit 25 = 1)
-			bit25 := (opcode >> 25) & 1
-			bit7 := (opcode >> 7) & 1
-			bit4 := (opcode >> 4) & 1
+			bit25 := (opcode >> IBitShift) & Mask1Bit
+			bit7 := (opcode >> Bit7Pos) & Mask1Bit
+			bit4 := (opcode >> Bit4Pos) & Mask1Bit
 			if bit25 == 0 && bit7 == 1 && bit4 == 1 {
 				// This is a halfword/signed transfer (LDRH, STRH, LDRSB, LDRSH)
 				inst.Type = InstLoadStore
@@ -336,7 +336,7 @@ func (vm *VM) Decode(opcode uint32) (*Instruction, error) {
 		inst.Type = InstLoadStore
 
 	case 2: // 10 - Could be branch or load/store multiple
-		if (opcode & 0x02000000) != 0 {
+		if (opcode & BranchBitMask) != 0 {
 			// Branch
 			inst.Type = InstBranch
 		} else {
@@ -345,7 +345,7 @@ func (vm *VM) Decode(opcode uint32) (*Instruction, error) {
 		}
 
 	case 3: // 11 - Coprocessor or SWI
-		if (opcode & 0x0F000000) == 0x0F000000 {
+		if (opcode & SWIDetectMask) == SWIPattern {
 			// SWI
 			inst.Type = InstSWI
 		} else {
@@ -448,7 +448,7 @@ func (vm *VM) Bootstrap(args []string) error {
 	vm.InitializeStack(stackTop)
 
 	// Set link register to a halt address (so returning from main halts)
-	vm.CPU.SetLR(0xFFFFFFFF)
+	vm.CPU.SetLR(LRInitValue)
 
 	// Set program counter to entry point
 	vm.CPU.PC = vm.EntryPoint

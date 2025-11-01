@@ -4,7 +4,7 @@ package vm
 
 // UpdateFlagsNZ updates the N (negative) and Z (zero) flags based on a result
 func (c *CPSR) UpdateFlagsNZ(result uint32) {
-	c.N = (result & 0x80000000) != 0 // Check bit 31
+	c.N = (result & SignBitMask) != 0 // Check bit 31
 	c.Z = result == 0
 }
 
@@ -36,9 +36,9 @@ func CalculateAddOverflow(a, b, result uint32) bool {
 	// - Adding two negative numbers yields a positive result
 	// This can be detected by checking if sign bits of operands match
 	// but differ from the result's sign bit
-	aSign := (a >> 31) & 1
-	bSign := (b >> 31) & 1
-	resultSign := (result >> 31) & 1
+	aSign := (a >> SignBitPos) & Mask1Bit
+	bSign := (b >> SignBitPos) & Mask1Bit
+	resultSign := (result >> SignBitPos) & Mask1Bit
 
 	return (aSign == bSign) && (aSign != resultSign)
 }
@@ -57,9 +57,9 @@ func CalculateSubOverflow(a, b, result uint32) bool {
 	// Overflow occurs when:
 	// - Subtracting a negative from a positive yields a negative
 	// - Subtracting a positive from a negative yields a positive
-	aSign := (a >> 31) & 1
-	bSign := (b >> 31) & 1
-	resultSign := (result >> 31) & 1
+	aSign := (a >> SignBitPos) & Mask1Bit
+	bSign := (b >> SignBitPos) & Mask1Bit
+	resultSign := (result >> SignBitPos) & Mask1Bit
 
 	return (aSign != bSign) && (aSign != resultSign)
 }
@@ -85,23 +85,23 @@ func CalculateShiftCarry(value uint32, shiftAmount int, shiftType ShiftType, cur
 	case ShiftLSR: // Logical Shift Right
 		// In ARM, LSR #0 is encoded to mean LSR #32
 		if shiftAmount == 0 {
-			return (value & 0x80000000) != 0
+			return (value & SignBitMask) != 0
 		}
 		if shiftAmount > 32 {
 			return false
 		}
 		if shiftAmount == 32 {
-			return (value & 0x80000000) != 0
+			return (value & SignBitMask) != 0
 		}
 		return (value & (1 << (shiftAmount - 1))) != 0
 
 	case ShiftASR: // Arithmetic Shift Right
 		// In ARM, ASR #0 is encoded to mean ASR #32
 		if shiftAmount == 0 {
-			return (value & 0x80000000) != 0
+			return (value & SignBitMask) != 0
 		}
 		if shiftAmount >= 32 {
-			return (value & 0x80000000) != 0
+			return (value & SignBitMask) != 0
 		}
 		return (value & (1 << (shiftAmount - 1))) != 0
 
@@ -165,32 +165,32 @@ func PerformShift(value uint32, shiftAmount int, shiftType ShiftType, carry bool
 		}
 		if shiftAmount >= 32 {
 			// Arithmetic shift preserves sign bit
-			if (value & 0x80000000) != 0 {
-				return 0xFFFFFFFF
+			if (value & SignBitMask) != 0 {
+				return Mask32Bit
 			}
 			return 0
 		}
 		// Perform arithmetic shift (sign extension)
 		result := value >> shiftAmount
-		if (value & 0x80000000) != 0 {
+		if (value & SignBitMask) != 0 {
 			// Fill with 1s from the left
-			mask := uint32(0xFFFFFFFF) << (32 - shiftAmount)
+			mask := uint32(Mask32Bit << (BitsInWord - shiftAmount))
 			result |= mask
 		}
 		return result
 
 	case ShiftROR:
-		shiftAmount = shiftAmount % 32
+		shiftAmount = shiftAmount % BitsInWord
 		if shiftAmount == 0 {
 			return value
 		}
-		return (value >> shiftAmount) | (value << (32 - shiftAmount))
+		return (value >> shiftAmount) | (value << (BitsInWord - shiftAmount))
 
 	case ShiftRRX:
 		// Rotate right by 1 with carry
 		result := value >> 1
 		if carry {
-			result |= 0x80000000
+			result |= SignBitMask
 		}
 		return result
 	}
@@ -231,8 +231,6 @@ func (c *CPSR) EvaluateCondition(cond ConditionCode) bool {
 		return c.Z || (c.N != c.V)
 	case CondAL: // Always
 		return true
-	case CondNV: // Never (deprecated in ARM2, should warn)
-		return false
 	}
 	return false
 }
@@ -256,14 +254,13 @@ const (
 	CondGT                      // 1100 - Signed Greater Than
 	CondLE                      // 1101 - Signed Less or Equal
 	CondAL                      // 1110 - Always (unconditional)
-	CondNV                      // 1111 - Never (deprecated)
 )
 
 // String returns the string representation of a condition code
 func (cc ConditionCode) String() string {
 	names := []string{
 		"EQ", "NE", "CS", "CC", "MI", "PL", "VS", "VC",
-		"HI", "LS", "GE", "LT", "GT", "LE", "AL", "NV",
+		"HI", "LS", "GE", "LT", "GT", "LE", "AL",
 	}
 	if cc >= 0 && int(cc) < len(names) {
 		return names[cc]
@@ -283,7 +280,6 @@ func ParseConditionCode(s string) (ConditionCode, bool) {
 		"GE": CondGE, "LT": CondLT,
 		"GT": CondGT, "LE": CondLE,
 		"AL": CondAL, "": CondAL, // Empty string defaults to AL
-		"NV": CondNV,
 	}
 	cond, ok := conditions[s]
 	return cond, ok

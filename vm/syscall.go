@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"errors"
 	"fmt"
+	"io"
 	"math/rand"
 	"os"
 	"strconv"
@@ -23,23 +24,13 @@ import (
 //
 // 2. Expected Operation Failures (return error codes via R0, continue execution):
 //    - File operation errors (file not found, read/write failures, etc.)
-//    - Size limit violations (exceeding maxReadSize, maxWriteSize)
+//    - Size limit violations (exceeding MaxReadSize, MaxWriteSize)
 //    - Invalid file descriptors
 //    - These are normal runtime errors that programs should handle
 //    - Returns: 0xFFFFFFFF in R0 register, execution continues
 //
 // This distinction allows guest programs to handle expected errors (file I/O)
 // while protecting the VM from integrity violations (memory corruption).
-
-// String length limits and size limits for syscalls
-const (
-	maxStringLength   = 1024 * 1024 // 1MB for general strings
-	maxFilenameLength = 4096        // 4KB for filenames (typical filesystem limit)
-	maxAssertMsgLen   = 1024        // 1KB for assertion messages (kept smaller for quick debugging)
-	maxReadSize       = 1024 * 1024 // 1MB maximum limit for file reads (security limit)
-	maxWriteSize      = 1024 * 1024 // 1MB maximum limit for file writes (security limit)
-	maxFDs            = 1024        // Maximum number of file descriptors (security limit)
-)
 
 // ResetStdinReader resets the VM's stdin reader to read from os.Stdin
 // This is useful for testing when os.Stdin has been redirected
@@ -111,14 +102,14 @@ func (vm *VM) getFile(fd uint32) (*os.File, error) {
 	}
 	f := vm.files[fd]
 	// Lazily initialize standard file descriptors
-	if f == nil && fd < 3 {
+	if f == nil && fd < FirstUserFD {
 		switch fd {
-		case 0:
-			vm.files[0] = os.Stdin
-		case 1:
-			vm.files[1] = os.Stdout
-		case 2:
-			vm.files[2] = os.Stderr
+		case StdIn:
+			vm.files[StdIn] = os.Stdin
+		case StdOut:
+			vm.files[StdOut] = os.Stdout
+		case StdErr:
+			vm.files[StdErr] = os.Stderr
 		}
 		f = vm.files[fd]
 	}
@@ -132,7 +123,7 @@ func (vm *VM) allocFD(f *os.File) uint32 {
 	vm.fdMu.Lock()
 	defer vm.fdMu.Unlock()
 
-	for i := 3; i < len(vm.files); i++ {
+	for i := FirstUserFD; i < len(vm.files); i++ {
 		if vm.files[i] == nil {
 			vm.files[i] = f
 			//nolint:gosec // G115: i is bounded by len(vm.files) which is reasonable
@@ -141,8 +132,8 @@ func (vm *VM) allocFD(f *os.File) uint32 {
 	}
 
 	// Check limit before growing the table
-	if len(vm.files) >= maxFDs {
-		return 0xFFFFFFFF // Return error if limit reached
+	if len(vm.files) >= MaxFileDescriptors {
+		return SyscallErrorGeneral // Return error if limit reached
 	}
 
 	vm.files = append(vm.files, f)
@@ -168,7 +159,7 @@ func ExecuteSWI(vm *VM, inst *Instruction) error {
 	var err error
 	// Extract the syscall number from the immediate value (bottom 24 bits)
 	// ARM2 traditional convention: SWI #num
-	swiNum := inst.Opcode & 0x00FFFFFF
+	swiNum := inst.Opcode & SWIMask
 
 	switch swiNum {
 	// Console I/O
@@ -303,8 +294,8 @@ func handleWriteString(vm *VM) error {
 		addr++
 
 		// Prevent infinite loops
-		if len(str) > maxStringLength {
-			return fmt.Errorf("string too long (>%d bytes)", maxStringLength)
+		if len(str) > MaxStringLength {
+			return fmt.Errorf("string too long (>%d bytes)", MaxStringLength)
 		}
 	}
 
@@ -515,8 +506,8 @@ func handleDebugPrint(vm *VM) error {
 		}
 		addr++
 
-		if len(str) > maxStringLength {
-			return fmt.Errorf("debug string too long (>%d bytes)", maxStringLength)
+		if len(str) > MaxStringLength {
+			return fmt.Errorf("debug string too long (>%d bytes)", MaxStringLength)
 		}
 	}
 
@@ -620,7 +611,7 @@ func handleOpen(vm *VM) error {
 		}
 		addr++
 
-		if len(filename) > maxFilenameLength {
+		if len(filename) > MaxFilenameLength {
 			vm.CPU.SetRegister(0, 0xFFFFFFFF)
 			vm.CPU.IncrementPC()
 			return nil
@@ -675,7 +666,7 @@ func handleRead(vm *VM) error {
 	}
 	// Security: limit read size to prevent memory exhaustion attacks
 	// Maximum allowed: 1MB
-	if length > maxReadSize {
+	if length > MaxReadSize {
 		vm.CPU.SetRegister(0, 0xFFFFFFFF)
 		vm.CPU.IncrementPC()
 		return nil
@@ -728,7 +719,7 @@ func handleWrite(vm *VM) error {
 	}
 	// Security: limit write size to prevent memory exhaustion attacks
 	// Maximum allowed: 1MB
-	if length > maxWriteSize {
+	if length > MaxWriteSize {
 		vm.CPU.SetRegister(0, 0xFFFFFFFF)
 		vm.CPU.IncrementPC()
 		return nil
@@ -799,7 +790,7 @@ func handleTell(vm *VM) error {
 		vm.CPU.IncrementPC()
 		return nil
 	}
-	pos, err := f.Seek(0, 1) // current position (io.SeekCurrent)
+	pos, err := f.Seek(0, io.SeekCurrent) // current position
 	if err != nil {
 		vm.CPU.SetRegister(0, 0xFFFFFFFF)
 	} else {
@@ -994,7 +985,7 @@ func handleAssert(vm *VM) error {
 			}
 			addr++
 
-			if len(msg) > maxAssertMsgLen {
+			if len(msg) > MaxAssertMsgLen {
 				break
 			}
 		}

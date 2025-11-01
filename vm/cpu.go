@@ -3,7 +3,7 @@ package vm
 // CPU represents the ARM2 processor state
 type CPU struct {
 	// General purpose registers R0-R14
-	R [15]uint32
+	R [ARMGeneralRegisterCount]uint32
 
 	// Program Counter (R15)
 	PC uint32
@@ -32,16 +32,16 @@ type CPSR struct {
 func (c *CPSR) ToUint32() uint32 {
 	var result uint32
 	if c.N {
-		result |= 1 << 31 // N flag in bit 31
+		result |= 1 << CPSRBitN // N flag in bit 31
 	}
 	if c.Z {
-		result |= 1 << 30 // Z flag in bit 30
+		result |= 1 << CPSRBitZ // Z flag in bit 30
 	}
 	if c.C {
-		result |= 1 << 29 // C flag in bit 29
+		result |= 1 << CPSRBitC // C flag in bit 29
 	}
 	if c.V {
-		result |= 1 << 28 // V flag in bit 28
+		result |= 1 << CPSRBitV // V flag in bit 28
 	}
 	// Bits 27-0 are reserved/unused in basic ARM2 CPSR
 	return result
@@ -50,10 +50,10 @@ func (c *CPSR) ToUint32() uint32 {
 // FromUint32 sets CPSR flags from a 32-bit value
 // ARM CPSR format: NZCV flags are in bits 31-28
 func (c *CPSR) FromUint32(value uint32) {
-	c.N = (value & (1 << 31)) != 0 // N flag in bit 31
-	c.Z = (value & (1 << 30)) != 0 // Z flag in bit 30
-	c.C = (value & (1 << 29)) != 0 // C flag in bit 29
-	c.V = (value & (1 << 28)) != 0 // V flag in bit 28
+	c.N = (value & (1 << CPSRBitN)) != 0 // N flag in bit 31
+	c.Z = (value & (1 << CPSRBitZ)) != 0 // Z flag in bit 30
+	c.C = (value & (1 << CPSRBitC)) != 0 // C flag in bit 29
+	c.V = (value & (1 << CPSRBitV)) != 0 // V flag in bit 28
 	// Bits 27-0 are ignored (reserved/unused in basic ARM2)
 }
 
@@ -80,7 +80,7 @@ const (
 // NewCPU creates and initializes a new CPU instance
 func NewCPU() *CPU {
 	return &CPU{
-		R:      [15]uint32{},
+		R:      [ARMGeneralRegisterCount]uint32{},
 		PC:     0,
 		CPSR:   CPSR{},
 		SPSR:   CPSR{},
@@ -133,10 +133,10 @@ func (c *CPU) SetLR(value uint32) {
 // GetRegister returns the value of a register (R0-R14 or PC)
 // When reading R15 (PC), returns PC+8 to simulate ARM pipeline effect
 func (c *CPU) GetRegister(reg int) uint32 {
-	if reg == 15 {
-		return c.PC + 8
+	if reg == ARMRegisterPC {
+		return c.PC + ARMPipelineOffset
 	}
-	if reg < 0 || reg > 14 {
+	if reg < 0 || reg >= ARMGeneralRegisterCount {
 		return 0
 	}
 	return c.R[reg]
@@ -144,16 +144,16 @@ func (c *CPU) GetRegister(reg int) uint32 {
 
 // SetRegister sets the value of a register (R0-R14 or PC)
 func (c *CPU) SetRegister(reg int, value uint32) {
-	if reg == 15 {
+	if reg == ARMRegisterPC {
 		c.PC = value
-	} else if reg >= 0 && reg <= 14 {
+	} else if reg >= 0 && reg < ARMGeneralRegisterCount {
 		c.R[reg] = value
 	}
 }
 
 // IncrementPC increments the program counter by 4 (one instruction)
 func (c *CPU) IncrementPC() {
-	c.PC += 4
+	c.PC += ARMInstructionSize
 }
 
 // Branch sets the program counter to a new address
@@ -163,7 +163,7 @@ func (c *CPU) Branch(address uint32) {
 
 // BranchWithLink saves the return address in LR and branches
 func (c *CPU) BranchWithLink(address uint32) {
-	c.SetLR(c.PC + 4) // Save return address
+	c.SetLR(c.PC + ARMInstructionSize) // Save return address
 	c.PC = address
 }
 
@@ -202,37 +202,37 @@ func (c *CPU) SetRegisterWithTrace(vm *VM, reg int, value uint32, pc uint32) {
 // getRegisterName returns the name of a register
 func getRegisterName(reg int) string {
 	switch reg {
-	case 0:
+	case R0:
 		return "R0"
-	case 1:
+	case R1:
 		return "R1"
-	case 2:
+	case R2:
 		return "R2"
-	case 3:
+	case R3:
 		return "R3"
-	case 4:
+	case R4:
 		return "R4"
-	case 5:
+	case R5:
 		return "R5"
-	case 6:
+	case R6:
 		return "R6"
-	case 7:
+	case R7:
 		return "R7"
-	case 8:
+	case R8:
 		return "R8"
-	case 9:
+	case R9:
 		return "R9"
-	case 10:
+	case R10:
 		return "R10"
-	case 11:
+	case R11:
 		return "R11"
-	case 12:
+	case R12:
 		return "R12"
-	case 13:
+	case SP:
 		return "SP"
-	case 14:
+	case LR:
 		return "LR"
-	case 15:
+	case ARMRegisterPC:
 		return "PC"
 	default:
 		return "UNKNOWN"
