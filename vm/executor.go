@@ -108,15 +108,15 @@ func NewVM() *VM {
 		Memory:           NewMemory(),
 		State:            StateHalted,
 		Mode:             ModeRun,
-		MaxCycles:        DefaultMaxCycles,          // Default 1M instruction limit
+		MaxCycles:        DefaultMaxCycles, // Default 1M instruction limit
 		CycleLimit:       0,
 		InstructionLog:   make([]uint32, 0, DefaultLogCapacity),
 		EntryPoint:       CodeSegmentStart,
 		ProgramArguments: make([]string, 0),
 		ExitCode:         0,
-		OutputWriter:     os.Stdout,                 // Default to stdout
-		files:            make([]*os.File, DefaultFDTableSize),       // Will be lazily initialized to stdin/stdout/stderr
-		stdinReader:      bufio.NewReader(os.Stdin), // Per-instance stdin reader
+		OutputWriter:     os.Stdout,                            // Default to stdout
+		files:            make([]*os.File, DefaultFDTableSize), // Will be lazily initialized to stdin/stdout/stderr
+		stdinReader:      bufio.NewReader(os.Stdin),            // Per-instance stdin reader
 	}
 }
 

@@ -34,9 +34,9 @@ const (
 	MultiplyABitShift = 21 // Bit 21: accumulate bit for MLA
 
 	// Halfword instruction shifts
-	HalfwordHBitShift = 5 // Bit 5: halfword bit
-	HalfwordSBitShift = 6 // Bit 6: signed bit
-	HalfwordBit7      = 7 // Bit 7: always 1 for halfword
+	HalfwordHBitShift = 5  // Bit 5: halfword bit
+	HalfwordSBitShift = 6  // Bit 6: signed bit
+	HalfwordBit7      = 7  // Bit 7: always 1 for halfword
 	HalfwordIBitShift = 22 // Bit 22: immediate bit for halfword
 )
 
@@ -44,10 +44,10 @@ const (
 
 // Immediate Value Limits
 const (
-	MaxOffset12Bit      = 4095   // Maximum 12-bit offset (0xFFF)
-	MaxOffsetHalfword   = 255    // Maximum 8-bit halfword offset
-	MaxBranchOffsetPos  = 0x7FFFFF  // Maximum positive 24-bit branch offset
-	MinBranchOffsetNeg  = -0x800000 // Minimum negative 24-bit branch offset
+	MaxOffset12Bit     = 4095      // Maximum 12-bit offset (0xFFF)
+	MaxOffsetHalfword  = 255       // Maximum 8-bit halfword offset
+	MaxBranchOffsetPos = 0x7FFFFF  // Maximum positive 24-bit branch offset
+	MinBranchOffsetNeg = -0x800000 // Minimum negative 24-bit branch offset
 )
 
 // Note: Register numbers (RegisterPC, RegisterLR, RegisterSP) are available as ARMRegisterPC in vm package
@@ -60,12 +60,12 @@ const (
 
 // Instruction Type Values (for bits shifted into position)
 const (
-	BranchTypeValue    = 5    // Value 0b101 (5) in bits 27-25 for branch (before shift)
-	LDMSTMTypeValue    = 4    // Value 0b100 (4) in bits 27-25 for LDM/STM (before shift)
-	MultiplyMarker     = 9    // Value 0b1001 (9) in bits 7-4 for multiply instructions
-	MOVOpcodeValue     = 0xD  // MOV opcode (13, 0b1101)
-	SWITypeValue       = 0xF  // SWI type bits (15, 0b1111)
-	MOVWOpcodeValue    = 0x30 // MOVW opcode pattern (0b110000)
+	BranchTypeValue = 5    // Value 0b101 (5) in bits 27-25 for branch (before shift)
+	LDMSTMTypeValue = 4    // Value 0b100 (4) in bits 27-25 for LDM/STM (before shift)
+	MultiplyMarker  = 9    // Value 0b1001 (9) in bits 7-4 for multiply instructions
+	MOVOpcodeValue  = 0xD  // MOV opcode (13, 0b1101)
+	SWITypeValue    = 0xF  // SWI type bits (15, 0b1111)
+	MOVWOpcodeValue = 0x30 // MOVW opcode pattern (0b110000)
 )
 
 // Word Size
