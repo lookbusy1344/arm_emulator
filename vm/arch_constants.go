@@ -30,6 +30,11 @@ const (
 	Mask24Bit = 0xFFFFFF
 	Mask32Bit = 0xFFFFFFFF
 
+	// Byte shift positions for endianness conversions
+	ByteShift8  = 8  // Shift for byte 1 in multibyte values
+	ByteShift16 = 16 // Shift for byte 2 in multibyte values
+	ByteShift24 = 24 // Shift for byte 3 in multibyte values
+
 	// Alignment constants (grouped together for discoverability)
 	AlignmentWord        = 4          // 4-byte word alignment
 	AlignmentHalfword    = 2          // 2-byte halfword alignment

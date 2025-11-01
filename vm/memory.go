@@ -185,9 +185,9 @@ func (m *Memory) ReadHalfword(address uint32) (uint16, error) {
 
 	var value uint16
 	if m.LittleEndian {
-		value = uint16(seg.Data[offset]) | uint16(seg.Data[offset+1])<<8
+		value = uint16(seg.Data[offset]) | uint16(seg.Data[offset+1])<<ByteShift8
 	} else {
-		value = uint16(seg.Data[offset])<<8 | uint16(seg.Data[offset+1])
+		value = uint16(seg.Data[offset])<<ByteShift8 | uint16(seg.Data[offset+1])
 	}
 	return value, nil
 }
@@ -251,13 +251,13 @@ func (m *Memory) ReadWord(address uint32) (uint32, error) {
 	var value uint32
 	if m.LittleEndian {
 		value = uint32(seg.Data[offset]) |
-			uint32(seg.Data[offset+1])<<8 |
-			uint32(seg.Data[offset+2])<<16 |
-			uint32(seg.Data[offset+3])<<24
+			uint32(seg.Data[offset+1])<<ByteShift8 |
+			uint32(seg.Data[offset+2])<<ByteShift16 |
+			uint32(seg.Data[offset+3])<<ByteShift24
 	} else {
-		value = uint32(seg.Data[offset])<<24 |
-			uint32(seg.Data[offset+1])<<16 |
-			uint32(seg.Data[offset+2])<<8 |
+		value = uint32(seg.Data[offset])<<ByteShift24 |
+			uint32(seg.Data[offset+1])<<ByteShift16 |
+			uint32(seg.Data[offset+2])<<ByteShift8 |
 			uint32(seg.Data[offset+3])
 	}
 	return value, nil
