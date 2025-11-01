@@ -36,7 +36,7 @@ export function GetSymbolForAddress(arg1:number):Promise<string>;
 
 export function GetSymbols():Promise<Record<string, number>>;
 
-export function GetSymbolsForAddresses(arg1:number[]):Promise<Record<number, string>>;
+export function GetSymbolsForAddresses(arg1:Array<number>):Promise<Record<number, string>>;
 
 export function GetWatchpoints():Promise<Array<service.WatchpointInfo>>;
 
