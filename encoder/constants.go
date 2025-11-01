@@ -1,5 +1,7 @@
 package encoder
 
+import "github.com/lookbusy1344/arm-emulator/vm"
+
 // Instruction Encoding Bit Shift Positions
 // These constants define the bit positions used in ARM instruction encoding
 const (
@@ -38,13 +40,7 @@ const (
 	HalfwordIBitShift = 22 // Bit 22: immediate bit for halfword
 )
 
-// Bit Masks
-const (
-	Mask4Bit   = 0xF       // 4-bit mask
-	Mask12Bit  = 0xFFF     // 12-bit mask (memory offsets)
-	Mask16Bit  = 0xFFFF    // 16-bit mask (for MOVW)
-	Mask24Bit  = 0xFFFFFF  // 24-bit mask (branch offsets, SWI)
-)
+// Note: Bit masks (Mask4Bit, Mask12Bit, Mask16Bit, Mask24Bit) are imported from vm package
 
 // Immediate Value Limits
 const (
@@ -54,7 +50,8 @@ const (
 	MinBranchOffsetNeg  = -0x800000 // Minimum negative 24-bit branch offset
 )
 
-// Register Numbers
+// Note: Register numbers (RegisterPC, RegisterLR, RegisterSP) are available as ARMRegisterPC in vm package
+// For encoder-specific use, we define local aliases:
 const (
 	RegisterPC = 15 // Program Counter (R15)
 	RegisterLR = 14 // Link Register (R14)

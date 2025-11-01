@@ -24,24 +24,13 @@ import (
 //
 // 2. Expected Operation Failures (return error codes via R0, continue execution):
 //    - File operation errors (file not found, read/write failures, etc.)
-//    - Size limit violations (exceeding maxReadSize, maxWriteSize)
+//    - Size limit violations (exceeding MaxReadSize, MaxWriteSize)
 //    - Invalid file descriptors
 //    - These are normal runtime errors that programs should handle
 //    - Returns: 0xFFFFFFFF in R0 register, execution continues
 //
 // This distinction allows guest programs to handle expected errors (file I/O)
 // while protecting the VM from integrity violations (memory corruption).
-
-// Legacy constants - now defined in syscall_constants.go
-// These are kept for compatibility but should be migrated to the new names
-const (
-	maxStringLength   = MaxStringLength
-	maxFilenameLength = MaxFilenameLength
-	maxAssertMsgLen   = MaxAssertMsgLen
-	maxReadSize       = MaxReadSize
-	maxWriteSize      = MaxWriteSize
-	maxFDs            = MaxFileDescriptors
-)
 
 // ResetStdinReader resets the VM's stdin reader to read from os.Stdin
 // This is useful for testing when os.Stdin has been redirected
@@ -143,7 +132,7 @@ func (vm *VM) allocFD(f *os.File) uint32 {
 	}
 
 	// Check limit before growing the table
-	if len(vm.files) >= maxFDs {
+	if len(vm.files) >= MaxFileDescriptors {
 		return SyscallErrorGeneral // Return error if limit reached
 	}
 
@@ -305,8 +294,8 @@ func handleWriteString(vm *VM) error {
 		addr++
 
 		// Prevent infinite loops
-		if len(str) > maxStringLength {
-			return fmt.Errorf("string too long (>%d bytes)", maxStringLength)
+		if len(str) > MaxStringLength {
+			return fmt.Errorf("string too long (>%d bytes)", MaxStringLength)
 		}
 	}
 
@@ -517,8 +506,8 @@ func handleDebugPrint(vm *VM) error {
 		}
 		addr++
 
-		if len(str) > maxStringLength {
-			return fmt.Errorf("debug string too long (>%d bytes)", maxStringLength)
+		if len(str) > MaxStringLength {
+			return fmt.Errorf("debug string too long (>%d bytes)", MaxStringLength)
 		}
 	}
 
@@ -622,7 +611,7 @@ func handleOpen(vm *VM) error {
 		}
 		addr++
 
-		if len(filename) > maxFilenameLength {
+		if len(filename) > MaxFilenameLength {
 			vm.CPU.SetRegister(0, 0xFFFFFFFF)
 			vm.CPU.IncrementPC()
 			return nil
@@ -677,7 +666,7 @@ func handleRead(vm *VM) error {
 	}
 	// Security: limit read size to prevent memory exhaustion attacks
 	// Maximum allowed: 1MB
-	if length > maxReadSize {
+	if length > MaxReadSize {
 		vm.CPU.SetRegister(0, 0xFFFFFFFF)
 		vm.CPU.IncrementPC()
 		return nil
@@ -730,7 +719,7 @@ func handleWrite(vm *VM) error {
 	}
 	// Security: limit write size to prevent memory exhaustion attacks
 	// Maximum allowed: 1MB
-	if length > maxWriteSize {
+	if length > MaxWriteSize {
 		vm.CPU.SetRegister(0, 0xFFFFFFFF)
 		vm.CPU.IncrementPC()
 		return nil
@@ -996,7 +985,7 @@ func handleAssert(vm *VM) error {
 			}
 			addr++
 
-			if len(msg) > maxAssertMsgLen {
+			if len(msg) > MaxAssertMsgLen {
 				break
 			}
 		}

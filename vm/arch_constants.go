@@ -19,20 +19,8 @@ const (
 	CPSRBitC = 29 // Carry flag
 	CPSRBitV = 28 // Overflow flag
 
-	// Instruction encoding bit positions
-	InstructionConditionShift      = 28 // bits 31-28
-	InstructionTypeShift           = 26 // bits 27-26
-	InstructionImmediateShift      = 25 // bit 25
-	InstructionPreIndexShift       = 24 // bit 24 (P bit)
-	InstructionUpShift             = 23 // bit 23 (U bit)
-	InstructionByteShift           = 22 // bit 22 (B bit)
-	InstructionWritebackShift      = 21 // bit 21 (W bit)
-	InstructionLoadShift           = 20 // bit 20 (L bit)
-	InstructionRnShift             = 16 // bits 19-16
-	InstructionRdShift             = 12 // bits 15-12
-	InstructionRsShift             = 8  // bits 11-8
-	InstructionShiftTypeShift      = 5  // bits 6-5
-	InstructionShiftAmountShift    = 7  // bits 11-7
+	// Note: Instruction encoding bit shift positions are defined in encoder/constants.go
+	// They are encoder-specific and not part of the core ARM2 architecture specification
 
 	// Bit masks
 	Mask4Bit  = 0xF

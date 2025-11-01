@@ -279,8 +279,8 @@ func (e *Encoder) encodeSWI(inst *parser.Instruction, cond uint32) (uint32, erro
 	}
 
 	// Check if it fits in 24 bits
-	if imm > Mask24Bit {
-		return 0, fmt.Errorf("SWI immediate too large: 0x%X (max 0x%X)", imm, Mask24Bit)
+	if imm > vm.Mask24Bit {
+		return 0, fmt.Errorf("SWI immediate too large: 0x%X (max 0x%X)", imm, vm.Mask24Bit)
 	}
 
 	// Format: cccc 1111 iiii iiii iiii iiii iiii iiii

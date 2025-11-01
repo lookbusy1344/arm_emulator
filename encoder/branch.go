@@ -75,7 +75,7 @@ func (e *Encoder) encodeBranch(inst *parser.Instruction, cond uint32) (uint32, e
 	// Encode 24-bit offset (sign-extended)
 	// Safe: wordOffset bounds checked above to be in range [MinBranchOffsetNeg, MaxBranchOffsetPos]
 	// Intentional conversion for bit pattern encoding
-	encodedOffset := uint32(wordOffset) & Mask24Bit // #nosec G115 -- bounds checked, intentional bit encoding
+	encodedOffset := uint32(wordOffset) & vm.Mask24Bit // #nosec G115 -- bounds checked, intentional bit encoding
 
 	// L bit: 1 for BL (link), 0 for B
 	var lBit uint32

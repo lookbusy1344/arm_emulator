@@ -4,7 +4,7 @@ package vm
 const (
 	DefaultMaxCycles   = 1000000 // Default instruction limit
 	DefaultLogCapacity = 1000    // Initial capacity for instruction log
-	DefaultFDTableSize = 3       // stdin, stdout, stderr
+	DefaultFDTableSize = 3       // Initial FD table size (FDs 0-2: stdin, stdout, stderr)
 )
 
 // Memory overflow protection

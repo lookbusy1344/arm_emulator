@@ -146,7 +146,7 @@ func (e *Encoder) encodeAddressingMode(cond, lBit, bBit, rd uint32, addrMode str
 			}
 
 			// 12-bit offset
-			if offset > Mask12Bit {
+			if offset > vm.Mask12Bit {
 				return 0, fmt.Errorf("offset too large: %d (max %d)", offset, MaxOffset12Bit)
 			}
 			offsetField = offset
@@ -444,8 +444,8 @@ func (e *Encoder) encodeMemoryHalfword(inst *parser.Instruction, cond, rd, lBit 
 			return 0, fmt.Errorf("halfword immediate offset too large: %d (max %d)", offset, MaxOffsetHalfword)
 		}
 
-		offsetHigh := (offset >> Bit4) & Mask4Bit
-		offsetLow := offset & Mask4Bit
+		offsetHigh := (offset >> Bit4) & vm.Mask4Bit
+		offsetLow := offset & vm.Mask4Bit
 
 		hBit := uint32(1) // H=1 for halfword
 		sBit := uint32(0) // S=0 for unsigned halfword

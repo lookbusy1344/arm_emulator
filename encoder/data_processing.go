@@ -227,12 +227,12 @@ func (e *Encoder) encodeOperand2(cond, opcode, rn, rd, sBit uint32, operand stri
 					// Use MVN instead of MOV
 					opcode = opMVN
 					encoded = invertedEncoded
-				} else if value <= Mask16Bit {
+				} else if value <= vm.Mask16Bit {
 					// Use MOVW encoding for 16-bit immediates
 					// Format: cccc 0011 0000 iiii dddd iiii iiii iiii
 					// imm16 is split: imm4 (bits 16-19) and imm12 (bits 0-11)
-					imm4 := (value >> RdShift) & Mask4Bit
-					imm12 := value & Mask12Bit
+					imm4 := (value >> RdShift) & vm.Mask4Bit
+					imm12 := value & vm.Mask12Bit
 					return (cond << ConditionShift) | (MOVWOpcodeValue << SBitShift) | (imm4 << RnShift) | (rd << RdShift) | imm12, nil
 				} else {
 					return 0, fmt.Errorf("immediate value 0x%08X cannot be encoded as ARM immediate (tried MOV and MVN)", value)
