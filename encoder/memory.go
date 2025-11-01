@@ -146,8 +146,8 @@ func (e *Encoder) encodeAddressingMode(cond, lBit, bBit, rd uint32, addrMode str
 			}
 
 			// 12-bit offset
-			if offset > 0xFFF {
-				return 0, fmt.Errorf("offset too large: %d (max 4095)", offset)
+			if offset > Mask12Bit {
+				return 0, fmt.Errorf("offset too large: %d (max %d)", offset, MaxOffset12Bit)
 			}
 			offsetField = offset
 
@@ -167,7 +167,7 @@ func (e *Encoder) encodeAddressingMode(cond, lBit, bBit, rd uint32, addrMode str
 				if err != nil {
 					return 0, err
 				}
-				offsetField = (shiftAmount << 7) | (shiftType << 5) | rm
+				offsetField = (shiftAmount << ShiftAmount) | (shiftType << ShiftType) | rm
 			} else {
 				// No shift
 				offsetField = rm
@@ -176,9 +176,9 @@ func (e *Encoder) encodeAddressingMode(cond, lBit, bBit, rd uint32, addrMode str
 	}
 
 	// Format: cccc 01IP UBWL nnnn dddd oooo oooo oooo
-	instruction := (cond << 28) | (1 << 26) | (iBit << 25) | (pBit << 24) |
-		(uBit << 23) | (bBit << 22) | (wBit << 21) | (lBit << 20) |
-		(rn << 16) | (rd << 12) | offsetField
+	instruction := (cond << ConditionShift) | (1 << TypeShift26) | (iBit << TypeShift25) | (pBit << PBitShift) |
+		(uBit << UBitShift) | (bBit << BBitShift) | (wBit << WBitShift) | (lBit << LBitShift) |
+		(rn << RnShift) | (rd << RdShift) | offsetField
 
 	return instruction, nil
 }
@@ -205,14 +205,14 @@ func (e *Encoder) encodeLDRPseudo(inst *parser.Instruction, cond, rd uint32) (ui
 	// Try to encode as MOV Rd, #value if it fits
 	if encoded, ok := e.encodeImmediate(value); ok {
 		// Can use MOV
-		instruction := (cond << 28) | (1 << 25) | (opMOV << 21) | (rd << 12) | encoded
+		instruction := (cond << ConditionShift) | (1 << TypeShift25) | (opMOV << OpcodeShift) | (rd << RdShift) | encoded
 		return instruction, nil
 	}
 
 	// Try MVN (move not) if ~value fits
 	if encoded, ok := e.encodeImmediate(^value); ok {
 		// Can use MVN
-		instruction := (cond << 28) | (1 << 25) | (opMVN << 21) | (rd << 12) | encoded
+		instruction := (cond << ConditionShift) | (1 << TypeShift25) | (opMVN << OpcodeShift) | (rd << RdShift) | encoded
 		return instruction, nil
 	}
 
@@ -229,21 +229,21 @@ func (e *Encoder) encodeLDRPseudo(inst *parser.Instruction, cond, rd uint32) (ui
 	}
 
 	if !found {
-		// Find the nearest literal pool location that's within ±4095 bytes
-		pc := e.currentAddr + 8 // PC = current instruction + 8
+		// Find the nearest literal pool location that's within ±MaxOffset12Bit bytes
+		pc := e.currentAddr + vm.ARMPipelineOffset // PC = current instruction + pipeline offset
 		literalAddr = e.findNearestLiteralPoolLocation(pc, value)
 
 		if literalAddr == 0 {
 			// No suitable pool found - this shouldn't happen if .ltorg is properly placed
 			// Fall back to old behavior
 			if e.LiteralPoolStart > 0 {
-				poolSize, err := vm.SafeIntToUint32(len(e.LiteralPool) * 4)
+				poolSize, err := vm.SafeIntToUint32(len(e.LiteralPool) * WordSize)
 				if err != nil {
 					return 0, fmt.Errorf("literal pool too large: %v", err)
 				}
 				literalAddr = e.LiteralPoolStart + poolSize
 			} else {
-				poolSize, err := vm.SafeIntToUint32(len(e.LiteralPool) * 4)
+				poolSize, err := vm.SafeIntToUint32(len(e.LiteralPool) * WordSize)
 				if err != nil {
 					return 0, fmt.Errorf("literal pool too large: %v", err)
 				}
@@ -258,34 +258,34 @@ func (e *Encoder) encodeLDRPseudo(inst *parser.Instruction, cond, rd uint32) (ui
 	}
 
 	// Calculate PC-relative offset
-	// PC = current instruction + 8
-	pc := e.currentAddr + 8
+	// PC = current instruction + pipeline offset
+	pc := e.currentAddr + vm.ARMPipelineOffset
 	// Check addresses are in int32 range
 	if literalAddr > math.MaxInt32 || pc > math.MaxInt32 {
 		return 0, fmt.Errorf("address out of int32 range for PC-relative addressing")
 	}
 	offset := int32(literalAddr) - int32(pc) // Safe: both values checked
 
-	// Check if offset fits in 12 bits (max 4095 bytes)
+	// Check if offset fits in 12 bits (max MaxOffset12Bit bytes)
 	absOffset := offset
 	if absOffset < 0 {
 		absOffset = -absOffset
 	}
-	if absOffset > 4095 {
-		return 0, fmt.Errorf("literal pool offset too large: %d bytes (max 4095) - literal at 0x%08X, PC=0x%08X", absOffset, literalAddr, pc)
+	if absOffset > MaxOffset12Bit {
+		return 0, fmt.Errorf("literal pool offset too large: %d bytes (max %d) - literal at 0x%08X, PC=0x%08X", absOffset, MaxOffset12Bit, literalAddr, pc)
 	}
 
 	if offset < 0 {
 		offset = -offset
 		// Encode as LDR Rd, [PC, #-offset]
-		instruction := (cond << 28) | (1 << 26) | (1 << 24) | (0 << 23) | (1 << 20) |
-			(15 << 16) | (rd << 12) | uint32(offset)
+		instruction := (cond << ConditionShift) | (1 << TypeShift26) | (1 << PBitShift) | (0 << UBitShift) | (1 << LBitShift) |
+			(RegisterPC << RnShift) | (rd << RdShift) | uint32(offset)
 		return instruction, nil
 	}
 
 	// Encode as LDR Rd, [PC, #offset]
-	instruction := (cond << 28) | (1 << 26) | (1 << 24) | (1 << 23) | (1 << 20) |
-		(15 << 16) | (rd << 12) | uint32(offset)
+	instruction := (cond << ConditionShift) | (1 << TypeShift26) | (1 << PBitShift) | (1 << UBitShift) | (1 << LBitShift) |
+		(RegisterPC << RnShift) | (rd << RdShift) | uint32(offset)
 	return instruction, nil
 }
 
@@ -427,48 +427,48 @@ func (e *Encoder) encodeMemoryHalfword(inst *parser.Instruction, cond, rd, lBit 
 		hBit := uint32(1) // H=1 for halfword
 		sBit := uint32(0) // S=0 for unsigned halfword
 
-		opcode = (cond << 28) |
-			(pBit << 24) |
-			(uBit << 23) |
-			(wBit << 21) |
-			(lBit << 20) |
-			(rn << 16) |
-			(rd << 12) |
-			(hBit << 5) |
-			(sBit << 6) |
-			(1 << 7) | // Always 1 for halfword
+		opcode = (cond << ConditionShift) |
+			(pBit << PBitShift) |
+			(uBit << UBitShift) |
+			(wBit << WBitShift) |
+			(lBit << LBitShift) |
+			(rn << RnShift) |
+			(rd << RdShift) |
+			(hBit << HalfwordHBitShift) |
+			(sBit << HalfwordSBitShift) |
+			(1 << HalfwordBit7) | // Always 1 for halfword
 			offset // Rm in lower 4 bits
 	} else {
 		// Immediate offset: split into high (bits[11:8]) and low (bits[3:0])
-		if offset > 255 {
-			return 0, fmt.Errorf("halfword immediate offset too large: %d (max 255)", offset)
+		if offset > MaxOffsetHalfword {
+			return 0, fmt.Errorf("halfword immediate offset too large: %d (max %d)", offset, MaxOffsetHalfword)
 		}
 
-		offsetHigh := (offset >> 4) & 0xF
-		offsetLow := offset & 0xF
+		offsetHigh := (offset >> Bit4) & Mask4Bit
+		offsetLow := offset & Mask4Bit
 
 		hBit := uint32(1) // H=1 for halfword
 		sBit := uint32(0) // S=0 for unsigned halfword
 
-		opcode = (cond << 28) |
-			(pBit << 24) |
-			(uBit << 23) |
-			(1 << 22) | // I bit = 1 for immediate in halfword encoding
-			(wBit << 21) |
-			(lBit << 20) |
-			(rn << 16) |
-			(rd << 12) |
-			(offsetHigh << 8) |
-			(1 << 7) | // Always 1 for halfword misc
-			(hBit << 5) |
-			(sBit << 6) |
+		opcode = (cond << ConditionShift) |
+			(pBit << PBitShift) |
+			(uBit << UBitShift) |
+			(1 << HalfwordIBitShift) | // I bit = 1 for immediate in halfword encoding
+			(wBit << WBitShift) |
+			(lBit << LBitShift) |
+			(rn << RnShift) |
+			(rd << RdShift) |
+			(offsetHigh << RsShift) |
+			(1 << HalfwordBit7) | // Always 1 for halfword misc
+			(hBit << HalfwordHBitShift) |
+			(sBit << HalfwordSBitShift) |
 			offsetLow
 	}
 
 	return opcode, nil
 }
 
-// findNearestLiteralPoolLocation finds the nearest literal pool location within ±4095 bytes
+// findNearestLiteralPoolLocation finds the nearest literal pool location within ±MaxOffset12Bit bytes
 // Returns 0 if no suitable location is found
 func (e *Encoder) findNearestLiteralPoolLocation(pc uint32, value uint32) uint32 {
 	// If no .ltorg directives specified, return 0 to use fallback behavior
@@ -480,14 +480,14 @@ func (e *Encoder) findNearestLiteralPoolLocation(pc uint32, value uint32) uint32
 	if addr, ok := e.pendingLiterals[value]; ok {
 		// Verify it's still within range
 		if addr > pc {
-			if addr-pc > 4095 {
+			if addr-pc > MaxOffset12Bit {
 				// Out of range, need to find a new location
 				delete(e.pendingLiterals, value)
 			} else {
 				return addr
 			}
 		} else {
-			if pc-addr > 4095 {
+			if pc-addr > MaxOffset12Bit {
 				// Out of range, need to find a new location
 				delete(e.pendingLiterals, value)
 			} else {
@@ -496,23 +496,23 @@ func (e *Encoder) findNearestLiteralPoolLocation(pc uint32, value uint32) uint32
 		}
 	}
 
-	// Find nearest pool location within ±4095 bytes
+	// Find nearest pool location within ±MaxOffset12Bit bytes
 	var bestAddr uint32
-	var bestDistance uint32 = 0xFFFFFFFF
+	var bestDistance uint32 = vm.Address32BitMax
 
 	for _, poolLoc := range e.LiteralPoolLocs {
 		var distance uint32
 		if poolLoc >= pc {
 			// Pool is at or after PC - forward reference
 			distance = poolLoc - pc
-			if distance <= 4095 && distance < bestDistance {
+			if distance <= MaxOffset12Bit && distance < bestDistance {
 				// Count how many literals are already assigned to this pool
 				literalsAtPool := e.countLiteralsAtPool(poolLoc)
 				// Calculate where this literal would go
 				// #nosec G115 -- literalsAtPool is bounded by pool capacity, safe conversion
-				candidateAddr := poolLoc + uint32(literalsAtPool)*4
+				candidateAddr := poolLoc + uint32(literalsAtPool)*WordSize
 				// Check if it's still within range from PC
-				if candidateAddr >= pc && candidateAddr-pc <= 4095 {
+				if candidateAddr >= pc && candidateAddr-pc <= MaxOffset12Bit {
 					bestAddr = candidateAddr
 					bestDistance = distance
 				}
@@ -520,14 +520,14 @@ func (e *Encoder) findNearestLiteralPoolLocation(pc uint32, value uint32) uint32
 		} else {
 			// Pool is before PC - backward reference
 			distance = pc - poolLoc
-			if distance <= 4095 && distance < bestDistance {
+			if distance <= MaxOffset12Bit && distance < bestDistance {
 				// For backward references, we need to be more careful
 				// Count existing literals
 				literalsAtPool := e.countLiteralsAtPool(poolLoc)
 				// #nosec G115 -- literalsAtPool is bounded by pool capacity, safe conversion
-				candidateAddr := poolLoc + uint32(literalsAtPool)*4
+				candidateAddr := poolLoc + uint32(literalsAtPool)*WordSize
 				// Check distance from PC to candidate address
-				if candidateAddr <= pc && pc-candidateAddr <= 4095 {
+				if candidateAddr <= pc && pc-candidateAddr <= MaxOffset12Bit {
 					bestAddr = candidateAddr
 					bestDistance = distance
 				}

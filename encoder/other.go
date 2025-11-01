@@ -38,7 +38,7 @@ func (e *Encoder) encodeMultiply(inst *parser.Instruction, cond uint32) (uint32,
 		}
 
 		// Format: cccc 0000 00AS dddd 0000 ssss 1001 mmmm
-		instruction := (cond << 28) | (sBit << 20) | (rd << 16) | (rs << 8) | (9 << 4) | rm
+		instruction := (cond << ConditionShift) | (sBit << SBitShift) | (rd << RnShift) | (rs << RsShift) | (MultiplyMarker << Bit4) | rm
 
 		return instruction, nil
 
@@ -75,8 +75,8 @@ func (e *Encoder) encodeMultiply(inst *parser.Instruction, cond uint32) (uint32,
 
 		// Format: cccc 0000 001S dddd nnnn ssss 1001 mmmm
 		// A bit (bit 21) = 1 for MLA
-		instruction := (cond << 28) | (1 << 21) | (sBit << 20) | (rd << 16) | (rn << 12) |
-			(rs << 8) | (9 << 4) | rm
+		instruction := (cond << ConditionShift) | (1 << MultiplyABitShift) | (sBit << SBitShift) | (rd << RnShift) | (rn << RdShift) |
+			(rs << RsShift) | (MultiplyMarker << Bit4) | rm
 
 		return instruction, nil
 	}
@@ -164,8 +164,8 @@ func (e *Encoder) encodeLoadStoreMultiple(inst *parser.Instruction, cond uint32,
 	}
 
 	// Format: cccc 100P USWL nnnn rrrr rrrr rrrr rrrr
-	instruction := (cond << 28) | (4 << 25) | (pBit << 24) | (uBit << 23) |
-		(wBit << 21) | (lBit << 20) | (rn << 16) | regMask
+	instruction := (cond << ConditionShift) | (LDMSTMTypeValue << TypeShift25) | (pBit << PBitShift) | (uBit << UBitShift) |
+		(wBit << WBitShift) | (lBit << LBitShift) | (rn << RnShift) | regMask
 
 	return instruction, nil
 }
@@ -183,8 +183,8 @@ func (e *Encoder) encodePush(inst *parser.Instruction, cond uint32) (uint32, err
 
 	// PUSH = STMDB SP!, {reglist}
 	// P=1, U=0 (decrement before), S=0, W=1 (writeback), L=0 (store)
-	instruction := (cond << 28) | (4 << 25) | (1 << 24) | (0 << 23) |
-		(1 << 21) | (0 << 20) | (13 << 16) | regMask
+	instruction := (cond << ConditionShift) | (LDMSTMTypeValue << TypeShift25) | (1 << PBitShift) | (0 << UBitShift) |
+		(1 << WBitShift) | (0 << LBitShift) | (RegisterSP << RnShift) | regMask
 
 	return instruction, nil
 }
@@ -202,8 +202,8 @@ func (e *Encoder) encodePop(inst *parser.Instruction, cond uint32) (uint32, erro
 
 	// POP = LDMIA SP!, {reglist}
 	// P=0, U=1 (increment after), S=0, W=1 (writeback), L=1 (load)
-	instruction := (cond << 28) | (4 << 25) | (0 << 24) | (1 << 23) |
-		(1 << 21) | (1 << 20) | (13 << 16) | regMask
+	instruction := (cond << ConditionShift) | (LDMSTMTypeValue << TypeShift25) | (0 << PBitShift) | (1 << UBitShift) |
+		(1 << WBitShift) | (1 << LBitShift) | (RegisterSP << RnShift) | regMask
 
 	return instruction, nil
 }
@@ -262,7 +262,7 @@ func (e *Encoder) encodeNOP(cond uint32) uint32 {
 	// NOP = MOV R0, R0
 	// Format: cccc 0001 101S dddd 0000 0000 0000 mmmm
 	// MOV (S=0, Rd=0, Rm=0)
-	instruction := (cond << 28) | (0xD << 21) | (0 << 16) | 0
+	instruction := (cond << ConditionShift) | (MOVOpcodeValue << OpcodeShift) | (0 << RnShift) | 0
 	return instruction
 }
 
@@ -279,12 +279,12 @@ func (e *Encoder) encodeSWI(inst *parser.Instruction, cond uint32) (uint32, erro
 	}
 
 	// Check if it fits in 24 bits
-	if imm > 0xFFFFFF {
-		return 0, fmt.Errorf("SWI immediate too large: 0x%X (max 0xFFFFFF)", imm)
+	if imm > Mask24Bit {
+		return 0, fmt.Errorf("SWI immediate too large: 0x%X (max 0x%X)", imm, Mask24Bit)
 	}
 
 	// Format: cccc 1111 iiii iiii iiii iiii iiii iiii
-	instruction := (cond << 28) | (0xF << 24) | imm
+	instruction := (cond << ConditionShift) | (SWITypeValue << PBitShift) | imm
 
 	return instruction, nil
 }

@@ -227,13 +227,13 @@ func (e *Encoder) encodeOperand2(cond, opcode, rn, rd, sBit uint32, operand stri
 					// Use MVN instead of MOV
 					opcode = opMVN
 					encoded = invertedEncoded
-				} else if value <= 0xFFFF {
+				} else if value <= Mask16Bit {
 					// Use MOVW encoding for 16-bit immediates
 					// Format: cccc 0011 0000 iiii dddd iiii iiii iiii
 					// imm16 is split: imm4 (bits 16-19) and imm12 (bits 0-11)
-					imm4 := (value >> 12) & 0xF
-					imm12 := value & 0xFFF
-					return (cond << 28) | (0x30 << 20) | (imm4 << 16) | (rd << 12) | imm12, nil
+					imm4 := (value >> RdShift) & Mask4Bit
+					imm12 := value & Mask12Bit
+					return (cond << ConditionShift) | (MOVWOpcodeValue << SBitShift) | (imm4 << RnShift) | (rd << RdShift) | imm12, nil
 				} else {
 					return 0, fmt.Errorf("immediate value 0x%08X cannot be encoded as ARM immediate (tried MOV and MVN)", value)
 				}
@@ -279,8 +279,8 @@ func (e *Encoder) encodeOperand2(cond, opcode, rn, rd, sBit uint32, operand stri
 
 		// Format: cccc 001o oooo Srrr rddd iiii iiii iiii
 		// I=1 for immediate
-		instruction := (cond << 28) | (1 << 25) | (opcode << 21) | (sBit << 20) |
-			(rn << 16) | (rd << 12) | encoded
+		instruction := (cond << ConditionShift) | (1 << TypeShift25) | (opcode << OpcodeShift) | (sBit << SBitShift) |
+			(rn << RnShift) | (rd << RdShift) | encoded
 
 		return instruction, nil
 	}
@@ -304,10 +304,10 @@ func (e *Encoder) encodeOperand2(cond, opcode, rn, rd, sBit uint32, operand stri
 
 		if shiftReg >= 0 {
 			// Register shift: bit 4 = 1
-			shiftField = (uint32(shiftReg) << 8) | (shiftType << 5) | (1 << 4) | rm
+			shiftField = (uint32(shiftReg) << RsShift) | (shiftType << ShiftType) | (1 << Bit4) | rm
 		} else {
 			// Immediate shift: bit 4 = 0
-			shiftField = (shiftAmount << 7) | (shiftType << 5) | rm
+			shiftField = (shiftAmount << ShiftAmount) | (shiftType << ShiftType) | rm
 		}
 	} else {
 		// No shift
@@ -316,8 +316,8 @@ func (e *Encoder) encodeOperand2(cond, opcode, rn, rd, sBit uint32, operand stri
 
 	// Format: cccc 000o oooo Srrr rddd ssss ssss mmmm
 	// I=0 for register
-	instruction := (cond << 28) | (0 << 25) | (opcode << 21) | (sBit << 20) |
-		(rn << 16) | (rd << 12) | shiftField
+	instruction := (cond << ConditionShift) | (0 << TypeShift25) | (opcode << OpcodeShift) | (sBit << SBitShift) |
+		(rn << RnShift) | (rd << RdShift) | shiftField
 
 	return instruction, nil
 }
@@ -344,8 +344,8 @@ func (e *Encoder) encodeADR(inst *parser.Instruction, cond uint32) (uint32, erro
 	}
 
 	// Calculate PC-relative offset
-	// PC is 8 bytes ahead (current instruction + 8)
-	pcValue := e.currentAddr + 8
+	// PC is pipeline offset ahead (current instruction + pipeline offset)
+	pcValue := e.currentAddr + vm.ARMPipelineOffset
 	offset := int32(targetAddr - pcValue) // #nosec G115 -- controlled address arithmetic
 
 	// Try to encode as ADD or SUB with immediate
@@ -367,8 +367,8 @@ func (e *Encoder) encodeADR(inst *parser.Instruction, cond uint32) (uint32, erro
 
 	// Encode as: ADD/SUB Rd, PC, #offset
 	// Format: cond | 00 | I | opcode | S | Rn | Rd | operand2
-	// I=1 (immediate), S=0, Rn=15 (PC)
-	instruction := (cond << 28) | (1 << 25) | (opcode << 21) | (15 << 16) | (rd << 12) | rotated
+	// I=1 (immediate), S=0, Rn=PC
+	instruction := (cond << ConditionShift) | (1 << TypeShift25) | (opcode << OpcodeShift) | (RegisterPC << RnShift) | (rd << RdShift) | rotated
 
 	return instruction, nil
 }

@@ -1,0 +1,77 @@
+package encoder
+
+// Instruction Encoding Bit Shift Positions
+// These constants define the bit positions used in ARM instruction encoding
+const (
+	// Common shift positions used across all instruction types
+	ConditionShift = 28 // Bits 31-28: condition code
+	TypeShift25    = 25 // Bit 25: often used for I bit or instruction type
+	TypeShift26    = 26 // Bit 26: instruction type bit
+
+	// Data processing and memory instruction shifts
+	OpcodeShift = 21 // Bits 24-21: opcode for data processing
+	SBitShift   = 20 // Bit 20: set flags bit
+	RnShift     = 16 // Bits 19-16: first operand register
+	RdShift     = 12 // Bits 15-12: destination register
+	RsShift     = 8  // Bits 11-8: shift register
+	ShiftAmount = 7  // Bits 11-7: shift amount
+	ShiftType   = 5  // Bits 6-5: shift type
+	Bit4        = 4  // Bit 4: register/immediate shift indicator
+
+	// Memory instruction specific shifts
+	PBitShift = 24 // Bit 24: pre/post indexing
+	UBitShift = 23 // Bit 23: up/down (add/subtract offset)
+	BBitShift = 22 // Bit 22: byte/word
+	WBitShift = 21 // Bit 21: writeback
+	LBitShift = 20 // Bit 20: load/store
+
+	// Branch instruction shifts
+	BranchLinkShift = 24 // Bit 24: link bit for BL
+
+	// Multiply instruction shifts
+	MultiplyABitShift = 21 // Bit 21: accumulate bit for MLA
+
+	// Halfword instruction shifts
+	HalfwordHBitShift = 5 // Bit 5: halfword bit
+	HalfwordSBitShift = 6 // Bit 6: signed bit
+	HalfwordBit7      = 7 // Bit 7: always 1 for halfword
+	HalfwordIBitShift = 22 // Bit 22: immediate bit for halfword
+)
+
+// Bit Masks
+const (
+	Mask4Bit   = 0xF       // 4-bit mask
+	Mask12Bit  = 0xFFF     // 12-bit mask (memory offsets)
+	Mask16Bit  = 0xFFFF    // 16-bit mask (for MOVW)
+	Mask24Bit  = 0xFFFFFF  // 24-bit mask (branch offsets, SWI)
+)
+
+// Immediate Value Limits
+const (
+	MaxOffset12Bit      = 4095   // Maximum 12-bit offset (0xFFF)
+	MaxOffsetHalfword   = 255    // Maximum 8-bit halfword offset
+	MaxBranchOffsetPos  = 0x7FFFFF  // Maximum positive 24-bit branch offset
+	MinBranchOffsetNeg  = -0x800000 // Minimum negative 24-bit branch offset
+)
+
+// Register Numbers
+const (
+	RegisterPC = 15 // Program Counter (R15)
+	RegisterLR = 14 // Link Register (R14)
+	RegisterSP = 13 // Stack Pointer (R13)
+)
+
+// Instruction Type Values (for bits shifted into position)
+const (
+	BranchTypeValue    = 5 // Value 101 in bits 27-25 for branch (before shift)
+	LDMSTMTypeValue    = 4 // Value 100 in bits 27-25 for LDM/STM (before shift)
+	MultiplyMarker     = 9 // Value in bits 7-4 for multiply instructions
+	MOVOpcodeValue     = 0xD // MOV opcode (13)
+	SWITypeValue       = 0xF // SWI type bits (15)
+	MOVWOpcodeValue    = 0x30 // MOVW opcode pattern
+)
+
+// Word Size
+const (
+	WordSize = 4 // ARM instructions and words are 4 bytes
+)
