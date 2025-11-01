@@ -48,7 +48,8 @@ const (
 	// BX/BLX patterns are pre-positioned (NOT shift results - the trailing 0 is part of the hex value)
 	// These are the actual bit patterns used directly in instruction encoding
 	// Usage: instruction := (cond << 28) | BXEncodingBase | rm
-	BXEncodingBase  = 0x12FFF10  // BX instruction base pattern (binary: 0001 0010 1111 1111 0001 0000)
-	BLXEncodingBase = 0x12FFF30  // BLX instruction base pattern (binary: 0001 0010 1111 1111 0011 0000)
+	// The lower 4 bits (0000) are reserved for the rm register operand
+	BXEncodingBase  = 0x012FFF10  // BX instruction base pattern (binary: 0b0000_0001_0010_1111_1111_1111_0001_0000)
+	BLXEncodingBase = 0x012FFF30  // BLX instruction base pattern (binary: 0b0000_0001_0010_1111_1111_1111_0011_0000)
 	NOPEncoding     = 0xE1A00000 // MOV R0, R0 (unconditional)
 )

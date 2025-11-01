@@ -146,7 +146,7 @@ func (e *Encoder) encodeAddressingMode(cond, lBit, bBit, rd uint32, addrMode str
 			}
 
 			// 12-bit offset
-			if offset > vm.Mask12Bit {
+			if offset > MaxOffset12Bit {
 				return 0, fmt.Errorf("offset too large: %d (max %d)", offset, MaxOffset12Bit)
 			}
 			offsetField = offset
