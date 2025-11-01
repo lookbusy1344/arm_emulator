@@ -4,18 +4,6 @@ import (
 	"fmt"
 )
 
-// Memory segments
-const (
-	CodeSegmentStart  = 0x00008000 // 32KB offset
-	CodeSegmentSize   = 0x00010000 // 64KB
-	DataSegmentStart  = 0x00020000
-	DataSegmentSize   = 0x00010000 // 64KB
-	HeapSegmentStart  = 0x00030000
-	HeapSegmentSize   = 0x00010000 // 64KB
-	StackSegmentStart = 0x00040000
-	StackSegmentSize  = 0x00010000 // 64KB
-)
-
 // Memory access permissions
 type MemoryPermission byte
 

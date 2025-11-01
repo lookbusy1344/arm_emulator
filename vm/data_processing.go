@@ -50,7 +50,7 @@ func ExecuteDataProcessing(vm *VM, inst *Instruction) error {
 		if rotation == 0 {
 			shiftCarry = vm.CPU.CPSR.C
 		} else {
-			shiftCarry = (op2 & 0x80000000) != 0
+			shiftCarry = (op2 & SignBitMask) != 0
 		}
 	} else {
 		// Register with optional shift

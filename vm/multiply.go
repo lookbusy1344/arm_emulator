@@ -8,7 +8,7 @@ import (
 func ExecuteMultiply(vm *VM, inst *Instruction) error {
 	// Check if this is a long multiply instruction
 	// Long multiply: bits [27:23] = 0b00001
-	if ((inst.Opcode >> Bits27_23Shift) & LongMultiplyMask5) == 0x01 {
+	if ((inst.Opcode >> Bits27_23Shift) & LongMultiplyMask5) == 1 {
 		return ExecuteMultiplyLong(vm, inst)
 	}
 
@@ -138,8 +138,8 @@ func ExecuteMultiplyLong(vm *VM, inst *Instruction) error {
 		}
 
 		// Safe: extracting 32-bit words from 64-bit result
-		resultHi = uint32(result64 >> BitsInWord)      // #nosec G115 -- extracting high 32 bits
-		resultLo = uint32(result64 & Mask32Bit)        // #nosec G115 -- extracting low 32 bits
+		resultHi = uint32(result64 >> BitsInWord) // #nosec G115 -- extracting high 32 bits
+		resultLo = uint32(result64 & Mask32Bit)   // #nosec G115 -- extracting low 32 bits
 	} else {
 		// Signed multiply
 		// Convert to signed 64-bit
@@ -169,7 +169,7 @@ func ExecuteMultiplyLong(vm *VM, inst *Instruction) error {
 		// Long multiply updates N and Z flags based on 64-bit result
 		// N = bit 63 of result
 		// Z = result == 0
-		n := (resultHi & 0x80000000) != 0
+		n := (resultHi & SignBitMask) != 0
 		z := (resultHi == 0) && (resultLo == 0)
 
 		vm.CPU.CPSR.N = n

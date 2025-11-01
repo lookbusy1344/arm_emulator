@@ -20,7 +20,7 @@ const (
 	CPSRBitV = 28 // Overflow flag
 
 	// Sign bit for overflow calculations
-	SignBitPos = 31 // Position of sign bit in 32-bit word
+	SignBitPos  = 31         // Position of sign bit in 32-bit word
 	SignBitMask = 0x80000000 // Mask for sign bit
 
 	// Note: Instruction encoding bit shift positions are defined in encoder/constants.go
@@ -45,9 +45,9 @@ const (
 	AlignmentByte     = 1 // no alignment required
 
 	// Computed alignment masks
-	AlignMaskWord        = AlignmentWord - 1            // mask for word alignment check (address & mask == 0 means aligned)
-	AlignMaskHalfword    = AlignmentHalfword - 1        // mask for halfword alignment check
-	AlignRoundUpMaskWord = ^uint32(AlignMaskWord)       // mask to round up to word alignment
+	AlignMaskWord        = AlignmentWord - 1      // mask for word alignment check (address & mask == 0 means aligned)
+	AlignMaskHalfword    = AlignmentHalfword - 1  // mask for halfword alignment check
+	AlignRoundUpMaskWord = ^uint32(AlignMaskWord) // mask to round up to word alignment
 
 	// Signed integer ranges (for branch offsets, etc.)
 	Int24Max = 0x7FFFFF  // Maximum positive 24-bit signed value
@@ -58,68 +58,68 @@ const (
 // These are used to extract fields from encoded ARM instructions
 const (
 	// Condition code field
-	ConditionShift  = 28 // Bits 31-28: condition code
+	ConditionShift = 28 // Bits 31-28: condition code
 
 	// Common instruction field positions
-	OpcodeShift     = 21 // Bits 24-21: opcode field
-	SBitShift       = 20 // Bit 20: S bit (set flags)
-	RnShift         = 16 // Bits 19-16: Rn (first operand register)
-	RdShift         = 12 // Bits 15-12: Rd (destination register)
-	RsShift         = 8  // Bits 11-8: Rs (shift register)
-	ShiftAmountPos  = 7  // Bits 11-7: shift amount
-	ShiftTypePos    = 5  // Bits 6-5: shift type
-	Bit4Pos         = 4  // Bit 4: various uses
-	Bit7Pos         = 7  // Bit 7: various uses
+	OpcodeShift    = 21 // Bits 24-21: opcode field
+	SBitShift      = 20 // Bit 20: S bit (set flags)
+	RnShift        = 16 // Bits 19-16: Rn (first operand register)
+	RdShift        = 12 // Bits 15-12: Rd (destination register)
+	RsShift        = 8  // Bits 11-8: Rs (shift register)
+	ShiftAmountPos = 7  // Bits 11-7: shift amount
+	ShiftTypePos   = 5  // Bits 6-5: shift type
+	Bit4Pos        = 4  // Bit 4: various uses
+	Bit7Pos        = 7  // Bit 7: various uses
 
 	// Memory instruction bit positions
-	PBitShift       = 24 // Bit 24: P (pre/post indexing)
-	UBitShift       = 23 // Bit 23: U (up/down - add/subtract offset)
-	BBitShift       = 22 // Bit 22: B (byte/word)
-	WBitShift       = 21 // Bit 21: W (writeback)
-	LBitShift       = 20 // Bit 20: L (load/store)
-	IBitShift       = 25 // Bit 25: I (immediate/register)
+	PBitShift = 24 // Bit 24: P (pre/post indexing)
+	UBitShift = 23 // Bit 23: U (up/down - add/subtract offset)
+	BBitShift = 22 // Bit 22: B (byte/word)
+	WBitShift = 21 // Bit 21: W (writeback)
+	LBitShift = 20 // Bit 20: L (load/store)
+	IBitShift = 25 // Bit 25: I (immediate/register)
 
 	// Branch/multiply field positions
 	BranchLinkShift = 24 // Bit 24: L bit for BL
 	MultiplyAShift  = 21 // Bit 21: A bit (accumulate)
 
 	// Bit ranges for multi-bit fields
-	Bits27_26Shift  = 26 // Bits 27-26 starting position
-	Bits27_25Shift  = 25 // Bits 27-25 starting position
-	Bits27_23Shift  = 23 // Bits 27-23 starting position
+	Bits27_26Shift = 26 // Bits 27-26 starting position
+	Bits27_25Shift = 25 // Bits 27-25 starting position
+	Bits27_23Shift = 23 // Bits 27-23 starting position
 )
 
 // Instruction decoding bit masks
 const (
 	// Field extraction masks (applied after shifting)
-	Mask1Bit  = 0x1
-	Mask2Bit  = 0x3
-	Mask3Bit  = 0x7
-	Mask5Bit  = 0x1F
+	Mask1Bit = 0x1
+	Mask2Bit = 0x3
+	Mask3Bit = 0x7
+	Mask5Bit = 0x1F
 
 	// Pre-shifted masks for common patterns
-	BXPatternMask      = 0x0FFFFFF0 // Mask for BX/BLX detection
-	LongMultiplyMask5  = 0x1F       // 5-bit mask for long multiply detection
+	BXPatternMask     = 0x0FFFFFF0 // Mask for BX/BLX detection
+	LongMultiplyMask5 = 0x1F       // 5-bit mask for long multiply detection
 
 	// Offset masks
-	Offset12BitMask    = 0xFFF     // 12-bit immediate offset
-	Offset24BitMask    = 0xFFFFFF  // 24-bit branch offset
-	Offset24BitSignBit = 0x800000  // Sign bit for 24-bit offset
+	Offset12BitMask    = 0xFFF      // 12-bit immediate offset
+	Offset24BitMask    = 0xFFFFFF   // 24-bit branch offset
+	Offset24BitSignBit = 0x800000   // Sign bit for 24-bit offset
 	Offset24BitSignExt = 0xFF000000 // Sign extension mask for 24-bit offset
 
 	// Halfword transfer field masks
-	HalfwordOffsetHighMask = 0xF   // High nibble of halfword offset (bits 11-8)
-	HalfwordOffsetLowMask  = 0xF   // Low nibble of halfword offset (bits 3-0)
-	HalfwordHighShift      = 8     // Shift for high nibble
-	HalfwordLowShift       = 4     // Shift for assembling halfword offset
+	HalfwordOffsetHighMask = 0xF // High nibble of halfword offset (bits 11-8)
+	HalfwordOffsetLowMask  = 0xF // Low nibble of halfword offset (bits 3-0)
+	HalfwordHighShift      = 8   // Shift for high nibble
+	HalfwordLowShift       = 4   // Shift for assembling halfword offset
 
 	// Register list mask (for LDM/STM)
 	RegisterListMask = 0xFFFF // Bits 0-15: register list
 
 	// Immediate value masks
-	ImmediateValueMask = 0xFF  // 8-bit immediate value
-	RotationMask       = 0xF   // 4-bit rotation value
-	RotationShift      = 8     // Position of rotation field
+	ImmediateValueMask = 0xFF // 8-bit immediate value
+	RotationMask       = 0xF  // 4-bit rotation value
+	RotationShift      = 8    // Position of rotation field
 
 	// Value truncation masks
 	ByteValueMask     = 0xFF   // Mask for byte values
@@ -151,10 +151,10 @@ const (
 	BitsInWord         = 32 // 32 bits in a word
 
 	// Multiply timing constants
-	MultiplyBaseCycles  = 2  // Base cycle count for multiply
-	MultiplyMaxCycles   = 16 // Maximum cycle count for multiply
-	MultiplyBitPairs    = 16 // Number of 2-bit pairs to check
-	MultiplyBitShift    = 2  // Shift for each iteration
+	MultiplyBaseCycles = 2  // Base cycle count for multiply
+	MultiplyMaxCycles  = 16 // Maximum cycle count for multiply
+	MultiplyBitPairs   = 16 // Number of 2-bit pairs to check
+	MultiplyBitShift   = 2  // Shift for each iteration
 
 	// Long multiply timing
 	LongMultiplyBaseCycles       = 3 // Base cycles for UMULL/SMULL
@@ -173,4 +173,41 @@ const (
 	BXEncodingBase  = 0x012FFF10 // BX instruction base pattern (binary: 0b0000_0001_0010_1111_1111_1111_0001_0000)
 	BLXEncodingBase = 0x012FFF30 // BLX instruction base pattern (binary: 0b0000_0001_0010_1111_1111_1111_0011_0000)
 	NOPEncoding     = 0xE1A00000 // MOV R0, R0 (unconditional)
+)
+
+// Instruction detection patterns and masks
+const (
+	// Multiply instruction patterns
+	MultiplyPattern     = 0x00000090 // MUL/MLA pattern: bits [7:4] = 0b1001
+	MultiplyMask        = 0x0FC000F0 // Mask to detect multiply instructions
+	LongMultiplyPattern = 0x00800090 // UMULL/UMLAL/SMULL/SMLAL pattern
+	LongMultiplyMask    = 0x0F8000F0 // Mask to detect long multiply instructions
+
+	// PSR transfer instruction patterns
+	MRSPattern    = 0x010F0000 // MRS instruction pattern
+	MRSMask       = 0x0FBF0FFF // Mask to detect MRS instruction
+	MSRRegPattern = 0x01200000 // MSR register form pattern
+	MSRRegMask    = 0x0FB000F0 // Mask to detect MSR register
+	MSRImmPattern = 0x03200000 // MSR immediate form pattern
+	MSRImmMask    = 0x0FB00000 // Mask to detect MSR immediate
+
+	// Branch detection patterns
+	BranchBitMask = 0x02000000 // Bit 25 set indicates branch in bits27-26=10 case
+	SWIPattern    = 0x0F000000 // SWI pattern: bits [27:24] = 0b1111
+	SWIDetectMask = 0x0F000000 // Mask to detect SWI instruction (different from syscall extraction mask)
+
+	// Link register initialization
+	LRInitValue = 0xFFFFFFFF // Initial LR value for exception detection
+)
+
+// Memory layout constants
+const (
+	CodeSegmentStart  = 0x00008000 // 32KB offset - code begins at 32KB
+	CodeSegmentSize   = 0x00010000 // 64KB - code segment size
+	DataSegmentStart  = 0x00020000 // 128KB - data segment start
+	DataSegmentSize   = 0x00010000 // 64KB - data segment size
+	HeapSegmentStart  = 0x00030000 // 192KB - heap segment start
+	HeapSegmentSize   = 0x00010000 // 64KB - heap segment size
+	StackSegmentStart = 0x00040000 // 256KB - stack segment start
+	StackSegmentSize  = 0x00010000 // 64KB - stack segment size
 )
