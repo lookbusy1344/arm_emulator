@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/lookbusy1344/arm-emulator/parser"
+	"github.com/lookbusy1344/arm-emulator/vm"
 )
 
 // Data processing instruction opcodes (4-bit values)

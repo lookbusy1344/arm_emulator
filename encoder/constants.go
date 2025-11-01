@@ -1,7 +1,5 @@
 package encoder
 
-import "github.com/lookbusy1344/arm-emulator/vm"
-
 // Instruction Encoding Bit Shift Positions
 // These constants define the bit positions used in ARM instruction encoding
 const (
