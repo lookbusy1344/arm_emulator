@@ -185,9 +185,9 @@ func (m *Memory) ReadHalfword(address uint32) (uint16, error) {
 
 	var value uint16
 	if m.LittleEndian {
-		value = uint16(seg.Data[offset]) | uint16(seg.Data[offset+1])<<ByteShift8
+		value = uint16(seg.Data[offset]) | uint16(seg.Data[offset+1])<<8
 	} else {
-		value = uint16(seg.Data[offset])<<ByteShift8 | uint16(seg.Data[offset+1])
+		value = uint16(seg.Data[offset])<<8 | uint16(seg.Data[offset+1])
 	}
 	return value, nil
 }
@@ -217,9 +217,9 @@ func (m *Memory) WriteHalfword(address uint32, value uint16) error {
 
 	if m.LittleEndian {
 		seg.Data[offset] = byte(value)
-		seg.Data[offset+1] = byte(value >> ByteShift8)
+		seg.Data[offset+1] = byte(value >> 8)
 	} else {
-		seg.Data[offset] = byte(value >> ByteShift8)
+		seg.Data[offset] = byte(value >> 8)
 		seg.Data[offset+1] = byte(value)
 	}
 	return nil
@@ -251,13 +251,13 @@ func (m *Memory) ReadWord(address uint32) (uint32, error) {
 	var value uint32
 	if m.LittleEndian {
 		value = uint32(seg.Data[offset]) |
-			uint32(seg.Data[offset+1])<<ByteShift8 |
-			uint32(seg.Data[offset+2])<<ByteShift16 |
-			uint32(seg.Data[offset+3])<<ByteShift24
+			uint32(seg.Data[offset+1])<<8 |
+			uint32(seg.Data[offset+2])<<16 |
+			uint32(seg.Data[offset+3])<<24
 	} else {
-		value = uint32(seg.Data[offset])<<ByteShift24 |
-			uint32(seg.Data[offset+1])<<ByteShift16 |
-			uint32(seg.Data[offset+2])<<ByteShift8 |
+		value = uint32(seg.Data[offset])<<24 |
+			uint32(seg.Data[offset+1])<<16 |
+			uint32(seg.Data[offset+2])<<8 |
 			uint32(seg.Data[offset+3])
 	}
 	return value, nil
@@ -288,13 +288,13 @@ func (m *Memory) WriteWord(address uint32, value uint32) error {
 
 	if m.LittleEndian {
 		seg.Data[offset] = byte(value)
-		seg.Data[offset+1] = byte(value >> ByteShift8)
-		seg.Data[offset+2] = byte(value >> ByteShift16)
-		seg.Data[offset+3] = byte(value >> ByteShift24)
+		seg.Data[offset+1] = byte(value >> 8)
+		seg.Data[offset+2] = byte(value >> 16)
+		seg.Data[offset+3] = byte(value >> 24)
 	} else {
-		seg.Data[offset] = byte(value >> ByteShift24)
-		seg.Data[offset+1] = byte(value >> ByteShift16)
-		seg.Data[offset+2] = byte(value >> ByteShift8)
+		seg.Data[offset] = byte(value >> 24)
+		seg.Data[offset+1] = byte(value >> 16)
+		seg.Data[offset+2] = byte(value >> 8)
 		seg.Data[offset+3] = byte(value)
 	}
 	return nil
@@ -446,9 +446,9 @@ func (m *Memory) Allocate(size uint32) (uint32, error) {
 		return 0, fmt.Errorf("allocation size too large (would overflow during alignment)")
 	}
 
-	// Align to 4-byte boundary
+	// Align to 4-byte boundary (round up)
 	if size&AlignMaskWord != 0 {
-		size = (size + AlignMaskWord) & ^uint32(AlignMaskWord)
+		size = (size + AlignMaskWord) & AlignRoundUpMaskWord
 	}
 
 	// Check for overflow in m.NextHeapAddress + size

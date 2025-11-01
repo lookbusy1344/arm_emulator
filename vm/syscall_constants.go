@@ -24,12 +24,7 @@ const (
 	FilePermDefault = 0644 // rw-r--r--
 )
 
-// Seek whence values (match io.Seek* constants)
-const (
-	SeekStart   = 0 // io.SeekStart
-	SeekCurrent = 1 // io.SeekCurrent
-	SeekEnd     = 2 // io.SeekEnd
-)
+// Note: For seek operations, use io.SeekStart, io.SeekCurrent, io.SeekEnd from the standard library
 
 // Standard file descriptors
 const (
@@ -51,13 +46,7 @@ const (
 	MaxMemoryDump      = 1024        // 1KB limit for memory dumps
 )
 
-// Number bases for integer output (WRITE_INT syscall)
-const (
-	BaseBinary      = 2
-	BaseOctal       = 8
-	BaseDecimal     = 10
-	BaseHexadecimal = 16
-)
+// Note: Number bases (2, 8, 10, 16) are used directly as literals - they are self-documenting
 
 // ASCII character ranges
 const (

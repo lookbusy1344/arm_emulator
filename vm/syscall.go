@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"errors"
 	"fmt"
+	"io"
 	"math/rand"
 	"os"
 	"strconv"
@@ -800,7 +801,7 @@ func handleTell(vm *VM) error {
 		vm.CPU.IncrementPC()
 		return nil
 	}
-	pos, err := f.Seek(0, 1) // current position (io.SeekCurrent)
+	pos, err := f.Seek(0, io.SeekCurrent) // current position
 	if err != nil {
 		vm.CPU.SetRegister(0, 0xFFFFFFFF)
 	} else {

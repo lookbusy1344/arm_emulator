@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/lookbusy1344/arm-emulator/parser"
+	"github.com/lookbusy1344/arm-emulator/vm"
 )
 
 // encodeBranch encodes B, BL, and BX instructions
@@ -101,7 +102,7 @@ func (e *Encoder) encodeBX(inst *parser.Instruction, cond uint32) (uint32, error
 	}
 
 	// BX format: cccc 0001 0010 1111 1111 1111 0001 mmmm
-	instruction := (cond << 28) | (0x12FFF1 << 4) | rm
+	instruction := (cond << 28) | vm.BXEncodingBase | rm
 
 	return instruction, nil
 }
@@ -119,7 +120,7 @@ func (e *Encoder) encodeBLX(inst *parser.Instruction, cond uint32) (uint32, erro
 	}
 
 	// BLX format: cccc 0001 0010 1111 1111 1111 0011 mmmm
-	instruction := (cond << 28) | (0x12FFF3 << 4) | rm
+	instruction := (cond << 28) | vm.BLXEncodingBase | rm
 
 	return instruction, nil
 }

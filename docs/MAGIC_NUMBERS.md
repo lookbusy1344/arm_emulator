@@ -199,9 +199,10 @@ const (
 - Syscall error handling uses `0xFFFFFFFF` ~40 times
 - Instruction encoding bit positions duplicated across encoder files
 
-### Type Safety Issues
-- No compile-time checking that bit positions are valid
+### Type Confusion Issues
 - Easy to confuse different uses of the same magic number (e.g., `1024` as buffer size vs FD limit)
+- No semantic meaning to distinguish between different numeric contexts
+- Note: Named constants improve readability but don't add compile-time type safety in Go (constants are untyped)
 
 ---
 
@@ -257,31 +258,28 @@ const (
     Mask32Bit  = 0xFFFFFFFF
 
     // Alignment
-    AlignmentWord     = 4 // 4-byte alignment
-    AlignmentHalfword = 2 // 2-byte alignment
-    AlignmentByte     = 1 // no alignment required
-
-    AlignMaskWord     = 0x3 // mask for word alignment check
-    AlignMaskHalfword = 0x1 // mask for halfword alignment check
+    // Alignment constants (grouped together for discoverability)
+    AlignmentWord        = 4          // 4-byte word alignment
+    AlignmentHalfword    = 2          // 2-byte halfword alignment
+    AlignmentByte        = 1          // no alignment required
+    AlignMaskWord        = 0x3        // mask for word alignment check (address & mask == 0 means aligned)
+    AlignMaskHalfword    = 0x1        // mask for halfword alignment check
+    AlignRoundUpMaskWord = 0xFFFFFFFC // mask to round up to word alignment (~0x3)
 
     // Signed integer ranges (for branch offsets, etc.)
     Int24Max = 0x7FFFFF   // Maximum positive 24-bit signed value
     Int24Min = -0x800000  // Minimum negative 24-bit signed value
 )
 
-// Endianness byte shift positions
-const (
-    ByteShift0  = 0  // LSB
-    ByteShift8  = 8
-    ByteShift16 = 16
-    ByteShift24 = 24 // MSB
-)
+// Note: Byte shift positions (8, 16, 24) are used directly as literals - they are self-documenting
 
 // Special instruction encoding patterns
 const (
-    BXEncodingPattern  = 0x12FFF1 // BX instruction pattern
-    BLXEncodingPattern = 0x12FFF3 // BLX instruction pattern
-    NOPEncoding        = 0xE1A00000 // MOV R0, R0
+    // BX/BLX patterns are pre-shifted by 4 bits for direct use in encoding
+    // Usage: instruction := (cond << 28) | BXEncodingBase | rm
+    BXEncodingBase  = 0x12FFF10  // BX instruction base (0x12FFF1 << 4)
+    BLXEncodingBase = 0x12FFF30  // BLX instruction base (0x12FFF3 << 4)
+    NOPEncoding     = 0xE1A00000 // MOV R0, R0
 )
 ```
 
@@ -316,12 +314,7 @@ const (
     FilePermDefault = 0644 // rw-r--r--
 )
 
-// Seek whence values (match io.Seek* constants)
-const (
-    SeekStart   = 0 // io.SeekStart
-    SeekCurrent = 1 // io.SeekCurrent
-    SeekEnd     = 2 // io.SeekEnd
-)
+// Note: For seek operations, use io.SeekStart, io.SeekCurrent, io.SeekEnd from the standard library
 
 // Standard file descriptors
 const (
@@ -343,13 +336,7 @@ const (
     MaxMemoryDump      = 1024       // 1KB limit for memory dumps
 )
 
-// Number bases for integer output (WRITE_INT syscall)
-const (
-    BaseBinary      = 2
-    BaseOctal       = 8
-    BaseDecimal     = 10
-    BaseHexadecimal = 16
-)
+// Note: Number bases (2, 8, 10, 16) are used directly as literals - they are self-documenting
 
 // ASCII character ranges
 const (
@@ -374,9 +361,8 @@ const (
 
 // Memory overflow protection
 const (
-    Address32BitMax      = 0xFFFFFFFF
-    Address32BitMaxSafe  = 0xFFFFFFFC // Max address allowing 4-byte access
-    AddressWrapBoundary  = 0xFFFFFFFF // Address that would wrap on increment
+    Address32BitMax     = 0xFFFFFFFF // Maximum 32-bit address (also wraps on increment)
+    Address32BitMaxSafe = 0xFFFFFFFC // Max address allowing 4-byte access without overflow
 )
 ```
 
@@ -474,7 +460,7 @@ c.V = (value & (1 << CPSRBitV)) != 0
 1. **Improved Readability**: `CPSRBitN` is clearer than `31`
 2. **Self-Documenting Code**: Constants explain their purpose
 3. **Centralized Maintenance**: Change limits in one place
-4. **Type Safety**: Compiler catches typos in constant names
+4. **Error Prevention**: Compiler catches typos in constant names (though not type mismatches)
 
 ### Long-Term Benefits
 1. **Easier Architecture Changes**: Update constants, not scattered literals
