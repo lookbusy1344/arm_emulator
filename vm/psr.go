@@ -12,7 +12,7 @@ func ExecutePSRTransfer(vm *VM, inst *Instruction) error {
 	// Bit [22] = PSR type (0=CPSR, 1=SPSR) - we only support CPSR for now
 	// Bit [21] = Direction (0=MRS read PSR, 1=MSR write PSR)
 
-	isMSR := (inst.Opcode >> 21) & 0x1 // 1=MSR, 0=MRS
+	isMSR := (inst.Opcode >> MultiplyAShift) & Mask1Bit // 1=MSR, 0=MRS
 
 	if isMSR == 0 {
 		return executeMRS(vm, inst)
@@ -24,10 +24,10 @@ func ExecutePSRTransfer(vm *VM, inst *Instruction) error {
 // Syntax: MRS{cond} Rd, PSR
 // Reads CPSR into a general-purpose register
 func executeMRS(vm *VM, inst *Instruction) error {
-	rd := int((inst.Opcode >> 12) & 0xF) // Destination register
+	rd := int((inst.Opcode >> RdShift) & Mask4Bit) // Destination register
 
 	// R15 (PC) should not be used as destination
-	if rd == 15 {
+	if rd == PCRegister {
 		return fmt.Errorf("MRS: R15 (PC) cannot be used as destination register")
 	}
 
@@ -49,26 +49,26 @@ func executeMRS(vm *VM, inst *Instruction) error {
 // Writes a general-purpose register value to CPSR
 func executeMSR(vm *VM, inst *Instruction) error {
 	// Check if immediate or register source
-	immediateBit := (inst.Opcode >> 25) & 0x1
+	immediateBit := (inst.Opcode >> IBitShift) & Mask1Bit
 
 	var sourceValue uint32
 
 	if immediateBit == 1 {
 		// Immediate value (rare for MSR, but supported)
-		immediate := inst.Opcode & 0xFF
-		rotate := ((inst.Opcode >> 8) & 0xF) * 2
+		immediate := inst.Opcode & ImmediateValueMask
+		rotate := ((inst.Opcode >> RotationShift) & RotationMask) * RotationMultiplier
 		// Rotate right
 		if rotate == 0 {
 			sourceValue = immediate
 		} else {
-			sourceValue = (immediate >> rotate) | (immediate << (32 - rotate))
+			sourceValue = (immediate >> rotate) | (immediate << (BitsInWord - rotate))
 		}
 	} else {
 		// Register source
-		rm := int(inst.Opcode & 0xF)
+		rm := int(inst.Opcode & Mask4Bit)
 
 		// R15 (PC) should not be used as source
-		if rm == 15 {
+		if rm == PCRegister {
 			return fmt.Errorf("MSR: R15 (PC) cannot be used as source register")
 		}
 

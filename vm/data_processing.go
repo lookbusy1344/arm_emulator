@@ -26,12 +26,12 @@ const (
 
 // ExecuteDataProcessing executes a data processing instruction
 func ExecuteDataProcessing(vm *VM, inst *Instruction) error {
-	opcode := (inst.Opcode >> 21) & 0xF
-	immediate := (inst.Opcode >> 25) & 0x1
+	opcode := (inst.Opcode >> OpcodeShift) & Mask4Bit
+	immediate := (inst.Opcode >> IBitShift) & Mask1Bit
 	setFlags := inst.SetFlags
 
-	rd := int((inst.Opcode >> 12) & 0xF) // Destination register
-	rn := int((inst.Opcode >> 16) & 0xF) // First operand register
+	rd := int((inst.Opcode >> RdShift) & Mask4Bit) // Destination register
+	rn := int((inst.Opcode >> RnShift) & Mask4Bit) // First operand register
 
 	// Get first operand
 	op1 := vm.CPU.GetRegister(rn)
@@ -42,9 +42,9 @@ func ExecuteDataProcessing(vm *VM, inst *Instruction) error {
 
 	if immediate == 1 {
 		// Immediate value with rotation
-		imm := inst.Opcode & 0xFF
-		rotation := ((inst.Opcode >> 8) & 0xF) * 2
-		op2 = (imm >> rotation) | (imm << (32 - rotation))
+		imm := inst.Opcode & ImmediateValueMask
+		rotation := ((inst.Opcode >> RotationShift) & RotationMask) * RotationMultiplier
+		op2 = (imm >> rotation) | (imm << (BitsInWord - rotation))
 
 		// Carry from rotation
 		if rotation == 0 {
@@ -54,20 +54,20 @@ func ExecuteDataProcessing(vm *VM, inst *Instruction) error {
 		}
 	} else {
 		// Register with optional shift
-		rm := int(inst.Opcode & 0xF)
+		rm := int(inst.Opcode & Mask4Bit)
 		op2Value := vm.CPU.GetRegister(rm)
 
-		shiftType := ShiftType((inst.Opcode >> 5) & 0x3)
-		shiftByReg := (inst.Opcode >> 4) & 0x1
+		shiftType := ShiftType((inst.Opcode >> ShiftTypePos) & Mask2Bit)
+		shiftByReg := (inst.Opcode >> Bit4Pos) & Mask1Bit
 
 		var shiftAmount int
 		if shiftByReg == 1 {
 			// Shift amount in register
-			rs := int((inst.Opcode >> 8) & 0xF)
-			shiftAmount = int(vm.CPU.GetRegister(rs) & 0xFF)
+			rs := int((inst.Opcode >> RsShift) & Mask4Bit)
+			shiftAmount = int(vm.CPU.GetRegister(rs) & ImmediateValueMask)
 		} else {
 			// Shift amount in instruction
-			shiftAmount = int((inst.Opcode >> 7) & 0x1F)
+			shiftAmount = int((inst.Opcode >> ShiftAmountPos) & Mask5Bit)
 		}
 
 		// In ARM, ROR #0 means RRX (rotate right extended through carry)
@@ -209,7 +209,7 @@ func ExecuteDataProcessing(vm *VM, inst *Instruction) error {
 	}
 
 	// Increment PC (CMP/TST/TEQ/CMN never write result so always advance)
-	if rd != 15 || opcode == OpCMP || opcode == OpCMN || opcode == OpTST || opcode == OpTEQ {
+	if rd != PCRegister || opcode == OpCMP || opcode == OpCMN || opcode == OpTST || opcode == OpTEQ {
 		vm.CPU.IncrementPC()
 	}
 

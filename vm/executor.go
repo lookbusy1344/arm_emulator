@@ -283,12 +283,12 @@ func (vm *VM) Decode(opcode uint32) (*Instruction, error) {
 	inst := &Instruction{
 		Address:   vm.CPU.PC,
 		Opcode:    opcode,
-		Condition: ConditionCode((opcode >> 28) & 0xF),
-		SetFlags:  (opcode & (1 << 20)) != 0, // S bit
+		Condition: ConditionCode((opcode >> ConditionShift) & Mask4Bit),
+		SetFlags:  (opcode & (1 << SBitShift)) != 0, // S bit
 	}
 
 	// Determine instruction type based on bits 27-26
-	bits2726 := (opcode >> 26) & 0x3
+	bits2726 := (opcode >> Bits27_26Shift) & Mask2Bit
 
 	switch bits2726 {
 	case 0: // 00 - Could be data processing, multiply, BX, BLX, or load/store halfword
@@ -320,9 +320,9 @@ func (vm *VM) Decode(opcode uint32) (*Instruction, error) {
 		} else {
 			// Check for halfword load/store: bit 25 = 0, bit 7 = 1, bit 4 = 1
 			// This distinguishes from data processing with immediate (bit 25 = 1)
-			bit25 := (opcode >> 25) & 1
-			bit7 := (opcode >> 7) & 1
-			bit4 := (opcode >> 4) & 1
+			bit25 := (opcode >> IBitShift) & Mask1Bit
+			bit7 := (opcode >> Bit7Pos) & Mask1Bit
+			bit4 := (opcode >> Bit4Pos) & Mask1Bit
 			if bit25 == 0 && bit7 == 1 && bit4 == 1 {
 				// This is a halfword/signed transfer (LDRH, STRH, LDRSB, LDRSH)
 				inst.Type = InstLoadStore

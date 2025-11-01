@@ -8,18 +8,18 @@ import (
 func ExecuteMultiply(vm *VM, inst *Instruction) error {
 	// Check if this is a long multiply instruction
 	// Long multiply: bits [27:23] = 0b00001
-	if ((inst.Opcode >> 23) & 0x1F) == 0x01 {
+	if ((inst.Opcode >> Bits27_23Shift) & LongMultiplyMask5) == 0x01 {
 		return ExecuteMultiplyLong(vm, inst)
 	}
 
 	// Standard multiply (MUL, MLA)
-	accumulate := (inst.Opcode >> 21) & 0x1 // A bit: 1=MLA, 0=MUL
-	setFlags := inst.SetFlags               // S bit
+	accumulate := (inst.Opcode >> MultiplyAShift) & Mask1Bit // A bit: 1=MLA, 0=MUL
+	setFlags := inst.SetFlags                                // S bit
 
-	rd := int((inst.Opcode >> 16) & 0xF) // Destination register
-	rn := int((inst.Opcode >> 12) & 0xF) // Accumulate register (for MLA)
-	rs := int((inst.Opcode >> 8) & 0xF)  // Operand register 1
-	rm := int(inst.Opcode & 0xF)         // Operand register 2
+	rd := int((inst.Opcode >> RnShift) & Mask4Bit) // Destination register
+	rn := int((inst.Opcode >> RdShift) & Mask4Bit) // Accumulate register (for MLA)
+	rs := int((inst.Opcode >> RsShift) & Mask4Bit) // Operand register 1
+	rm := int(inst.Opcode & Mask4Bit)              // Operand register 2
 
 	// Validate: Rd and Rm must be different registers (ARM2 restriction)
 	if rd == rm {
@@ -27,7 +27,7 @@ func ExecuteMultiply(vm *VM, inst *Instruction) error {
 	}
 
 	// Validate: R15 (PC) cannot be used
-	if rd == 15 || rm == 15 || rs == 15 || (accumulate == 1 && rn == 15) {
+	if rd == PCRegister || rm == PCRegister || rs == PCRegister || (accumulate == 1 && rn == PCRegister) {
 		return fmt.Errorf("multiply: R15 (PC) cannot be used in multiply instructions")
 	}
 
@@ -70,21 +70,21 @@ func ExecuteMultiply(vm *VM, inst *Instruction) error {
 func calculateMultiplyCycles(multiplier uint32) int {
 	// Count the number of significant bits in the multiplier
 	// Each group of 2 bits adds a cycle
-	cycles := 2 // Base cycles
+	cycles := MultiplyBaseCycles
 
 	value := multiplier
-	for i := 0; i < 16; i++ {
-		if value&0x3 != 0 {
+	for i := 0; i < MultiplyBitPairs; i++ {
+		if value&MultiplyBit2Mask != 0 {
 			cycles++
 		}
-		value >>= 2
+		value >>= MultiplyBitShift
 		if value == 0 {
 			break
 		}
 	}
 
-	if cycles > 16 {
-		cycles = 16
+	if cycles > MultiplyMaxCycles {
+		cycles = MultiplyMaxCycles
 	}
 
 	return cycles
@@ -96,14 +96,14 @@ func ExecuteMultiplyLong(vm *VM, inst *Instruction) error {
 	// Bit [22] = U (1=unsigned UMULL/UMLAL, 0=signed SMULL/SMLAL)
 	// Bit [21] = A (1=accumulate xMLAL, 0=multiply xMULL)
 	// Bit [20] = S (set flags)
-	unsignedOp := (inst.Opcode >> 22) & 0x1
-	accumulate := (inst.Opcode >> 21) & 0x1
+	unsignedOp := (inst.Opcode >> BBitShift) & Mask1Bit
+	accumulate := (inst.Opcode >> MultiplyAShift) & Mask1Bit
 	setFlags := inst.SetFlags
 
-	rdHi := int((inst.Opcode >> 16) & 0xF) // Destination high register
-	rdLo := int((inst.Opcode >> 12) & 0xF) // Destination low register
-	rs := int((inst.Opcode >> 8) & 0xF)    // Operand register 1
-	rm := int(inst.Opcode & 0xF)           // Operand register 2
+	rdHi := int((inst.Opcode >> RnShift) & Mask4Bit) // Destination high register
+	rdLo := int((inst.Opcode >> RdShift) & Mask4Bit) // Destination low register
+	rs := int((inst.Opcode >> RsShift) & Mask4Bit)   // Operand register 1
+	rm := int(inst.Opcode & Mask4Bit)                // Operand register 2
 
 	// Validate registers
 	// RdHi, RdLo, Rm must all be different
@@ -115,7 +115,7 @@ func ExecuteMultiplyLong(vm *VM, inst *Instruction) error {
 	}
 
 	// R15 (PC) cannot be used
-	if rdHi == 15 || rdLo == 15 || rm == 15 || rs == 15 {
+	if rdHi == PCRegister || rdLo == PCRegister || rm == PCRegister || rs == PCRegister {
 		return fmt.Errorf("long multiply: R15 (PC) cannot be used")
 	}
 
@@ -138,8 +138,8 @@ func ExecuteMultiplyLong(vm *VM, inst *Instruction) error {
 		}
 
 		// Safe: extracting 32-bit words from 64-bit result
-		resultHi = uint32(result64 >> 32)        // #nosec G115 -- extracting high 32 bits
-		resultLo = uint32(result64 & 0xFFFFFFFF) // #nosec G115 -- extracting low 32 bits
+		resultHi = uint32(result64 >> BitsInWord)      // #nosec G115 -- extracting high 32 bits
+		resultLo = uint32(result64 & Mask32Bit)        // #nosec G115 -- extracting low 32 bits
 	} else {
 		// Signed multiply
 		// Convert to signed 64-bit
@@ -156,8 +156,8 @@ func ExecuteMultiplyLong(vm *VM, inst *Instruction) error {
 		}
 
 		// Safe: extracting 32-bit words from 64-bit result
-		resultHi = uint32(uint64(result64) >> 32)        // #nosec G115 -- reinterpret signed to unsigned for bit extraction
-		resultLo = uint32(uint64(result64) & 0xFFFFFFFF) // #nosec G115 -- reinterpret signed to unsigned for bit extraction
+		resultHi = uint32(uint64(result64) >> BitsInWord) // #nosec G115 -- reinterpret signed to unsigned for bit extraction
+		resultLo = uint32(uint64(result64) & Mask32Bit)   // #nosec G115 -- reinterpret signed to unsigned for bit extraction
 	}
 
 	// Store results
@@ -181,9 +181,9 @@ func ExecuteMultiplyLong(vm *VM, inst *Instruction) error {
 	vm.CPU.IncrementPC()
 
 	// Long multiply takes more cycles (typically 3-5 cycles for UMULL/SMULL, +1 for accumulate)
-	cycles := 3
+	cycles := LongMultiplyBaseCycles
 	if accumulate == 1 {
-		cycles = 4
+		cycles = LongMultiplyAccumulateCycles
 	}
 	// Safe: cycles is 3 or 4, -1 = 2 or 3, well within uint64 range
 	vm.CPU.IncrementCycles(uint64(cycles - 1)) // #nosec G115 -- cycles is 3-4, -1 because Step() already adds 1
