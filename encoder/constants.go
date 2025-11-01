@@ -1,32 +1,35 @@
 package encoder
 
-// Instruction Encoding Bit Shift Positions
-// These constants define the bit positions used in ARM instruction encoding
+import "github.com/lookbusy1344/arm-emulator/vm"
+
+// ARM architectural constants (bit positions, register numbers) are in vm/arch_constants.go
+// They are imported here for convenience
 const (
-	// Common shift positions used across all instruction types
-	ConditionShift = 28 // Bits 31-28: condition code
-	TypeShift25    = 25 // Bit 25: often used for I bit or instruction type
-	TypeShift26    = 26 // Bit 26: instruction type bit
+	ConditionShift  = vm.ConditionShift
+	OpcodeShift     = vm.OpcodeShift
+	SBitShift       = vm.SBitShift
+	RnShift         = vm.RnShift
+	RdShift         = vm.RdShift
+	RsShift         = vm.RsShift
+	PBitShift       = vm.PBitShift
+	UBitShift       = vm.UBitShift
+	BBitShift       = vm.BBitShift
+	WBitShift       = vm.WBitShift
+	LBitShift       = vm.LBitShift
+	BranchLinkShift = vm.BranchLinkShift
+	RegisterPC      = vm.ARMRegisterPC
+	RegisterLR      = vm.ARMRegisterLR
+	RegisterSP      = vm.ARMRegisterSP
+)
 
-	// Data processing and memory instruction shifts
-	OpcodeShift = 21 // Bits 24-21: opcode for data processing
-	SBitShift   = 20 // Bit 20: set flags bit
-	RnShift     = 16 // Bits 19-16: first operand register
-	RdShift     = 12 // Bits 15-12: destination register
-	RsShift     = 8  // Bits 11-8: shift register
-	ShiftAmount = 7  // Bits 11-7: shift amount
-	ShiftType   = 5  // Bits 6-5: shift type
-	Bit4        = 4  // Bit 4: register/immediate shift indicator
+// Encoder-specific bit shift positions
+const (
+	TypeShift25 = 25 // Bit 25: often used for I bit or instruction type
+	TypeShift26 = 26 // Bit 26: instruction type bit
 
-	// Memory instruction specific shifts
-	PBitShift = 24 // Bit 24: pre/post indexing
-	UBitShift = 23 // Bit 23: up/down (add/subtract offset)
-	BBitShift = 22 // Bit 22: byte/word
-	WBitShift = 21 // Bit 21: writeback
-	LBitShift = 20 // Bit 20: load/store
-
-	// Branch instruction shifts
-	BranchLinkShift = 24 // Bit 24: link bit for BL
+	ShiftAmount = 7 // Bits 11-7: shift amount
+	ShiftType   = 5 // Bits 6-5: shift type
+	Bit4        = 4 // Bit 4: register/immediate shift indicator
 
 	// Multiply instruction shifts
 	MultiplyABitShift = 21 // Bit 21: accumulate bit for MLA
@@ -38,7 +41,8 @@ const (
 	HalfwordIBitShift = 22 // Bit 22: immediate bit for halfword
 )
 
-// Note: Bit masks (Mask4Bit, Mask12Bit, Mask16Bit, Mask24Bit) are imported from vm package
+// Bit masks are imported from vm package
+// Use vm.Mask4Bit, vm.Mask12Bit, vm.Mask16Bit, vm.Mask24Bit as needed
 
 // Immediate Value Limits
 const (
@@ -46,14 +50,6 @@ const (
 	MaxOffsetHalfword  = 255       // Maximum 8-bit halfword offset
 	MaxBranchOffsetPos = 0x7FFFFF  // Maximum positive 24-bit branch offset
 	MinBranchOffsetNeg = -0x800000 // Minimum negative 24-bit branch offset
-)
-
-// Note: Register numbers (RegisterPC, RegisterLR, RegisterSP) are available as ARMRegisterPC in vm package
-// For encoder-specific use, we define local aliases:
-const (
-	RegisterPC = 15 // Program Counter (R15)
-	RegisterLR = 14 // Link Register (R14)
-	RegisterSP = 13 // Stack Pointer (R13)
 )
 
 // Instruction Type Values (for bits shifted into position)

@@ -13,7 +13,6 @@ const (
 	// Register counts
 	ARMGeneralRegisterCount = 15 // R0-R14
 	ARMTotalRegisterCount   = 16 // Including PC (R15)
-	ARMRegisterPC           = 15
 
 	// CPSR flag bit positions (bits 31-28)
 	CPSRBitN = 31 // Negative flag
@@ -25,8 +24,8 @@ const (
 	SignBitPos  = 31         // Position of sign bit in 32-bit word
 	SignBitMask = 0x80000000 // Mask for sign bit
 
-	// Note: Instruction encoding bit shift positions are defined in encoder/constants.go
-	// They are encoder-specific and not part of the core ARM2 architecture specification
+	// Instruction field bit positions are in arch_constants.go
+	// They define the ARM instruction encoding format shared by encoder and decoder
 
 	// Bit masks
 	Mask4Bit  = 0xF
@@ -59,34 +58,18 @@ const (
 // ============================================================================
 // Instruction Decoding - Bit Shift Positions
 // ============================================================================
-// These are used to extract fields from encoded ARM instructions
+// ARM instruction field positions are in arch_constants.go
+// Additional decoder-specific positions:
 
 const (
-	// Condition code field
-	ConditionShift = 28 // Bits 31-28: condition code
-
-	// Common instruction field positions
-	OpcodeShift    = 21 // Bits 24-21: opcode field
-	SBitShift      = 20 // Bit 20: S bit (set flags)
-	RnShift        = 16 // Bits 19-16: Rn (first operand register)
-	RdShift        = 12 // Bits 15-12: Rd (destination register)
-	RsShift        = 8  // Bits 11-8: Rs (shift register)
 	ShiftAmountPos = 7  // Bits 11-7: shift amount
 	ShiftTypePos   = 5  // Bits 6-5: shift type
 	Bit4Pos        = 4  // Bit 4: various uses
 	Bit7Pos        = 7  // Bit 7: various uses
+	IBitShift      = 25 // Bit 25: I (immediate/register)
 
-	// Memory instruction bit positions
-	PBitShift = 24 // Bit 24: P (pre/post indexing)
-	UBitShift = 23 // Bit 23: U (up/down - add/subtract offset)
-	BBitShift = 22 // Bit 22: B (byte/word)
-	WBitShift = 21 // Bit 21: W (writeback)
-	LBitShift = 20 // Bit 20: L (load/store)
-	IBitShift = 25 // Bit 25: I (immediate/register)
-
-	// Branch/multiply field positions
-	BranchLinkShift = 24 // Bit 24: L bit for BL
-	MultiplyAShift  = 21 // Bit 21: A bit (accumulate)
+	// Multiply field position
+	MultiplyAShift = 21 // Bit 21: A bit (accumulate)
 
 	// Bit ranges for multi-bit fields
 	Bits27_26Shift = 26 // Bits 27-26 starting position
@@ -146,10 +129,10 @@ const (
 	PCStoreOffset = 12 // PC+12 when storing PC in STM
 	PCBranchBase  = 8  // PC+8 base for branch calculations
 
-	// Register boundaries
-	PCRegister = 15 // R15 is the PC
-	SPRegister = 13 // R13 is the SP
-	LRRegister = 14 // R14 is the LR
+	// Register aliases (from arch_constants.go)
+	PCRegister = ARMRegisterPC // R15 is the PC
+	SPRegister = ARMRegisterSP // R13 is the SP
+	LRRegister = ARMRegisterLR // R14 is the LR
 
 	// Bit shift for word-to-byte offset conversion
 	WordToByteShift = 2 // Shift left by 2 to convert word offset to byte offset
