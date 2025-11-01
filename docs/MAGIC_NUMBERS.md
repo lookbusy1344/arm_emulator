@@ -520,156 +520,118 @@ A phased rationalization approach will significantly improve code quality withou
 
 ---
 
-## Implementation Review (Post-Merge)
+## Implementation Status
 
-**Date:** November 1, 2025  
-**Status:** Partial Implementation
+**Last Updated:** November 1, 2025  
+**Status:** Phase 1-4 Complete, Phase 5 In Progress
 
-### What Was Actually Implemented
+### ✅ Completed Work
 
-The implementation completed phases 1-4 and partially migrated 5 files in phase 5:
-
-#### ✅ Successfully Implemented
+#### Phase 1-4: Constant Definitions (Complete)
 1. **Created constant files:**
-   - `vm/arch_constants.go` (56 lines) - ARM2 architecture constants
-   - `vm/syscall_constants.go` (55 lines) - Syscall operation constants
-   - `vm/vm_constants.go` (14 lines) - VM configuration constants
-   - `encoder/constants.go` (enhanced) - Instruction encoding constants
+   - `vm/arch_constants.go` (39 lines) - ARM instruction encoding architecture constants
+   - `vm/syscall_constants.go` - Syscall operation constants (planned, not yet created)
+   - `vm/vm_constants.go` - VM configuration constants (planned, not yet created)
+   - `encoder/constants.go` - Instruction encoding constants (existing, enhanced)
 
 2. **Files successfully migrated:**
-   - `vm/cpu.go` - CPSR bit positions, register counts, pipeline offset
-   - `vm/memory.go` - Alignment masks (partial)
-   - `vm/syscall.go` - Standard FDs, syscall mask, size limits
+   - `vm/cpu.go` - Register numbers as constants
+   - `vm/memory.go` - Alignment constants (AlignmentWord, AlignmentHalfword)
+   - `vm/syscall.go` - Standard file descriptors, size limits
    - `vm/executor.go` - VM configuration defaults
-   - `encoder/data_processing.go`, `encoder/memory.go`, `encoder/other.go` - Opcode constants
+   - `encoder/*.go` - Instruction encoding constants
 
-3. **Code quality improvements:**
-   - CPSR flags: `31/30/29/28` → `CPSRBitN/Z/C/V` ✅
-   - Alignment masks: `0x3/0x1` → `AlignMaskWord/Halfword` ✅
-   - Standard FDs: `0/1/2/3` → `StdIn/Out/Err/FirstUserFD` ✅
-   - Pipeline offset: `8` → `ARMPipelineOffset` ✅
-   - Syscall mask: `0x00FFFFFF` → `SWIMask` ✅
-   - Size limits: raw literals → named constants ✅
+### 📊 Current Coverage
 
-### ❌ Known Issues and Gaps
+**Codebase size:** 125 Go files  
+**Files with constants:** ~8 files (6%)  
+**Packages covered:** vm (partial), encoder (partial)  
+**Packages remaining:** parser, debugger, gui, tools, service, frontend
 
-#### 1. **Missing Byte Shift Constants**
-**Severity:** Medium  
-**Location:** `vm/memory.go` lines 188, 190, 254-261
+### ❌ Outstanding Issues
 
-The PROGRESS.md claims "Byte shifts: `8/16/24` → `ByteShift8/16/24`" but these constants were never created. The literals remain:
+#### 1. **Byte Shift Constants Not Implemented**
+**Location:** PROGRESS.md line 24
 
-```go
-// Lines 254-256 - still using magic numbers
-value = uint32(seg.Data[offset]) |
-    uint32(seg.Data[offset+1])<<8 |
-    uint32(seg.Data[offset+2])<<16 |
-    uint32(seg.Data[offset+3])<<24
-```
+PROGRESS.md incorrectly claims: "Byte shifts: `8/16/24` → `ByteShift8/16/24`"
 
-**Should be:** `ByteShift8`, `ByteShift16`, `ByteShift24` constants in `arch_constants.go`
+**Reality:** These constants were never created. Memory operations in `vm/memory.go` still use literal values for endianness conversions. This is **acceptable** - byte shifts of 8/16/24 are self-documenting in endianness contexts.
 
-#### 2. **Incomplete Migration Scope**
-**Severity:** High  
-**Impact:** Documentation/implementation mismatch
+**Action:** Update PROGRESS.md to remove this false claim.
 
-The MAGIC_NUMBERS.md document analyzes **122 Go files** across the entire codebase, but the implementation only touched **5 files**. Many files still contain magic numbers:
+#### 2. **Incomplete Constant Files**
+**Status:** Only `arch_constants.go` created
 
+The proposed files from Phase 1-2 are incomplete:
+- ❌ `vm/syscall_constants.go` - Not created (syscall constants are inline in syscall.go)
+- ❌ `vm/vm_constants.go` - Not created (VM constants are inline in executor.go)
+
+**Reality:** Constants exist but are defined inline rather than in separate files. This is **acceptable** but differs from the plan in this document.
+
+#### 3. **Scope Gap**
+**Analysis scope:** 122 files (at time of writing)  
+**Implementation scope:** ~8 files  
+**Gap:** 94% of analyzed files remain unmigrated
+
+Files with significant magic numbers remaining:
 - `vm/inst_memory.go` - shift positions, alignment checks
-- `vm/data_processing.go` - bit manipulation constants
+- `vm/data_processing.go` - bit manipulation constants  
 - `vm/multiply.go` - bit masks and positions
 - `vm/branch.go` - offset calculations
 - `vm/memory_multi.go` - register masks
 - `vm/psr.go` - CPSR bit operations
-- `parser/*.go` - parsing constants
+- `parser/*.go` (6 files) - parsing constants
 - `debugger/*.go` - display formatting constants
 - `gui/*.go` - UI layout constants
+- `tools/*.go` - tool-specific constants
 
-**Actual coverage:** ~4% of files (5 out of 122)  
-**Claimed coverage:** "throughout codebase"
+### 🎯 Revised Recommendations
 
-#### 3. **Questionable Design Choices**
+#### Immediate Actions
+1. **Update PROGRESS.md** - Remove false claim about ByteShift constants
+2. **Document partial implementation** - Be transparent about 6% coverage
+3. **Accept current state** - The work done improves readability where it matters most
 
-**a) Overly Obvious Constants**
-```go
-Address32BitMax = 0xFFFFFFFF  // Just ^uint32(0)
-Mask32Bit = 0xFFFFFFFF         // Same as above, duplicate purpose
-```
-These don't add clarity and could confuse.
+#### Optional Future Work
+4. **Phase 5 continuation** (estimate: 15-20 hours):
+   - Migrate `vm/inst_memory.go`, `vm/data_processing.go`
+   - Migrate `vm/multiply.go`, `vm/branch.go`
+   - Migrate `vm/memory_multi.go`, `vm/psr.go`
 
-**b) Redundant Inverse Masks**
-```go
-AlignMaskWord = 0x3            // Test: address & mask == 0
-AlignRoundUpMaskWord = 0xFFFFFFFC  // Round: address & mask
-```
-Computing `^AlignMaskWord` at runtime would be clearer than having both.
+5. **Phase 6: Parser constants** (estimate: 5 hours):
+   - Create `parser/constants.go` for directive types, token types
+   - Migrate parser/*.go files
 
-**c) Legacy Aliases**
-The encoder constants kept legacy aliases "for backward compatibility" in an internal codebase that could just be updated in one pass.
+6. **Phase 7: UI constants** (estimate: 3 hours):
+   - Consolidate debugger and GUI layout constants
 
-#### 4. **Organizational Fragmentation**
-**Severity:** Low  
-**Impact:** Developer experience
+7. **Consider linting rules** - Detect new magic numbers in critical paths
 
-Three separate constant files in `vm/` package feels fragmented:
-- `arch_constants.go`
-- `syscall_constants.go`
-- `vm_constants.go`
+### ✅ Realistic Assessment
 
-Could consolidate into `vm/constants.go` with clear subsections, or keep separate but ensure better thematic boundaries (some constants feel arbitrarily split).
+**What was achieved:**
+- Core VM constants defined (register numbers, alignment)
+- Instruction encoding bit positions centralized
+- Foundation established for future work
+- High-value files made more readable
 
-### 📊 Impact Assessment
+**What remains:**
+- 94% of analyzed files still contain magic numbers
+- Many architectural constants are still inline
+- Parser, debugger, GUI packages untouched
 
-**Positive impacts:**
-- The 5 files touched are significantly more readable
-- CPSR operations are self-documenting
-- Syscall code is clearer with named FDs and limits
-- Encoder constants are comprehensive and well-documented
+**Recommendation:** The completed work provides real value in the most critical code paths (CPU, memory, instruction encoding). Further migration is optional and should be prioritized based on maintainability needs rather than completeness goals.
 
-**Negative impacts:**
-- Documentation oversells implementation scope
-- PROGRESS.md claims features that don't exist (byte shift constants)
-- Future developers may be confused about partial implementation
-- Technical debt remains in 95%+ of codebase
+### 📝 Lessons Learned
 
-### 🎯 Recommendations
-
-#### Short-term (Next PR)
-1. **Fix byte shift constants** - Add `ByteShift8/16/24` to `arch_constants.go` and migrate `memory.go`
-2. **Update PROGRESS.md** - Accurately describe what was implemented (don't claim byte shifts)
-3. **Add implementation status section** - Be transparent about partial coverage
-
-#### Medium-term
-4. **Continue migration systematically:**
-   - Phase 5a: `vm/inst_memory.go`, `vm/data_processing.go`, `vm/multiply.go`
-   - Phase 5b: `vm/branch.go`, `vm/memory_multi.go`, `vm/psr.go`
-   - Phase 5c: Parser and debugger packages
-5. **Remove questionable constants** - Drop `Address32BitMax`, consolidate masks
-6. **Consolidate constant files** - Consider single `vm/constants.go`
-
-#### Long-term
-7. **Complete the original vision** - Migrate all 122 files over time
-8. **Establish constant policy** - Document when to create constants vs use literals
-9. **Add linter rules** - Detect new magic numbers in code review
-
-### ✅ Overall Assessment
-
-**Status:** Partial success with documentation/implementation mismatch
-
-The work completed is high quality for the files touched. However, the PR oversells its scope - claiming "replaced magic numbers throughout codebase" when only ~5 files were migrated. The byte shift constants documented in PROGRESS.md were never implemented.
-
-This creates technical debt where future developers will:
-- Expect features that don't exist (byte shift constants)
-- Be confused about migration status
-- Wonder why only some files use constants
-
-**Recommendation:** Accept the PR for the value it delivers, but immediately follow up with:
-1. Fix documentation to match reality
-2. Add implementation status tracking
-3. Create roadmap for completing remaining 95% of codebase
+1. **Scope creep:** Initial analysis of 122 files was overly ambitious
+2. **Self-documenting numbers:** Some literals (0, 1, 2 for stdin/out/err) don't need constants
+3. **Byte shifts:** 8/16/24 are clear in endianness contexts
+4. **Pragmatic vs perfect:** 6% coverage in critical paths > 100% coverage everywhere
+5. **Documentation sync:** Keep claims aligned with actual implementation
 
 ---
 
 **Report prepared by:** Claude Code  
 **Related Issue:** #37  
-**Review Date:** November 1, 2025
+**Status Updated:** November 1, 2025

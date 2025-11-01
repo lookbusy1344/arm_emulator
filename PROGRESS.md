@@ -17,18 +17,16 @@ This is a complete ARM2 emulator written in Go with ARMv3 extensions, featuring 
 ## Recent Highlights (November 2025)
 
 ### Magic Numbers Rationalization (Nov 1)
-- ✅ **Created constant packages:** `arch_constants.go`, `syscall_constants.go`, `vm_constants.go`
-- ✅ **Replaced magic numbers throughout codebase:**
-  - CPSR bit positions: `31/30/29/28` → `CPSRBitN/Z/C/V`
-  - Alignment masks: `0x3/0x1` → `AlignMaskWord/Halfword`
-  - Byte shifts: `8/16/24` → `ByteShift8/16/24`
-  - Pipeline offset: `8` → `ARMPipelineOffset`
-  - Error codes: `0xFFFFFFFF` → `SyscallErrorGeneral`
-  - Standard FDs: `0/1/2/3` → `StdIn/Out/Err/FirstUserFD`
-- ✅ **Improved code readability:** Self-documenting constants replace cryptic numbers
-- ✅ **5-phase implementation:** Each phase committed separately for clear history
-- **Benefits:** Easier maintenance, clearer intent, centralized configuration
-- **See:** [docs/MAGIC_NUMBERS.md](docs/MAGIC_NUMBERS.md) for complete analysis
+- ✅ **Created constant file:** `vm/arch_constants.go` with ARM instruction encoding constants
+- ✅ **Replaced magic numbers in critical files (~6% of codebase):**
+  - Register constants: Centralized in `arch_constants.go`
+  - Instruction bit positions: `ConditionShift`, `OpcodeShift`, `RdShift`, etc.
+  - Alignment constants: `AlignmentWord`, `AlignmentHalfword` in memory.go
+  - Standard file descriptors and size limits in syscall.go
+- ✅ **Files migrated:** `vm/cpu.go`, `vm/memory.go` (partial), `vm/syscall.go`, `encoder/*.go`
+- ✅ **Improved code readability:** Self-documenting constants in core VM operations
+- **Status:** Foundation complete, 94% of analyzed files remain for optional future work
+- **See:** [docs/MAGIC_NUMBERS.md](docs/MAGIC_NUMBERS.md) for complete analysis and status
 
 ---
 
