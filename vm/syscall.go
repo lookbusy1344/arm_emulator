@@ -621,15 +621,15 @@ func handleOpen(vm *VM) error {
 	var err error
 	s := string(filename)
 	switch mode {
-	case 0:
+	case FileModeRead:
 		//nolint:gosec // G304: File path is intentionally controlled by emulated program
 		file, err = os.Open(s)
-	case 1:
+	case FileModeWrite:
 		//nolint:gosec // G304,G302: File operations are intentional for emulated program I/O
-		file, err = os.OpenFile(s, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0644)
-	case 2:
+		file, err = os.OpenFile(s, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, FilePermDefault)
+	case FileModeAppend:
 		//nolint:gosec // G304,G302: File operations are intentional for emulated program I/O
-		file, err = os.OpenFile(s, os.O_CREATE|os.O_APPEND|os.O_RDWR, 0644)
+		file, err = os.OpenFile(s, os.O_CREATE|os.O_APPEND|os.O_RDWR, FilePermDefault)
 	default:
 		err = errors.New("bad mode")
 	}
