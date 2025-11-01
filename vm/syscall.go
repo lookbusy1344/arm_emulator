@@ -83,6 +83,14 @@ const (
 	SWI_ASSERT         = 0xF4
 )
 
+// Number base constants for WRITE_INT syscall
+const (
+	BaseBinary      = 2
+	BaseOctal       = 8
+	BaseDecimal     = 10
+	BaseHexadecimal = 16
+)
+
 // FD table helpers
 //
 // Thread Safety: File descriptor table access is protected by fdMu. However, the returned
@@ -312,20 +320,20 @@ func handleWriteInt(vm *VM) error {
 	value := vm.CPU.GetRegister(0)
 	base := vm.CPU.GetRegister(1)
 
-	// Validate base and default to 10 for invalid values
+	// Validate base and default to decimal for invalid values
 	// This handles cases where R1 wasn't explicitly set (e.g., contains error flags from previous syscalls)
-	if base == 0 || base == SyscallErrorGeneral || (base != 2 && base != 8 && base != 10 && base != 16) {
-		base = 10 // Default to decimal
+	if base == 0 || base == SyscallErrorGeneral || (base != BaseBinary && base != BaseOctal && base != BaseDecimal && base != BaseHexadecimal) {
+		base = BaseDecimal // Default to decimal
 	}
 
 	switch base {
-	case 2:
+	case BaseBinary:
 		_, _ = fmt.Fprintf(vm.OutputWriter, "%b", value) // Ignore write errors
-	case 8:
+	case BaseOctal:
 		_, _ = fmt.Fprintf(vm.OutputWriter, "%o", value) // Ignore write errors
-	case 10:
+	case BaseDecimal:
 		_, _ = fmt.Fprintf(vm.OutputWriter, "%d", AsInt32(value)) // Ignore write errors
-	case 16:
+	case BaseHexadecimal:
 		_, _ = fmt.Fprintf(vm.OutputWriter, "%x", value) // Ignore write errors
 	default:
 		// This should never happen due to validation above, but keep for safety
