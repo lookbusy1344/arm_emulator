@@ -3,8 +3,11 @@ import { AppPage } from '../pages/app.page';
 import { loadProgram, waitForExecution } from '../utils/helpers';
 import * as fs from 'fs';
 import * as path from 'path';
+import { fileURLToPath } from 'url';
 
 // Path to examples directory relative to the frontend directory
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 const EXAMPLES_DIR = path.join(__dirname, '../../../../examples');
 
 test.describe('Example Programs', () => {

@@ -32,21 +32,21 @@ export class AppPage extends BasePage {
     super(page);
 
     // Initialize toolbar buttons
-    this.loadButton = page.getByRole('button', { name: 'Load' });
-    this.stepButton = page.getByRole('button', { name: 'Step' });
-    this.stepOverButton = page.getByRole('button', { name: 'Step Over' });
-    this.stepOutButton = page.getByRole('button', { name: 'Step Out' });
-    this.runButton = page.getByRole('button', { name: 'Run' });
-    this.pauseButton = page.getByRole('button', { name: 'Pause' });
-    this.resetButton = page.getByRole('button', { name: 'Reset' });
+    this.loadButton = page.getByRole('button', { name: 'Load', exact: true });
+    this.stepButton = page.getByRole('button', { name: 'Step', exact: true });
+    this.stepOverButton = page.getByRole('button', { name: 'Step Over', exact: true });
+    this.stepOutButton = page.getByRole('button', { name: 'Step Out', exact: true });
+    this.runButton = page.getByRole('button', { name: 'Run', exact: true });
+    this.pauseButton = page.getByRole('button', { name: 'Pause', exact: true });
+    this.resetButton = page.getByRole('button', { name: 'Reset', exact: true });
 
     // Initialize tabs
-    this.sourceTab = page.getByRole('button', { name: 'Source' });
-    this.disassemblyTab = page.getByRole('button', { name: 'Disassembly' });
-    this.outputTab = page.getByRole('button', { name: 'Output' });
-    this.breakpointsTab = page.getByRole('button', { name: 'Breakpoints' });
-    this.statusTab = page.getByRole('button', { name: 'Status' });
-    this.expressionsTab = page.getByRole('button', { name: 'Expressions' });
+    this.sourceTab = page.getByRole('button', { name: 'Source', exact: true });
+    this.disassemblyTab = page.getByRole('button', { name: 'Disassembly', exact: true });
+    this.outputTab = page.getByRole('button', { name: 'Output', exact: true });
+    this.breakpointsTab = page.getByRole('button', { name: 'Breakpoints', exact: true });
+    this.statusTab = page.getByRole('button', { name: 'Status', exact: true });
+    this.expressionsTab = page.getByRole('button', { name: 'Expressions', exact: true });
 
     // Initialize content areas (using test IDs - need to add these to components)
     this.sourceView = page.locator('[data-testid="source-view"]');
