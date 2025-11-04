@@ -94,6 +94,7 @@ export const CommandInput: React.FC = () => {
           onKeyDown={handleKeyDown}
           placeholder="Enter debugger command..."
           className="command-text-input"
+          data-testid="command-input"
         />
       </form>
       {result && (

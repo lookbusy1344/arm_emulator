@@ -46,12 +46,12 @@ export const StackView: React.FC = () => {
   }, []);
 
   return (
-    <div className="stack-view">
+    <div className="stack-view" data-testid="stack-view">
       <div className="stack-header">Stack</div>
       <div className="stack-content">
         {entries.map((entry, index) => (
           <div key={index} className={`stack-entry ${entry.isSP ? 'stack-entry-sp' : ''}`}>
-            {entry.isSP && <span className="sp-marker">→</span>}
+            {entry.isSP && <span className="sp-marker" data-testid="stack-pointer-indicator">→</span>}
             <span className="stack-address">
               {entry.address.toString(16).padStart(8, '0')}
             </span>

@@ -87,7 +87,7 @@ export const SourceView: React.FC = () => {
   }, []);
 
   return (
-    <div className="source-view" ref={containerRef}>
+    <div className="source-view" data-testid="source-view" ref={containerRef}>
       <div className="source-content">
         {lines.map((line, index) => (
           <div
@@ -96,7 +96,7 @@ export const SourceView: React.FC = () => {
             onDoubleClick={() => handleLineClick(line.address)}
           >
             <span className="source-line-number">
-              {line.hasBreakpoint && <span className="breakpoint-marker">●</span>}
+              {line.hasBreakpoint && <span className="breakpoint-marker" data-testid="breakpoint-indicator">●</span>}
               {line.address.toString(16).padStart(8, '0')}
             </span>
             <span className="source-line-symbol">
