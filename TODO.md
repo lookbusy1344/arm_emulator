@@ -1,6 +1,6 @@
 # ARM2 Emulator TODO List
 
-**Last Updated:** 2025-10-23
+**Last Updated:** 2025-11-05
 
 This file tracks outstanding work only. Completed items are in `PROGRESS.md`.
 
@@ -18,7 +18,80 @@ This file tracks outstanding work only. Completed items are in `PROGRESS.md`.
 
 ## High Priority Tasks
 
-None
+### GUI E2E Test Suite Completion
+**Priority:** HIGH
+**Effort:** 8-12 hours
+**Type:** Testing/Quality Assurance
+**Last Tested:** 2025-11-05
+
+**Current Status:**
+Test run results from local chromium testing:
+
+| Suite | Total | Passing | Failing | Pass Rate | Status |
+|-------|-------|---------|---------|-----------|--------|
+| execution.spec.ts | 8 | 8 | 0 | 100% | ✅ Complete |
+| smoke.spec.ts | 4 | 3 | 1 | 75% | 🟡 Nearly there |
+| breakpoints.spec.ts | 9 | 2 | 7 | 22% | ❌ Needs work |
+| examples.spec.ts | 14 | 6 | 8 | 43% | 🟡 Partial |
+| memory.spec.ts | 15 | ? | ? | ? | ⏸️ Not completed |
+| visual.spec.ts | 20+ | ? | ? | ? | ⏸️ Needs baselines |
+| **TOTAL VERIFIED** | **35** | **19** | **16** | **54%** | |
+
+**Key Issues:**
+
+1. **smoke.spec.ts** (3/4 passing)
+   - Page title is "gui" instead of "ARM Emulator"
+   - Fix: Update `gui/frontend/index.html` title tag
+   - Impact: 1 test, trivial fix
+
+2. **examples.spec.ts** (6/14 passing)
+   - Tests don't switch to output tab before execution
+   - Missing event capture causes status check failures
+   - Fix: Add `await appPage.switchToOutputTab()` before `await appPage.clickRun()`
+   - Location: `gui/frontend/e2e/tests/examples.spec.ts` line ~37
+   - Passing: All stepping tests (3/3), quicksort, recursive_factorial, string_reverse
+   - Failing: hello.s, loops.s, arithmetic.s, factorial.s, linked_list.s, arrays.s, output verification tests
+
+3. **breakpoints.spec.ts** (2/9 passing)
+   - Issue 1: Breakpoints not cleaned up between tests (state pollution)
+     - Expected 1 breakpoint, found 2
+     - Expected 3 breakpoints, found 4
+   - Issue 2: `stepUntilAddress()` helper timing out
+   - Fix: Improve `beforeEach` cleanup, increase step limit in helper function
+   - Location: `gui/frontend/e2e/utils/helpers.ts` and test file
+
+4. **memory.spec.ts** - Not completed
+   - Tests take very long (likely timeouts)
+   - Need to investigate UI selectors and timing issues
+
+5. **visual.spec.ts** - Not tested
+   - Needs baseline regeneration after serial execution mode change
+   - Run: `npm run test:e2e -- visual.spec.ts --update-snapshots --project=chromium`
+
+**Action Plan:**
+
+**Priority 1 - Quick wins (2-3 hours):**
+- [ ] Fix page title in `gui/frontend/index.html`
+- [ ] Fix examples.spec.ts output tab switching
+- [ ] Test and verify fixes
+
+**Priority 2 - Cleanup issues (3-4 hours):**
+- [ ] Fix breakpoints.spec.ts beforeEach cleanup
+- [ ] Increase step limit in `stepUntilAddress()` helper
+- [ ] Test and verify fixes
+
+**Priority 3 - Investigation (3-5 hours):**
+- [ ] Debug memory.spec.ts timeouts
+- [ ] Regenerate visual.spec.ts baselines
+- [ ] Run full test suite and verify all passing
+
+**Files:**
+- `gui/frontend/index.html`
+- `gui/frontend/e2e/tests/examples.spec.ts`
+- `gui/frontend/e2e/tests/breakpoints.spec.ts`
+- `gui/frontend/e2e/tests/memory.spec.ts`
+- `gui/frontend/e2e/utils/helpers.ts`
+- `.github/workflows/e2e-tests.yml` (already updated to macOS+webkit, ubuntu+chromium)
 
 ---
 
