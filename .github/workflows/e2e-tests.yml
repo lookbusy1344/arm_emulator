@@ -59,8 +59,18 @@ jobs:
             wails dev -nocolour &
           fi
           echo $! > wails.pid
-          # Wait for server to be ready (max 2 minutes)
-          timeout 120 bash -c 'until curl -s http://localhost:34115 > /dev/null; do sleep 2; done' || exit 1
+          # Wait for server to be ready (max 2 minutes) - bash-based timeout for cross-platform compatibility
+          elapsed=0
+          max_wait=120
+          until curl -s http://localhost:34115 > /dev/null; do
+            if [ $elapsed -ge $max_wait ]; then
+              echo "Timeout waiting for Wails server after ${max_wait}s"
+              exit 1
+            fi
+            sleep 2
+            elapsed=$((elapsed + 2))
+          done
+          echo "Wails server is ready after ${elapsed}s"
         shell: bash
 
       - name: Run E2E tests
