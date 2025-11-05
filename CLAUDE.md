@@ -63,6 +63,24 @@ wails dev -nocolour
 wails doctor
 ```
 
+### E2E Testing
+
+**IMPORTANT:** E2E tests require the Wails dev server to be running first. Tests will hang indefinitely if the backend is not available.
+
+```bash
+# Terminal 1: Start Wails dev server
+cd gui
+wails dev -nocolour
+
+# Terminal 2: Run E2E tests
+cd gui/frontend
+npm run test:e2e                    # Run all tests
+npm run test:e2e -- --project=chromium  # Run chromium only
+npm run test:e2e:headed             # Run with visible browser
+```
+
+The Wails backend must be running on http://localhost:34115 before any E2E tests can execute.
+
 ## Project Structure
 
 - `main.go` - Entry point and CLI interface
