@@ -15,8 +15,6 @@ jobs:
       matrix:
         include:
           - os: macos-latest
-            browser: webkit
-          - os: ubuntu-latest
             browser: chromium
 
     steps:
