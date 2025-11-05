@@ -3,7 +3,7 @@ export const TEST_PROGRAMS = {
     .text
     .global _start
 _start:
-    MOV R0, #msg
+    LDR R0, =msg
     SWI #0x02          ; WRITE_STRING
     SWI #0x00          ; EXIT
 
