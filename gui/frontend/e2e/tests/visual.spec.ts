@@ -98,11 +98,11 @@ test.describe('Visual Regression', () => {
     await expect(breakpointsTab).toHaveScreenshot('breakpoints-tab.png');
   });
 
-  test.skip('should match status tab', async ({ page }) => {
-    // SKIPPED: Status tab contains timestamps that render with slight height differences
-    // (2px) between local macOS and GitHub Actions macOS runners, even with fixed line-height.
-    // This causes dimension mismatch failures (145px vs 143px) that can't be resolved with
-    // Playwright's threshold settings. Functional testing of status messages is covered elsewhere.
+  test('should match status tab', async ({ page }) => {
+    // Skip in CI: Status tab renders with 2px height difference between local macOS
+    // and GitHub Actions macOS runners (145px vs 143px) due to font rendering variations.
+    test.skip(!!process.env.CI, 'Skipped in CI due to cross-environment rendering differences');
+
     const appPage = new AppPage(page);
     await appPage.goto();
     await loadProgram(appPage, TEST_PROGRAMS.hello);
