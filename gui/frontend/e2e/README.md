@@ -30,6 +30,24 @@ npm install
 npx playwright install
 ```
 
+### Local Test Execution
+
+**IMPORTANT:** E2E tests require the Wails backend server to be running. You need **two terminal windows**:
+
+**Terminal 1 - Start Wails Backend:**
+```bash
+cd gui
+wails dev -nocolour
+```
+
+Wait for the server to fully start (you'll see "Wails v2" and build completion messages). The backend must be running at `http://localhost:34115`.
+
+**Terminal 2 - Run E2E Tests (after backend is ready):**
+```bash
+cd gui/frontend
+npm run test:e2e -- --project=chromium
+```
+
 ### Available Commands
 
 ```bash
@@ -183,9 +201,14 @@ npm run test:e2e:report
 
 ### Common Issues
 
-**Tests fail to start dev server:**
-- Ensure port 34115 is not in use
-- Check `wails dev` works standalone
+**Tests hang indefinitely or timeout:**
+- The Wails backend is not running - start `wails dev -nocolour` in a separate terminal first
+- Check that `http://localhost:34115` is accessible before running tests
+
+**Tests fail to connect to server:**
+- Ensure port 34115 is not in use by another process
+- Verify `wails dev` works standalone before running tests
+- Wait for the Wails server to fully initialize before running tests
 
 **Selectors not found:**
 - Verify data-testid attributes are added to components
@@ -195,6 +218,7 @@ npm run test:e2e:report
 - Add explicit waits for dynamic content
 - Use waitForFunction for custom conditions
 - Check for race conditions
+- Some timing-sensitive tests may fail on slower CI runners but pass on retry
 
 ## Adding New Tests
 
