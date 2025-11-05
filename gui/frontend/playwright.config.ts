@@ -65,11 +65,12 @@ export default defineConfig({
     },
   ],
 
-  // Run dev server before starting tests
-  webServer: {
+  // Run dev server before starting tests (only in local development)
+  // In CI, the workflow manually starts Wails dev server
+  webServer: process.env.CI ? undefined : {
     command: 'npm run dev',
     port: PORT as number,
-    reuseExistingServer: !process.env.CI,
+    reuseExistingServer: true,
     timeout: 120000,
   },
 });

@@ -30,6 +30,9 @@ jobs:
         with:
           go-version: '1.23'
 
+      - name: Install Wails CLI
+        run: go install github.com/wailsapp/wails/v2/cmd/wails@latest
+
       - name: Install frontend dependencies
         working-directory: gui/frontend
         run: npm ci
@@ -38,13 +41,41 @@ jobs:
         working-directory: gui/frontend
         run: npx playwright install --with-deps ${{ matrix.browser }}
 
-      - name: Build Go backend
+      - name: Install system dependencies (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.0-dev
+
+      - name: Start Wails dev server
         working-directory: gui
-        run: go build -o arm-emulator-gui
+        run: |
+          # Use xvfb on Linux for headless display
+          if [ "$RUNNER_OS" == "Linux" ]; then
+            xvfb-run -a wails dev -nocolour &
+          else
+            wails dev -nocolour &
+          fi
+          echo $! > wails.pid
+          # Wait for server to be ready (max 2 minutes)
+          timeout 120 bash -c 'until curl -s http://localhost:34115 > /dev/null; do sleep 2; done' || exit 1
+        shell: bash
 
       - name: Run E2E tests
         working-directory: gui/frontend
         run: npm run test:e2e -- --project=${{ matrix.browser }}
+        env:
+          CI: true
+
+      - name: Stop Wails dev server
+        if: always()
+        working-directory: gui
+        run: |
+          if [ -f wails.pid ]; then
+            kill $(cat wails.pid) || true
+            rm wails.pid
+          fi
+        shell: bash
 
       - name: Upload test results
         if: always()
@@ -53,6 +84,7 @@ jobs:
           name: playwright-report-${{ matrix.os }}-${{ matrix.browser }}
           path: gui/frontend/playwright-report/
           retention-days: 30
+          if-no-files-found: ignore
 
       - name: Upload test videos
         if: failure()
@@ -61,3 +93,4 @@ jobs:
           name: test-videos-${{ matrix.os }}-${{ matrix.browser }}
           path: gui/frontend/test-results/
           retention-days: 7
+          if-no-files-found: ignore
