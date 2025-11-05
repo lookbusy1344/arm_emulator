@@ -18,15 +18,15 @@ test.describe('Program Execution', () => {
     // Load program
     await loadProgram(appPage, TEST_PROGRAMS.hello);
 
+    // Switch to output tab BEFORE running so OutputView is mounted and listening
+    await appPage.switchToOutputTab();
+
     // Run program
     await appPage.clickRun();
 
     // Wait for execution to complete and output to appear
     await waitForExecution(appPage.page);
     await waitForOutput(appPage.page);
-
-    // Switch to output tab
-    await appPage.switchToOutputTab();
 
     // Verify output
     const output = await appPage.getOutputText();
