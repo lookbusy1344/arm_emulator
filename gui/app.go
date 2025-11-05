@@ -371,6 +371,12 @@ func (a *App) ToggleBreakpoint(address uint32) error {
 	return err
 }
 
+// ClearAllBreakpoints removes all breakpoints
+func (a *App) ClearAllBreakpoints() {
+	a.service.ClearAllBreakpoints()
+	runtime.EventsEmit(a.ctx, "vm:state-changed")
+}
+
 // GetSourceMap returns the complete source map
 func (a *App) GetSourceMap() map[uint32]string {
 	return a.service.GetSourceMap()
