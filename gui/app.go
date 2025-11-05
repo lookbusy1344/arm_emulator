@@ -44,6 +44,19 @@ type App struct {
 	machine *vm.VM
 }
 
+// EventEmittingWriter wraps an io.Writer and emits Wails events for each write
+type EventEmittingWriter struct {
+	ctx context.Context
+}
+
+// Write implements io.Writer and emits vm:output events
+func (w *EventEmittingWriter) Write(p []byte) (n int, err error) {
+	if w.ctx != nil {
+		runtime.EventsEmit(w.ctx, "vm:output", string(p))
+	}
+	return len(p), nil
+}
+
 // NewApp creates a new App application struct
 func NewApp() *App {
 	machine := vm.NewVM()
@@ -62,6 +75,11 @@ func (a *App) startup(ctx context.Context) {
 	debugLog.Println("startup() called")
 	a.ctx = ctx
 	a.service.SetContext(ctx)
+
+	// Set up output writer to emit events to frontend
+	outputWriter := &EventEmittingWriter{ctx: ctx}
+	a.machine.OutputWriter = outputWriter
+
 	debugLog.Println("startup() completed")
 }
 
