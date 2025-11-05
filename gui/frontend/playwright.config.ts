@@ -43,6 +43,16 @@ export default defineConfig({
     actionTimeout: 10000,
   },
 
+  // Visual comparison settings
+  expect: {
+    toHaveScreenshot: {
+      // Allow up to 3% pixel difference to account for font rendering variations
+      maxDiffPixelRatio: 0.03,
+      // Per-pixel color difference threshold (0-1, where 0.1 = 10% color difference per pixel)
+      threshold: 0.2,
+    },
+  },
+
   // Configure projects for major browsers
   projects: [
     {
