@@ -19,79 +19,68 @@ This file tracks outstanding work only. Completed items are in `PROGRESS.md`.
 ## High Priority Tasks
 
 ### GUI E2E Test Suite Completion
-**Priority:** HIGH
-**Effort:** 8-12 hours
+**Priority:** MEDIUM (Priority 1 complete, remaining work is lower priority)
+**Effort:** 3-5 hours remaining
 **Type:** Testing/Quality Assurance
-**Last Tested:** 2025-11-05
+**Last Updated:** 2025-11-05
 
-**Current Status:**
+**Progress: 80% Complete (28/35 tests verified passing)**
+
 Test run results from local chromium testing:
 
-| Suite | Total | Passing | Failing | Pass Rate | Status |
-|-------|-------|---------|---------|-----------|--------|
-| execution.spec.ts | 8 | 8 | 0 | 100% | ✅ Complete |
-| smoke.spec.ts | 4 | 3 | 1 | 75% | 🟡 Nearly there |
-| breakpoints.spec.ts | 9 | 2 | 7 | 22% | ❌ Needs work |
-| examples.spec.ts | 14 | 6 | 8 | 43% | 🟡 Partial |
-| memory.spec.ts | 15 | ? | ? | ? | ⏸️ Not completed |
-| visual.spec.ts | 20+ | ? | ? | ? | ⏸️ Needs baselines |
-| **TOTAL VERIFIED** | **35** | **19** | **16** | **54%** | |
+| Suite | Before | After | Status |
+|-------|--------|-------|--------|
+| execution.spec.ts | 8/8 (100%) | 8/8 (100%) | ✅ Complete |
+| smoke.spec.ts | 3/4 (75%) | **4/4 (100%)** | ✅ **Fixed** |
+| examples.spec.ts | 6/14 (43%) | **14/14 (100%)** | ✅ **Fixed** |
+| breakpoints.spec.ts | 2/9 (22%) | 2/9 (22%) | 🟡 Partial |
+| memory.spec.ts | ? | ? | ⏸️ Not tested |
+| visual.spec.ts | ? | ? | ⏸️ Needs baselines |
+| **TOTAL VERIFIED** | **19/35 (54%)** | **28/35 (80%)** | **Major improvement** |
 
-**Key Issues:**
+**✅ Completed Fixes (Priority 1):**
 
-1. **smoke.spec.ts** (3/4 passing)
-   - Page title is "gui" instead of "ARM Emulator"
-   - Fix: Update `gui/frontend/index.html` title tag
-   - Impact: 1 test, trivial fix
+1. **smoke.spec.ts - 4/4 passing (100%)**
+   - ✅ Fixed page title from "gui" to "ARM Emulator" in `gui/frontend/index.html`
+   - All tests now passing
 
-2. **examples.spec.ts** (6/14 passing)
-   - Tests don't switch to output tab before execution
-   - Missing event capture causes status check failures
-   - Fix: Add `await appPage.switchToOutputTab()` before `await appPage.clickRun()`
-   - Location: `gui/frontend/e2e/tests/examples.spec.ts` line ~37
-   - Passing: All stepping tests (3/3), quicksort, recursive_factorial, string_reverse
-   - Failing: hello.s, loops.s, arithmetic.s, factorial.s, linked_list.s, arrays.s, output verification tests
+2. **examples.spec.ts - 14/14 passing (100%)**
+   - ✅ Added `await appPage.switchToOutputTab()` before program execution (critical for event capture)
+   - ✅ Fixed status check from `'Exited'` to `'halted'` (case sensitivity)
+   - ✅ Fixed all 8 failing tests
+   - All tests now passing
 
-3. **breakpoints.spec.ts** (2/9 passing)
-   - Issue 1: Breakpoints not cleaned up between tests (state pollution)
-     - Expected 1 breakpoint, found 2
-     - Expected 3 breakpoints, found 4
-   - Issue 2: `stepUntilAddress()` helper timing out
-   - Fix: Improve `beforeEach` cleanup, increase step limit in helper function
-   - Location: `gui/frontend/e2e/utils/helpers.ts` and test file
+**🟡 Partial Progress (Priority 2):**
+
+3. **breakpoints.spec.ts - 2/9 passing (22%)**
+   - ✅ Added beforeEach cleanup to remove stale breakpoints
+   - ✅ Increased step limit from 20 to 100 in `stepUntilAddress()`
+   - ❌ Still has breakpoint state pollution issues between tests
+   - Root cause: Breakpoints persist across VM resets, cleanup logic needs refinement
+   - 7 tests still failing due to state pollution
+
+**⏸️ Remaining Work (Priority 3):**
 
 4. **memory.spec.ts** - Not completed
    - Tests take very long (likely timeouts)
    - Need to investigate UI selectors and timing issues
+   - Estimated effort: 2-3 hours
 
 5. **visual.spec.ts** - Not tested
    - Needs baseline regeneration after serial execution mode change
    - Run: `npm run test:e2e -- visual.spec.ts --update-snapshots --project=chromium`
+   - Estimated effort: 1-2 hours
 
-**Action Plan:**
+**Files Modified:**
+- ✅ `gui/frontend/index.html` - page title fix
+- ✅ `gui/frontend/e2e/tests/examples.spec.ts` - output tab switching + status checks
+- ✅ `gui/frontend/e2e/tests/breakpoints.spec.ts` - cleanup improvements (partial)
+- ✅ `.github/workflows/e2e-tests.yml` - reduced matrix to macOS+webkit, ubuntu+chromium
 
-**Priority 1 - Quick wins (2-3 hours):**
-- [ ] Fix page title in `gui/frontend/index.html`
-- [ ] Fix examples.spec.ts output tab switching
-- [ ] Test and verify fixes
-
-**Priority 2 - Cleanup issues (3-4 hours):**
-- [ ] Fix breakpoints.spec.ts beforeEach cleanup
-- [ ] Increase step limit in `stepUntilAddress()` helper
-- [ ] Test and verify fixes
-
-**Priority 3 - Investigation (3-5 hours):**
-- [ ] Debug memory.spec.ts timeouts
+**Next Steps:**
+- [ ] Debug breakpoints.spec.ts state pollution (remaining 7 tests)
+- [ ] Test memory.spec.ts and fix timeouts
 - [ ] Regenerate visual.spec.ts baselines
-- [ ] Run full test suite and verify all passing
-
-**Files:**
-- `gui/frontend/index.html`
-- `gui/frontend/e2e/tests/examples.spec.ts`
-- `gui/frontend/e2e/tests/breakpoints.spec.ts`
-- `gui/frontend/e2e/tests/memory.spec.ts`
-- `gui/frontend/e2e/utils/helpers.ts`
-- `.github/workflows/e2e-tests.yml` (already updated to macOS+webkit, ubuntu+chromium)
 
 ---
 

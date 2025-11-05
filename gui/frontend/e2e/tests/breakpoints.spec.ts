@@ -12,6 +12,35 @@ test.describe('Breakpoints', () => {
     appPage = new AppPage(page);
     registerView = new RegisterViewPage(page);
     await appPage.goto();
+    await appPage.waitForLoad();
+
+    // Clear all existing breakpoints first (before reset, since reset preserves breakpoints)
+    try {
+      const breakpoints = await page.evaluate(() => {
+        // @ts-ignore
+        return window.go.main.App.GetBreakpoints() || [];
+      });
+
+      for (const bp of breakpoints) {
+        if (bp && bp.Address && bp.Address !== 0 && bp.Address !== 0x00000000) {
+          try {
+            await page.evaluate((address) => {
+              // @ts-ignore
+              return window.go.main.App.RemoveBreakpoint(address);
+            }, bp.Address);
+          } catch (e) {
+            // Silently ignore removal errors
+            console.log(`Failed to remove breakpoint at ${bp.Address}: ${e}`);
+          }
+        }
+      }
+    } catch (e) {
+      // Silently ignore if GetBreakpoints fails
+    }
+
+    // Reset VM to clean state
+    await appPage.clickReset();
+    await page.waitForTimeout(300);
   });
 
   test('should set breakpoint via F9', async () => {
@@ -36,8 +65,8 @@ test.describe('Breakpoints', () => {
   test('should stop at breakpoint during run', async () => {
     await loadProgram(appPage, TEST_PROGRAMS.fibonacci);
 
-    // Step to address in loop
-    const success = await stepUntilAddress(appPage, '0x00008008', 20);
+    // Step to address in loop (use default maxSteps=100)
+    const success = await stepUntilAddress(appPage, '0x00008008');
     expect(success).toBe(true);
 
     // Set breakpoint

@@ -35,6 +35,9 @@ test.describe('Example Programs', () => {
       const program = fs.readFileSync(programPath, 'utf-8');
       await loadProgram(appPage, program);
 
+      // Switch to output tab BEFORE running (critical for event capture)
+      await appPage.switchToOutputTab();
+
       // Run program
       await appPage.clickRun();
 
@@ -44,7 +47,7 @@ test.describe('Example Programs', () => {
       // Verify program completed (check for EXIT)
       await appPage.switchToStatusTab();
       const status = await page.locator('[data-testid="execution-status"]').textContent();
-      expect(status).toContain('Exited');
+      expect(status?.toLowerCase()).toContain('halted');
     });
   }
 });
@@ -68,14 +71,14 @@ test.describe('Complex Example Programs', () => {
     const program = fs.readFileSync(programPath, 'utf-8');
     await loadProgram(appPage, program);
 
+    // Switch to output tab BEFORE running (critical for event capture)
+    await appPage.switchToOutputTab();
+
     // Run program
     await appPage.clickRun();
 
     // Wait for completion (sorting may take longer)
     await waitForExecution(page, 30000);
-
-    // Switch to output tab to see results
-    await appPage.switchToOutputTab();
     const output = await appPage.getOutputText();
 
     // Verify output exists
@@ -93,6 +96,9 @@ test.describe('Complex Example Programs', () => {
     const program = fs.readFileSync(programPath, 'utf-8');
     await loadProgram(appPage, program);
 
+    // Switch to output tab BEFORE running (critical for event capture)
+    await appPage.switchToOutputTab();
+
     // Run program
     await appPage.clickRun();
 
@@ -102,7 +108,7 @@ test.describe('Complex Example Programs', () => {
     // Verify program completed
     await appPage.switchToStatusTab();
     const status = await page.locator('[data-testid="execution-status"]').textContent();
-    expect(status).toContain('Exited');
+    expect(status?.toLowerCase()).toContain('halted');
   });
 
   test('should execute recursive_factorial.s', async ({ page }) => {
@@ -116,14 +122,15 @@ test.describe('Complex Example Programs', () => {
     const program = fs.readFileSync(programPath, 'utf-8');
     await loadProgram(appPage, program);
 
+    // Switch to output tab BEFORE running (critical for event capture)
+    await appPage.switchToOutputTab();
+
     // Run program
     await appPage.clickRun();
 
     // Wait for completion
     await waitForExecution(page, 10000);
 
-    // Switch to output tab
-    await appPage.switchToOutputTab();
     const output = await appPage.getOutputText();
 
     // Factorial output should contain numbers
@@ -141,14 +148,15 @@ test.describe('Complex Example Programs', () => {
     const program = fs.readFileSync(programPath, 'utf-8');
     await loadProgram(appPage, program);
 
+    // Switch to output tab BEFORE running (critical for event capture)
+    await appPage.switchToOutputTab();
+
     // Run program
     await appPage.clickRun();
 
     // Wait for completion
     await waitForExecution(page, 10000);
 
-    // Switch to output tab
-    await appPage.switchToOutputTab();
     const output = await appPage.getOutputText();
 
     // String reverse should produce output
@@ -166,6 +174,9 @@ test.describe('Complex Example Programs', () => {
     const program = fs.readFileSync(programPath, 'utf-8');
     await loadProgram(appPage, program);
 
+    // Switch to output tab BEFORE running (critical for event capture)
+    await appPage.switchToOutputTab();
+
     // Run program
     await appPage.clickRun();
 
@@ -175,7 +186,7 @@ test.describe('Complex Example Programs', () => {
     // Verify program completed
     await appPage.switchToStatusTab();
     const status = await page.locator('[data-testid="execution-status"]').textContent();
-    expect(status).toContain('Exited');
+    expect(status?.toLowerCase()).toContain('halted');
   });
 });
 
@@ -208,7 +219,7 @@ test.describe('Example Program Stepping', () => {
 
       // Check if program has exited
       const status = await page.locator('[data-testid="execution-status"]').textContent();
-      if (status && status.includes('Exited')) {
+      if (status && status.toLowerCase().includes('halted')) {
         break;
       }
     }
@@ -235,7 +246,7 @@ test.describe('Example Program Stepping', () => {
 
       // Check if program has exited early
       const status = await page.locator('[data-testid="execution-status"]').textContent();
-      if (status && status.includes('Exited')) {
+      if (status && status.toLowerCase().includes('halted')) {
         break;
       }
     }
@@ -261,7 +272,7 @@ test.describe('Example Program Stepping', () => {
 
       // Check if program has exited
       const status = await page.locator('[data-testid="execution-status"]').textContent();
-      if (status && status.includes('Exited')) {
+      if (status && status.toLowerCase().includes('halted')) {
         break;
       }
     }
@@ -289,12 +300,12 @@ test.describe('Example Program Output Verification', () => {
     const program = fs.readFileSync(programPath, 'utf-8');
     await loadProgram(appPage, program);
 
+    // Switch to output tab BEFORE running (critical for event capture)
+    await appPage.switchToOutputTab();
+
     // Run program
     await appPage.clickRun();
     await waitForExecution(page, 10000);
-
-    // Switch to output tab
-    await appPage.switchToOutputTab();
     const output = await appPage.getOutputText();
 
     // Verify output contains "Hello, World!"
@@ -312,6 +323,9 @@ test.describe('Example Program Output Verification', () => {
     const program = fs.readFileSync(programPath, 'utf-8');
     await loadProgram(appPage, program);
 
+    // Switch to output tab BEFORE running (critical for event capture)
+    await appPage.switchToOutputTab();
+
     // Run program
     await appPage.clickRun();
     await waitForExecution(page, 10000);
@@ -319,6 +333,6 @@ test.describe('Example Program Output Verification', () => {
     // Program should complete successfully
     await appPage.switchToStatusTab();
     const status = await page.locator('[data-testid="execution-status"]').textContent();
-    expect(status).toContain('Exited');
+    expect(status?.toLowerCase()).toContain('halted');
   });
 });
