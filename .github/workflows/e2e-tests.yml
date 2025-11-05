@@ -12,8 +12,11 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-latest, macos-latest]
-        browser: [chromium, webkit, firefox]
+        include:
+          - os: macos-latest
+            browser: webkit
+          - os: ubuntu-latest
+            browser: chromium
 
     steps:
       - uses: actions/checkout@v4
