@@ -299,6 +299,22 @@ wails build
 
 See [docs/GUI.md](docs/GUI.md) for detailed GUI documentation.
 
+#### GUI E2E Testing
+
+End-to-end tests for the GUI require the Wails backend running in a separate terminal:
+
+```bash
+# Terminal 1: Start Wails backend
+cd gui
+wails dev -nocolour
+
+# Terminal 2: Run E2E tests (after backend is ready)
+cd gui/frontend
+npm run test:e2e -- --project=chromium
+```
+
+See [gui/frontend/e2e/README.md](gui/frontend/e2e/README.md) for complete testing documentation.
+
 ### Symbol Table Dump
 
 Inspect the parsed symbols from your assembly program:

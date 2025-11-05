@@ -54,7 +54,7 @@ export const DisassemblyView: React.FC = () => {
   }, []);
 
   return (
-    <div className="disassembly-view">
+    <div className="disassembly-view" data-testid="disassembly-view">
       <div className="disassembly-content">
         {lines.map((line, index) => (
           <div
@@ -63,7 +63,7 @@ export const DisassemblyView: React.FC = () => {
             onDoubleClick={() => handleLineClick(line.address)}
           >
             <span className="disasm-address">
-              {line.hasBreakpoint && <span className="breakpoint-marker">●</span>}
+              {line.hasBreakpoint && <span className="breakpoint-marker" data-testid="breakpoint-indicator">●</span>}
               0x{line.address.toString(16).padStart(8, '0')}
             </span>
             <span className="disasm-opcode">

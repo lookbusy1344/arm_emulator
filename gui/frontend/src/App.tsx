@@ -130,7 +130,7 @@ function App() {
       <Allotment vertical>
         {/* Top toolbar - fixed height */}
         <Allotment.Pane snap minSize={60} maxSize={60}>
-          <div className="toolbar">
+          <div className="toolbar" data-testid="toolbar">
             <button onClick={handleLoad}>Load</button>
             <button onClick={handleStep}>Step</button>
             <button onClick={handleStepOver}>Step Over</button>
@@ -218,7 +218,7 @@ function App() {
               <div style={{ display: bottomTab === 'output' ? 'flex' : 'none', flexDirection: 'column', height: '100%' }}>
                 <OutputView />
               </div>
-              <div style={{ display: bottomTab === 'breakpoints' ? 'flex' : 'none', flexDirection: 'column', height: '100%' }}>
+              <div style={{ display: bottomTab === 'breakpoints' ? 'flex' : 'none', flexDirection: 'column', height: '100%' }} data-testid="breakpoints-tab-content">
                 <BreakpointsView />
               </div>
               <div style={{ display: bottomTab === 'status' ? 'flex' : 'none', flexDirection: 'column', height: '100%' }}>

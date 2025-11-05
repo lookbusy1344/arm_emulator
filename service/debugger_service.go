@@ -438,6 +438,13 @@ func (s *DebuggerService) GetBreakpoints() []BreakpointInfo {
 	return result
 }
 
+// ClearAllBreakpoints removes all breakpoints
+func (s *DebuggerService) ClearAllBreakpoints() {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.debugger.Breakpoints.Clear()
+}
+
 // GetMemory returns memory contents for a region
 func (s *DebuggerService) GetMemory(address uint32, size uint32) ([]byte, error) {
 	s.mu.RLock()

@@ -61,12 +61,12 @@ export const StatusView: React.FC = () => {
   }, []);
 
   return (
-    <div className="status-view">
+    <div className="status-view" data-testid="status-view">
       <div className="status-info-bar">
-        <span className="status-state">{executionState}</span>
+        <span className="status-state" data-testid="execution-status">{executionState}</span>
         <span className="status-cycles">Cycles: {cycles}</span>
       </div>
-      <div className="status-content">
+      <div className="status-content" data-testid="status-tab-content">
         {messages.map((msg, index) => (
           <div key={index} className={`status-message status-message-${msg.type}`}>
             <span className="status-timestamp">

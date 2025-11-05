@@ -61,14 +61,14 @@ export const RegisterView: React.FC<RegisterViewProps> = ({
   }, [loadRegisters])
 
   if (!registers) {
-    return <div className="register-view">Loading...</div>
+    return <div className="register-view" data-testid="register-view">Loading...</div>
   }
 
   const { Registers, CPSR, PC, Cycles } = registers
   const effectiveHighlights = changedRegisters.size > 0 ? changedRegisters : highlightedRegs
 
   return (
-    <div className="register-view">
+    <div className="register-view" data-testid="register-view">
       <div className="register-view-title">Registers</div>
 
       {/* General Purpose Registers */}
@@ -77,6 +77,7 @@ export const RegisterView: React.FC<RegisterViewProps> = ({
           <div
             key={index}
             className={`register-row ${effectiveHighlights.has(index) ? 'register-changed' : ''}`}
+            data-register={`R${index}`}
           >
             <span className="register-name">R{index}</span>
             <span className="register-value">{formatHex32(value)}</span>
@@ -88,7 +89,7 @@ export const RegisterView: React.FC<RegisterViewProps> = ({
       {/* CPSR Flags */}
       <div className="cpsr-section">
         <h4 className="cpsr-title">CPSR Flags</h4>
-        <div className="cpsr-flags">
+        <div className="cpsr-flags" data-testid="cpsr-flags">
           <span className={`flag ${CPSR.N ? 'flag-set' : 'flag-clear'}`}>
             N: {CPSR.N ? '1' : '0'}
           </span>
@@ -106,7 +107,7 @@ export const RegisterView: React.FC<RegisterViewProps> = ({
 
       {/* Special Registers */}
       <div className="special-registers">
-        <div className="register-row">
+        <div className="register-row" data-register="PC">
           <span className="register-name">PC</span>
           <span className="register-value">{formatHex32(PC)}</span>
         </div>

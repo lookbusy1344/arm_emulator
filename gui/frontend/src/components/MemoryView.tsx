@@ -107,18 +107,19 @@ export const MemoryView: React.FC<MemoryViewProps> = ({
   }
 
   return (
-    <div className="memory-view">
+    <div className="memory-view" data-testid="memory-view">
       <div className="memory-view-header">
         <div className="memory-view-title">Memory</div>
         <form onSubmit={handleAddressSubmit} className="address-input-form">
           <input
             type="text"
             className="address-input"
+            data-testid="address-input"
             value={addressInput}
             onChange={(e) => setAddressInput(e.target.value)}
             placeholder="Address (0xXXXX)"
           />
-          <button type="submit" className="address-go-button">Go</button>
+          <button type="submit" className="address-go-button" data-testid="go-button">Go</button>
         </form>
       </div>
 
@@ -127,7 +128,7 @@ export const MemoryView: React.FC<MemoryViewProps> = ({
           const rowAddress = baseAddress + rowIndex * BYTES_PER_ROW
 
           return (
-            <div key={rowIndex} className="memory-row">
+            <div key={rowIndex} className="memory-row" data-address={formatAddress(rowAddress)}>
               <span className="memory-address">{formatAddress(rowAddress)}</span>
 
               <div className="memory-hex">
@@ -145,6 +146,7 @@ export const MemoryView: React.FC<MemoryViewProps> = ({
                         }
                       }}
                       className={`memory-byte ${isHighlighted ? 'memory-byte-highlight' : ''} ${isChanged ? 'memory-byte-changed' : ''}`}
+                      data-testid={isChanged ? 'memory-modified' : undefined}
                     >
                       {formatHex8(byte)}
                     </span>
@@ -152,7 +154,7 @@ export const MemoryView: React.FC<MemoryViewProps> = ({
                 })}
               </div>
 
-              <span className="memory-ascii">
+              <span className="memory-ascii" data-testid="memory-ascii">
                 {Array.from(row).map((byte) => toASCII(byte)).join('')}
               </span>
             </div>

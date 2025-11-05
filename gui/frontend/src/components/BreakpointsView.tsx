@@ -46,13 +46,13 @@ export const BreakpointsView: React.FC = () => {
   }, []);
 
   return (
-    <div className="breakpoints-view">
+    <div className="breakpoints-view" data-testid="breakpoints-view">
       <div className="breakpoints-section">
         <div className="section-title">Breakpoints ({breakpoints.length})</div>
         {breakpoints.length === 0 ? (
           <div className="empty-message">No breakpoints set</div>
         ) : (
-          <table className="breakpoints-table">
+          <table className="breakpoints-table" data-testid="breakpoints-list">
             <thead>
               <tr>
                 <th>Address</th>
@@ -62,12 +62,13 @@ export const BreakpointsView: React.FC = () => {
             </thead>
             <tbody>
               {breakpoints.map((bp, index) => (
-                <tr key={index}>
+                <tr key={index} className="breakpoint-item">
                   <td className="bp-address">0x{bp.address.toString(16).padStart(8, '0')}</td>
                   <td className="bp-condition">{bp.condition || '(always)'}</td>
                   <td className="bp-actions">
                     <button
                       className="btn-remove"
+                      data-testid="remove-breakpoint-button"
                       onClick={() => handleRemoveBreakpoint(bp.address)}
                     >
                       Remove
