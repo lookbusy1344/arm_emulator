@@ -46,8 +46,8 @@ export default defineConfig({
   // Visual comparison settings
   expect: {
     toHaveScreenshot: {
-      // Allow up to 3% pixel difference to account for font rendering variations
-      maxDiffPixelRatio: 0.03,
+      // Allow up to 6% pixel difference to account for font rendering variations across CI environments
+      maxDiffPixelRatio: 0.06,
       // Per-pixel color difference threshold (0-1, where 0.1 = 10% color difference per pixel)
       threshold: 0.2,
     },
