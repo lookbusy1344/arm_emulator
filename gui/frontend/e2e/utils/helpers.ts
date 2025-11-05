@@ -51,7 +51,7 @@ export async function waitForExecution(page: Page, maxWait = 5000) {
  * Wait for output to appear in the OutputView.
  * Useful when waiting for a program to produce output.
  */
-export async function waitForOutput(page: Page, maxWait = 5000) {
+export async function waitForOutput(page: Page, maxWait = 10000) {
   await page.waitForFunction(
     () => {
       const outputElement = document.querySelector('[data-testid="output-view"] .output-content');

@@ -6,8 +6,8 @@ const BASE_URL = process.env.BASE_URL || `http://localhost:${PORT}`;
 export default defineConfig({
   testDir: './e2e/tests',
 
-  // Run tests in files in parallel
-  fullyParallel: true,
+  // Run tests serially (not in parallel) because Wails backend has single VM instance
+  fullyParallel: false,
 
   // Fail the build on CI if you accidentally left test.only
   forbidOnly: !!process.env.CI,
@@ -15,8 +15,8 @@ export default defineConfig({
   // Retry on CI only
   retries: process.env.CI ? 2 : 0,
 
-  // Opt out of parallel tests on CI
-  workers: process.env.CI ? 1 : undefined,
+  // Always run tests serially to avoid VM state conflicts
+  workers: 1,
 
   // Reporter to use
   reporter: [

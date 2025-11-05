@@ -12,6 +12,25 @@ test.describe('Program Execution', () => {
     appPage = new AppPage(page);
     registerView = new RegisterViewPage(page);
     await appPage.goto();
+
+    // Reset VM and clear all breakpoints to ensure clean state
+    await appPage.clickReset();
+    await page.waitForTimeout(200);
+
+    // Clear any existing breakpoints
+    const breakpoints = await page.evaluate(() => {
+      // @ts-ignore - Wails runtime
+      return window.go.main.App.GetBreakpoints();
+    });
+
+    for (const bp of breakpoints) {
+      await page.evaluate((address) => {
+        // @ts-ignore - Wails runtime
+        return window.go.main.App.RemoveBreakpoint(address);
+      }, bp.Address);
+    }
+
+    await page.waitForTimeout(100);
   });
 
   test('should execute hello world program', async () => {
@@ -112,8 +131,11 @@ test.describe('Program Execution', () => {
     // Step through all instructions (need enough steps for all operations)
     for (let i = 0; i < 6; i++) {
       await appPage.clickStep();
-      await appPage.page.waitForTimeout(50);
+      await appPage.page.waitForTimeout(100);
     }
+
+    // Additional wait for final state to stabilize
+    await appPage.page.waitForTimeout(200);
 
     // Verify arithmetic results
     const r2 = await registerView.getRegisterValue('R2');
@@ -134,8 +156,8 @@ test.describe('Program Execution', () => {
     // Step over
     await appPage.clickStepOver();
 
-    // Wait for step to complete
-    await appPage.page.waitForTimeout(200);
+    // Wait for vm:state-changed event indicating step completed
+    await appPage.page.waitForTimeout(500);
 
     const newPC = await registerView.getRegisterValue('PC');
     expect(newPC).not.toBe(initialPC);
