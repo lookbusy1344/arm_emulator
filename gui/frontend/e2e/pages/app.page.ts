@@ -118,7 +118,9 @@ export class AppPage extends BasePage {
 
   async getRegisterValue(register: string): Promise<string> {
     const regLocator = this.registerView.locator(`[data-register="${register}"]`);
-    return await regLocator.textContent() || '';
+    // Get just the value span, not the entire row text
+    const valueSpan = regLocator.locator('.register-value');
+    return await valueSpan.textContent() || '';
   }
 
   async getOutputText(): Promise<string> {

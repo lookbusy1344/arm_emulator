@@ -10,6 +10,10 @@ export function AddWatchpoint(arg1, arg2) {
   return window['go']['main']['App']['AddWatchpoint'](arg1, arg2);
 }
 
+export function ClearAllBreakpoints() {
+  return window['go']['main']['App']['ClearAllBreakpoints']();
+}
+
 export function Continue() {
   return window['go']['main']['App']['Continue']();
 }

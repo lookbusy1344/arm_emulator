@@ -6,6 +6,8 @@ export function AddBreakpoint(arg1:number):Promise<void>;
 
 export function AddWatchpoint(arg1:number,arg2:string):Promise<void>;
 
+export function ClearAllBreakpoints():Promise<void>;
+
 export function Continue():Promise<void>;
 
 export function EvaluateExpression(arg1:string):Promise<number>;
