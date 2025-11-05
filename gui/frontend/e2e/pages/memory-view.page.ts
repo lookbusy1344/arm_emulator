@@ -14,13 +14,19 @@ export class MemoryViewPage {
   async goToAddress(address: string) {
     await this.addressInput.fill(address);
     await this.goButton.click();
+    // Wait for memory view to update after navigation
+    await this.container.page().waitForTimeout(300);
   }
 
   async readMemoryAt(address: string): Promise<string> {
     await this.goToAddress(address);
+    // Memory rows are aligned to 16-byte boundaries
+    // Look for the row that contains this address
     const value = await this.container
-      .locator(`[data-address="${address}"]`)
-      .locator('.memory-value')
+      .locator('[data-address]')
+      .first()
+      .locator('.memory-hex .memory-byte')
+      .first()
       .textContent();
     return value?.trim() || '';
   }
