@@ -32,10 +32,37 @@ This file tracks outstanding work only. Completed items are in `PROGRESS.md`.
 3. ✅ Added 3 comprehensive unit tests - all passing
 4. ✅ Fixed LoadProgramFromSource to emit vm:state-changed event
 
+**E2E Test Results:**
+- ✅ 5/7 tests now pass (up from 1/7)
+- ❌ 2 tests fail: "should stop at breakpoint during run" and "should continue execution after hitting breakpoint"
+
+**Root Cause of Remaining Failures:**
+Tests call `clickReset()` expecting it to restart the program, but our new `Reset()` clears everything (program, breakpoints, memory). When tests try to run after reset, there's no program loaded, so PC stays at 0x00000000.
+
+**Design Decision Needed:**
+What should the GUI "Reset" button do?
+
+**Option A (Recommended):** Change GUI Reset to use `ResetToEntryPoint()`
+- Matches user expectations (like "Restart" in debuggers)
+- Preserves loaded program and breakpoints
+- Restarts execution from entry point
+- E2E tests will pass ✅
+
+**Option B:** Expose both actions as separate buttons
+- "Reset" button → Full reset (current behavior)
+- "Restart" button → ResetToEntryPoint()
+- More complex UI but gives users both options
+
+**Option C:** Keep current behavior, fix tests
+- Tests must reload program after reset
+- Less intuitive for users
+- Not recommended
+
 **Remaining Work:**
-- [ ] Run E2E tests to verify both fixes work together
-- [ ] Update TODO.md status based on E2E results
-- [ ] Consider if ResetToEntryPoint() should be exposed to GUI
+- [ ] Decide on Reset button behavior (Option A recommended)
+- [ ] Update GUI app.go Reset() to call ResetToEntryPoint() if Option A chosen
+- [ ] Rerun E2E tests to verify all pass
+- [ ] Update TODO.md with final status
 
 **Changes Made:**
 - `service/debugger_service.go`: Rewrote Reset() and added ResetToEntryPoint()
