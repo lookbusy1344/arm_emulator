@@ -1133,3 +1133,203 @@ main:
 		})
 	}
 }
+
+func TestDebuggerService_Reset(t *testing.T) {
+	machine := vm.NewVM()
+	machine.InitializeStack(0x30001000)
+	svc := service.NewDebuggerService(machine)
+
+	// Load a program
+	program := `
+.org 0x8000
+main:
+    MOV R0, #42
+    MOV R1, #100
+    SWI #0x00
+`
+	p := parser.NewParser(program, "test.s")
+	parsed, err := p.Parse()
+	if err != nil {
+		t.Fatalf("Failed to parse program: %v", err)
+	}
+
+	err = svc.LoadProgram(parsed, 0x8000)
+	if err != nil {
+		t.Fatalf("Failed to load program: %v", err)
+	}
+
+	// Add a breakpoint
+	err = svc.AddBreakpoint(0x8004)
+	if err != nil {
+		t.Fatalf("Failed to add breakpoint: %v", err)
+	}
+
+	// Execute a step to modify VM state
+	err = svc.Step()
+	if err != nil {
+		t.Fatalf("Failed to step: %v", err)
+	}
+
+	// Verify state before reset
+	if machine.CPU.R[0] != 42 {
+		t.Errorf("Expected R0=42 before reset, got %d", machine.CPU.R[0])
+	}
+	if machine.CPU.PC != 0x8004 {
+		t.Errorf("Expected PC=0x8004 before reset, got 0x%08X", machine.CPU.PC)
+	}
+	breakpoints := svc.GetBreakpoints()
+	if len(breakpoints) != 1 {
+		t.Errorf("Expected 1 breakpoint before reset, got %d", len(breakpoints))
+	}
+
+	// Perform reset
+	err = svc.Reset()
+	if err != nil {
+		t.Fatalf("Reset failed: %v", err)
+	}
+
+	// Verify complete reset:
+	// 1. PC should be 0
+	if machine.CPU.PC != 0 {
+		t.Errorf("Expected PC=0 after reset, got 0x%08X", machine.CPU.PC)
+	}
+
+	// 2. All registers should be 0
+	for i := 0; i < 13; i++ {
+		if machine.CPU.R[i] != 0 {
+			t.Errorf("Expected R%d=0 after reset, got %d", i, machine.CPU.R[i])
+		}
+	}
+
+	// 3. SP should be 0
+	if machine.CPU.GetSP() != 0 {
+		t.Errorf("Expected SP=0 after reset, got 0x%08X", machine.CPU.GetSP())
+	}
+
+	// 4. Program should be cleared
+	sourceMap := svc.GetSourceMap()
+	if len(sourceMap) != 0 {
+		t.Errorf("Expected empty source map after reset, got %d entries", len(sourceMap))
+	}
+
+	// 5. Breakpoints should be cleared
+	breakpoints = svc.GetBreakpoints()
+	if len(breakpoints) != 0 {
+		t.Errorf("Expected 0 breakpoints after reset, got %d", len(breakpoints))
+	}
+
+	// 6. Execution state should be Halted
+	state := svc.GetExecutionState()
+	if state != service.StateHalted {
+		t.Errorf("Expected ExecutionHalted after reset, got %v", state)
+	}
+}
+
+func TestDebuggerService_ResetToEntryPoint(t *testing.T) {
+	machine := vm.NewVM()
+	machine.InitializeStack(0x30001000)
+	svc := service.NewDebuggerService(machine)
+
+	// Load a program
+	program := `
+.org 0x8000
+main:
+    MOV R0, #42
+    MOV R1, #100
+    MOV R2, #200
+    SWI #0x00
+`
+	p := parser.NewParser(program, "test.s")
+	parsed, err := p.Parse()
+	if err != nil {
+		t.Fatalf("Failed to parse program: %v", err)
+	}
+
+	err = svc.LoadProgram(parsed, 0x8000)
+	if err != nil {
+		t.Fatalf("Failed to load program: %v", err)
+	}
+
+	// Execute multiple steps to modify state
+	err = svc.Step()
+	if err != nil {
+		t.Fatalf("Failed to step: %v", err)
+	}
+	err = svc.Step()
+	if err != nil {
+		t.Fatalf("Failed to step: %v", err)
+	}
+
+	// Verify state before reset
+	if machine.CPU.R[0] != 42 {
+		t.Errorf("Expected R0=42 before reset, got %d", machine.CPU.R[0])
+	}
+	if machine.CPU.R[1] != 100 {
+		t.Errorf("Expected R1=100 before reset, got %d", machine.CPU.R[1])
+	}
+	if machine.CPU.PC != 0x8008 {
+		t.Errorf("Expected PC=0x8008 before reset, got 0x%08X", machine.CPU.PC)
+	}
+
+	// Perform reset to entry point
+	err = svc.ResetToEntryPoint()
+	if err != nil {
+		t.Fatalf("ResetToEntryPoint failed: %v", err)
+	}
+
+	// Verify reset to entry point:
+	// 1. PC should be at entry point
+	if machine.CPU.PC != 0x8000 {
+		t.Errorf("Expected PC=0x8000 after reset, got 0x%08X", machine.CPU.PC)
+	}
+
+	// 2. All registers should be reset to 0
+	for i := 0; i < 13; i++ {
+		if machine.CPU.R[i] != 0 {
+			t.Errorf("Expected R%d=0 after reset, got %d", i, machine.CPU.R[i])
+		}
+	}
+
+	// 3. SP should be restored to initial stack value
+	if machine.CPU.GetSP() != 0x30001000 {
+		t.Errorf("Expected SP=0x30001000 after reset, got 0x%08X", machine.CPU.GetSP())
+	}
+
+	// 4. Program should still be loaded (source map should exist)
+	sourceMap := svc.GetSourceMap()
+	if len(sourceMap) == 0 {
+		t.Error("Expected source map to be preserved after ResetToEntryPoint")
+	}
+
+	// 5. Execution state should be Halted
+	state := svc.GetExecutionState()
+	if state != service.StateHalted {
+		t.Errorf("Expected ExecutionHalted after reset, got %v", state)
+	}
+
+	// 6. Should be able to execute program again
+	err = svc.Step()
+	if err != nil {
+		t.Fatalf("Failed to step after reset: %v", err)
+	}
+	if machine.CPU.R[0] != 42 {
+		t.Errorf("Expected R0=42 after step, got %d", machine.CPU.R[0])
+	}
+}
+
+func TestDebuggerService_ResetToEntryPoint_NoProgramLoaded(t *testing.T) {
+	machine := vm.NewVM()
+	machine.InitializeStack(0x30001000)
+	svc := service.NewDebuggerService(machine)
+
+	// Attempt reset without loading a program
+	err := svc.ResetToEntryPoint()
+	if err != nil {
+		t.Fatalf("ResetToEntryPoint should not fail with no program loaded: %v", err)
+	}
+
+	// Should behave like full reset
+	if machine.CPU.PC != 0 {
+		t.Errorf("Expected PC=0 after reset with no program, got 0x%08X", machine.CPU.PC)
+	}
+}
