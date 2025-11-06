@@ -162,7 +162,12 @@ func (a *App) LoadProgramFromSource(source string, filename string, entryPoint u
 		return fmt.Errorf("parse error: %w", err)
 	}
 
-	return a.service.LoadProgram(program, entryPoint)
+	err = a.service.LoadProgram(program, entryPoint)
+	if err == nil {
+		// Emit state change event so frontend updates
+		runtime.EventsEmit(a.ctx, "vm:state-changed")
+	}
+	return err
 }
 
 // LoadProgramFromFile opens a file dialog and loads an ARM assembly program
