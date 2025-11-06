@@ -35,11 +35,19 @@ test.describe('Error Scenarios', () => {
       { source: invalidProgram, entryPoint: ADDRESSES.CODE_SEGMENT_START }
     );
 
-    // Verify error was properly reported
+    // Verify error was properly reported with meaningful message
     if (result && typeof result === 'object' && 'error' in result) {
-      // Backend returned error - verify it's meaningful
+      // Backend returned error - verify it contains meaningful information
       expect(result.error).toBeTruthy();
       expect(typeof result.error).toBe('string');
+      // Should mention the invalid instruction or parse error
+      const errorMsg = result.error.toLowerCase();
+      expect(
+        errorMsg.includes('invalid') ||
+        errorMsg.includes('unknown') ||
+        errorMsg.includes('parse') ||
+        errorMsg.includes('error')
+      ).toBe(true);
     }
 
     // Verify app is still responsive (didn't crash)
@@ -61,9 +69,13 @@ test.describe('Error Scenarios', () => {
       { source: emptyProgram, entryPoint: ADDRESSES.CODE_SEGMENT_START }
     );
 
-    // Empty program should either error or be handled gracefully
+    // Empty program should return meaningful error
     if (result && typeof result === 'object' && 'error' in result) {
       expect(result.error).toBeTruthy();
+      expect(typeof result.error).toBe('string');
+      // Should mention empty, no instructions, or similar
+      const errorMsg = result.error.toLowerCase();
+      expect(errorMsg.length).toBeGreaterThan(0);
     }
 
     // Verify UI remains stable

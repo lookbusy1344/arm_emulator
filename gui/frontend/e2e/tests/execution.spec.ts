@@ -16,7 +16,14 @@ test.describe('Program Execution', () => {
 
     // Reset VM and clear all breakpoints to ensure clean state
     await appPage.clickReset();
-    await page.waitForTimeout(200);
+
+    // Wait for reset to complete by checking PC is at zero
+    await page.waitForFunction(() => {
+      const pcElement = document.querySelector('[data-register="PC"] .register-value');
+      if (!pcElement) return false;
+      const pcValue = pcElement.textContent?.trim() || '';
+      return pcValue === '0x00000000';
+    }, { timeout: 500 });
 
     // Clear any existing breakpoints
     const breakpoints = await page.evaluate(() => {
@@ -30,8 +37,6 @@ test.describe('Program Execution', () => {
         return window.go.main.App.RemoveBreakpoint(address);
       }, bp.Address);
     }
-
-    await page.waitForTimeout(100);
   });
 
   test('should execute hello world program', async () => {
@@ -61,7 +66,18 @@ test.describe('Program Execution', () => {
 
     // Step once
     await appPage.clickStep();
-    await appPage.page.waitForTimeout(100);
+
+    // Wait for step to complete by checking PC changed
+    await appPage.page.waitForFunction(
+      (prevPC) => {
+        const pcElement = document.querySelector('[data-register="PC"] .register-value');
+        if (!pcElement) return false;
+        const currentPC = pcElement.textContent?.trim() || '';
+        return currentPC !== '' && currentPC !== prevPC;
+      },
+      initialPC,
+      { timeout: 500 }
+    );
 
     // Verify PC changed
     const newPC = await registerView.getRegisterValue('PC');
@@ -69,8 +85,19 @@ test.describe('Program Execution', () => {
 
     // Step through several instructions
     for (let i = 0; i < 10; i++) {
+      const prevPC = await registerView.getRegisterValue('PC');
       await appPage.clickStep();
-      await appPage.page.waitForTimeout(50);
+      // Wait for PC to update
+      await appPage.page.waitForFunction(
+        (pc) => {
+          const pcElement = document.querySelector('[data-register="PC"] .register-value');
+          if (!pcElement) return false;
+          const currentPC = pcElement.textContent?.trim() || '';
+          return currentPC !== '' && currentPC !== pc;
+        },
+        prevPC,
+        { timeout: 500 }
+      );
     }
 
     // Verify registers changed
@@ -84,19 +111,41 @@ test.describe('Program Execution', () => {
     // Start execution
     await appPage.clickRun();
 
-    // Wait for execution to start (small delay)
-    await appPage.page.waitForTimeout(300);
+    // Wait for execution to actually start
+    await appPage.page.waitForFunction(() => {
+      const statusElement = document.querySelector('[data-testid="execution-status"]');
+      if (!statusElement) return false;
+      const status = statusElement.textContent?.toLowerCase() || '';
+      return status === 'running';
+    }, { timeout: 2000 });
 
     // Pause
     await appPage.clickPause();
 
     // Wait for state to change to paused
-    await appPage.page.waitForTimeout(200);
+    await appPage.page.waitForFunction(() => {
+      const statusElement = document.querySelector('[data-testid="execution-status"]');
+      if (!statusElement) return false;
+      const status = statusElement.textContent?.toLowerCase() || '';
+      return status === 'paused';
+    }, { timeout: 2000 });
 
     // Verify we can step after pause
     const pc = await registerView.getRegisterValue('PC');
     await appPage.clickStep();
-    await appPage.page.waitForTimeout(100);
+
+    // Wait for step to complete
+    await appPage.page.waitForFunction(
+      (prevPC) => {
+        const pcElement = document.querySelector('[data-register="PC"] .register-value');
+        if (!pcElement) return false;
+        const currentPC = pcElement.textContent?.trim() || '';
+        return currentPC !== '' && currentPC !== prevPC;
+      },
+      pc,
+      { timeout: 500 }
+    );
+
     const newPC = await registerView.getRegisterValue('PC');
     expect(newPC).not.toBe(pc);
   });
@@ -106,8 +155,19 @@ test.describe('Program Execution', () => {
 
     // Execute several steps
     for (let i = 0; i < 5; i++) {
+      const prevPC = await registerView.getRegisterValue('PC');
       await appPage.clickStep();
-      await appPage.page.waitForTimeout(50);
+      // Wait for PC to update
+      await appPage.page.waitForFunction(
+        (pc) => {
+          const pcElement = document.querySelector('[data-register="PC"] .register-value');
+          if (!pcElement) return false;
+          const currentPC = pcElement.textContent?.trim() || '';
+          return currentPC !== '' && currentPC !== pc;
+        },
+        prevPC,
+        { timeout: 500 }
+      );
     }
 
     // Get current register state
@@ -116,8 +176,18 @@ test.describe('Program Execution', () => {
     // Reset
     await appPage.clickReset();
 
-    // Wait for reset to complete
-    await appPage.page.waitForTimeout(300);
+    // Wait for reset to complete by checking PC is back at entry point
+    const expectedPC = formatAddress(ADDRESSES.CODE_SEGMENT_START);
+    await appPage.page.waitForFunction(
+      (pc) => {
+        const pcElement = document.querySelector('[data-register="PC"] .register-value');
+        if (!pcElement) return false;
+        const currentPC = pcElement.textContent?.trim() || '';
+        return currentPC === pc;
+      },
+      expectedPC,
+      { timeout: 500 }
+    );
 
     // Verify registers reset to entry point, not necessarily all zeros
     const afterReset = await registerView.getAllRegisters();
@@ -131,12 +201,20 @@ test.describe('Program Execution', () => {
 
     // Step through all instructions (need enough steps for all operations)
     for (let i = 0; i < 6; i++) {
+      const prevPC = await registerView.getRegisterValue('PC');
       await appPage.clickStep();
-      await appPage.page.waitForTimeout(100);
+      // Wait for PC to update
+      await appPage.page.waitForFunction(
+        (pc) => {
+          const pcElement = document.querySelector('[data-register="PC"] .register-value');
+          if (!pcElement) return false;
+          const currentPC = pcElement.textContent?.trim() || '';
+          return currentPC !== '' && currentPC !== pc;
+        },
+        prevPC,
+        { timeout: 500 }
+      );
     }
-
-    // Additional wait for final state to stabilize
-    await appPage.page.waitForTimeout(200);
 
     // Verify arithmetic results
     const r2 = await registerView.getRegisterValue('R2');
@@ -157,8 +235,17 @@ test.describe('Program Execution', () => {
     // Step over
     await appPage.clickStepOver();
 
-    // Wait for vm:state-changed event indicating step completed
-    await appPage.page.waitForTimeout(500);
+    // Wait for step over to complete by checking PC changed
+    await appPage.page.waitForFunction(
+      (prevPC) => {
+        const pcElement = document.querySelector('[data-register="PC"] .register-value');
+        if (!pcElement) return false;
+        const currentPC = pcElement.textContent?.trim() || '';
+        return currentPC !== '' && currentPC !== prevPC;
+      },
+      initialPC,
+      { timeout: 1000 }
+    );
 
     const newPC = await registerView.getRegisterValue('PC');
     expect(newPC).not.toBe(initialPC);

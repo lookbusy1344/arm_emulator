@@ -103,6 +103,15 @@ a4dbdd2 Add E2E testing prerequisite documentation to CLAUDE.md
 - [ ] Implement clear-all-breakpoints button (1 skipped test in breakpoints.spec.ts)
 - [ ] Scroll test for memory view (1 skipped test - memory view is virtualized)
 
+**Test Quality Improvements (Strongly Recommended):**
+- [ ] **Error message verification in error-scenarios.spec.ts** - Currently tests only check errors exist (`toBeTruthy()`), not actual error message content. Should verify messages like "Invalid instruction", "Parse error at line X", etc.
+- [ ] **Remove hardcoded waits from visual.spec.ts** - 5 `waitForTimeout()` calls (1000ms, 200ms, 2000ms) should be replaced with proper state checks
+- [ ] **Remove hardcoded waits from memory.spec.ts** - 2 `waitForTimeout(200)` calls should use state-based assertions
+- [ ] **Remove hardcoded waits from breakpoints.spec.ts** - 3 `waitForTimeout()` calls (200ms, 100ms) should use `waitForFunction()`
+- [ ] **Remove hardcoded waits from execution.spec.ts** - 12 `waitForTimeout()` calls (50-500ms) should be replaced with proper state checks
+
+**Note:** error-scenarios.spec.ts already has proper state checks (no hardcoded waits).
+
 **Ready to merge!** All 67 active tests passing (93% of total suite).
 
 ---

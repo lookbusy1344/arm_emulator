@@ -26,10 +26,8 @@ test.describe('Memory View', () => {
   test('should display memory changes after execution', async () => {
     await loadProgram(appPage, TEST_PROGRAMS.hello);
 
-    // Wait for UI to update after load
-    await appPage.page.waitForTimeout(200);
-
     // Read stack pointer initial value (SP is R13 in ARM)
+    // loadProgram already waits for VM to be ready
     const sp = await appPage.getRegisterValue('R13');
 
     // Verify SP is set
@@ -90,10 +88,8 @@ test.describe('Memory View', () => {
   test('should display stack memory', async () => {
     await loadProgram(appPage, TEST_PROGRAMS.hello);
 
-    // Wait for UI to update after load
-    await appPage.page.waitForTimeout(200);
-
     // Get SP value (SP is R13 in ARM)
+    // loadProgram already waits for VM to be ready
     const sp = await appPage.getRegisterValue('R13');
 
     // Navigate to stack

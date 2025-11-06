@@ -2,7 +2,8 @@ import { test, expect } from '@playwright/test';
 import { AppPage } from '../pages/app.page';
 import { RegisterViewPage } from '../pages/register-view.page';
 import { TEST_PROGRAMS } from '../fixtures/programs';
-import { loadProgram, waitForExecution, stepUntilAddress } from '../utils/helpers';
+import { loadProgram, waitForExecution, stepUntilAddress, waitForVMStateChange } from '../utils/helpers';
+import { ADDRESSES } from '../utils/test-constants';
 
 test.describe('Breakpoints', () => {
   let appPage: AppPage;
@@ -22,7 +23,14 @@ test.describe('Breakpoints', () => {
 
     // Reset VM to clean state
     await appPage.clickReset();
-    await page.waitForTimeout(200);
+
+    // Wait for reset to complete by checking PC is back at zero
+    await page.waitForFunction(() => {
+      const pcElement = document.querySelector('[data-register="PC"] .register-value');
+      if (!pcElement) return false;
+      const pcValue = pcElement.textContent?.trim() || '';
+      return pcValue === '0x00000000';
+    }, { timeout: 500 });
   });
 
   test('should set breakpoint via F9', async () => {
@@ -48,12 +56,22 @@ test.describe('Breakpoints', () => {
     await loadProgram(appPage, TEST_PROGRAMS.fibonacci);
 
     // Step to an instruction in the loop
+    let previousPC = await registerView.getRegisterValue('PC');
     await appPage.clickStep();
     await appPage.clickStep();
     await appPage.clickStep();
 
-    // Wait for UI to update after steps
-    await appPage.page.waitForTimeout(100);
+    // Wait for last step to complete by checking PC changed
+    await appPage.page.waitForFunction(
+      (prevPC) => {
+        const pcElement = document.querySelector('[data-register="PC"] .register-value');
+        if (!pcElement) return false;
+        const currentPC = pcElement.textContent?.trim() || '';
+        return currentPC !== '' && currentPC !== prevPC;
+      },
+      previousPC,
+      { timeout: 500 }
+    );
 
     // Get current PC to set breakpoint at
     const breakpointAddress = await registerView.getRegisterValue('PC');
@@ -124,12 +142,22 @@ test.describe('Breakpoints', () => {
     await loadProgram(appPage, TEST_PROGRAMS.fibonacci);
 
     // Set breakpoint at an early instruction in the loop
+    let previousPC = await registerView.getRegisterValue('PC');
     await appPage.clickStep();
     await appPage.clickStep();
     await appPage.clickStep();
 
-    // Wait for UI to update
-    await appPage.page.waitForTimeout(100);
+    // Wait for last step to complete by checking PC changed
+    await appPage.page.waitForFunction(
+      (prevPC) => {
+        const pcElement = document.querySelector('[data-register="PC"] .register-value');
+        if (!pcElement) return false;
+        const currentPC = pcElement.textContent?.trim() || '';
+        return currentPC !== '' && currentPC !== prevPC;
+      },
+      previousPC,
+      { timeout: 500 }
+    );
 
     await appPage.pressF9();
 
