@@ -18,65 +18,68 @@ This file tracks outstanding work only. Completed items are in `PROGRESS.md`.
 
 ## High Priority Tasks
 
-### **GUI VM Reset and LoadProgram Event Issues**
-**Priority:** HIGH (Partially Fixed) 🟡
-**Type:** Bug Fix - Backend
+### **🔴 CRITICAL: E2E Tests Still Failing (2/7 breakpoint tests)**
+**Priority:** CRITICAL - TOP PRIORITY 🔴🔴🔴
+**Type:** Bug Fix - E2E Testing
 **Added:** 2025-11-06
-**Updated:** 2025-11-06
+**Updated:** 2025-11-06 (Latest)
 
-**Status: Partially Fixed - Needs E2E Testing**
+**Current Status: 5/7 Passing (71%) - 2 Tests Still Failing**
 
-**Issues Fixed:**
-1. ✅ Reset() now performs complete reset to pristine state (PC=0x00000000)
-2. ✅ Added ResetToEntryPoint() for restarting programs without clearing
-3. ✅ Added 3 comprehensive unit tests - all passing
-4. ✅ Fixed LoadProgramFromSource to emit vm:state-changed event
+**Progress Made Today:**
+1. ✅ Fixed Wails runtime readiness checks (was timeout issue)
+2. ✅ Implemented complete VM Reset() to pristine state (PC=0)
+3. ✅ Added ResetToEntryPoint() for restarting programs
+4. ✅ Fixed LoadProgramFromSource missing vm:state-changed event
+5. ✅ Implemented Restart() API method (calls ResetToEntryPoint)
+6. ✅ Updated 2 tests to use clickRestart() instead of clickReset()
+7. ✅ All 1,024 unit tests passing (including 3 new reset tests)
 
-**E2E Test Results:**
-- ✅ 5/7 tests now pass (up from 1/7)
-- ❌ 2 tests fail: "should stop at breakpoint during run" and "should continue execution after hitting breakpoint"
+**E2E Test Results (breakpoints.spec.ts):**
+- ✅ should set breakpoint via F9
+- ❌ should stop at breakpoint during run (PC=0x00000000, expected 0x00008008)
+- ✅ should toggle breakpoint on/off
+- ✅ should display breakpoint in source view
+- ✅ should set multiple breakpoints
+- ❌ should continue execution after hitting breakpoint (PC=0x00000000, expected 0x00008008)
+- ✅ should remove breakpoint from list
+- ⏭️ should disable/enable breakpoint (skipped)
+- ⏭️ should clear all breakpoints (skipped)
 
-**Root Cause of Remaining Failures:**
-Tests call `clickReset()` expecting it to restart the program, but our new `Reset()` clears everything (program, breakpoints, memory). When tests try to run after reset, there's no program loaded, so PC stays at 0x00000000.
+**Remaining Issues:**
+The 2 failing tests both show the same symptom:
+- Tests set breakpoint at address 0x00008008
+- Tests call Restart() then Run()
+- Program runs but PC ends up at 0x00000000 instead of stopping at breakpoint
+- Suggests breakpoints aren't being hit OR program exits/resets unexpectedly
 
-**Design Decision Needed:**
-What should the GUI "Reset" button do?
+**Possible Root Causes:**
+1. Restart() might not be waiting for state to stabilize before returning
+2. Breakpoints might be cleared during Restart() (but shouldn't be)
+3. Program might be exiting before hitting breakpoint
+4. Frontend timing issue - Run() called before Restart() completes
 
-**Option A (Recommended):** Change GUI Reset to use `ResetToEntryPoint()`
-- Matches user expectations (like "Restart" in debuggers)
-- Preserves loaded program and breakpoints
-- Restarts execution from entry point
-- E2E tests will pass ✅
+**IMMEDIATE NEXT STEPS:**
+1. [ ] Add debug logging to Restart() and Run() to trace execution
+2. [ ] Verify breakpoints are preserved after Restart()
+3. [ ] Check if Run() waits for Restart() to complete
+4. [ ] Add wait/stabilization between Restart() and Run() calls in tests
+5. [ ] Run single failing test with verbose logging
+6. [ ] Fix root cause and verify all 7 tests pass
 
-**Option B:** Expose both actions as separate buttons
-- "Reset" button → Full reset (current behavior)
-- "Restart" button → ResetToEntryPoint()
-- More complex UI but gives users both options
+**Implementation Details:**
+- `service/debugger_service.go`: Reset() and ResetToEntryPoint()
+- `gui/app.go`: Reset(), Restart(), LoadProgramFromSource event emission
+- `gui/frontend/e2e/pages/app.page.ts`: clickRestart() helper
+- `gui/frontend/e2e/tests/breakpoints.spec.ts`: 2 tests updated to use clickRestart()
 
-**Option C:** Keep current behavior, fix tests
-- Tests must reload program after reset
-- Less intuitive for users
-- Not recommended
-
-**Remaining Work:**
-- [ ] Decide on Reset button behavior (Option A recommended)
-- [ ] Update GUI app.go Reset() to call ResetToEntryPoint() if Option A chosen
-- [ ] Rerun E2E tests to verify all pass
-- [ ] Update TODO.md with final status
-
-**Changes Made:**
-- `service/debugger_service.go`: Rewrote Reset() and added ResetToEntryPoint()
-- `gui/app.go`: Added vm:state-changed emission after LoadProgram
-- `tests/unit/service/debugger_service_test.go`: Added 3 reset tests
-
-**Expected E2E Results:**
-- Before fixes: 1/7 tests pass
-- After fixes: All 7 tests should pass (or identify remaining issues)
-
-**Related Commits:**
+**Commits Made (6 total):**
 - 1032e31: Fix E2E test failures and document critical VM reset bug
 - 532ec71: Implement complete VM reset and add comprehensive tests
 - ecc5b9d: Fix LoadProgramFromSource missing state-changed event emission
+- 2f648ce: Update TODO.md with current VM reset and LoadProgram status
+- e0f555d: Document E2E test results and Reset button behavior decision
+- 65601dd: Add Restart() method to preserve program and breakpoints
 
 ---
 
