@@ -2,7 +2,8 @@ import { test, expect } from '@playwright/test';
 import { AppPage } from '../pages/app.page';
 import { RegisterViewPage } from '../pages/register-view.page';
 import { TEST_PROGRAMS } from '../fixtures/programs';
-import { loadProgram, waitForExecution, waitForOutput } from '../utils/helpers';
+import { loadProgram, waitForExecution, waitForOutput, formatAddress } from '../utils/helpers';
+import { ADDRESSES } from '../utils/test-constants';
 
 test.describe('Program Execution', () => {
   let appPage: AppPage;
@@ -122,7 +123,7 @@ test.describe('Program Execution', () => {
     const afterReset = await registerView.getAllRegisters();
     const pc = afterReset['PC'];
     // PC should be back at entry point (code segment start)
-    expect(pc).toBe('0x00008000');
+    expect(pc).toBe(formatAddress(ADDRESSES.CODE_SEGMENT_START));
   });
 
   test('should execute arithmetic operations', async () => {

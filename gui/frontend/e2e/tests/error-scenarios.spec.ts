@@ -1,6 +1,7 @@
 import { test, expect } from '@playwright/test';
 import { AppPage } from '../pages/app.page';
-import { TIMEOUTS } from '../utils/test-constants';
+import { TIMEOUTS, ADDRESSES } from '../utils/test-constants';
+import { waitForVMStateChange } from '../utils/helpers';
 
 test.describe('Error Scenarios', () => {
   let appPage: AppPage;
@@ -23,19 +24,25 @@ test.describe('Error Scenarios', () => {
 
     // Attempt to load invalid program
     const result = await appPage.page.evaluate(
-      ({ source }) => {
+      ({ source, entryPoint }) => {
         try {
           // @ts-ignore - Wails runtime
-          return window.go.main.App.LoadProgramFromSource(source, 'invalid.s', 0x00008000);
+          return window.go.main.App.LoadProgramFromSource(source, 'invalid.s', entryPoint);
         } catch (e: any) {
           return { error: e.message };
         }
       },
-      { source: invalidProgram }
+      { source: invalidProgram, entryPoint: ADDRESSES.CODE_SEGMENT_START }
     );
 
-    // Should either return an error or backend should handle gracefully
-    // At minimum, verify app doesn't crash
+    // Verify error was properly reported
+    if (result && typeof result === 'object' && 'error' in result) {
+      // Backend returned error - verify it's meaningful
+      expect(result.error).toBeTruthy();
+      expect(typeof result.error).toBe('string');
+    }
+
+    // Verify app is still responsive (didn't crash)
     await expect(appPage.registerView).toBeVisible();
   });
 
@@ -43,16 +50,21 @@ test.describe('Error Scenarios', () => {
     const emptyProgram = '';
 
     const result = await appPage.page.evaluate(
-      ({ source }) => {
+      ({ source, entryPoint }) => {
         try {
           // @ts-ignore - Wails runtime
-          return window.go.main.App.LoadProgramFromSource(source, 'empty.s', 0x00008000);
+          return window.go.main.App.LoadProgramFromSource(source, 'empty.s', entryPoint);
         } catch (e: any) {
           return { error: e.message };
         }
       },
-      { source: emptyProgram }
+      { source: emptyProgram, entryPoint: ADDRESSES.CODE_SEGMENT_START }
     );
+
+    // Empty program should either error or be handled gracefully
+    if (result && typeof result === 'object' && 'error' in result) {
+      expect(result.error).toBeTruthy();
+    }
 
     // Verify UI remains stable
     await expect(appPage.toolbar).toBeVisible();
@@ -69,18 +81,31 @@ test.describe('Error Scenarios', () => {
     `;
 
     await appPage.page.evaluate(
-      ({ source }) => {
+      ({ source, entryPoint }) => {
         // @ts-ignore - Wails runtime
-        return window.go.main.App.LoadProgramFromSource(source, 'invalid_mem.s', 0x00008000);
+        return window.go.main.App.LoadProgramFromSource(source, 'invalid_mem.s', entryPoint);
       },
-      { source: invalidMemoryProgram }
+      { source: invalidMemoryProgram, entryPoint: ADDRESSES.CODE_SEGMENT_START }
     );
 
-    await appPage.page.waitForTimeout(TIMEOUTS.VM_STATE_CHANGE);
+    // Wait for VM to be ready
+    await waitForVMStateChange(appPage.page);
 
     // Try to run - should either error or handle gracefully
+    const pcBefore = await appPage.getRegisterValue('PC');
     await appPage.clickStep();
-    await appPage.page.waitForTimeout(TIMEOUTS.STEP_COMPLETE);
+
+    // Wait for step to complete by checking PC changed or execution state updated
+    await appPage.page.waitForFunction(
+      (previousPC) => {
+        const pcElement = document.querySelector('[data-register="PC"] .register-value');
+        if (!pcElement) return false;
+        const currentPC = pcElement.textContent?.trim() || '';
+        return currentPC !== '' && currentPC !== previousPC;
+      },
+      pcBefore,
+      { timeout: TIMEOUTS.STEP_COMPLETE }
+    );
 
     // Verify app is still responsive
     const pc = await appPage.getRegisterValue('PC');
@@ -100,20 +125,32 @@ test.describe('Error Scenarios', () => {
     `;
 
     await appPage.page.evaluate(
-      ({ source }) => {
+      ({ source, entryPoint }) => {
         // @ts-ignore - Wails runtime
-        return window.go.main.App.LoadProgramFromSource(source, 'overflow.s', 0x00008000);
+        return window.go.main.App.LoadProgramFromSource(source, 'overflow.s', entryPoint);
       },
-      { source: overflowProgram }
+      { source: overflowProgram, entryPoint: ADDRESSES.CODE_SEGMENT_START }
     );
 
-    await appPage.page.waitForTimeout(TIMEOUTS.VM_STATE_CHANGE);
+    // Wait for VM to be ready
+    await waitForVMStateChange(appPage.page);
 
-    // Execute the overflow instruction
-    await appPage.clickStep();
-    await appPage.clickStep();
-    await appPage.clickStep();
-    await appPage.page.waitForTimeout(TIMEOUTS.STEP_COMPLETE);
+    // Execute the overflow instruction - step through each instruction
+    for (let i = 0; i < 3; i++) {
+      const pcBefore = await appPage.getRegisterValue('PC');
+      await appPage.clickStep();
+      // Wait for PC to update
+      await appPage.page.waitForFunction(
+        (previousPC) => {
+          const pcElement = document.querySelector('[data-register="PC"] .register-value');
+          if (!pcElement) return false;
+          const currentPC = pcElement.textContent?.trim() || '';
+          return currentPC !== '' && currentPC !== previousPC;
+        },
+        pcBefore,
+        { timeout: TIMEOUTS.STEP_COMPLETE }
+      );
+    }
 
     // Should complete without crashing
     const r2 = await appPage.getRegisterValue('R2');
@@ -158,16 +195,18 @@ test.describe('Error Scenarios', () => {
     `;
 
     await appPage.page.evaluate(
-      ({ source }) => {
+      ({ source, entryPoint }) => {
         // @ts-ignore - Wails runtime
-        return window.go.main.App.LoadProgramFromSource(source, 'race.s', 0x00008000);
+        return window.go.main.App.LoadProgramFromSource(source, 'race.s', entryPoint);
       },
-      { source: program }
+      { source: program, entryPoint: ADDRESSES.CODE_SEGMENT_START }
     );
 
-    await appPage.page.waitForTimeout(TIMEOUTS.VM_STATE_CHANGE);
+    // Wait for VM to be ready
+    await waitForVMStateChange(appPage.page);
 
     // Rapidly click step multiple times
+    const pcBefore = await appPage.getRegisterValue('PC');
     await Promise.all([
       appPage.clickStep(),
       appPage.clickStep(),
@@ -176,8 +215,18 @@ test.describe('Error Scenarios', () => {
       appPage.clickStep(),
     ]);
 
-    // Wait for UI to stabilize
-    await appPage.page.waitForTimeout(TIMEOUTS.UI_STABILIZE * 3);
+    // Wait for UI to stabilize by verifying PC has changed
+    await appPage.page.waitForFunction(
+      (previousPC) => {
+        const pcElement = document.querySelector('[data-register="PC"] .register-value');
+        if (!pcElement) return false;
+        const currentPC = pcElement.textContent?.trim() || '';
+        // PC should have changed from initial value
+        return currentPC !== '' && currentPC !== previousPC;
+      },
+      pcBefore,
+      { timeout: TIMEOUTS.VM_STATE_CHANGE }
+    );
 
     // Should still be responsive
     const pc = await appPage.getRegisterValue('PC');
@@ -210,27 +259,47 @@ test.describe('Error Scenarios', () => {
     `;
 
     await appPage.page.evaluate(
-      ({ source }) => {
+      ({ source, entryPoint }) => {
         // @ts-ignore - Wails runtime
-        return window.go.main.App.LoadProgramFromSource(source, 'infinite.s', 0x00008000);
+        return window.go.main.App.LoadProgramFromSource(source, 'infinite.s', entryPoint);
       },
-      { source: infiniteLoop }
+      { source: infiniteLoop, entryPoint: ADDRESSES.CODE_SEGMENT_START }
     );
 
-    await appPage.page.waitForTimeout(TIMEOUTS.VM_STATE_CHANGE);
+    // Wait for VM to be ready
+    await waitForVMStateChange(appPage.page);
 
     // Start running
     await appPage.clickRun();
-    await appPage.page.waitForTimeout(TIMEOUTS.EXECUTION_START);
+
+    // Wait for execution to actually start
+    await appPage.page.waitForFunction(
+      () => {
+        const statusElement = document.querySelector('[data-testid="execution-status"]');
+        if (!statusElement) return false;
+        const status = statusElement.textContent?.toLowerCase() || '';
+        return status === 'running';
+      },
+      { timeout: TIMEOUTS.EXECUTION_START }
+    );
 
     // Reset while running
     await appPage.clickReset();
 
-    // Should handle gracefully
-    await appPage.page.waitForTimeout(TIMEOUTS.VM_RESET);
+    // Wait for reset to complete by checking PC is back at start
+    const expectedPC = `0x${ADDRESSES.CODE_SEGMENT_START.toString(16).toUpperCase().padStart(8, '0')}`;
+    await appPage.page.waitForFunction(
+      (pc) => {
+        const pcElement = document.querySelector('[data-register="PC"] .register-value');
+        if (!pcElement) return false;
+        return pcElement.textContent?.trim() === pc;
+      },
+      expectedPC,
+      { timeout: TIMEOUTS.VM_RESET }
+    );
 
     const pc = await appPage.getRegisterValue('PC');
-    expect(pc).toBe('0x00008000'); // Should reset to start
+    expect(pc).toBe(expectedPC); // Should reset to start
   });
 
   test('should handle very large immediate values', async () => {
@@ -245,14 +314,15 @@ test.describe('Error Scenarios', () => {
     `;
 
     await appPage.page.evaluate(
-      ({ source }) => {
+      ({ source, entryPoint }) => {
         // @ts-ignore - Wails runtime
-        return window.go.main.App.LoadProgramFromSource(source, 'large.s', 0x00008000);
+        return window.go.main.App.LoadProgramFromSource(source, 'large.s', entryPoint);
       },
-      { source: largeValueProgram }
+      { source: largeValueProgram, entryPoint: ADDRESSES.CODE_SEGMENT_START }
     );
 
-    await appPage.page.waitForTimeout(TIMEOUTS.VM_STATE_CHANGE);
+    // Wait for VM to be ready
+    await waitForVMStateChange(appPage.page);
 
     // Execute
     await appPage.clickRun();

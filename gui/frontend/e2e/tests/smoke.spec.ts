@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 import { AppPage } from '../pages/app.page';
-import { loadProgram, waitForVMStateChange } from '../utils/helpers';
-import { TIMEOUTS } from '../utils/test-constants';
+import { loadProgram, waitForVMStateChange, formatAddress } from '../utils/helpers';
+import { TIMEOUTS, ADDRESSES } from '../utils/test-constants';
 
 test.describe('Smoke Tests', () => {
   let appPage: AppPage;
@@ -97,6 +97,6 @@ test.describe('Smoke Tests', () => {
 
     // Verify program ran (should be at exit)
     const pcAfterRun = await appPage.getRegisterValue('PC');
-    expect(pcAfterRun).not.toBe('0x00008000');
+    expect(pcAfterRun).not.toBe(formatAddress(ADDRESSES.CODE_SEGMENT_START));
   });
 });

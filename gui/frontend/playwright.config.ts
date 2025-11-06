@@ -70,11 +70,12 @@ export default defineConfig({
       use: { ...devices['Desktop Firefox'] },
     },
 
-    // Test against mobile viewports (optional)
-    {
-      name: 'Mobile Safari',
-      use: { ...devices['iPhone 13'] },
-    },
+    // Mobile Safari removed - Wails desktop apps don't make sense on mobile viewports
+    // and this device is not tested in CI
+    // {
+    //   name: 'Mobile Safari',
+    //   use: { ...devices['iPhone 13'] },
+    // },
   ],
 
   // Run dev server before starting tests (only in local development)

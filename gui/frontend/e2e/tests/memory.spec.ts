@@ -2,7 +2,8 @@ import { test, expect } from '@playwright/test';
 import { AppPage } from '../pages/app.page';
 import { MemoryViewPage } from '../pages/memory-view.page';
 import { TEST_PROGRAMS } from '../fixtures/programs';
-import { loadProgram } from '../utils/helpers';
+import { loadProgram, formatAddress } from '../utils/helpers';
+import { ADDRESSES } from '../utils/test-constants';
 
 test.describe('Memory View', () => {
   let appPage: AppPage;
@@ -15,7 +16,7 @@ test.describe('Memory View', () => {
   });
 
   test('should navigate to specific address', async () => {
-    const targetAddress = '0x00008000';
+    const targetAddress = formatAddress(ADDRESSES.CODE_SEGMENT_START);
     await memoryView.goToAddress(targetAddress);
 
     const range = await memoryView.getVisibleMemoryRange();
@@ -64,11 +65,12 @@ test.describe('Memory View', () => {
     await loadProgram(appPage, TEST_PROGRAMS.hello);
 
     // Navigate to program start
-    await memoryView.goToAddress('0x00008000');
+    const programStart = formatAddress(ADDRESSES.CODE_SEGMENT_START);
+    await memoryView.goToAddress(programStart);
 
     // Verify memory view shows the address
     const range = await memoryView.getVisibleMemoryRange();
-    expect(range.start).toBe('0x00008000');
+    expect(range.start).toBe(programStart);
   });
 
   test('should navigate to address from register', async () => {
@@ -120,7 +122,7 @@ test.describe('Memory View', () => {
     await loadProgram(appPage, TEST_PROGRAMS.hello);
 
     // Navigate to program memory
-    await memoryView.goToAddress('0x00008000');
+    await memoryView.goToAddress(formatAddress(ADDRESSES.CODE_SEGMENT_START));
 
     // Switch to hex format (default)
     // Values should be displayed as hex
@@ -149,7 +151,7 @@ test.describe('Memory View', () => {
     await loadProgram(appPage, TEST_PROGRAMS.arithmetic);
 
     // Navigate to a specific address
-    await memoryView.goToAddress('0x00008000');
+    await memoryView.goToAddress(formatAddress(ADDRESSES.CODE_SEGMENT_START));
 
     // Get initial memory state
     const initialRange = await memoryView.getVisibleMemoryRange();
