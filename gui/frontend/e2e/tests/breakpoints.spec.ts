@@ -87,8 +87,8 @@ test.describe('Breakpoints', () => {
     // Set breakpoint at current location
     await appPage.pressF9();
 
-    // Reset and run
-    await appPage.clickReset();
+    // Restart and run (restart preserves program and breakpoints)
+    await appPage.clickRestart();
     await appPage.clickRun();
 
     // Should stop at breakpoint
@@ -171,8 +171,8 @@ test.describe('Breakpoints', () => {
 
     const pcAtBreakpoint = await registerView.getRegisterValue('PC');
 
-    // Reset and run to hit breakpoint
-    await appPage.clickReset();
+    // Restart and run to hit breakpoint (restart preserves program and breakpoints)
+    await appPage.clickRestart();
     await appPage.clickRun();
 
     // Wait for execution to pause at breakpoint

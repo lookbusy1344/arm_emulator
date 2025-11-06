@@ -93,6 +93,14 @@ export class AppPage extends BasePage {
     await this.resetButton.click();
   }
 
+  async clickRestart() {
+    // Call Restart via Wails binding (preserves program and breakpoints)
+    await this.page.evaluate(() => {
+      // @ts-ignore - Wails runtime
+      return window.go.main.App.Restart();
+    });
+  }
+
   async switchToSourceView() {
     await this.sourceTab.click();
   }
