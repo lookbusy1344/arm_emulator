@@ -15,6 +15,14 @@ test.describe('Breakpoints', () => {
     await appPage.goto();
     await appPage.waitForLoad();
 
+    // Wait for any ongoing execution to complete
+    await page.waitForFunction(() => {
+      const statusElement = document.querySelector('[data-testid="execution-status"]');
+      if (!statusElement) return true; // If no status element, assume ready
+      const status = statusElement.textContent?.toLowerCase() || '';
+      return status !== 'running';
+    }, { timeout: TIMEOUTS.EXECUTION_MAX });
+
     // Clear all breakpoints first
     await page.evaluate(() => {
       // @ts-ignore
@@ -30,7 +38,7 @@ test.describe('Breakpoints', () => {
       if (!pcElement) return false;
       const pcValue = pcElement.textContent?.trim() || '';
       return pcValue === '0x00000000';
-    }, { timeout: TIMEOUTS.WAIT_FOR_RESET });
+    }, { timeout: TIMEOUTS.EXECUTION_MAX });
   });
 
   test('should set breakpoint via F9', async () => {

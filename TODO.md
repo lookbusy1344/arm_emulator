@@ -18,6 +18,38 @@ This file tracks outstanding work only. Completed items are in `PROGRESS.md`.
 
 ## High Priority Tasks
 
+### **CRITICAL: GUI VM Reset Failure**
+**Priority:** CRITICAL 🔴
+**Type:** Bug Fix - Backend
+**Added:** 2025-11-06
+
+**Issue:** The Wails backend VM Reset() function fails after the first test execution. When reset is called, the PC register does not return to 0x00000000, causing all subsequent E2E tests to timeout.
+
+**Evidence:**
+- First test in breakpoints.spec.ts passes ✓
+- All subsequent tests fail waiting for PC to reset to 0x00000000
+- Timeout occurs in beforeEach hook after calling appPage.clickReset()
+- Issue reproducible in local development and CI
+
+**Impact:**
+- E2E tests cannot run reliably
+- Blocks CI/CD pipeline
+- Suggests VM state corruption or incomplete reset logic
+
+**Next Steps:**
+1. Investigate gui/app.go Reset() implementation
+2. Check if VM state is properly cleared (registers, memory, breakpoints, execution state)
+3. Add unit tests for Reset() to ensure PC returns to entry point
+4. Verify reset works after program execution completes
+5. Consider adding defensive checks for execution state before reset
+
+**Related Files:**
+- `gui/app.go` - Reset() method
+- `vm/cpu.go` - VM state management
+- `gui/frontend/e2e/tests/breakpoints.spec.ts:33` - Failing test location
+
+---
+
 ### GUI E2E Test Suite Completion
 **Priority:** COMPLETE ✅
 **Type:** Testing/Quality Assurance

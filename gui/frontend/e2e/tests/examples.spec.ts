@@ -59,6 +59,7 @@ test.describe('Complex Example Programs', () => {
   test.beforeEach(async ({ page }) => {
     appPage = new AppPage(page);
     await appPage.goto();
+    await appPage.waitForLoad();
   });
 
   test('should execute quicksort.s', async ({ page }) => {
@@ -197,6 +198,7 @@ test.describe('Example Program Stepping', () => {
   test.beforeEach(async ({ page }) => {
     appPage = new AppPage(page);
     await appPage.goto();
+    await appPage.waitForLoad();
   });
 
   test('should step through hello.s', async ({ page }) => {
@@ -288,6 +290,7 @@ test.describe('Example Program Output Verification', () => {
   test.beforeEach(async ({ page }) => {
     appPage = new AppPage(page);
     await appPage.goto();
+    await appPage.waitForLoad();
   });
 
   test('hello.s should output "Hello, World!"', async ({ page }) => {

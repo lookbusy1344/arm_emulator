@@ -13,6 +13,7 @@ test.describe('Memory View', () => {
     appPage = new AppPage(page);
     memoryView = new MemoryViewPage(page);
     await appPage.goto();
+    await appPage.waitForLoad();
   });
 
   test('should navigate to specific address', async () => {
@@ -168,6 +169,7 @@ test.describe('Stack View', () => {
   test.beforeEach(async ({ page }) => {
     appPage = new AppPage(page);
     await appPage.goto();
+    await appPage.waitForLoad();
   });
 
   test('should display stack contents', async ({ page }) => {

@@ -13,6 +13,7 @@ test.describe('Program Execution', () => {
     appPage = new AppPage(page);
     registerView = new RegisterViewPage(page);
     await appPage.goto();
+    await appPage.waitForLoad();
 
     // Reset VM and clear all breakpoints to ensure clean state
     await appPage.clickReset();
