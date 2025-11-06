@@ -17,12 +17,19 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          # Test on macOS only for speed - covers all browsers
+          # macOS - test all browsers
           - os: macos-latest
             browser: chromium
           - os: macos-latest
             browser: webkit
           - os: macos-latest
+            browser: firefox
+          # Linux - test all browsers
+          - os: ubuntu-latest
+            browser: chromium
+          - os: ubuntu-latest
+            browser: webkit
+          - os: ubuntu-latest
             browser: firefox
 
     steps:
