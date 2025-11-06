@@ -3,7 +3,7 @@ import { AppPage } from '../pages/app.page';
 import { RegisterViewPage } from '../pages/register-view.page';
 import { TEST_PROGRAMS } from '../fixtures/programs';
 import { loadProgram, waitForExecution, waitForOutput, formatAddress } from '../utils/helpers';
-import { ADDRESSES } from '../utils/test-constants';
+import { ADDRESSES, TIMEOUTS } from '../utils/test-constants';
 
 test.describe('Program Execution', () => {
   let appPage: AppPage;
@@ -23,7 +23,7 @@ test.describe('Program Execution', () => {
       if (!pcElement) return false;
       const pcValue = pcElement.textContent?.trim() || '';
       return pcValue === '0x00000000';
-    }, { timeout: 500 });
+    }, { timeout: TIMEOUTS.WAIT_FOR_RESET });
 
     // Clear any existing breakpoints
     const breakpoints = await page.evaluate(() => {
@@ -76,7 +76,7 @@ test.describe('Program Execution', () => {
         return currentPC !== '' && currentPC !== prevPC;
       },
       initialPC,
-      { timeout: 500 }
+      { timeout: TIMEOUTS.WAIT_FOR_STATE }
     );
 
     // Verify PC changed
@@ -96,7 +96,7 @@ test.describe('Program Execution', () => {
           return currentPC !== '' && currentPC !== pc;
         },
         prevPC,
-        { timeout: 500 }
+        { timeout: TIMEOUTS.WAIT_FOR_STATE }
       );
     }
 
@@ -117,7 +117,7 @@ test.describe('Program Execution', () => {
       if (!statusElement) return false;
       const status = statusElement.textContent?.toLowerCase() || '';
       return status === 'running';
-    }, { timeout: 2000 });
+    }, { timeout: TIMEOUTS.WAIT_FOR_RESET });
 
     // Pause
     await appPage.clickPause();
@@ -128,7 +128,7 @@ test.describe('Program Execution', () => {
       if (!statusElement) return false;
       const status = statusElement.textContent?.toLowerCase() || '';
       return status === 'paused';
-    }, { timeout: 2000 });
+    }, { timeout: TIMEOUTS.WAIT_FOR_RESET });
 
     // Verify we can step after pause
     const pc = await registerView.getRegisterValue('PC');
@@ -143,7 +143,7 @@ test.describe('Program Execution', () => {
         return currentPC !== '' && currentPC !== prevPC;
       },
       pc,
-      { timeout: 500 }
+      { timeout: TIMEOUTS.WAIT_FOR_STATE }
     );
 
     const newPC = await registerView.getRegisterValue('PC');
@@ -166,7 +166,7 @@ test.describe('Program Execution', () => {
           return currentPC !== '' && currentPC !== pc;
         },
         prevPC,
-        { timeout: 500 }
+        { timeout: TIMEOUTS.WAIT_FOR_STATE }
       );
     }
 
@@ -186,7 +186,7 @@ test.describe('Program Execution', () => {
         return currentPC === pc;
       },
       expectedPC,
-      { timeout: 500 }
+      { timeout: TIMEOUTS.WAIT_FOR_STATE }
     );
 
     // Verify registers reset to entry point, not necessarily all zeros
@@ -212,7 +212,7 @@ test.describe('Program Execution', () => {
           return currentPC !== '' && currentPC !== pc;
         },
         prevPC,
-        { timeout: 500 }
+        { timeout: TIMEOUTS.WAIT_FOR_STATE }
       );
     }
 
@@ -244,7 +244,7 @@ test.describe('Program Execution', () => {
         return currentPC !== '' && currentPC !== prevPC;
       },
       initialPC,
-      { timeout: 1000 }
+      { timeout: TIMEOUTS.EXECUTION_SHORT }
     );
 
     const newPC = await registerView.getRegisterValue('PC');
@@ -258,7 +258,7 @@ test.describe('Program Execution', () => {
     await appPage.clickRun();
 
     // Wait for execution to complete
-    await waitForExecution(appPage.page, 10000);
+    await waitForExecution(appPage.page, TIMEOUTS.EXECUTION_MAX);
 
     // Switch to status tab
     await appPage.switchToStatusTab();

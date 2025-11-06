@@ -3,7 +3,7 @@ import { AppPage } from '../pages/app.page';
 import { RegisterViewPage } from '../pages/register-view.page';
 import { TEST_PROGRAMS } from '../fixtures/programs';
 import { loadProgram, waitForExecution, stepUntilAddress, waitForVMStateChange } from '../utils/helpers';
-import { ADDRESSES } from '../utils/test-constants';
+import { ADDRESSES, TIMEOUTS } from '../utils/test-constants';
 
 test.describe('Breakpoints', () => {
   let appPage: AppPage;
@@ -30,7 +30,7 @@ test.describe('Breakpoints', () => {
       if (!pcElement) return false;
       const pcValue = pcElement.textContent?.trim() || '';
       return pcValue === '0x00000000';
-    }, { timeout: 500 });
+    }, { timeout: TIMEOUTS.WAIT_FOR_RESET });
   });
 
   test('should set breakpoint via F9', async () => {
@@ -70,7 +70,7 @@ test.describe('Breakpoints', () => {
         return currentPC !== '' && currentPC !== prevPC;
       },
       previousPC,
-      { timeout: 500 }
+      { timeout: TIMEOUTS.WAIT_FOR_STATE }
     );
 
     // Get current PC to set breakpoint at
@@ -156,7 +156,7 @@ test.describe('Breakpoints', () => {
         return currentPC !== '' && currentPC !== prevPC;
       },
       previousPC,
-      { timeout: 500 }
+      { timeout: TIMEOUTS.WAIT_FOR_STATE }
     );
 
     await appPage.pressF9();
@@ -178,7 +178,7 @@ test.describe('Breakpoints', () => {
     await appPage.clickRun();
 
     // Wait for next execution pause (either another breakpoint hit or completion)
-    await waitForExecution(appPage.page, 1000);
+    await waitForExecution(appPage.page, TIMEOUTS.EXECUTION_SHORT);
 
     // Verify execution continued (PC changed or program completed)
     const pcAfterContinue = await registerView.getRegisterValue('PC');
@@ -223,7 +223,7 @@ test.describe('Breakpoints', () => {
     await appPage.clickRun();
 
     // Should not stop (or will stop at exit)
-    await waitForExecution(appPage.page, 2000);
+    await waitForExecution(appPage.page, TIMEOUTS.WAIT_FOR_STATE);
 
     // Re-enable breakpoint
     await appPage.switchToBreakpointsTab();

@@ -1,6 +1,7 @@
 import { test, expect } from '@playwright/test';
 import { AppPage } from '../pages/app.page';
 import { loadProgram, waitForExecution } from '../utils/helpers';
+import { TIMEOUTS } from '../utils/test-constants';
 import * as fs from 'fs';
 import * as path from 'path';
 import { fileURLToPath } from 'url';
@@ -42,7 +43,7 @@ test.describe('Example Programs', () => {
       await appPage.clickRun();
 
       // Wait for completion
-      await waitForExecution(page, 10000);
+      await waitForExecution(page, TIMEOUTS.EXECUTION_MAX);
 
       // Verify program completed (check for EXIT)
       await appPage.switchToStatusTab();

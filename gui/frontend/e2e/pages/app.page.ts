@@ -2,6 +2,9 @@ import { Page, Locator } from '@playwright/test';
 import { BasePage } from './base.page';
 
 export class AppPage extends BasePage {
+  // Toolbar
+  readonly toolbar: Locator;
+
   // Toolbar buttons
   readonly loadButton: Locator;
   readonly stepButton: Locator;
@@ -30,6 +33,9 @@ export class AppPage extends BasePage {
 
   constructor(page: Page) {
     super(page);
+
+    // Initialize toolbar
+    this.toolbar = page.locator('[data-testid="toolbar"]');
 
     // Initialize toolbar buttons
     this.loadButton = page.getByRole('button', { name: 'Load', exact: true });

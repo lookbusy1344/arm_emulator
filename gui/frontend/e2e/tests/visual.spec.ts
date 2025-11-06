@@ -2,6 +2,7 @@ import { test, expect } from '@playwright/test';
 import { AppPage } from '../pages/app.page';
 import { TEST_PROGRAMS } from '../fixtures/programs';
 import { loadProgram } from '../utils/helpers';
+import { TIMEOUTS } from '../utils/test-constants';
 
 test.describe('Visual Regression', () => {
   test('should match initial state screenshot', async ({ page }) => {
@@ -76,7 +77,7 @@ test.describe('Visual Regression', () => {
       if (!statusElement) return false;
       const status = statusElement.textContent?.toLowerCase() || '';
       return status === 'halted' || status === 'exited';
-    }, { timeout: 5000 });
+    }, { timeout: TIMEOUTS.EXECUTION_NORMAL });
 
     // Switch to output tab
     await appPage.switchToOutputTab();
@@ -121,7 +122,7 @@ test.describe('Visual Regression', () => {
       if (!statusElement) return false;
       const status = statusElement.textContent?.toLowerCase() || '';
       return status === 'halted' || status === 'exited';
-    }, { timeout: 5000 });
+    }, { timeout: TIMEOUTS.EXECUTION_NORMAL });
 
     // Switch to status tab
     await appPage.switchToStatusTab();
@@ -167,7 +168,7 @@ test.describe('Visual Regression - Toolbar', () => {
       if (!statusElement) return false;
       const status = statusElement.textContent?.toLowerCase() || '';
       return status === 'running';
-    }, { timeout: 2000 });
+    }, { timeout: TIMEOUTS.WAIT_FOR_STATE });
 
     // Take screenshot of toolbar during execution
     const toolbar = page.locator('[data-testid="toolbar"]');
@@ -257,7 +258,7 @@ test.describe('Visual Regression - Execution States', () => {
       if (!statusElement) return false;
       const status = statusElement.textContent?.toLowerCase() || '';
       return status === 'halted' || status === 'exited';
-    }, { timeout: 5000 });
+    }, { timeout: TIMEOUTS.EXECUTION_NORMAL });
 
     // Take screenshot after completion
     await expect(page).toHaveScreenshot('state-completed.png', {
@@ -286,7 +287,7 @@ test.describe('Visual Regression - Execution States', () => {
       if (!statusElement) return false;
       const status = statusElement.textContent?.toLowerCase() || '';
       return status === 'paused';
-    }, { timeout: 5000 });
+    }, { timeout: TIMEOUTS.EXECUTION_NORMAL });
 
     // Take screenshot at breakpoint
     await expect(page).toHaveScreenshot('state-at-breakpoint.png', {

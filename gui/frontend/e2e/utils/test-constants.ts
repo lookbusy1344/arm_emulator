@@ -21,6 +21,10 @@ export const TIMEOUTS = {
   // Step operation
   STEP_COMPLETE: 100,
   STEP_OVER_COMPLETE: 500,
+
+  // Wait for function timeouts (for waitForFunction calls in CI)
+  WAIT_FOR_STATE: 2000,  // General state changes (PC updates, etc)
+  WAIT_FOR_RESET: 1000,  // VM reset completion
 } as const;
 
 // Memory addresses

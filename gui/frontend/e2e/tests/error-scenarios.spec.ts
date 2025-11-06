@@ -22,33 +22,36 @@ test.describe('Error Scenarios', () => {
       SWI #0x00
     `;
 
-    // Attempt to load invalid program
-    const result = await appPage.page.evaluate(
-      ({ source, entryPoint }) => {
-        try {
+    // Attempt to load invalid program - expect it to throw
+    let errorCaught = false;
+    let errorMessage = '';
+
+    try {
+      await appPage.page.evaluate(
+        ({ source, entryPoint }) => {
           // @ts-ignore - Wails runtime
           return window.go.main.App.LoadProgramFromSource(source, 'invalid.s', entryPoint);
-        } catch (e: any) {
-          return { error: e.message };
-        }
-      },
-      { source: invalidProgram, entryPoint: ADDRESSES.CODE_SEGMENT_START }
-    );
-
-    // Verify error was properly reported with meaningful message
-    if (result && typeof result === 'object' && 'error' in result) {
-      // Backend returned error - verify it contains meaningful information
-      expect(result.error).toBeTruthy();
-      expect(typeof result.error).toBe('string');
-      // Should mention the invalid instruction or parse error
-      const errorMsg = result.error.toLowerCase();
-      expect(
-        errorMsg.includes('invalid') ||
-        errorMsg.includes('unknown') ||
-        errorMsg.includes('parse') ||
-        errorMsg.includes('error')
-      ).toBe(true);
+        },
+        { source: invalidProgram, entryPoint: ADDRESSES.CODE_SEGMENT_START }
+      );
+    } catch (e: any) {
+      errorCaught = true;
+      errorMessage = e.message || String(e);
     }
+
+    // Verify error was thrown with meaningful message
+    expect(errorCaught).toBe(true);
+    expect(errorMessage).toBeTruthy();
+
+    // Should mention the invalid instruction or parse error
+    const errorMsg = errorMessage.toLowerCase();
+    expect(
+      errorMsg.includes('invalid') ||
+      errorMsg.includes('unknown') ||
+      errorMsg.includes('parse') ||
+      errorMsg.includes('error') ||
+      errorMsg.includes('encode')
+    ).toBe(true);
 
     // Verify app is still responsive (didn't crash)
     await expect(appPage.registerView).toBeVisible();
@@ -57,25 +60,27 @@ test.describe('Error Scenarios', () => {
   test('should handle empty program', async () => {
     const emptyProgram = '';
 
-    const result = await appPage.page.evaluate(
-      ({ source, entryPoint }) => {
-        try {
+    // Attempt to load empty program - may succeed or fail depending on implementation
+    let errorCaught = false;
+    let errorMessage = '';
+
+    try {
+      await appPage.page.evaluate(
+        ({ source, entryPoint }) => {
           // @ts-ignore - Wails runtime
           return window.go.main.App.LoadProgramFromSource(source, 'empty.s', entryPoint);
-        } catch (e: any) {
-          return { error: e.message };
-        }
-      },
-      { source: emptyProgram, entryPoint: ADDRESSES.CODE_SEGMENT_START }
-    );
+        },
+        { source: emptyProgram, entryPoint: ADDRESSES.CODE_SEGMENT_START }
+      );
+    } catch (e: any) {
+      errorCaught = true;
+      errorMessage = e.message || String(e);
+    }
 
-    // Empty program should return meaningful error
-    if (result && typeof result === 'object' && 'error' in result) {
-      expect(result.error).toBeTruthy();
-      expect(typeof result.error).toBe('string');
-      // Should mention empty, no instructions, or similar
-      const errorMsg = result.error.toLowerCase();
-      expect(errorMsg.length).toBeGreaterThan(0);
+    // Empty program should either error or succeed gracefully
+    if (errorCaught) {
+      expect(errorMessage).toBeTruthy();
+      expect(errorMessage.length).toBeGreaterThan(0);
     }
 
     // Verify UI remains stable
@@ -116,7 +121,7 @@ test.describe('Error Scenarios', () => {
         return currentPC !== '' && currentPC !== previousPC;
       },
       pcBefore,
-      { timeout: TIMEOUTS.STEP_COMPLETE }
+      { timeout: TIMEOUTS.WAIT_FOR_STATE }
     );
 
     // Verify app is still responsive
@@ -160,7 +165,7 @@ test.describe('Error Scenarios', () => {
           return currentPC !== '' && currentPC !== previousPC;
         },
         pcBefore,
-        { timeout: TIMEOUTS.STEP_COMPLETE }
+        { timeout: TIMEOUTS.WAIT_FOR_STATE }
       );
     }
 
