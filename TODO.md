@@ -18,35 +18,38 @@ This file tracks outstanding work only. Completed items are in `PROGRESS.md`.
 
 ## High Priority Tasks
 
-### **CRITICAL: GUI VM Reset Failure**
-**Priority:** CRITICAL 🔴
+### **GUI VM Reset and LoadProgram Event Issues**
+**Priority:** HIGH (Partially Fixed) 🟡
 **Type:** Bug Fix - Backend
 **Added:** 2025-11-06
+**Updated:** 2025-11-06
 
-**Issue:** The Wails backend VM Reset() function fails after the first test execution. When reset is called, the PC register does not return to 0x00000000, causing all subsequent E2E tests to timeout.
+**Status: Partially Fixed - Needs E2E Testing**
 
-**Evidence:**
-- First test in breakpoints.spec.ts passes ✓
-- All subsequent tests fail waiting for PC to reset to 0x00000000
-- Timeout occurs in beforeEach hook after calling appPage.clickReset()
-- Issue reproducible in local development and CI
+**Issues Fixed:**
+1. ✅ Reset() now performs complete reset to pristine state (PC=0x00000000)
+2. ✅ Added ResetToEntryPoint() for restarting programs without clearing
+3. ✅ Added 3 comprehensive unit tests - all passing
+4. ✅ Fixed LoadProgramFromSource to emit vm:state-changed event
 
-**Impact:**
-- E2E tests cannot run reliably
-- Blocks CI/CD pipeline
-- Suggests VM state corruption or incomplete reset logic
+**Remaining Work:**
+- [ ] Run E2E tests to verify both fixes work together
+- [ ] Update TODO.md status based on E2E results
+- [ ] Consider if ResetToEntryPoint() should be exposed to GUI
 
-**Next Steps:**
-1. Investigate gui/app.go Reset() implementation
-2. Check if VM state is properly cleared (registers, memory, breakpoints, execution state)
-3. Add unit tests for Reset() to ensure PC returns to entry point
-4. Verify reset works after program execution completes
-5. Consider adding defensive checks for execution state before reset
+**Changes Made:**
+- `service/debugger_service.go`: Rewrote Reset() and added ResetToEntryPoint()
+- `gui/app.go`: Added vm:state-changed emission after LoadProgram
+- `tests/unit/service/debugger_service_test.go`: Added 3 reset tests
 
-**Related Files:**
-- `gui/app.go` - Reset() method
-- `vm/cpu.go` - VM state management
-- `gui/frontend/e2e/tests/breakpoints.spec.ts:33` - Failing test location
+**Expected E2E Results:**
+- Before fixes: 1/7 tests pass
+- After fixes: All 7 tests should pass (or identify remaining issues)
+
+**Related Commits:**
+- 1032e31: Fix E2E test failures and document critical VM reset bug
+- 532ec71: Implement complete VM reset and add comprehensive tests
+- ecc5b9d: Fix LoadProgramFromSource missing state-changed event emission
 
 ---
 
