@@ -2,6 +2,9 @@ import { Page, Locator } from '@playwright/test';
 import { BasePage } from './base.page';
 
 export class AppPage extends BasePage {
+  // Toolbar
+  readonly toolbar: Locator;
+
   // Toolbar buttons
   readonly loadButton: Locator;
   readonly stepButton: Locator;
@@ -30,6 +33,9 @@ export class AppPage extends BasePage {
 
   constructor(page: Page) {
     super(page);
+
+    // Initialize toolbar
+    this.toolbar = page.locator('[data-testid="toolbar"]');
 
     // Initialize toolbar buttons
     this.loadButton = page.getByRole('button', { name: 'Load', exact: true });
@@ -87,6 +93,23 @@ export class AppPage extends BasePage {
     await this.resetButton.click();
   }
 
+  async clickRestart() {
+    // Call Restart via Wails binding (preserves program and breakpoints)
+    await this.page.evaluate(() => {
+      // @ts-ignore - Wails runtime
+      return window.go.main.App.Restart();
+    });
+
+    // Wait for frontend to process the state-changed event and update UI
+    // Check that PC has been reset to entry point (0x00008000)
+    await this.page.waitForFunction(() => {
+      const pcElement = document.querySelector('[data-register="PC"] .register-value');
+      if (!pcElement) return false;
+      const pcValue = pcElement.textContent?.trim() || '';
+      return pcValue === '0x00008000';
+    }, { timeout: 5000 });
+  }
+
   async switchToSourceView() {
     await this.sourceTab.click();
   }
@@ -133,7 +156,22 @@ export class AppPage extends BasePage {
   }
 
   async pressF9() {
+    // Get current breakpoint count before pressing F9
+    const countBefore = await this.page.evaluate(() => {
+      return document.querySelectorAll('.breakpoint-item').length;
+    });
+
     await this.page.keyboard.press('F9');
+
+    // Wait for breakpoint count to change (either add or remove)
+    await this.page.waitForFunction(
+      (before) => {
+        const countNow = document.querySelectorAll('.breakpoint-item').length;
+        return countNow !== before;
+      },
+      countBefore,
+      { timeout: 2000 }
+    );
   }
 
   async pressF10() {

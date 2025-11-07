@@ -110,6 +110,10 @@ export function Reset() {
   return window['go']['main']['App']['Reset']();
 }
 
+export function Restart() {
+  return window['go']['main']['App']['Restart']();
+}
+
 export function Step() {
   return window['go']['main']['App']['Step']();
 }

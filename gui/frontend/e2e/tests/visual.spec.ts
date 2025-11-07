@@ -2,6 +2,7 @@ import { test, expect } from '@playwright/test';
 import { AppPage } from '../pages/app.page';
 import { TEST_PROGRAMS } from '../fixtures/programs';
 import { loadProgram } from '../utils/helpers';
+import { TIMEOUTS } from '../utils/test-constants';
 
 test.describe('Visual Regression', () => {
   test('should match initial state screenshot', async ({ page }) => {
@@ -70,8 +71,13 @@ test.describe('Visual Regression', () => {
     // Run program to generate output
     await appPage.clickRun();
 
-    // Wait for execution
-    await page.waitForTimeout(1000);
+    // Wait for execution to complete
+    await page.waitForFunction(() => {
+      const statusElement = document.querySelector('[data-testid="execution-status"]');
+      if (!statusElement) return false;
+      const status = statusElement.textContent?.toLowerCase() || '';
+      return status === 'halted' || status === 'exited';
+    }, { timeout: TIMEOUTS.EXECUTION_NORMAL });
 
     // Switch to output tab
     await appPage.switchToOutputTab();
@@ -109,7 +115,14 @@ test.describe('Visual Regression', () => {
 
     // Run program
     await appPage.clickRun();
-    await page.waitForTimeout(1000);
+
+    // Wait for execution to complete
+    await page.waitForFunction(() => {
+      const statusElement = document.querySelector('[data-testid="execution-status"]');
+      if (!statusElement) return false;
+      const status = statusElement.textContent?.toLowerCase() || '';
+      return status === 'halted' || status === 'exited';
+    }, { timeout: TIMEOUTS.EXECUTION_NORMAL });
 
     // Switch to status tab
     await appPage.switchToStatusTab();
@@ -148,7 +161,14 @@ test.describe('Visual Regression - Toolbar', () => {
 
     // Start execution
     await appPage.clickRun();
-    await page.waitForTimeout(200);
+
+    // Wait for execution to actually start
+    await page.waitForFunction(() => {
+      const statusElement = document.querySelector('[data-testid="execution-status"]');
+      if (!statusElement) return false;
+      const status = statusElement.textContent?.toLowerCase() || '';
+      return status === 'running';
+    }, { timeout: TIMEOUTS.WAIT_FOR_STATE });
 
     // Take screenshot of toolbar during execution
     const toolbar = page.locator('[data-testid="toolbar"]');
@@ -231,7 +251,14 @@ test.describe('Visual Regression - Execution States', () => {
 
     // Run to completion
     await appPage.clickRun();
-    await page.waitForTimeout(2000);
+
+    // Wait for execution to complete
+    await page.waitForFunction(() => {
+      const statusElement = document.querySelector('[data-testid="execution-status"]');
+      if (!statusElement) return false;
+      const status = statusElement.textContent?.toLowerCase() || '';
+      return status === 'halted' || status === 'exited';
+    }, { timeout: TIMEOUTS.EXECUTION_NORMAL });
 
     // Take screenshot after completion
     await expect(page).toHaveScreenshot('state-completed.png', {
@@ -253,7 +280,14 @@ test.describe('Visual Regression - Execution States', () => {
     // Reset and run to breakpoint
     await appPage.clickReset();
     await appPage.clickRun();
-    await page.waitForTimeout(1000);
+
+    // Wait for breakpoint to be hit (status should be paused)
+    await page.waitForFunction(() => {
+      const statusElement = document.querySelector('[data-testid="execution-status"]');
+      if (!statusElement) return false;
+      const status = statusElement.textContent?.toLowerCase() || '';
+      return status === 'paused';
+    }, { timeout: TIMEOUTS.EXECUTION_NORMAL });
 
     // Take screenshot at breakpoint
     await expect(page).toHaveScreenshot('state-at-breakpoint.png', {

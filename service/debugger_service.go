@@ -388,13 +388,51 @@ func (s *DebuggerService) Pause() {
 	s.debugger.Running = false
 }
 
-// Reset resets VM to entry point
+// Reset performs a complete reset to initial state
+// This clears the loaded program, all breakpoints, and resets the VM to pristine state
+// Use ResetToEntryPoint() if you want to restart the current program instead
 func (s *DebuggerService) Reset() error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	s.vm.CPU.PC = s.entryPoint
+	// Full VM reset: clears all registers (PC=0), memory, and execution state
+	s.vm.Reset()
+
+	// Clear loaded program and associated metadata
+	s.program = nil
+	s.entryPoint = 0
+	s.vm.EntryPoint = 0
+	s.vm.StackTop = 0
+	s.symbols = make(map[string]uint32)
+	s.sourceMap = make(map[uint32]string)
+
+	// Clear all breakpoints and watchpoints
+	s.debugger.Breakpoints.Clear()
+	// Note: WatchpointManager doesn't have Clear() - could add if needed
+
+	// Reset execution control
+	s.debugger.Running = false
 	s.vm.State = vm.StateHalted
+
+	return nil
+}
+
+// ResetToEntryPoint resets VM to program entry point without clearing the loaded program
+// This is useful for restarting execution of the current program
+func (s *DebuggerService) ResetToEntryPoint() error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	if s.program == nil {
+		// No program loaded, perform full reset
+		s.vm.Reset()
+		s.vm.State = vm.StateHalted
+		s.debugger.Running = false
+		return nil
+	}
+
+	// Reset registers and execution state but preserve memory contents
+	s.vm.ResetRegisters()
 	s.debugger.Running = false
 
 	return nil

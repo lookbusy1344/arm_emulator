@@ -2,7 +2,8 @@ import { test, expect } from '@playwright/test';
 import { AppPage } from '../pages/app.page';
 import { RegisterViewPage } from '../pages/register-view.page';
 import { TEST_PROGRAMS } from '../fixtures/programs';
-import { loadProgram, waitForExecution, stepUntilAddress } from '../utils/helpers';
+import { loadProgram, waitForExecution, stepUntilAddress, waitForVMStateChange } from '../utils/helpers';
+import { ADDRESSES, TIMEOUTS } from '../utils/test-constants';
 
 test.describe('Breakpoints', () => {
   let appPage: AppPage;
@@ -14,6 +15,14 @@ test.describe('Breakpoints', () => {
     await appPage.goto();
     await appPage.waitForLoad();
 
+    // Wait for any ongoing execution to complete
+    await page.waitForFunction(() => {
+      const statusElement = document.querySelector('[data-testid="execution-status"]');
+      if (!statusElement) return true; // If no status element, assume ready
+      const status = statusElement.textContent?.toLowerCase() || '';
+      return status !== 'running';
+    }, { timeout: TIMEOUTS.EXECUTION_MAX });
+
     // Clear all breakpoints first
     await page.evaluate(() => {
       // @ts-ignore
@@ -22,7 +31,14 @@ test.describe('Breakpoints', () => {
 
     // Reset VM to clean state
     await appPage.clickReset();
-    await page.waitForTimeout(200);
+
+    // Wait for reset to complete by checking PC is back at zero
+    await page.waitForFunction(() => {
+      const pcElement = document.querySelector('[data-register="PC"] .register-value');
+      if (!pcElement) return false;
+      const pcValue = pcElement.textContent?.trim() || '';
+      return pcValue === '0x00000000';
+    }, { timeout: TIMEOUTS.EXECUTION_MAX });
   });
 
   test('should set breakpoint via F9', async () => {
@@ -47,13 +63,23 @@ test.describe('Breakpoints', () => {
   test('should stop at breakpoint during run', async () => {
     await loadProgram(appPage, TEST_PROGRAMS.fibonacci);
 
-    // Step to an instruction in the loop
-    await appPage.clickStep();
-    await appPage.clickStep();
-    await appPage.clickStep();
+    // Step 3 times, waiting for each step to complete
+    for (let i = 0; i < 3; i++) {
+      const pcBefore = await registerView.getRegisterValue('PC');
+      await appPage.clickStep();
 
-    // Wait for UI to update after steps
-    await appPage.page.waitForTimeout(100);
+      // Wait for this specific step to complete
+      await appPage.page.waitForFunction(
+        (prevPC) => {
+          const pcElement = document.querySelector('[data-register="PC"] .register-value');
+          if (!pcElement) return false;
+          const currentPC = pcElement.textContent?.trim() || '';
+          return currentPC !== '' && currentPC !== prevPC;
+        },
+        pcBefore,
+        { timeout: TIMEOUTS.WAIT_FOR_STATE }
+      );
+    }
 
     // Get current PC to set breakpoint at
     const breakpointAddress = await registerView.getRegisterValue('PC');
@@ -61,8 +87,8 @@ test.describe('Breakpoints', () => {
     // Set breakpoint at current location
     await appPage.pressF9();
 
-    // Reset and run
-    await appPage.clickReset();
+    // Restart and run (restart preserves program and breakpoints)
+    await appPage.clickRestart();
     await appPage.clickRun();
 
     // Should stop at breakpoint
@@ -124,19 +150,29 @@ test.describe('Breakpoints', () => {
     await loadProgram(appPage, TEST_PROGRAMS.fibonacci);
 
     // Set breakpoint at an early instruction in the loop
+    let previousPC = await registerView.getRegisterValue('PC');
     await appPage.clickStep();
     await appPage.clickStep();
     await appPage.clickStep();
 
-    // Wait for UI to update
-    await appPage.page.waitForTimeout(100);
+    // Wait for last step to complete by checking PC changed
+    await appPage.page.waitForFunction(
+      (prevPC) => {
+        const pcElement = document.querySelector('[data-register="PC"] .register-value');
+        if (!pcElement) return false;
+        const currentPC = pcElement.textContent?.trim() || '';
+        return currentPC !== '' && currentPC !== prevPC;
+      },
+      previousPC,
+      { timeout: TIMEOUTS.WAIT_FOR_STATE }
+    );
 
     await appPage.pressF9();
 
     const pcAtBreakpoint = await registerView.getRegisterValue('PC');
 
-    // Reset and run to hit breakpoint
-    await appPage.clickReset();
+    // Restart and run to hit breakpoint (restart preserves program and breakpoints)
+    await appPage.clickRestart();
     await appPage.clickRun();
 
     // Wait for execution to pause at breakpoint
@@ -150,7 +186,7 @@ test.describe('Breakpoints', () => {
     await appPage.clickRun();
 
     // Wait for next execution pause (either another breakpoint hit or completion)
-    await waitForExecution(appPage.page, 1000);
+    await waitForExecution(appPage.page, TIMEOUTS.EXECUTION_SHORT);
 
     // Verify execution continued (PC changed or program completed)
     const pcAfterContinue = await registerView.getRegisterValue('PC');
@@ -195,7 +231,7 @@ test.describe('Breakpoints', () => {
     await appPage.clickRun();
 
     // Should not stop (or will stop at exit)
-    await waitForExecution(appPage.page, 2000);
+    await waitForExecution(appPage.page, TIMEOUTS.WAIT_FOR_STATE);
 
     // Re-enable breakpoint
     await appPage.switchToBreakpointsTab();

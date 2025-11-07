@@ -56,6 +56,8 @@ export function RemoveWatchpoint(arg1:number):Promise<void>;
 
 export function Reset():Promise<void>;
 
+export function Restart():Promise<void>;
+
 export function Step():Promise<void>;
 
 export function StepOut():Promise<void>;

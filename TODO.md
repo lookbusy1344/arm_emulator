@@ -18,6 +18,61 @@ This file tracks outstanding work only. Completed items are in `PROGRESS.md`.
 
 ## High Priority Tasks
 
+### **✅ RESOLVED: E2E Breakpoint Tests Now Passing (7/7)**
+**Priority:** COMPLETE ✅
+**Type:** Bug Fix - E2E Testing
+**Added:** 2025-11-06
+**Resolved:** 2025-11-07
+
+**Final Status: 7/7 Passing (100%) - All Active Tests Passing** ✅
+
+**E2E Test Results (breakpoints.spec.ts):**
+- ✅ should set breakpoint via F9
+- ✅ should stop at breakpoint during run
+- ✅ should toggle breakpoint on/off
+- ✅ should display breakpoint in source view
+- ✅ should set multiple breakpoints
+- ✅ should continue execution after hitting breakpoint
+- ✅ should remove breakpoint from list
+- ⏭️ should disable/enable breakpoint (skipped - UI not implemented)
+- ⏭️ should clear all breakpoints (skipped - UI not implemented)
+
+**Root Cause Identified:**
+The backend code was working correctly (proven by unit test). The failures were frontend timing/synchronization issues:
+
+1. **`clickRestart()` didn't wait for UI update** - Called backend but didn't wait for frontend React components to re-render
+2. **`waitForExecution()` had race condition** - Continue() starts goroutine asynchronously, test could check status before it changed to "running"
+3. **`pressF9()` didn't wait for breakpoint to be set** - Sent F9 keypress but didn't wait for backend to actually add breakpoint
+4. **Test step waiting was incorrect** - Waited for PC to change from initial value, not from previous step, causing breakpoint address to be captured too early
+
+**Successful Fixes (2025-11-07):**
+1. ✅ Created integration test `TestRestartWithBreakpoint` - Proved backend works, isolated issue to frontend
+2. ✅ Fixed `clickRestart()` in app.page.ts - Added wait for PC to reset to 0x00008000 before returning
+3. ✅ Fixed `waitForExecution()` in helpers.ts - Added try/catch for "running" state check to handle fast execution
+4. ✅ Fixed `pressF9()` in app.page.ts - Added wait for breakpoint count to change before returning
+5. ✅ Fixed test stepping logic - Changed to wait for each individual step to complete with proper PC verification
+
+**Test Results:**
+- Integration test: ✅ PASS
+- All Go tests: ✅ 1,025 tests passing
+- E2E breakpoint tests: ✅ 7/7 passing (2 skipped for unimplemented features)
+
+**Implementation Details:**
+- `service/debugger_service.go`: Reset() and ResetToEntryPoint()
+- `gui/app.go`: Reset(), Restart(), LoadProgramFromSource event emission
+- `gui/frontend/e2e/pages/app.page.ts`: clickRestart() helper
+- `gui/frontend/e2e/tests/breakpoints.spec.ts`: 2 tests updated to use clickRestart()
+
+**Commits Made (6 total):**
+- 1032e31: Fix E2E test failures and document critical VM reset bug
+- 532ec71: Implement complete VM reset and add comprehensive tests
+- ecc5b9d: Fix LoadProgramFromSource missing state-changed event emission
+- 2f648ce: Update TODO.md with current VM reset and LoadProgram status
+- e0f555d: Document E2E test results and Reset button behavior decision
+- 65601dd: Add Restart() method to preserve program and breakpoints
+
+---
+
 ### GUI E2E Test Suite Completion
 **Priority:** COMPLETE ✅
 **Type:** Testing/Quality Assurance
@@ -102,6 +157,15 @@ a4dbdd2 Add E2E testing prerequisite documentation to CLAUDE.md
 - [ ] Implement breakpoint enable/disable checkbox (1 skipped test in breakpoints.spec.ts)
 - [ ] Implement clear-all-breakpoints button (1 skipped test in breakpoints.spec.ts)
 - [ ] Scroll test for memory view (1 skipped test - memory view is virtualized)
+
+**Test Quality Improvements (Strongly Recommended):**
+- [ ] **Error message verification in error-scenarios.spec.ts** - Currently tests only check errors exist (`toBeTruthy()`), not actual error message content. Should verify messages like "Invalid instruction", "Parse error at line X", etc.
+- [ ] **Remove hardcoded waits from visual.spec.ts** - 5 `waitForTimeout()` calls (1000ms, 200ms, 2000ms) should be replaced with proper state checks
+- [ ] **Remove hardcoded waits from memory.spec.ts** - 2 `waitForTimeout(200)` calls should use state-based assertions
+- [ ] **Remove hardcoded waits from breakpoints.spec.ts** - 3 `waitForTimeout()` calls (200ms, 100ms) should use `waitForFunction()`
+- [ ] **Remove hardcoded waits from execution.spec.ts** - 12 `waitForTimeout()` calls (50-500ms) should be replaced with proper state checks
+
+**Note:** error-scenarios.spec.ts already has proper state checks (no hardcoded waits).
 
 **Ready to merge!** All 67 active tests passing (93% of total suite).
 

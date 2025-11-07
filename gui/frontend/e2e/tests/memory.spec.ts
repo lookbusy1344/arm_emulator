@@ -2,7 +2,8 @@ import { test, expect } from '@playwright/test';
 import { AppPage } from '../pages/app.page';
 import { MemoryViewPage } from '../pages/memory-view.page';
 import { TEST_PROGRAMS } from '../fixtures/programs';
-import { loadProgram } from '../utils/helpers';
+import { loadProgram, formatAddress } from '../utils/helpers';
+import { ADDRESSES } from '../utils/test-constants';
 
 test.describe('Memory View', () => {
   let appPage: AppPage;
@@ -12,10 +13,11 @@ test.describe('Memory View', () => {
     appPage = new AppPage(page);
     memoryView = new MemoryViewPage(page);
     await appPage.goto();
+    await appPage.waitForLoad();
   });
 
   test('should navigate to specific address', async () => {
-    const targetAddress = '0x00008000';
+    const targetAddress = formatAddress(ADDRESSES.CODE_SEGMENT_START);
     await memoryView.goToAddress(targetAddress);
 
     const range = await memoryView.getVisibleMemoryRange();
@@ -25,10 +27,8 @@ test.describe('Memory View', () => {
   test('should display memory changes after execution', async () => {
     await loadProgram(appPage, TEST_PROGRAMS.hello);
 
-    // Wait for UI to update after load
-    await appPage.page.waitForTimeout(200);
-
     // Read stack pointer initial value (SP is R13 in ARM)
+    // loadProgram already waits for VM to be ready
     const sp = await appPage.getRegisterValue('R13');
 
     // Verify SP is set
@@ -64,11 +64,12 @@ test.describe('Memory View', () => {
     await loadProgram(appPage, TEST_PROGRAMS.hello);
 
     // Navigate to program start
-    await memoryView.goToAddress('0x00008000');
+    const programStart = formatAddress(ADDRESSES.CODE_SEGMENT_START);
+    await memoryView.goToAddress(programStart);
 
     // Verify memory view shows the address
     const range = await memoryView.getVisibleMemoryRange();
-    expect(range.start).toBe('0x00008000');
+    expect(range.start).toBe(programStart);
   });
 
   test('should navigate to address from register', async () => {
@@ -88,10 +89,8 @@ test.describe('Memory View', () => {
   test('should display stack memory', async () => {
     await loadProgram(appPage, TEST_PROGRAMS.hello);
 
-    // Wait for UI to update after load
-    await appPage.page.waitForTimeout(200);
-
     // Get SP value (SP is R13 in ARM)
+    // loadProgram already waits for VM to be ready
     const sp = await appPage.getRegisterValue('R13');
 
     // Navigate to stack
@@ -120,7 +119,7 @@ test.describe('Memory View', () => {
     await loadProgram(appPage, TEST_PROGRAMS.hello);
 
     // Navigate to program memory
-    await memoryView.goToAddress('0x00008000');
+    await memoryView.goToAddress(formatAddress(ADDRESSES.CODE_SEGMENT_START));
 
     // Switch to hex format (default)
     // Values should be displayed as hex
@@ -149,7 +148,7 @@ test.describe('Memory View', () => {
     await loadProgram(appPage, TEST_PROGRAMS.arithmetic);
 
     // Navigate to a specific address
-    await memoryView.goToAddress('0x00008000');
+    await memoryView.goToAddress(formatAddress(ADDRESSES.CODE_SEGMENT_START));
 
     // Get initial memory state
     const initialRange = await memoryView.getVisibleMemoryRange();
@@ -170,6 +169,7 @@ test.describe('Stack View', () => {
   test.beforeEach(async ({ page }) => {
     appPage = new AppPage(page);
     await appPage.goto();
+    await appPage.waitForLoad();
   });
 
   test('should display stack contents', async ({ page }) => {
