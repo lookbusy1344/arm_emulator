@@ -177,6 +177,8 @@ The emulator implements traditional ARM2 syscall convention: `SWI #immediate_val
 
 **IMPORTANT:** Always run `go fmt ./...`, `golangci-lint run ./...`, and `go build -o arm-emulator && go clean -testcache && go test ./...` after making changes to ensure code quality and correctness.
 
+**IMPORTANT:** Focus on Test-Driven Development (TDD). Write tests before implementing features. Ensure all new code is covered by tests. Use unit tests for individual components and integration tests for end-to-end functionality.
+
 **IMPORTANT:** Do not delete tests without explicit instructions. Do not simplify tests because they fail. If you think a test is malfunctioning, think about it carefully and ask me before making any changes to the tests.
 
 **IMPORTANT:** Anything that cannot be implemented should be noted in `TODO.md` with details so work can result later. TODO.md should not contain completed work, that should go in PROGRESS.md.
