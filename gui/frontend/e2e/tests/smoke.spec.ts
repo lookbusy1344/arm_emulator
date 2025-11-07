@@ -1,5 +1,7 @@
 import { test, expect } from '@playwright/test';
 import { AppPage } from '../pages/app.page';
+import { loadProgram, waitForVMStateChange, formatAddress } from '../utils/helpers';
+import { TIMEOUTS, ADDRESSES } from '../utils/test-constants';
 
 test.describe('Smoke Tests', () => {
   let appPage: AppPage;
@@ -46,16 +48,55 @@ test.describe('Smoke Tests', () => {
   });
 
   test('should respond to keyboard shortcuts', async () => {
-    // F11 = Step
+    // Load a simple program to test keyboard shortcuts
+    const simpleProgram = `
+      .text
+      .global _start
+    _start:
+      MOV R0, #10
+      MOV R1, #20
+      ADD R2, R0, R1
+      SWI #0x00
+    `;
+
+    await loadProgram(appPage, simpleProgram);
+
+    // Get initial PC
+    const initialPC = await appPage.getRegisterValue('PC');
+
+    // F11 = Step - verify PC changed
     await appPage.pressF11();
-    // Verify step occurred (would need to check state change)
+    await waitForVMStateChange(appPage.page);
+    const pcAfterF11 = await appPage.getRegisterValue('PC');
+    expect(pcAfterF11).not.toBe(initialPC);
 
-    // F10 = Step Over
+    // F10 = Step Over - verify PC changed
+    const pcBeforeF10 = await appPage.getRegisterValue('PC');
     await appPage.pressF10();
-    // Verify step over occurred
+    await waitForVMStateChange(appPage.page);
+    const pcAfterF10 = await appPage.getRegisterValue('PC');
+    expect(pcAfterF10).not.toBe(pcBeforeF10);
 
-    // F5 = Run
+    // Reset before testing F5
+    await appPage.clickReset();
+    await waitForVMStateChange(appPage.page, TIMEOUTS.VM_RESET);
+
+    // F5 = Run - verify execution started and completed
     await appPage.pressF5();
-    // Verify execution started
+
+    // Wait for execution to complete
+    await appPage.page.waitForFunction(
+      () => {
+        const statusElement = document.querySelector('[data-testid="execution-status"]');
+        if (!statusElement) return false;
+        const status = statusElement.textContent?.toLowerCase() || '';
+        return status === 'halted' || status === 'exited';
+      },
+      { timeout: TIMEOUTS.EXECUTION_SHORT }
+    );
+
+    // Verify program ran (should be at exit)
+    const pcAfterRun = await appPage.getRegisterValue('PC');
+    expect(pcAfterRun).not.toBe(formatAddress(ADDRESSES.CODE_SEGMENT_START));
   });
 });

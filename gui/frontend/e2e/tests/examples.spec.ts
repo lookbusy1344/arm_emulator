@@ -1,6 +1,7 @@
 import { test, expect } from '@playwright/test';
 import { AppPage } from '../pages/app.page';
 import { loadProgram, waitForExecution } from '../utils/helpers';
+import { TIMEOUTS } from '../utils/test-constants';
 import * as fs from 'fs';
 import * as path from 'path';
 import { fileURLToPath } from 'url';
@@ -42,7 +43,7 @@ test.describe('Example Programs', () => {
       await appPage.clickRun();
 
       // Wait for completion
-      await waitForExecution(page, 10000);
+      await waitForExecution(page, TIMEOUTS.EXECUTION_MAX);
 
       // Verify program completed (check for EXIT)
       await appPage.switchToStatusTab();
@@ -58,6 +59,7 @@ test.describe('Complex Example Programs', () => {
   test.beforeEach(async ({ page }) => {
     appPage = new AppPage(page);
     await appPage.goto();
+    await appPage.waitForLoad();
   });
 
   test('should execute quicksort.s', async ({ page }) => {
@@ -196,6 +198,7 @@ test.describe('Example Program Stepping', () => {
   test.beforeEach(async ({ page }) => {
     appPage = new AppPage(page);
     await appPage.goto();
+    await appPage.waitForLoad();
   });
 
   test('should step through hello.s', async ({ page }) => {
@@ -287,6 +290,7 @@ test.describe('Example Program Output Verification', () => {
   test.beforeEach(async ({ page }) => {
     appPage = new AppPage(page);
     await appPage.goto();
+    await appPage.waitForLoad();
   });
 
   test('hello.s should output "Hello, World!"', async ({ page }) => {

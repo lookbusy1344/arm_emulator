@@ -162,7 +162,12 @@ func (a *App) LoadProgramFromSource(source string, filename string, entryPoint u
 		return fmt.Errorf("parse error: %w", err)
 	}
 
-	return a.service.LoadProgram(program, entryPoint)
+	err = a.service.LoadProgram(program, entryPoint)
+	if err == nil {
+		// Emit state change event so frontend updates
+		runtime.EventsEmit(a.ctx, "vm:state-changed")
+	}
+	return err
 }
 
 // LoadProgramFromFile opens a file dialog and loads an ARM assembly program
@@ -279,9 +284,22 @@ func (a *App) Pause() {
 	runtime.EventsEmit(a.ctx, "vm:state-changed")
 }
 
-// Reset resets VM to initial state
+// Reset performs a complete reset to pristine state
+// Clears the loaded program, all breakpoints, and resets VM to PC=0
 func (a *App) Reset() error {
 	err := a.service.Reset()
+	if err == nil {
+		runtime.EventsEmit(a.ctx, "vm:state-changed")
+	} else {
+		runtime.EventsEmit(a.ctx, "vm:error", err.Error())
+	}
+	return err
+}
+
+// Restart restarts the current program from entry point
+// Preserves the loaded program and breakpoints, only resets registers and execution state
+func (a *App) Restart() error {
+	err := a.service.ResetToEntryPoint()
 	if err == nil {
 		runtime.EventsEmit(a.ctx, "vm:state-changed")
 	} else {

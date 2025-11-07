@@ -46,10 +46,12 @@ export default defineConfig({
   // Visual comparison settings
   expect: {
     toHaveScreenshot: {
-      // Allow up to 6% pixel difference to account for font rendering variations across CI environments
-      maxDiffPixelRatio: 0.06,
+      // Tightened to 3% pixel difference to catch more regressions while still allowing for
+      // minor font rendering variations across CI environments (was 6%, reduced for better detection)
+      maxDiffPixelRatio: 0.03,
       // Per-pixel color difference threshold (0-1, where 0.1 = 10% color difference per pixel)
-      threshold: 0.2,
+      // Tightened from 0.2 (20%) to 0.15 (15%) for better regression detection
+      threshold: 0.15,
     },
   },
 
@@ -68,11 +70,12 @@ export default defineConfig({
       use: { ...devices['Desktop Firefox'] },
     },
 
-    // Test against mobile viewports (optional)
-    {
-      name: 'Mobile Safari',
-      use: { ...devices['iPhone 13'] },
-    },
+    // Mobile Safari removed - Wails desktop apps don't make sense on mobile viewports
+    // and this device is not tested in CI
+    // {
+    //   name: 'Mobile Safari',
+    //   use: { ...devices['iPhone 13'] },
+    // },
   ],
 
   // Run dev server before starting tests (only in local development)
