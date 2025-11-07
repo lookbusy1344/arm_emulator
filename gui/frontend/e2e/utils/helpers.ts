@@ -45,7 +45,24 @@ export async function loadProgram(page: AppPage, program: string, filename = 'te
  * Waits until status is not "running".
  */
 export async function waitForExecution(page: Page, maxWait = TIMEOUTS.EXECUTION_NORMAL) {
-  // Wait for execution state to change from "running"
+  // Try to wait for execution to START (status becomes "running")
+  // If execution is very fast, this might timeout - that's OK, just continue
+  try {
+    await page.waitForFunction(
+      () => {
+        const statusElement = document.querySelector('[data-testid="execution-status"]');
+        if (!statusElement) return false;
+        const status = statusElement.textContent?.toLowerCase() || '';
+        return status === 'running';
+      },
+      { timeout: 500 }
+    );
+  } catch (e) {
+    // Execution might have completed too fast to observe "running" state
+    // Continue to check if it's already done
+  }
+
+  // Wait for execution to be NOT running (either breakpoint, halted, or error)
   await page.waitForFunction(
     () => {
       const statusElement = document.querySelector('[data-testid="execution-status"]');

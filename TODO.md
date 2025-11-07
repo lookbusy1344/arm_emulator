@@ -18,66 +18,44 @@ This file tracks outstanding work only. Completed items are in `PROGRESS.md`.
 
 ## High Priority Tasks
 
-### **🔴 CRITICAL: E2E Tests Still Failing (2/7 breakpoint tests)**
-**Priority:** CRITICAL - TOP PRIORITY 🔴🔴🔴
+### **✅ RESOLVED: E2E Breakpoint Tests Now Passing (7/7)**
+**Priority:** COMPLETE ✅
 **Type:** Bug Fix - E2E Testing
 **Added:** 2025-11-06
-**Updated:** 2025-11-07 (Latest - Multiple Failed Attempts)
+**Resolved:** 2025-11-07
 
-**Current Status: 5/7 Passing (71%) - 2 Tests Still Failing After 6+ Fix Attempts**
+**Final Status: 7/7 Passing (100%) - All Active Tests Passing** ✅
 
 **E2E Test Results (breakpoints.spec.ts):**
 - ✅ should set breakpoint via F9
-- ❌ should stop at breakpoint during run (Expected PC=0x00008008, Got PC=0x00008000)
+- ✅ should stop at breakpoint during run
 - ✅ should toggle breakpoint on/off
 - ✅ should display breakpoint in source view
 - ✅ should set multiple breakpoints
-- ❌ should continue execution after hitting breakpoint (Expected PC=0x00008008, Got PC=0x00008000)
+- ✅ should continue execution after hitting breakpoint
 - ✅ should remove breakpoint from list
-- ⏭️ should disable/enable breakpoint (skipped)
-- ⏭️ should clear all breakpoints (skipped)
+- ⏭️ should disable/enable breakpoint (skipped - UI not implemented)
+- ⏭️ should clear all breakpoints (skipped - UI not implemented)
 
-**CRITICAL OBSERVATION:**
-PC ends at 0x00008000 (entry point) instead of 0x00008008 (breakpoint). This means **the program is NOT executing at all** after Restart() + Run(). If it ran to completion, PC would be at the exit syscall location, not the entry point.
+**Root Cause Identified:**
+The backend code was working correctly (proven by unit test). The failures were frontend timing/synchronization issues:
 
-**Failed Fix Attempts (2025-11-07):**
-1. ❌ Added waitForFunction in tests to wait for PC=0x00008000 after Restart() - no effect
-2. ❌ Added `s.vm.EntryPoint = s.entryPoint` in ResetToEntryPoint() - no effect
-3. ❌ Added vm.StackTop preservation and vm.State = StateHalted - no effect
-4. ❌ Multiple variations of the above - no effect
+1. **`clickRestart()` didn't wait for UI update** - Called backend but didn't wait for frontend React components to re-render
+2. **`waitForExecution()` had race condition** - Continue() starts goroutine asynchronously, test could check status before it changed to "running"
+3. **`pressF9()` didn't wait for breakpoint to be set** - Sent F9 keypress but didn't wait for backend to actually add breakpoint
+4. **Test step waiting was incorrect** - Waited for PC to change from initial value, not from previous step, causing breakpoint address to be captured too early
 
-**Root Cause Analysis:**
-The program starts at PC=0x00008000 but never advances to 0x00008008 where the breakpoint is set. This indicates:
-- Either RunUntilHalt() loop exits immediately without executing any instructions
-- Or there's a state/synchronization issue preventing vm.Step() from executing
+**Successful Fixes (2025-11-07):**
+1. ✅ Created integration test `TestRestartWithBreakpoint` - Proved backend works, isolated issue to frontend
+2. ✅ Fixed `clickRestart()` in app.page.ts - Added wait for PC to reset to 0x00008000 before returning
+3. ✅ Fixed `waitForExecution()` in helpers.ts - Added try/catch for "running" state check to handle fast execution
+4. ✅ Fixed `pressF9()` in app.page.ts - Added wait for breakpoint count to change before returning
+5. ✅ Fixed test stepping logic - Changed to wait for each individual step to complete with proper PC verification
 
-**Key Code Path to Debug:**
-1. `Restart()` (gui/app.go:301) → calls `ResetToEntryPoint()`
-2. `ResetToEntryPoint()` (service/debugger_service.go:422) → resets VM to entry point
-3. `Continue()` (gui/app.go:247) → starts goroutine calling `RunUntilHalt()`
-4. `RunUntilHalt()` (service/debugger_service.go:569) → should execute until breakpoint
-5. Loop at line 579 checks `!s.debugger.Running || s.vm.State != vm.StateRunning`
-
-**Hypotheses to Investigate:**
-1. **State machine issue:** vm.State might not be StateRunning when loop checks (line 581)
-2. **Synchronization issue:** Race condition between Restart() and Continue()
-3. **Entry point not preserved:** vm.EntryPoint might be 0 or wrong value
-4. **Immediate halt:** vm.Step() might be returning error/halt on first instruction
-5. **Breakpoint false positive:** ShouldBreak() might incorrectly trigger at PC=0x00008000
-
-**ROBUST DEBUGGING STRATEGY:**
-1. [ ] Add comprehensive logging to ResetToEntryPoint() showing EntryPoint, StackTop, State before/after
-2. [ ] Add logging to RunUntilHalt() showing: entry state, loop iterations, PC on each step, exit reason
-3. [ ] Add logging to Continue() goroutine showing timing of state changes
-4. [ ] Create minimal unit test that reproduces: LoadProgram → Step 3x → Restart → RunUntilHalt
-5. [ ] Run unit test with logging to see exact execution flow without E2E test complexity
-6. [ ] Fix identified issue
-7. [ ] Verify with unit test first, then E2E tests
-
-**Alternative Approach if Logging Insufficient:**
-- Write a Go integration test in `tests/integration/` that directly calls service methods
-- This eliminates Wails/frontend/timing variables
-- Can use Go debugger to step through execution
+**Test Results:**
+- Integration test: ✅ PASS
+- All Go tests: ✅ 1,025 tests passing
+- E2E breakpoint tests: ✅ 7/7 passing (2 skipped for unimplemented features)
 
 **Implementation Details:**
 - `service/debugger_service.go`: Reset() and ResetToEntryPoint()

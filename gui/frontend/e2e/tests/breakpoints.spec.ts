@@ -63,23 +63,23 @@ test.describe('Breakpoints', () => {
   test('should stop at breakpoint during run', async () => {
     await loadProgram(appPage, TEST_PROGRAMS.fibonacci);
 
-    // Step to an instruction in the loop
-    let previousPC = await registerView.getRegisterValue('PC');
-    await appPage.clickStep();
-    await appPage.clickStep();
-    await appPage.clickStep();
+    // Step 3 times, waiting for each step to complete
+    for (let i = 0; i < 3; i++) {
+      const pcBefore = await registerView.getRegisterValue('PC');
+      await appPage.clickStep();
 
-    // Wait for last step to complete by checking PC changed
-    await appPage.page.waitForFunction(
-      (prevPC) => {
-        const pcElement = document.querySelector('[data-register="PC"] .register-value');
-        if (!pcElement) return false;
-        const currentPC = pcElement.textContent?.trim() || '';
-        return currentPC !== '' && currentPC !== prevPC;
-      },
-      previousPC,
-      { timeout: TIMEOUTS.WAIT_FOR_STATE }
-    );
+      // Wait for this specific step to complete
+      await appPage.page.waitForFunction(
+        (prevPC) => {
+          const pcElement = document.querySelector('[data-register="PC"] .register-value');
+          if (!pcElement) return false;
+          const currentPC = pcElement.textContent?.trim() || '';
+          return currentPC !== '' && currentPC !== prevPC;
+        },
+        pcBefore,
+        { timeout: TIMEOUTS.WAIT_FOR_STATE }
+      );
+    }
 
     // Get current PC to set breakpoint at
     const breakpointAddress = await registerView.getRegisterValue('PC');
