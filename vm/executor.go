@@ -120,13 +120,48 @@ func NewVM() *VM {
 	}
 }
 
-// Reset resets the VM to initial state
+// Reset resets the VM to initial state, clearing all program data and I/O state
 func (vm *VM) Reset() {
+	// Reset CPU and memory
 	vm.CPU.Reset()
 	vm.Memory.Reset()
+
+	// Reset execution state
 	vm.State = StateHalted
 	vm.InstructionLog = vm.InstructionLog[:0]
 	vm.LastError = nil
+
+	// Clear program metadata
+	vm.EntryPoint = 0
+	vm.StackTop = 0
+	vm.ProgramArguments = nil
+	vm.ExitCode = 0
+
+	// Clear I/O state
+	vm.fdMu.Lock()
+	for _, f := range vm.files {
+		if f != nil && f != os.Stdin && f != os.Stdout && f != os.Stderr {
+			f.Close() // Close all non-standard file descriptors
+		}
+	}
+	vm.files = nil
+	vm.fdMu.Unlock()
+
+	// Reset stdin reader to clean state
+	vm.stdinReader = nil
+
+	// Clear memory write tracking
+	vm.LastMemoryWrite = 0
+	vm.HasMemoryWrite = false
+
+	// Clear trace/diagnostic structures
+	vm.CodeCoverage = nil
+	vm.StackTrace = nil
+	vm.FlagTrace = nil
+	vm.RegisterTrace = nil
+	vm.ExecutionTrace = nil
+	vm.MemoryTrace = nil
+	vm.Statistics = nil
 }
 
 // ResetRegisters resets only CPU registers and state, preserving memory contents

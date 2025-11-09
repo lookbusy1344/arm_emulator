@@ -12,6 +12,8 @@ const __dirname = path.dirname(__filename);
 const EXAMPLES_DIR = path.join(__dirname, '../../../../examples');
 
 test.describe('Example Programs', () => {
+  let appPage: AppPage;
+
   const exampleFiles = [
     'hello.s',
     'loops.s',
@@ -19,10 +21,38 @@ test.describe('Example Programs', () => {
     'factorial.s',
   ];
 
+  test.beforeEach(async ({ page }) => {
+    appPage = new AppPage(page);
+    await appPage.goto();
+    await appPage.waitForLoad();
+
+    // Reset VM and clear all breakpoints to ensure clean state
+    await appPage.clickReset();
+
+    // Wait for reset to complete by checking PC is at zero
+    await page.waitForFunction(() => {
+      const pcElement = document.querySelector('[data-register="PC"] .register-value');
+      if (!pcElement) return false;
+      const pcValue = pcElement.textContent?.trim() || '';
+      return pcValue === '0x00000000';
+    }, { timeout: TIMEOUTS.WAIT_FOR_RESET });
+
+    // Clear any existing breakpoints
+    const breakpoints = await page.evaluate(() => {
+      // @ts-ignore - Wails runtime
+      return window.go.main.App.GetBreakpoints();
+    });
+
+    for (const bp of breakpoints) {
+      await page.evaluate((address) => {
+        // @ts-ignore - Wails runtime
+        return window.go.main.App.RemoveBreakpoint(address);
+      }, bp.Address);
+    }
+  });
+
   for (const file of exampleFiles) {
     test(`should execute ${file}`, async ({ page }) => {
-      const appPage = new AppPage(page);
-      await appPage.goto();
 
       // Load example file
       const programPath = path.join(EXAMPLES_DIR, file);
@@ -60,6 +90,30 @@ test.describe('Complex Example Programs', () => {
     appPage = new AppPage(page);
     await appPage.goto();
     await appPage.waitForLoad();
+
+    // Reset VM and clear all breakpoints to ensure clean state
+    await appPage.clickReset();
+
+    // Wait for reset to complete by checking PC is at zero
+    await page.waitForFunction(() => {
+      const pcElement = document.querySelector('[data-register="PC"] .register-value');
+      if (!pcElement) return false;
+      const pcValue = pcElement.textContent?.trim() || '';
+      return pcValue === '0x00000000';
+    }, { timeout: TIMEOUTS.WAIT_FOR_RESET });
+
+    // Clear any existing breakpoints
+    const breakpoints = await page.evaluate(() => {
+      // @ts-ignore - Wails runtime
+      return window.go.main.App.GetBreakpoints();
+    });
+
+    for (const bp of breakpoints) {
+      await page.evaluate((address) => {
+        // @ts-ignore - Wails runtime
+        return window.go.main.App.RemoveBreakpoint(address);
+      }, bp.Address);
+    }
   });
 
   test('should execute quicksort.s', async ({ page }) => {
@@ -199,6 +253,30 @@ test.describe('Example Program Stepping', () => {
     appPage = new AppPage(page);
     await appPage.goto();
     await appPage.waitForLoad();
+
+    // Reset VM and clear all breakpoints to ensure clean state
+    await appPage.clickReset();
+
+    // Wait for reset to complete by checking PC is at zero
+    await page.waitForFunction(() => {
+      const pcElement = document.querySelector('[data-register="PC"] .register-value');
+      if (!pcElement) return false;
+      const pcValue = pcElement.textContent?.trim() || '';
+      return pcValue === '0x00000000';
+    }, { timeout: TIMEOUTS.WAIT_FOR_RESET });
+
+    // Clear any existing breakpoints
+    const breakpoints = await page.evaluate(() => {
+      // @ts-ignore - Wails runtime
+      return window.go.main.App.GetBreakpoints();
+    });
+
+    for (const bp of breakpoints) {
+      await page.evaluate((address) => {
+        // @ts-ignore - Wails runtime
+        return window.go.main.App.RemoveBreakpoint(address);
+      }, bp.Address);
+    }
   });
 
   test('should step through hello.s', async ({ page }) => {
@@ -291,6 +369,30 @@ test.describe('Example Program Output Verification', () => {
     appPage = new AppPage(page);
     await appPage.goto();
     await appPage.waitForLoad();
+
+    // Reset VM and clear all breakpoints to ensure clean state
+    await appPage.clickReset();
+
+    // Wait for reset to complete by checking PC is at zero
+    await page.waitForFunction(() => {
+      const pcElement = document.querySelector('[data-register="PC"] .register-value');
+      if (!pcElement) return false;
+      const pcValue = pcElement.textContent?.trim() || '';
+      return pcValue === '0x00000000';
+    }, { timeout: TIMEOUTS.WAIT_FOR_RESET });
+
+    // Clear any existing breakpoints
+    const breakpoints = await page.evaluate(() => {
+      // @ts-ignore - Wails runtime
+      return window.go.main.App.GetBreakpoints();
+    });
+
+    for (const bp of breakpoints) {
+      await page.evaluate((address) => {
+        // @ts-ignore - Wails runtime
+        return window.go.main.App.RemoveBreakpoint(address);
+      }, bp.Address);
+    }
   });
 
   test('hello.s should output "Hello, World!"', async ({ page }) => {

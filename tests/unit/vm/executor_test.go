@@ -58,6 +58,129 @@ func TestResetRegisters(t *testing.T) {
 	}
 }
 
+// TestReset verifies that Reset performs complete cleanup of all VM state
+func TestReset(t *testing.T) {
+	v := vm.NewVM()
+
+	// Set up comprehensive state to verify everything gets cleared
+
+	// 1. Load program into memory
+	testData := []byte{0x01, 0x02, 0x03, 0x04}
+	startAddr := uint32(vm.CodeSegmentStart)
+	if err := v.LoadProgram(testData, startAddr); err != nil {
+		t.Fatalf("Failed to load program: %v", err)
+	}
+
+	// 2. Modify CPU state
+	v.CPU.R[0] = 0x12345678
+	v.CPU.R[13] = 0x00050000 // SP
+	v.CPU.PC = startAddr + 8
+	v.CPU.CPSR.Z = true
+	v.CPU.Cycles = 100
+
+	// 3. Set entry point and stack top
+	v.EntryPoint = startAddr
+	v.StackTop = 0x00050000
+
+	// 4. Set exit code
+	v.ExitCode = 42
+
+	// 5. Set program arguments
+	v.ProgramArguments = []string{"arg1", "arg2"}
+
+	// 6. Add to instruction log
+	v.InstructionLog = []uint32{startAddr, startAddr + 4}
+
+	// 7. Set error
+	v.LastError = fmt.Errorf("test error")
+
+	// 8. Set execution state
+	v.State = vm.StateRunning
+
+	// 9. Set memory write markers
+	v.LastMemoryWrite = 0x00010000
+	v.HasMemoryWrite = true
+
+	// 10. Enable tracing (if we can access these fields)
+	// Note: CodeCoverage, StackTrace, FlagTrace, RegisterTrace are pointers
+	// that may not be directly testable, but Reset should nil them out
+
+	// Now reset the VM
+	v.Reset()
+
+	// Verify all state is cleared
+
+	// CPU should be reset
+	if v.CPU.R[0] != 0 {
+		t.Errorf("Expected R0=0 after Reset, got 0x%08X", v.CPU.R[0])
+	}
+	if v.CPU.R[13] != 0 {
+		t.Errorf("Expected SP=0 after Reset, got 0x%08X", v.CPU.R[13])
+	}
+	if v.CPU.PC != 0 {
+		t.Errorf("Expected PC=0 after Reset, got 0x%08X", v.CPU.PC)
+	}
+	if v.CPU.CPSR.Z {
+		t.Error("Expected Z flag cleared after Reset")
+	}
+	if v.CPU.Cycles != 0 {
+		t.Errorf("Expected Cycles=0 after Reset, got %d", v.CPU.Cycles)
+	}
+
+	// Memory should be cleared
+	word, err := v.Memory.ReadWord(startAddr)
+	if err != nil {
+		t.Fatalf("Failed to read memory: %v", err)
+	}
+	if word != 0 {
+		t.Errorf("Expected memory cleared after Reset: got 0x%08X, want 0x00000000", word)
+	}
+
+	// State should be halted
+	if v.State != vm.StateHalted {
+		t.Errorf("Expected StateHalted after Reset, got %v", v.State)
+	}
+
+	// Entry point and stack top should be cleared
+	if v.EntryPoint != 0 {
+		t.Errorf("Expected EntryPoint=0 after Reset, got 0x%08X", v.EntryPoint)
+	}
+	if v.StackTop != 0 {
+		t.Errorf("Expected StackTop=0 after Reset, got 0x%08X", v.StackTop)
+	}
+
+	// Exit code should be cleared
+	if v.ExitCode != 0 {
+		t.Errorf("Expected ExitCode=0 after Reset, got %d", v.ExitCode)
+	}
+
+	// Program arguments should be cleared
+	if v.ProgramArguments != nil {
+		t.Errorf("Expected ProgramArguments=nil after Reset, got %v", v.ProgramArguments)
+	}
+
+	// Instruction log should be empty
+	if len(v.InstructionLog) != 0 {
+		t.Errorf("Expected InstructionLog empty after Reset, got length %d", len(v.InstructionLog))
+	}
+
+	// Last error should be cleared
+	if v.LastError != nil {
+		t.Errorf("Expected LastError=nil after Reset, got %v", v.LastError)
+	}
+
+	// Memory write markers should be cleared
+	if v.LastMemoryWrite != 0 {
+		t.Errorf("Expected LastMemoryWrite=0 after Reset, got 0x%08X", v.LastMemoryWrite)
+	}
+	if v.HasMemoryWrite {
+		t.Error("Expected HasMemoryWrite=false after Reset")
+	}
+
+	// Note: We cannot easily test file descriptor cleanup without exposing internal fields
+	// or adding accessor methods. The implementation will handle this.
+}
+
 // TestLoadProgram verifies program loading functionality
 func TestLoadProgram(t *testing.T) {
 	v := vm.NewVM()
