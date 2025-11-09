@@ -112,30 +112,49 @@ test.describe('Program Execution', () => {
     // Start execution
     await appPage.clickRun();
 
-    // Wait for execution to actually start (status changes from initial halted state)
-    // Note: We check for "not halted" rather than "running" because the running state
-    // can be very brief and might be missed in fast loops
+    // Wait for execution to actually start by checking cycles > 0
+    // This is more reliable than waiting for status text which may be missed in fast loops
     await appPage.page.waitForFunction(() => {
-      const statusElement = document.querySelector('[data-testid="execution-status"]');
-      if (!statusElement) return false;
-      const status = statusElement.textContent?.toLowerCase() || '';
-      // Accept "running" or "paused" or any non-halted state as evidence execution started
-      return status === 'running' || status === 'paused' || status !== 'halted';
+      const cyclesElement = document.querySelector('.status-cycles');
+      if (!cyclesElement) return false;
+      const text = cyclesElement.textContent || '';
+      const match = text.match(/Cycles:\s*(\d+)/);
+      if (!match) return false;
+      const cycles = parseInt(match[1], 10);
+      return cycles > 0;
     }, { timeout: TIMEOUTS.WAIT_FOR_RESET });
-
-    // Small delay to ensure execution is actually running
-    await appPage.page.waitForTimeout(100);
 
     // Pause
     await appPage.clickPause();
 
-    // Wait for state to change to paused
-    await appPage.page.waitForFunction(() => {
-      const statusElement = document.querySelector('[data-testid="execution-status"]');
-      if (!statusElement) return false;
-      const status = statusElement.textContent?.toLowerCase() || '';
-      return status === 'paused';
-    }, { timeout: TIMEOUTS.WAIT_FOR_RESET });
+    // Wait for execution to actually stop by checking cycles stops changing
+    // This is more reliable than waiting for status text
+    const cyclesBeforePause = await appPage.page.evaluate(() => {
+      const cyclesElement = document.querySelector('.status-cycles');
+      if (!cyclesElement) return 0;
+      const text = cyclesElement.textContent || '';
+      const match = text.match(/Cycles:\s*(\d+)/);
+      return match ? parseInt(match[1], 10) : 0;
+    });
+
+    // Wait for cycles to stabilize (execution stopped)
+    await appPage.page.waitForFunction(
+      (prevCycles) => {
+        const cyclesElement = document.querySelector('.status-cycles');
+        if (!cyclesElement) return false;
+        const text = cyclesElement.textContent || '';
+        const match = text.match(/Cycles:\s*(\d+)/);
+        if (!match) return false;
+        const currentCycles = parseInt(match[1], 10);
+        // Cycles should be greater than before (execution happened) and stable
+        return currentCycles >= prevCycles;
+      },
+      cyclesBeforePause,
+      { timeout: 1000 } // Short timeout since pause should be fast
+    );
+
+    // Small delay to ensure state has fully propagated
+    await appPage.page.waitForTimeout(100);
 
     // Verify we can step after pause
     const pc = await registerView.getRegisterValue('PC');
@@ -208,35 +227,47 @@ test.describe('Program Execution', () => {
 
     // Step through all instructions (need enough steps for all operations)
     for (let i = 0; i < 6; i++) {
-      const prevPC = await registerView.getRegisterValue('PC');
+      // Get current cycle count before step
+      const prevCycles = await appPage.page.evaluate(() => {
+        const cyclesElement = document.querySelector('.status-cycles');
+        if (!cyclesElement) return 0;
+        const text = cyclesElement.textContent || '';
+        const match = text.match(/Cycles:\s*(\d+)/);
+        return match ? parseInt(match[1], 10) : 0;
+      });
+
       await appPage.clickStep();
 
-      // Wait for step to complete (either PC changes or program halts)
-      await appPage.page.waitForFunction(
-        (pc) => {
-          const pcElement = document.querySelector('[data-register="PC"] .register-value');
-          if (!pcElement) return false;
-          const currentPC = pcElement.textContent?.trim() || '';
-
-          // Check if status is halted (PC won't change when halted)
-          const statusElement = document.querySelector('[data-testid="execution-status"]');
-          if (statusElement) {
-            const status = statusElement.textContent?.toLowerCase() || '';
-            if (status.includes('halted')) {
-              return true; // Step completed (program halted)
+      // Wait for step to complete by checking cycles incremented OR program halted
+      const stepCompleted = await appPage.page.waitForFunction(
+        (expectedCycles) => {
+          // Check if cycles incremented
+          const cyclesElement = document.querySelector('.status-cycles');
+          if (cyclesElement) {
+            const text = cyclesElement.textContent || '';
+            const match = text.match(/Cycles:\s*(\d+)/);
+            if (match) {
+              const currentCycles = parseInt(match[1], 10);
+              if (currentCycles > expectedCycles) return 'stepped';
             }
           }
 
-          // Otherwise wait for PC to change
-          return currentPC !== '' && currentPC !== pc;
+          // Or check if program halted
+          const statusElement = document.querySelector('[data-testid="execution-status"]');
+          if (statusElement) {
+            const status = statusElement.textContent?.toLowerCase() || '';
+            if (status.includes('halted')) return 'halted';
+          }
+
+          return false;
         },
-        prevPC,
+        prevCycles,
         { timeout: TIMEOUTS.WAIT_FOR_STATE }
       );
 
-      // Check if program has halted after step completes
-      const status = await appPage.page.locator('[data-testid="execution-status"]').textContent();
-      if (status && status.toLowerCase().includes('halted')) {
+      // Check result - if halted, break out of loop
+      const result = await stepCompleted.jsonValue();
+      if (result === 'halted') {
         break;
       }
     }

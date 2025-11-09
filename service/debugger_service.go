@@ -645,6 +645,22 @@ func (s *DebuggerService) IsRunning() bool {
 	return s.debugger.Running
 }
 
+// SetRunning sets the running state synchronously
+// Used by async execution methods to set state before launching goroutines
+func (s *DebuggerService) SetRunning(running bool) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.debugger.Running = running
+	if running {
+		s.vm.State = vm.StateRunning
+	} else {
+		// Don't override other states (halted, error, breakpoint)
+		if s.vm.State == vm.StateRunning {
+			s.vm.State = vm.StateHalted
+		}
+	}
+}
+
 // GetExitCode returns the program exit code
 func (s *DebuggerService) GetExitCode() int32 {
 	s.mu.RLock()

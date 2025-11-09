@@ -245,7 +245,14 @@ func (a *App) Step() error {
 
 // Continue runs until breakpoint or halt (asynchronously)
 func (a *App) Continue() error {
-	debugLog.Println("Continue() called - starting goroutine")
+	debugLog.Println("Continue() called - setting running state")
+
+	// Set running state synchronously BEFORE launching goroutine
+	// This ensures frontend can immediately observe the state change
+	a.service.SetRunning(true)
+	runtime.EventsEmit(a.ctx, "vm:state-changed")
+
+	debugLog.Println("Starting goroutine")
 	// Capture context to avoid race condition
 	ctx := a.ctx
 	// Run in background to avoid blocking GUI
