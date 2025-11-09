@@ -341,6 +341,10 @@ func (s *DebuggerService) loadProgramIntoVM(program *parser.Program, entryPoint 
 	s.vm.StackTop = vm.StackSegmentStart + vm.StackSegmentSize
 	s.vm.CPU.SetSP(s.vm.StackTop)
 
+	// Reset execution state to ready for execution
+	s.vm.State = vm.StateRunning
+	s.debugger.Running = false
+
 	return nil
 }
 

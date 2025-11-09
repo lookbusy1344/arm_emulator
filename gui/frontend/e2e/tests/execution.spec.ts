@@ -225,51 +225,23 @@ test.describe('Program Execution', () => {
   test('should execute arithmetic operations', async () => {
     await loadProgram(appPage, TEST_PROGRAMS.arithmetic);
 
-    // Step through all instructions (need enough steps for all operations)
-    for (let i = 0; i < 6; i++) {
-      // Get current cycle count before step
-      const prevCycles = await appPage.page.evaluate(() => {
-        const cyclesElement = document.querySelector('.status-cycles');
-        if (!cyclesElement) return 0;
-        const text = cyclesElement.textContent || '';
-        const match = text.match(/Cycles:\s*(\d+)/);
-        return match ? parseInt(match[1], 10) : 0;
-      });
-
+    // Step through first 5 instructions (MOV, MOV, ADD, SUB, MUL)
+    // We don't need to execute the final SWI instruction to verify the results
+    for (let i = 0; i < 5; i++) {
+      const prevPC = await registerView.getRegisterValue('PC');
       await appPage.clickStep();
 
-      // Wait for step to complete by checking cycles incremented OR program halted
-      const stepCompleted = await appPage.page.waitForFunction(
-        (expectedCycles) => {
-          // Check if cycles incremented
-          const cyclesElement = document.querySelector('.status-cycles');
-          if (cyclesElement) {
-            const text = cyclesElement.textContent || '';
-            const match = text.match(/Cycles:\s*(\d+)/);
-            if (match) {
-              const currentCycles = parseInt(match[1], 10);
-              if (currentCycles > expectedCycles) return 'stepped';
-            }
-          }
-
-          // Or check if program halted
-          const statusElement = document.querySelector('[data-testid="execution-status"]');
-          if (statusElement) {
-            const status = statusElement.textContent?.toLowerCase() || '';
-            if (status.includes('halted')) return 'halted';
-          }
-
-          return false;
+      // Wait for PC to change
+      await appPage.page.waitForFunction(
+        (expectedPC) => {
+          const pcElement = document.querySelector('[data-register="PC"] .register-value');
+          if (!pcElement) return false;
+          const currentPC = pcElement.textContent?.trim() || '';
+          return currentPC !== '' && currentPC !== expectedPC;
         },
-        prevCycles,
+        prevPC,
         { timeout: TIMEOUTS.WAIT_FOR_STATE }
       );
-
-      // Check result - if halted, break out of loop
-      const result = await stepCompleted.jsonValue();
-      if (result === 'halted') {
-        break;
-      }
     }
 
     // Verify arithmetic results
