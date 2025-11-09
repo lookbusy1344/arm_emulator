@@ -112,13 +112,19 @@ test.describe('Program Execution', () => {
     // Start execution
     await appPage.clickRun();
 
-    // Wait for execution to actually start
+    // Wait for execution to actually start (status changes from initial halted state)
+    // Note: We check for "not halted" rather than "running" because the running state
+    // can be very brief and might be missed in fast loops
     await appPage.page.waitForFunction(() => {
       const statusElement = document.querySelector('[data-testid="execution-status"]');
       if (!statusElement) return false;
       const status = statusElement.textContent?.toLowerCase() || '';
-      return status === 'running';
+      // Accept "running" or "paused" or any non-halted state as evidence execution started
+      return status === 'running' || status === 'paused' || status !== 'halted';
     }, { timeout: TIMEOUTS.WAIT_FOR_RESET });
+
+    // Small delay to ensure execution is actually running
+    await appPage.page.waitForTimeout(100);
 
     // Pause
     await appPage.clickPause();
@@ -205,23 +211,34 @@ test.describe('Program Execution', () => {
       const prevPC = await registerView.getRegisterValue('PC');
       await appPage.clickStep();
 
-      // Check if program has halted
-      const status = await appPage.page.locator('[data-testid="execution-status"]').textContent();
-      if (status && status.toLowerCase().includes('halted')) {
-        break;
-      }
-
-      // Wait for PC to update
+      // Wait for step to complete (either PC changes or program halts)
       await appPage.page.waitForFunction(
         (pc) => {
           const pcElement = document.querySelector('[data-register="PC"] .register-value');
           if (!pcElement) return false;
           const currentPC = pcElement.textContent?.trim() || '';
+
+          // Check if status is halted (PC won't change when halted)
+          const statusElement = document.querySelector('[data-testid="execution-status"]');
+          if (statusElement) {
+            const status = statusElement.textContent?.toLowerCase() || '';
+            if (status.includes('halted')) {
+              return true; // Step completed (program halted)
+            }
+          }
+
+          // Otherwise wait for PC to change
           return currentPC !== '' && currentPC !== pc;
         },
         prevPC,
         { timeout: TIMEOUTS.WAIT_FOR_STATE }
       );
+
+      // Check if program has halted after step completes
+      const status = await appPage.page.locator('[data-testid="execution-status"]').textContent();
+      if (status && status.toLowerCase().includes('halted')) {
+        break;
+      }
     }
 
     // Verify arithmetic results
