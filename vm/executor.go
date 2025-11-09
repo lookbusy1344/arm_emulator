@@ -141,7 +141,7 @@ func (vm *VM) Reset() {
 	vm.fdMu.Lock()
 	for _, f := range vm.files {
 		if f != nil && f != os.Stdin && f != os.Stdout && f != os.Stderr {
-			f.Close() // Close all non-standard file descriptors
+			_ = f.Close() // Close all non-standard file descriptors
 		}
 	}
 	vm.files = nil
