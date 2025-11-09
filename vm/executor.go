@@ -148,7 +148,7 @@ func (vm *VM) Reset() {
 	vm.fdMu.Unlock()
 
 	// Reset stdin reader to clean state
-	vm.stdinReader = nil
+	vm.stdinReader = bufio.NewReader(os.Stdin)
 
 	// Clear memory write tracking
 	vm.LastMemoryWrite = 0

@@ -18,7 +18,7 @@ test.describe('Example Programs', () => {
     'hello.s',
     'loops.s',
     'arithmetic.s',
-    'factorial.s',
+    // factorial.s is interactive (prompts for input), excluded from automated tests
   ];
 
   test.beforeEach(async ({ page }) => {
