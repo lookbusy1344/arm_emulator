@@ -151,7 +151,7 @@ test.describe('Program Execution', () => {
     expect(newPC).not.toBe(pc);
   });
 
-  test('should reset program state', async () => {
+  test('should restart program to entry point', async () => {
     await loadProgram(appPage, TEST_PROGRAMS.fibonacci);
 
     // Execute several steps
@@ -174,10 +174,10 @@ test.describe('Program Execution', () => {
     // Get current register state
     const beforeReset = await registerView.getAllRegisters();
 
-    // Reset
-    await appPage.clickReset();
+    // Restart (reset to entry point, keeping program loaded)
+    await appPage.clickRestart();
 
-    // Wait for reset to complete by checking PC is back at entry point
+    // Wait for restart to complete by checking PC is back at entry point
     const expectedPC = formatAddress(ADDRESSES.CODE_SEGMENT_START);
     await appPage.page.waitForFunction(
       (pc) => {
@@ -190,9 +190,9 @@ test.describe('Program Execution', () => {
       { timeout: TIMEOUTS.WAIT_FOR_STATE }
     );
 
-    // Verify registers reset to entry point, not necessarily all zeros
-    const afterReset = await registerView.getAllRegisters();
-    const pc = afterReset['PC'];
+    // Verify PC is back at entry point after restart
+    const afterRestart = await registerView.getAllRegisters();
+    const pc = afterRestart['PC'];
     // PC should be back at entry point (code segment start)
     expect(pc).toBe(formatAddress(ADDRESSES.CODE_SEGMENT_START));
   });
@@ -204,6 +204,13 @@ test.describe('Program Execution', () => {
     for (let i = 0; i < 6; i++) {
       const prevPC = await registerView.getRegisterValue('PC');
       await appPage.clickStep();
+
+      // Check if program has halted
+      const status = await appPage.page.locator('[data-testid="execution-status"]').textContent();
+      if (status && status.toLowerCase().includes('halted')) {
+        break;
+      }
+
       // Wait for PC to update
       await appPage.page.waitForFunction(
         (pc) => {
