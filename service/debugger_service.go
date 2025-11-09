@@ -333,9 +333,13 @@ func (s *DebuggerService) loadProgramIntoVM(program *parser.Program, entryPoint 
 		}
 	}
 
-	// Set PC
+	// Set PC and Entry Point
 	s.vm.CPU.PC = entryPoint
 	s.vm.EntryPoint = entryPoint
+
+	// Initialize stack pointer (stack grows downward from top of stack segment)
+	s.vm.StackTop = vm.StackSegmentStart + vm.StackSegmentSize
+	s.vm.CPU.SetSP(s.vm.StackTop)
 
 	return nil
 }
