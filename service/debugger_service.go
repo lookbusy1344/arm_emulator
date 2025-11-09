@@ -337,12 +337,15 @@ func (s *DebuggerService) loadProgramIntoVM(program *parser.Program, entryPoint 
 	s.vm.CPU.PC = entryPoint
 	s.vm.EntryPoint = entryPoint
 
-	// Initialize stack pointer (stack grows downward from top of stack segment)
-	s.vm.StackTop = vm.StackSegmentStart + vm.StackSegmentSize
-	s.vm.CPU.SetSP(s.vm.StackTop)
+	// Initialize stack pointer only if not already set (preserve InitializeStack value)
+	// Stack grows downward from top of stack segment
+	if s.vm.StackTop == 0 {
+		s.vm.StackTop = vm.StackSegmentStart + vm.StackSegmentSize
+		s.vm.CPU.SetSP(s.vm.StackTop)
+	}
 
-	// Reset execution state to ready for execution
-	s.vm.State = vm.StateRunning
+	// Reset execution state to halted (not running until execution begins)
+	s.vm.State = vm.StateHalted
 	s.debugger.Running = false
 
 	return nil
