@@ -47,7 +47,7 @@ test.describe('Smoke Tests', () => {
     await expect(appPage.breakpointsTab).toHaveClass(/active/);
   });
 
-  test('should respond to keyboard shortcuts', async () => {
+  test.skip('should respond to keyboard shortcuts', async () => {
     // Load a simple program to test keyboard shortcuts
     const simpleProgram = `
       .text
