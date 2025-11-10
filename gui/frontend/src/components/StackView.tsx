@@ -17,6 +17,9 @@ export const StackView: React.FC = () => {
     try {
       const registerState = await GetRegisters();
       const sp = registerState.Registers[13]; // R13 is SP
+      // Read stack data starting from current SP
+      // In a Full Descending stack, SP points to the last pushed value
+      // and pushed values are stored at SP, SP+4, SP+8, etc.
       const stackData = await GetStack(0, 16);
 
       const entriesWithSP = stackData.map(entry => ({

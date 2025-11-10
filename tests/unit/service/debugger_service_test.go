@@ -366,11 +366,9 @@ func TestDebuggerService_GetStack(t *testing.T) {
 	program := `
 .org 0x8000
 main:
-    MOV R0, #0x12
-    MOV R2, SP
-    STR R0, [R2]
-    MOV R1, #0x56
-    STR R1, [R2, #4]
+    MOV R0, #0x42
+    MOV R1, #0x99
+    STMFD SP!, {R0, R1}
     SWI #0x00
 `
 	p := parser.NewParser(program, "test.s")
@@ -384,29 +382,38 @@ main:
 		t.Fatalf("Failed to load program: %v", err)
 	}
 
-	// Execute until we've stored values (5 instructions)
-	for i := 0; i < 5; i++ {
+	// Execute until we've pushed values (3 instructions)
+	for i := 0; i < 3; i++ {
 		svc.Step()
 	}
 
-	// Get stack contents
-	stack := svc.GetStack(0, 4)
+	// Get current SP to verify push happened
+	sp := machine.CPU.R[13]
+	t.Logf("SP after push: 0x%08X", sp)
+
+	// Get stack contents starting from current SP
+	// After STMFD SP!, {R0, R1}, SP is decremented and points to first pushed value
+	// Values are stored AT SP and above (SP+4, SP+8, etc.)
+	stack := svc.GetStack(0, 8)
 
 	if len(stack) == 0 {
 		t.Error("Expected non-empty stack")
 	}
 
-	// Stack should contain stored values
-	foundValue := false
+	// Stack should contain pushed values
+	foundR0 := false
+	foundR1 := false
 	for _, entry := range stack {
-		if entry.Value == 0x56 || entry.Value == 0x12 {
-			foundValue = true
-			break
+		if entry.Value == 0x42 {
+			foundR0 = true
+		}
+		if entry.Value == 0x99 {
+			foundR1 = true
 		}
 	}
 
-	if !foundValue {
-		t.Errorf("Expected to find pushed values on stack, got %d entries", len(stack))
+	if !foundR0 || !foundR1 {
+		t.Errorf("Expected to find pushed values on stack (R0=%v, R1=%v), got %d entries", foundR0, foundR1, len(stack))
 		for i, entry := range stack {
 			t.Logf("Stack[%d]: Addr=0x%08X Value=0x%08X Symbol=%s", i, entry.Address, entry.Value, entry.Symbol)
 		}
