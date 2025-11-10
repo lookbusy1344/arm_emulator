@@ -16,6 +16,8 @@ export function ExecuteCommand(arg1:string):Promise<string>;
 
 export function GetBreakpoints():Promise<Array<service.BreakpointInfo>>;
 
+export function GetCurrentFilename():Promise<string>;
+
 export function GetDisassembly(arg1:number,arg2:number):Promise<Array<service.DisassemblyLine>>;
 
 export function GetExecutionState():Promise<string>;
@@ -41,6 +43,8 @@ export function GetSymbols():Promise<Record<string, number>>;
 export function GetSymbolsForAddresses(arg1:Array<number>):Promise<Record<number, string>>;
 
 export function GetWatchpoints():Promise<Array<service.WatchpointInfo>>;
+
+export function GetWindowTitle():Promise<string>;
 
 export function IsRunning():Promise<boolean>;
 

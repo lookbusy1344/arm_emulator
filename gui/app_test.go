@@ -279,8 +279,8 @@ func TestApp_LoadProgramFromSource_OrgDirectiveDetection(t *testing.T) {
 
 		// Verify R0 was set to 42 (first instruction executed)
 		regs = app.GetRegisters()
-		if regs.R[0] != 42 {
-			t.Errorf("expected R0=42 after first instruction, got %d", regs.R[0])
+		if regs.Registers[0] != 42 {
+			t.Errorf("expected R0=42 after first instruction, got %d", regs.Registers[0])
 		}
 	})
 
@@ -386,6 +386,167 @@ done:
 		}
 		if _, ok := result[0x8000]; !ok {
 			t.Error("missing symbol for address 0x8000")
+		}
+	})
+}
+
+// TestExtractFilename tests extracting base filename from path
+func TestExtractFilename(t *testing.T) {
+	tests := []struct {
+		name     string
+		path     string
+		expected string
+	}{
+		{
+			name:     "unix absolute path",
+			path:     "/home/user/programs/stack.s",
+			expected: "stack.s",
+		},
+		{
+			name:     "unix relative path",
+			path:     "examples/hello.s",
+			expected: "hello.s",
+		},
+		{
+			name:     "windows path",
+			path:     "C:\\Users\\John\\code\\test.asm",
+			expected: "test.asm",
+		},
+		{
+			name:     "just filename",
+			path:     "program.s",
+			expected: "program.s",
+		},
+		{
+			name:     "empty string",
+			path:     "",
+			expected: "",
+		},
+		{
+			name:     "path with multiple extensions",
+			path:     "/path/to/file.test.s",
+			expected: "file.test.s",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := extractFilename(tt.path)
+			if result != tt.expected {
+				t.Errorf("extractFilename(%q) = %q, want %q", tt.path, result, tt.expected)
+			}
+		})
+	}
+}
+
+// TestApp_GetCurrentFilename tests getting the current loaded filename
+func TestApp_GetCurrentFilename(t *testing.T) {
+	app := NewApp()
+
+	t.Run("no file loaded initially", func(t *testing.T) {
+		filename := app.GetCurrentFilename()
+		if filename != "" {
+			t.Errorf("expected empty filename, got %q", filename)
+		}
+	})
+
+	t.Run("filename set after loading program", func(t *testing.T) {
+		source := ".org 0x8000\nMOV R0, #42\nSWI #0"
+		err := app.LoadProgramFromSource(source, "/home/user/test.s", 0x8000)
+		if err != nil {
+			t.Fatalf("LoadProgramFromSource failed: %v", err)
+		}
+
+		filename := app.GetCurrentFilename()
+		if filename != "test.s" {
+			t.Errorf("expected filename 'test.s', got %q", filename)
+		}
+	})
+
+	t.Run("filename updates with new program", func(t *testing.T) {
+		// Load first program
+		source1 := ".org 0x8000\nMOV R0, #1\nSWI #0"
+		err := app.LoadProgramFromSource(source1, "first.s", 0x8000)
+		if err != nil {
+			t.Fatalf("LoadProgramFromSource failed: %v", err)
+		}
+
+		// Load second program
+		source2 := ".org 0x8000\nMOV R0, #2\nSWI #0"
+		err = app.LoadProgramFromSource(source2, "examples/second.asm", 0x8000)
+		if err != nil {
+			t.Fatalf("LoadProgramFromSource failed: %v", err)
+		}
+
+		filename := app.GetCurrentFilename()
+		if filename != "second.asm" {
+			t.Errorf("expected filename 'second.asm', got %q", filename)
+		}
+	})
+
+	t.Run("filename cleared after reset", func(t *testing.T) {
+		// Load a program
+		source := ".org 0x8000\nMOV R0, #42\nSWI #0"
+		err := app.LoadProgramFromSource(source, "test.s", 0x8000)
+		if err != nil {
+			t.Fatalf("LoadProgramFromSource failed: %v", err)
+		}
+
+		// Reset
+		err = app.Reset()
+		if err != nil {
+			t.Fatalf("Reset failed: %v", err)
+		}
+
+		filename := app.GetCurrentFilename()
+		if filename != "" {
+			t.Errorf("expected empty filename after reset, got %q", filename)
+		}
+	})
+}
+
+// TestApp_GetWindowTitle tests getting the formatted window title
+func TestApp_GetWindowTitle(t *testing.T) {
+	app := NewApp()
+
+	t.Run("default title with no file", func(t *testing.T) {
+		title := app.GetWindowTitle()
+		if title != "ARM Emulator" {
+			t.Errorf("expected 'ARM Emulator', got %q", title)
+		}
+	})
+
+	t.Run("title with loaded file", func(t *testing.T) {
+		source := ".org 0x8000\nMOV R0, #42\nSWI #0"
+		err := app.LoadProgramFromSource(source, "/path/to/stack.s", 0x8000)
+		if err != nil {
+			t.Fatalf("LoadProgramFromSource failed: %v", err)
+		}
+
+		title := app.GetWindowTitle()
+		expected := "ARM Emulator - stack.s"
+		if title != expected {
+			t.Errorf("expected %q, got %q", expected, title)
+		}
+	})
+
+	t.Run("title returns to default after reset", func(t *testing.T) {
+		// Load a program
+		source := ".org 0x8000\nMOV R0, #42\nSWI #0"
+		err := app.LoadProgramFromSource(source, "test.s", 0x8000)
+		if err != nil {
+			t.Fatalf("LoadProgramFromSource failed: %v", err)
+		}
+
+		// Reset
+		err = app.Reset()
+		if err != nil {
+			t.Fatalf("Reset failed: %v", err)
+		}
+
+		title := app.GetWindowTitle()
+		if title != "ARM Emulator" {
+			t.Errorf("expected 'ARM Emulator' after reset, got %q", title)
 		}
 	})
 }

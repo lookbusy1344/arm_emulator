@@ -30,6 +30,10 @@ export function GetBreakpoints() {
   return window['go']['main']['App']['GetBreakpoints']();
 }
 
+export function GetCurrentFilename() {
+  return window['go']['main']['App']['GetCurrentFilename']();
+}
+
 export function GetDisassembly(arg1, arg2) {
   return window['go']['main']['App']['GetDisassembly'](arg1, arg2);
 }
@@ -80,6 +84,10 @@ export function GetSymbolsForAddresses(arg1) {
 
 export function GetWatchpoints() {
   return window['go']['main']['App']['GetWatchpoints']();
+}
+
+export function GetWindowTitle() {
+  return window['go']['main']['App']['GetWindowTitle']();
 }
 
 export function IsRunning() {

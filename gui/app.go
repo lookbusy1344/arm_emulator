@@ -39,9 +39,10 @@ func init() {
 
 // App struct
 type App struct {
-	ctx     context.Context
-	service *service.DebuggerService
-	machine *vm.VM
+	ctx             context.Context
+	service         *service.DebuggerService
+	machine         *vm.VM
+	currentFilename string
 }
 
 // EventEmittingWriter wraps an io.Writer and emits Wails events for each write
@@ -79,6 +80,9 @@ func (a *App) startup(ctx context.Context) {
 	// Set up output writer to emit events to frontend
 	outputWriter := &EventEmittingWriter{ctx: ctx}
 	a.machine.OutputWriter = outputWriter
+
+	// Update window title if a file was loaded from command line
+	a.updateWindowTitle()
 
 	debugLog.Println("startup() completed")
 }
@@ -164,8 +168,11 @@ func (a *App) LoadProgramFromSource(source string, filename string, entryPoint u
 
 	err = a.service.LoadProgram(program, entryPoint)
 	if err == nil {
+		// Store the current filename and update window title
+		a.currentFilename = extractFilename(filename)
+		a.updateWindowTitle()
 		// Emit state change event so frontend updates
-		runtime.EventsEmit(a.ctx, "vm:state-changed")
+		a.emitEvent("vm:state-changed")
 	}
 	return err
 }
@@ -215,12 +222,12 @@ func (a *App) LoadProgramFromFile() error {
 	// Parse and load program with default entry point (code segment start)
 	err = a.LoadProgramFromSource(string(source), filePath, vm.CodeSegmentStart)
 	if err != nil {
-		runtime.EventsEmit(a.ctx, "vm:error", err.Error())
+		a.emitEvent("vm:error", err.Error())
 		return err
 	}
 
-	runtime.EventsEmit(a.ctx, "vm:state-changed")
-	runtime.EventsEmit(a.ctx, "vm:program-loaded", filePath)
+	a.emitEvent("vm:state-changed")
+	a.emitEvent("vm:program-loaded", filePath)
 	return nil
 }
 
@@ -234,10 +241,10 @@ func (a *App) Step() error {
 	debugLog.Println("Step() called")
 	err := a.service.Step()
 	if err == nil {
-		runtime.EventsEmit(a.ctx, "vm:state-changed")
+		a.emitEvent("vm:state-changed")
 	} else {
 		debugLog.Printf("Step() error: %v", err)
-		runtime.EventsEmit(a.ctx, "vm:error", err.Error())
+		a.emitEvent("vm:error", err.Error())
 	}
 	debugLog.Println("Step() completed")
 	return err
@@ -250,7 +257,7 @@ func (a *App) Continue() error {
 	// Set running state synchronously BEFORE launching goroutine
 	// This ensures frontend can immediately observe the state change
 	a.service.SetRunning(true)
-	runtime.EventsEmit(a.ctx, "vm:state-changed")
+	a.emitEvent("vm:state-changed")
 
 	debugLog.Println("Starting goroutine")
 	// Capture context to avoid race condition
@@ -288,7 +295,7 @@ func (a *App) Continue() error {
 // Pause pauses execution
 func (a *App) Pause() {
 	a.service.Pause()
-	runtime.EventsEmit(a.ctx, "vm:state-changed")
+	a.emitEvent("vm:state-changed")
 }
 
 // Reset performs a complete reset to pristine state
@@ -296,9 +303,12 @@ func (a *App) Pause() {
 func (a *App) Reset() error {
 	err := a.service.Reset()
 	if err == nil {
-		runtime.EventsEmit(a.ctx, "vm:state-changed")
+		// Clear the filename and update window title
+		a.currentFilename = ""
+		a.updateWindowTitle()
+		a.emitEvent("vm:state-changed")
 	} else {
-		runtime.EventsEmit(a.ctx, "vm:error", err.Error())
+		a.emitEvent("vm:error", err.Error())
 	}
 	return err
 }
@@ -308,9 +318,9 @@ func (a *App) Reset() error {
 func (a *App) Restart() error {
 	err := a.service.ResetToEntryPoint()
 	if err == nil {
-		runtime.EventsEmit(a.ctx, "vm:state-changed")
+		a.emitEvent("vm:state-changed")
 	} else {
-		runtime.EventsEmit(a.ctx, "vm:error", err.Error())
+		a.emitEvent("vm:error", err.Error())
 	}
 	return err
 }
@@ -319,7 +329,7 @@ func (a *App) Restart() error {
 func (a *App) AddBreakpoint(address uint32) error {
 	err := a.service.AddBreakpoint(address)
 	if err == nil {
-		runtime.EventsEmit(a.ctx, "vm:state-changed")
+		a.emitEvent("vm:state-changed")
 	}
 	return err
 }
@@ -328,7 +338,7 @@ func (a *App) AddBreakpoint(address uint32) error {
 func (a *App) RemoveBreakpoint(address uint32) error {
 	err := a.service.RemoveBreakpoint(address)
 	if err == nil {
-		runtime.EventsEmit(a.ctx, "vm:state-changed")
+		a.emitEvent("vm:state-changed")
 	}
 	return err
 }
@@ -390,7 +400,7 @@ func (a *App) ToggleBreakpoint(address uint32) error {
 	}
 
 	if err == nil {
-		runtime.EventsEmit(a.ctx, "vm:state-changed")
+		a.emitEvent("vm:state-changed")
 	}
 
 	return err
@@ -399,7 +409,7 @@ func (a *App) ToggleBreakpoint(address uint32) error {
 // ClearAllBreakpoints removes all breakpoints
 func (a *App) ClearAllBreakpoints() {
 	a.service.ClearAllBreakpoints()
-	runtime.EventsEmit(a.ctx, "vm:state-changed")
+	a.emitEvent("vm:state-changed")
 }
 
 // GetSourceMap returns the complete source map
@@ -450,9 +460,9 @@ func (a *App) GetOutput() string {
 func (a *App) StepOver() error {
 	err := a.service.StepOver()
 	if err == nil {
-		runtime.EventsEmit(a.ctx, "vm:state-changed")
+		a.emitEvent("vm:state-changed")
 	} else {
-		runtime.EventsEmit(a.ctx, "vm:error", err.Error())
+		a.emitEvent("vm:error", err.Error())
 	}
 	return err
 }
@@ -461,9 +471,9 @@ func (a *App) StepOver() error {
 func (a *App) StepOut() error {
 	err := a.service.StepOut()
 	if err == nil {
-		runtime.EventsEmit(a.ctx, "vm:state-changed")
+		a.emitEvent("vm:state-changed")
 	} else {
-		runtime.EventsEmit(a.ctx, "vm:error", err.Error())
+		a.emitEvent("vm:error", err.Error())
 	}
 	return err
 }
@@ -472,7 +482,7 @@ func (a *App) StepOut() error {
 func (a *App) AddWatchpoint(address uint32, watchType string) error {
 	err := a.service.AddWatchpoint(address, watchType)
 	if err == nil {
-		runtime.EventsEmit(a.ctx, "vm:state-changed")
+		a.emitEvent("vm:state-changed")
 	}
 	return err
 }
@@ -481,7 +491,7 @@ func (a *App) AddWatchpoint(address uint32, watchType string) error {
 func (a *App) RemoveWatchpoint(id int) error {
 	err := a.service.RemoveWatchpoint(id)
 	if err == nil {
-		runtime.EventsEmit(a.ctx, "vm:state-changed")
+		a.emitEvent("vm:state-changed")
 	}
 	return err
 }
@@ -497,7 +507,7 @@ func (a *App) ExecuteCommand(command string) (string, error) {
 
 	// Check if command modified state
 	if isStateModifyingCommand(command) {
-		runtime.EventsEmit(a.ctx, "vm:state-changed")
+		a.emitEvent("vm:state-changed")
 	}
 
 	return output, err
@@ -517,4 +527,56 @@ func isStateModifyingCommand(command string) bool {
 		}
 	}
 	return false
+}
+
+// extractFilename extracts the base filename from a full path
+// Handles both Unix (/) and Windows (\) path separators
+func extractFilename(path string) string {
+	if path == "" {
+		return ""
+	}
+
+	// Find the last occurrence of either / or \
+	lastSlash := -1
+	for i := len(path) - 1; i >= 0; i-- {
+		if path[i] == '/' || path[i] == '\\' {
+			lastSlash = i
+			break
+		}
+	}
+
+	if lastSlash == -1 {
+		// No path separator found, return the whole string
+		return path
+	}
+
+	return path[lastSlash+1:]
+}
+
+// GetCurrentFilename returns the currently loaded filename (base name only, not full path)
+func (a *App) GetCurrentFilename() string {
+	return a.currentFilename
+}
+
+// GetWindowTitle returns the formatted window title
+func (a *App) GetWindowTitle() string {
+	if a.currentFilename == "" {
+		return "ARM Emulator"
+	}
+	return "ARM Emulator - " + a.currentFilename
+}
+
+// updateWindowTitle updates the window title to reflect the current loaded file
+func (a *App) updateWindowTitle() {
+	if a.ctx != nil {
+		title := a.GetWindowTitle()
+		runtime.WindowSetTitle(a.ctx, title)
+	}
+}
+
+// emitEvent safely emits a Wails event, checking for valid context first
+func (a *App) emitEvent(name string, data ...interface{}) {
+	if a.ctx != nil {
+		runtime.EventsEmit(a.ctx, name, data...)
+	}
 }

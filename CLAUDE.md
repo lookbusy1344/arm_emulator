@@ -57,6 +57,17 @@ wails build -nocolour
 wails dev -nocolour
 ```
 
+### Run GUI with a File Pre-loaded
+
+To launch the GUI with a specific assembly file already loaded:
+
+```bash
+cd gui
+wails dev -nocolour -appargs "../examples/stack.s"
+```
+
+The window title will show "ARM Emulator - filename.s" when a file is loaded.
+
 ### Check Wails Environment
 
 ```bash
