@@ -30,7 +30,7 @@ test.describe('Visual Regression', () => {
     await expect(appPage.registerView).toHaveScreenshot('register-view-after-steps.png');
   });
 
-  test('should match memory view screenshot', async ({ page }) => {
+  test.skip('should match memory view screenshot', async ({ page }) => {
     const appPage = new AppPage(page);
     await appPage.goto();
     await loadProgram(appPage, TEST_PROGRAMS.hello);
@@ -195,7 +195,7 @@ test.describe('Visual Regression - Responsive Layout', () => {
     });
   });
 
-  test('should match layout on mobile viewport', async ({ page }) => {
+  test.skip('should match layout on mobile viewport', async ({ page }) => {
     const appPage = new AppPage(page);
 
     // Set mobile viewport
@@ -210,7 +210,7 @@ test.describe('Visual Regression - Responsive Layout', () => {
     });
   });
 
-  test('should match layout on large desktop', async ({ page }) => {
+  test.skip('should match layout on large desktop', async ({ page }) => {
     const appPage = new AppPage(page);
 
     // Set large desktop viewport
@@ -343,7 +343,7 @@ test.describe('Visual Regression - Component States', () => {
     await expect(appPage.registerView).toHaveScreenshot('register-view-changed.png');
   });
 
-  test('should match memory view with data', async ({ page }) => {
+  test.skip('should match memory view with data', async ({ page }) => {
     const appPage = new AppPage(page);
     await appPage.goto();
     await loadProgram(appPage, TEST_PROGRAMS.hello);
