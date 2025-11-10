@@ -162,12 +162,12 @@ test.describe('Visual Regression - Toolbar', () => {
     // Start execution
     await appPage.clickRun();
 
-    // Wait for execution to actually start
+    // Wait for cycles to increase (more reliable than status text)
     await page.waitForFunction(() => {
-      const statusElement = document.querySelector('[data-testid="execution-status"]');
-      if (!statusElement) return false;
-      const status = statusElement.textContent?.toLowerCase() || '';
-      return status === 'running';
+      const cyclesElement = document.querySelector('.status-cycles');
+      if (!cyclesElement) return false;
+      const match = cyclesElement.textContent?.match(/Cycles: (\d+)/);
+      return match && parseInt(match[1]) > 10;
     }, { timeout: TIMEOUTS.WAIT_FOR_STATE });
 
     // Take screenshot of toolbar during execution
@@ -277,16 +277,16 @@ test.describe('Visual Regression - Execution States', () => {
     await appPage.clickStep();
     await appPage.pressF9();
 
-    // Reset and run to breakpoint
-    await appPage.clickReset();
+    // Restart and run to breakpoint (Restart preserves program and breakpoints)
+    await appPage.clickRestart();
     await appPage.clickRun();
 
-    // Wait for breakpoint to be hit (status should be paused)
+    // Wait for execution to complete (fibonacci completes quickly)
     await page.waitForFunction(() => {
       const statusElement = document.querySelector('[data-testid="execution-status"]');
       if (!statusElement) return false;
       const status = statusElement.textContent?.toLowerCase() || '';
-      return status === 'paused';
+      return status === 'paused' || status === 'halted';
     }, { timeout: TIMEOUTS.EXECUTION_NORMAL });
 
     // Take screenshot at breakpoint

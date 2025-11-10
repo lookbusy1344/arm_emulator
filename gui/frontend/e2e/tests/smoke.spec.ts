@@ -77,8 +77,8 @@ test.describe('Smoke Tests', () => {
     const pcAfterF10 = await appPage.getRegisterValue('PC');
     expect(pcAfterF10).not.toBe(pcBeforeF10);
 
-    // Reset before testing F5
-    await appPage.clickReset();
+    // Restart before testing F5 (Restart preserves program, Reset clears it)
+    await appPage.clickRestart();
     await waitForVMStateChange(appPage.page, TIMEOUTS.VM_RESET);
 
     // F5 = Run - verify execution started and completed
@@ -97,6 +97,7 @@ test.describe('Smoke Tests', () => {
 
     // Verify program ran (should be at exit)
     const pcAfterRun = await appPage.getRegisterValue('PC');
-    expect(pcAfterRun).not.toBe(formatAddress(ADDRESSES.CODE_SEGMENT_START));
+    const startAddress = await formatAddress(ADDRESSES.CODE_SEGMENT_START);
+    expect(pcAfterRun).not.toBe(startAddress);
   });
 });

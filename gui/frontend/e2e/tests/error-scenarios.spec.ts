@@ -289,22 +289,22 @@ test.describe('Error Scenarios', () => {
     // Start running
     await appPage.clickRun();
 
-    // Wait for execution to actually start
+    // Wait for execution to actually start by checking cycles increase
     await appPage.page.waitForFunction(
       () => {
-        const statusElement = document.querySelector('[data-testid="execution-status"]');
-        if (!statusElement) return false;
-        const status = statusElement.textContent?.toLowerCase() || '';
-        return status === 'running';
+        const cyclesElement = document.querySelector('.status-cycles');
+        if (!cyclesElement) return false;
+        const match = cyclesElement.textContent?.match(/Cycles: (\d+)/);
+        return match && parseInt(match[1]) > 10;
       },
       { timeout: TIMEOUTS.EXECUTION_START }
     );
 
-    // Reset while running
+    // Reset while running (Reset clears program, so PC will be 0x00000000)
     await appPage.clickReset();
 
-    // Wait for reset to complete by checking PC is back at start
-    const expectedPC = `0x${ADDRESSES.CODE_SEGMENT_START.toString(16).toUpperCase().padStart(8, '0')}`;
+    // Wait for reset to complete by checking PC is cleared to 0
+    const expectedPC = '0x00000000';
     await appPage.page.waitForFunction(
       (pc) => {
         const pcElement = document.querySelector('[data-register="PC"] .register-value');
@@ -312,11 +312,11 @@ test.describe('Error Scenarios', () => {
         return pcElement.textContent?.trim() === pc;
       },
       expectedPC,
-      { timeout: TIMEOUTS.VM_RESET }
+      { timeout: TIMEOUTS.WAIT_FOR_RESET }
     );
 
     const pc = await appPage.getRegisterValue('PC');
-    expect(pc).toBe(expectedPC); // Should reset to start
+    expect(pc).toBe(expectedPC); // Should clear to 0x00000000
   });
 
   test('should handle very large immediate values', async () => {
