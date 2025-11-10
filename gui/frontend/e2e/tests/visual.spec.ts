@@ -249,6 +249,10 @@ test.describe('Visual Regression - Execution States', () => {
   });
 
   test('should match UI after program completion', async ({ page }) => {
+    // Skip in CI: Full-page screenshot has font rendering differences between local macOS
+    // and GitHub Actions macOS runners.
+    test.skip(!!process.env.CI, 'Skipped in CI due to cross-environment rendering differences');
+
     const appPage = new AppPage(page);
     await appPage.goto();
     await loadProgram(appPage, TEST_PROGRAMS.hello);
@@ -272,6 +276,10 @@ test.describe('Visual Regression - Execution States', () => {
   });
 
   test('should match UI at breakpoint', async ({ page }) => {
+    // Skip in CI: Full-page screenshot has font rendering differences between local macOS
+    // and GitHub Actions macOS runners.
+    test.skip(!!process.env.CI, 'Skipped in CI due to cross-environment rendering differences');
+
     const appPage = new AppPage(page);
     await appPage.goto();
     await loadProgram(appPage, TEST_PROGRAMS.fibonacci);
