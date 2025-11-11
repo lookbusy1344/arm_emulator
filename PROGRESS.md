@@ -1,11 +1,12 @@
 # ARM2 Emulator Implementation Progress
 
-**Last Updated:** 2025-11-05
+**Last Updated:** 2025-11-11
 **Current Phase:** Phase 12 Complete - GUI Implementation ✅
 **Test Suite:** 1,024 tests passing (100% ✅), 0 lint issues, 75.0% code coverage
 **Code Size:** 46,257 lines of Go code
 **Example Programs:** 49 programs total, all fully functional (100% success rate)
 **E2E Tests:** 67/72 passing (93%), 20/22 visual tests passing locally
+**Security Status:** Filesystem sandboxing implemented (Nov 11, 2025)
 
 ---
 
@@ -16,6 +17,20 @@ This is a complete ARM2 emulator written in Go with ARMv3 extensions, featuring 
 ---
 
 ## Recent Highlights (November 2025)
+
+### Filesystem Sandboxing Implementation (Nov 11) ✅
+- ✅ **CRITICAL SECURITY IMPROVEMENT:** Mandatory filesystem sandboxing
+  - Guest programs now restricted to specified directory (`-fsroot` flag)
+  - Path traversal attacks (using `..`) blocked and halt VM
+  - Symlink escapes outside root blocked and halt VM  
+  - Absolute paths treated as relative to filesystem root
+  - No unrestricted access mode - sandboxing always enforced
+- ✅ **Path validation function** with comprehensive security checks
+- ✅ **Security hardening** removed backward compatibility with unrestricted access
+- ✅ **Documentation updates** in README.md and CLAUDE.md
+- ✅ **Testing:** 7 new unit tests + 2 integration tests, all passing
+- **Files Modified:** `vm/executor.go`, `vm/syscall.go`, `main.go`, `README.md`, docs
+- **Impact:** Eliminates the most critical security vulnerability (unrestricted filesystem access)
 
 ### E2E Visual Regression Test Fixes (Nov 5) ✅
 - ✅ **Fixed status tab visual test:** Conditional skip in CI to avoid cross-environment rendering differences

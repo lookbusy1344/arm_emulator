@@ -1,23 +1,31 @@
 # Security Audit Report
 
-**Date:** October 22, 2025  
+**Date:** November 11, 2025 (Updated with Filesystem Sandboxing)  
 **Project:** ARM2 Emulator  
-**Version:** 1.0.0  
+**Version:** 1.0.0+  
 **Auditor:** GitHub Copilot Security Analysis
 
 ## Executive Summary
 
 This document provides a comprehensive security audit of the ARM2 Emulator project in response to anti-virus false positive detections of the Windows AMD64 binary. The audit confirms that **this project does NOT contain malicious code** and the anti-virus detections are false positives caused by legitimate emulator behavior patterns.
 
+**MAJOR SECURITY UPDATE (November 11, 2025):** Implemented mandatory filesystem sandboxing that restricts guest program file access to a specified directory, eliminating the most critical security vulnerability.
+
 ### Key Findings
 
 ✅ **NO NETWORK CONNECTIVITY** - Project contains no network code  
 ✅ **NO REMOTE SERVERS** - No connections to external servers  
 ✅ **NO DOWNLOADS** - No capability to download external content  
-✅ **NO SYSTEM FILE MODIFICATIONS** - Only operates on user-specified files  
+✅ **FILESYSTEM SANDBOXING ENFORCED** - Guest programs restricted to specified directory (Nov 11, 2025)  
 ✅ **LEGITIMATE DEPENDENCIES** - All third-party libraries are well-known and safe  
 ✅ **NO OBFUSCATION** - Clean, readable source code  
 ✅ **OPEN SOURCE** - Full source code available for inspection
+
+### Security Status
+
+**Previous Risk:** Guest programs had unrestricted filesystem access  
+**Current Status:** ✅ **RESOLVED** - Mandatory sandboxing implemented (Nov 11, 2025)  
+**Risk Level:** 🟢 **LOW** - All critical vulnerabilities addressed
 
 ## Detailed Analysis
 
@@ -65,32 +73,48 @@ The application:
 
 The application only modifies files that the user explicitly specifies:
 
-**File Operations (All User-Controlled):**
+**File Operations (Sandboxed and User-Controlled):**
+
+**🔒 SECURITY UPDATE (November 11, 2025): Mandatory Filesystem Sandboxing Implemented**
+
+- **Sandboxing:** Guest programs restricted to specified directory (defaults to CWD)
+  - Use `-fsroot` flag to specify allowed directory: `./arm-emulator -fsroot /tmp/sandbox program.s`
+  - Path traversal (`..`) blocked and halts VM
+  - Symlink escapes blocked and halt VM
+  - Absolute paths treated as relative to sandbox root
+  - **No unrestricted access mode** - sandboxing always enforced
+
 - **Read Operations:** User-provided assembly files (`.s` files)
 - **Write Operations:** 
   - User-specified trace/log files (via `--trace-file`, `--mem-trace-file`, etc.)
   - User-specified statistics files (via `--stats-file`)
   - User-specified coverage files (via `--coverage-file`)
-  - Files opened by emulated ARM programs via SWI syscalls
+  - Files within sandbox directory via SWI syscalls (restricted by `-fsroot`)
 
 **No System Files Modified:**
 - ❌ No writes to `/etc/`, `/sys/`, `/proc/`
 - ❌ No writes to Windows registry
-- ❌ No writes to system directories
+- ❌ No writes to system directories (enforced by sandboxing)
 - ❌ No modification of executable files
 - ❌ No changes to OS configuration
+- ✅ **All guest program file access restricted to sandbox directory**
 
 **File I/O Implementation (vm/syscall.go):**
 ```go
-// SWI_OPEN - Opens user-specified file paths only
-// Lines 537-586: File operations are sandboxed to emulated program's context
-// Uses standard Go os.Open/os.OpenFile with explicit flags
-// No system files are accessed
+// SWI_OPEN - Opens files with mandatory path validation
+// ValidatePath() enforces sandbox restrictions:
+// - Blocks ".." path traversal
+// - Blocks symlink escapes
+// - Treats absolute paths as relative to fsroot
+// - VM halts on security violations
 ```
 
-All file operations include security comments explaining the intentional nature:
+Security guarantees:
 ```go
-//nolint:gosec // G304: File path is intentionally controlled by emulated program
+// Path validation in handleOpen() (lines 537-586)
+// 1. Check FilesystemRoot is configured (mandatory)
+// 2. Validate path stays within sandbox
+// 3. Block escape attempts with security error
 ```
 
 ### 5. Third-Party Dependencies
@@ -201,20 +225,79 @@ The build process is fully transparent:
 
 **Finding:** ✅ **SAFE AND SANDBOXED**
 
-The emulator implements ARM syscalls (SWIs) that are sandboxed:
+**🔒 SECURITY UPDATE (November 11, 2025): Enhanced Filesystem Restrictions**
+
+The emulator implements ARM syscalls (SWIs) with mandatory security boundaries:
 
 **Implemented Syscalls (vm/syscall.go):**
 - Console I/O: Write/read characters, strings, integers
-- File Operations: Open/close/read/write (user files only)
-- Memory Management: Allocate/free (within emulator heap)
+- **File Operations: Open/close/read/write (SANDBOXED to `-fsroot` directory)**
+  - Path validation enforced on all file operations
+  - Path traversal blocked
+  - Symlink escapes blocked
+  - VM halts on security violations
+- Memory Management: Allocate/free (within emulator heap only)
 - System Info: Time, random numbers (non-cryptographic)
 - Debugging: Breakpoints, memory dumps (development tools)
 
 **Security Boundaries:**
 - All syscalls operate within the emulator's virtual environment
-- Cannot escape to host system
+- ✅ **File access restricted to sandbox directory** (mandatory since Nov 11, 2025)
+- Cannot escape to host system outside sandbox
 - No privilege escalation
-- No system call forwarding to OS
+- No system call forwarding to OS with elevated privileges
+- Path validation with security error on escape attempts
+
+### 10. Filesystem Sandboxing (November 11, 2025)
+
+**Feature:** Mandatory filesystem restriction for guest program file operations
+
+**Implementation:** The `-fsroot` flag specifies the directory that guest programs can access for file operations. This defaults to the current working directory but should be set explicitly for untrusted code.
+
+**Usage:**
+```bash
+# Restrict to specific sandbox directory (recommended)
+./arm-emulator -fsroot /tmp/sandbox program.s
+
+# Default: current working directory
+./arm-emulator program.s
+```
+
+**Security Checks (vm.ValidatePath):**
+1. **Mandatory configuration** - FilesystemRoot must always be set (no unrestricted mode)
+2. **Empty path blocking** - Rejects empty file paths
+3. **Path traversal protection** - Blocks `..` components in paths
+4. **Absolute path handling** - Treats `/etc/passwd` as `<fsroot>/etc/passwd`
+5. **Symlink escape prevention** - Resolves symlinks and verifies final path is within sandbox
+6. **Canonical path verification** - Ensures resolved path stays within boundaries
+
+**Enforcement:**
+- All validation failures **halt the VM** with security error
+- No fallback or backward compatibility mode
+- Standard file descriptors (stdin/stdout/stderr) remain unrestricted
+
+**Testing:**
+- 7 unit tests cover all validation scenarios
+- 2 integration tests verify sandbox enforcement with assembly programs
+- All tests verify escape attempts are properly blocked
+
+**Security Impact:**
+- ✅ Prevents malicious programs from accessing sensitive system files
+- ✅ Prevents buggy programs from damaging files outside sandbox
+- ✅ Provides clear security boundary for educational and testing use
+- ✅ Eliminates the most critical security vulnerability in the emulator
+
+**Recommendation:**
+Always use an explicit `-fsroot` directory when running untrusted or unknown assembly programs. Create a dedicated sandbox directory containing only necessary files:
+
+```bash
+# Create sandbox
+mkdir /tmp/arm_sandbox
+cp input.txt /tmp/arm_sandbox/
+
+# Run with sandbox
+./arm-emulator -fsroot /tmp/arm_sandbox untrusted_program.s
+```
 
 ## Verification Steps for Users
 

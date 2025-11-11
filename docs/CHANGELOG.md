@@ -7,6 +7,57 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### November 2025 Updates
+
+#### 2025-11-11: Filesystem Sandboxing Implementation - CRITICAL SECURITY IMPROVEMENT
+**Status:** Complete - Mandatory filesystem restriction eliminates unrestricted access vulnerability
+
+**Summary:** Implemented comprehensive filesystem sandboxing to restrict guest program file access to a specified directory. This eliminates the most critical security vulnerability in the emulator.
+
+**Features Implemented:**
+- **New `-fsroot` CLI flag:** Specifies allowed directory for file operations (defaults to current working directory)
+  ```bash
+  ./arm-emulator -fsroot /tmp/sandbox program.s
+  ```
+- **Path validation function (`vm.ValidatePath()`)** with 6-layer security:
+  1. Verify FilesystemRoot is configured (mandatory - no unrestricted mode)
+  2. Block empty paths
+  3. Block `..` components (path traversal attacks)
+  4. Treat absolute paths as relative to fsroot
+  5. Detect and block symlink escapes
+  6. Verify canonical path stays within fsroot
+- **Integration with file operations:** All file syscalls (OPEN, READ, WRITE) validate paths
+- **VM halt on security violations:** Escape attempts halt execution with security error
+- **Security hardening:** Removed backward compatibility mode - sandboxing always enforced
+
+**Security Guarantees:**
+- ✅ Guest programs restricted to specified directory only
+- ✅ Path traversal with `..` blocked and halts VM
+- ✅ Symlink escapes outside root blocked and halt VM
+- ✅ Absolute paths treated as relative to filesystem root
+- ✅ No unrestricted access mode exists - mandatory enforcement
+
+**Testing:**
+- 7 new unit tests covering all validation scenarios
+- 2 integration tests with assembly programs (allowed access + escape attempts)
+- All 1,024+ existing tests updated and passing
+- Verified escape attempts properly blocked and VM halted
+
+**Files Modified:**
+- `vm/executor.go` - Added FilesystemRoot field, validation integration
+- `vm/syscall.go` - Updated handleOpen() with path validation, added ValidatePath()
+- `main.go` - Added `-fsroot` flag with default to current directory
+- `README.md` - Added security section with sandboxing documentation
+- `CLAUDE.md` - Updated with security requirements and examples
+- `tests/unit/vm/filesystem_security_test.go` - New test file
+- `tests/integration/filesystem_security_integration_test.go` - New test file
+
+**Impact:** **CRITICAL SECURITY MILESTONE** - This eliminates the most significant security vulnerability. Guest programs can no longer access arbitrary files on the host system, preventing malicious or buggy code from reading sensitive data, modifying system files, or causing damage outside the sandbox.
+
+**Recommendation:** All users should specify an explicit `-fsroot` directory when running untrusted or unknown assembly programs. Create a dedicated sandbox directory with only necessary files for maximum isolation.
+
+---
+
 ### October 2025 Updates
 
 #### 2025-10-23: Security Analysis - Memory Segment Wraparound Protection
