@@ -186,10 +186,14 @@ func ExecuteSWI(vm *VM, inst *Instruction) error {
 	case SWI_READ_INT:
 		err = handleReadInt(vm)
 	case SWI_WRITE_NEWLINE:
-		_, _ = fmt.Fprintln(vm.OutputWriter) // Ignore write errors
+		if _, err = fmt.Fprintln(vm.OutputWriter); err != nil {
+			fmt.Fprintf(os.Stderr, "Warning: console write failed: %v\n", err)
+		}
 		// Sync if it's os.Stdout
 		if f, ok := vm.OutputWriter.(*os.File); ok {
-			_ = f.Sync() // Ignore sync errors
+			if err := f.Sync(); err != nil {
+				fmt.Fprintf(os.Stderr, "Warning: console sync failed: %v\n", err)
+			}
 		}
 		vm.CPU.IncrementPC()
 
@@ -270,10 +274,18 @@ func handleExit(vm *VM) error {
 
 func handleWriteChar(vm *VM) error {
 	char := vm.CPU.GetRegister(0)
-	_, _ = fmt.Fprintf(vm.OutputWriter, "%c", char) // Ignore write errors
+	if _, err := fmt.Fprintf(vm.OutputWriter, "%c", char); err != nil {
+		// Console write errors are logged but don't halt execution
+		// (broken pipe, disk full, etc. are typically non-recoverable)
+		fmt.Fprintf(os.Stderr, "Warning: console write failed: %v\n", err)
+	}
 	// Sync if it's os.Stdout
 	if f, ok := vm.OutputWriter.(*os.File); ok {
-		_ = f.Sync() // Ignore sync errors
+		if err := f.Sync(); err != nil {
+			// Sync errors are typically benign (not a real file, etc.)
+			// Only log if it's a real error
+			fmt.Fprintf(os.Stderr, "Warning: console sync failed: %v\n", err)
+		}
 	}
 	vm.CPU.IncrementPC()
 	return nil
@@ -326,23 +338,30 @@ func handleWriteInt(vm *VM) error {
 		base = BaseDecimal // Default to decimal
 	}
 
+	var err error
 	switch base {
 	case BaseBinary:
-		_, _ = fmt.Fprintf(vm.OutputWriter, "%b", value) // Ignore write errors
+		_, err = fmt.Fprintf(vm.OutputWriter, "%b", value)
 	case BaseOctal:
-		_, _ = fmt.Fprintf(vm.OutputWriter, "%o", value) // Ignore write errors
+		_, err = fmt.Fprintf(vm.OutputWriter, "%o", value)
 	case BaseDecimal:
-		_, _ = fmt.Fprintf(vm.OutputWriter, "%d", AsInt32(value)) // Ignore write errors
+		_, err = fmt.Fprintf(vm.OutputWriter, "%d", AsInt32(value))
 	case BaseHexadecimal:
-		_, _ = fmt.Fprintf(vm.OutputWriter, "%x", value) // Ignore write errors
+		_, err = fmt.Fprintf(vm.OutputWriter, "%x", value)
 	default:
 		// This should never happen due to validation above, but keep for safety
-		_, _ = fmt.Fprintf(vm.OutputWriter, "%d", AsInt32(value)) // Ignore write errors
+		_, err = fmt.Fprintf(vm.OutputWriter, "%d", AsInt32(value))
+	}
+
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Warning: console write failed: %v\n", err)
 	}
 
 	// Sync if it's os.Stdout
 	if f, ok := vm.OutputWriter.(*os.File); ok {
-		_ = f.Sync() // Ignore sync errors
+		if err := f.Sync(); err != nil {
+			fmt.Fprintf(os.Stderr, "Warning: console sync failed: %v\n", err)
+		}
 	}
 	vm.CPU.IncrementPC()
 	return nil
