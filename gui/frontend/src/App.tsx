@@ -4,8 +4,7 @@ import 'allotment/dist/style.css';
 import { SourceView } from './components/SourceView';
 import { DisassemblyView } from './components/DisassemblyView';
 import { RegisterView } from './components/RegisterView';
-import { MemoryContainer } from './components/MemoryContainer';
-import { StackView } from './components/StackView';
+import { MemoryStackContainer } from './components/MemoryStackContainer';
 import { OutputView } from './components/OutputView';
 import { StatusView } from './components/StatusView';
 import { BreakpointsView } from './components/BreakpointsView';
@@ -168,17 +167,14 @@ function App() {
               </div>
             </Allotment.Pane>
 
-            {/* Right: Registers/Memory/Stack */}
+            {/* Right: Registers/Memory+Stack */}
             <Allotment.Pane minSize={300} preferredSize={400}>
               <Allotment vertical>
                 <Allotment.Pane>
                   <RegisterView />
                 </Allotment.Pane>
                 <Allotment.Pane>
-                  <MemoryContainer />
-                </Allotment.Pane>
-                <Allotment.Pane>
-                  <StackView />
+                  <MemoryStackContainer />
                 </Allotment.Pane>
               </Allotment>
             </Allotment.Pane>
