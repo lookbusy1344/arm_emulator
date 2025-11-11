@@ -131,6 +131,10 @@ export const MemoryView: React.FC<MemoryViewProps> = ({
             <div key={rowIndex} className="memory-row" data-address={formatAddress(rowAddress)}>
               <span className="memory-address">{formatAddress(rowAddress)}</span>
 
+              <span className="memory-ascii" data-testid="memory-ascii">
+                {Array.from(row).map((byte) => toASCII(byte)).join('')}
+              </span>
+
               <div className="memory-hex">
                 {Array.from(row).map((byte, byteIndex) => {
                   const byteAddr = rowAddress + byteIndex
@@ -153,10 +157,6 @@ export const MemoryView: React.FC<MemoryViewProps> = ({
                   )
                 })}
               </div>
-
-              <span className="memory-ascii" data-testid="memory-ascii">
-                {Array.from(row).map((byte) => toASCII(byte)).join('')}
-              </span>
             </div>
           )
         })}

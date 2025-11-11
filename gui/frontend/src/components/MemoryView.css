@@ -64,15 +64,18 @@
 .memory-dump {
   flex: 1;
   overflow-y: auto;
+  overflow-x: auto;
   font-size: 12px;
 }
 
 .memory-row {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 1ch;
   padding: 2px 0;
   line-height: 1.5;
+  min-width: min-content;
+  white-space: nowrap;
 }
 
 .memory-row:hover {
@@ -88,7 +91,7 @@
 .memory-hex {
   display: flex;
   gap: 4px;
-  flex: 1;
+  flex-shrink: 0;
 }
 
 .memory-byte {
