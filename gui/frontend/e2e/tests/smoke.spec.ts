@@ -24,16 +24,21 @@ test.describe('Smoke Tests', () => {
     await expect(appPage.runButton).toBeVisible();
     await expect(appPage.resetButton).toBeVisible();
 
-    // Check tabs
+    // Check left tabs
     await expect(appPage.sourceTab).toBeVisible();
     await expect(appPage.disassemblyTab).toBeVisible();
+
+    // Check Memory/Stack tabs (right side)
+    await expect(appPage.memoryTab).toBeVisible();
+    await expect(appPage.stackTab).toBeVisible();
+
+    // Check bottom tabs
     await expect(appPage.outputTab).toBeVisible();
     await expect(appPage.breakpointsTab).toBeVisible();
 
     // Check views
     await expect(appPage.registerView).toBeVisible();
-    await expect(appPage.memoryView).toBeVisible();
-    await expect(appPage.stackView).toBeVisible();
+    await expect(appPage.memoryView).toBeVisible(); // Memory is default tab
   });
 
   test('should switch between tabs', async () => {

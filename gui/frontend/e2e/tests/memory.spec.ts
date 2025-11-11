@@ -175,6 +175,9 @@ test.describe('Stack View', () => {
   test('should display stack contents', async ({ page }) => {
     await loadProgram(appPage, TEST_PROGRAMS.hello);
 
+    // Switch to Stack tab
+    await appPage.switchToStackTab();
+
     // Stack view should be visible
     const stackView = page.locator('[data-testid="stack-view"]');
     await expect(stackView).toBeVisible();
@@ -210,6 +213,9 @@ test.describe('Stack View', () => {
 
   test('should show stack growth direction', async ({ page }) => {
     await loadProgram(appPage, TEST_PROGRAMS.fibonacci);
+
+    // Switch to Stack tab
+    await appPage.switchToStackTab();
 
     const stackView = page.locator('[data-testid="stack-view"]');
     await expect(stackView).toBeVisible();
