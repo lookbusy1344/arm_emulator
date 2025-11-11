@@ -12,7 +12,8 @@ This code review examines the ARM2 emulator project with fresh perspective, assu
 ### Overall Assessment
 
 **Strengths:**
-- ✅ Excellent test coverage (1,024 tests, 100% pass rate)
+- ✅ Excellent test coverage (1,024+ tests, 100% pass rate)
+- ✅ **NEW: Mandatory filesystem sandboxing** - Guest programs restricted to specified directory
 - ✅ Comprehensive security hardening (buffer overflow protection, address wraparound validation)
 - ✅ Well-documented syscall interface and architecture
 - ✅ Sophisticated diagnostic features (code coverage, stack trace, flag trace, register trace)
@@ -32,11 +33,13 @@ This code review examines the ARM2 emulator project with fresh perspective, assu
 
 | Category | Risk Level | Impact |
 |----------|-----------|---------|
-| Security | 🟡 Medium | Recent hardening improved this, but input validation gaps remain |
+| Security | 🟢 Low | **IMPROVED:** Filesystem sandboxing eliminates major vulnerability. Minor input validation gaps remain. |
 | Reliability | 🟡 Medium | Error handling inconsistencies could cause unexpected behavior |
 | Maintainability | 🟡 Medium | Code organization good, but coupling and complexity increasing |
 | Performance | 🟢 Low | Performance adequate for emulator use case |
 | Testing | 🟢 Low | Excellent coverage, but needs more edge case and fuzzing tests |
+
+**Security Update (November 11, 2025):** The security risk has been downgraded from Medium to Low following the implementation of mandatory filesystem sandboxing. The most significant vulnerability (unrestricted filesystem access) has been eliminated.
 
 ---
 
@@ -761,56 +764,29 @@ func ValidateSourceInput(source string, filename string) error {
 
 ---
 
-#### 4.2.2 File Operations Security
+#### 4.2.2 File Operations Security ✅ **RESOLVED**
 
-**Finding:** File operations use intentional `//nolint:gosec` suppressions for G304 (file inclusion) and G302 (file permissions).
+**Original Finding:** File operations allowed unrestricted filesystem access, creating security risk.
 
-**File:** `vm/syscall.go:628-643`:
-```go
-switch mode {
-case FileModeRead:
-    //nolint:gosec // G304: File path is intentionally controlled by emulated program
-    file, err = os.Open(s)
-case FileModeWrite:
-    //nolint:gosec // G304,G302: File operations are intentional for emulated program I/O
-    file, err = os.OpenFile(s, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, FilePermDefault)
-case FileModeAppend:
-    //nolint:gosec // G304,G302: File operations are intentional for emulated program I/O
-    file, err = os.OpenFile(s, os.O_CREATE|os.O_APPEND|os.O_RDWR, FilePermDefault)
-}
-```
+**Status:** **FULLY RESOLVED** (See Fix #5 in §8.1)
 
-**Issues:**
-1. **Path traversal not prevented** - Guest program can read/write any file the host user can access
-2. **No sandbox** - Guest programs have full filesystem access
-3. **Symlink attacks possible** - No verification that opened file is the intended file
+**Implementation Details:**
+- Mandatory filesystem sandboxing with `-fsroot` flag (defaults to CWD)
+- Path validation blocks `..` traversal and symlink escapes
+- VM halts with security error on escape attempts
+- No unrestricted access mode exists (security hardening applied)
 
-**This is documented behavior** - Emulator is designed to run trusted code. However, this should be prominently documented in security docs.
+**Security Guarantees:**
+- ✅ Guest programs restricted to specified directory
+- ✅ Path traversal attacks blocked
+- ✅ Symlink escapes blocked
+- ✅ Absolute paths treated as relative to fsroot
 
-**Recommendation:**
-1. **Add security warning to README**:
-   ```markdown
-   ## Security Warning
+**File:** `vm/syscall.go` - Updated with `ValidatePath()` function that enforces restrictions
 
-   The ARM emulator grants guest programs access to the host filesystem.
-   **Only run trusted assembly code.** Malicious programs can:
-   - Read/write any file the user can access
-   - Execute arbitrary file operations
-   - Consume system resources
+**Impact:** This was the **most critical security vulnerability** in the emulator. With sandboxing implemented, guest programs can no longer access arbitrary files on the host system.
 
-   This is intentional behavior for an emulator, but means you should
-   treat assembly source files with the same caution as executable binaries.
-   ```
-
-2. **Consider optional sandboxing mode**:
-   ```go
-   type VMConfig struct {
-       SandboxEnabled bool
-       AllowedPaths   []string // Restrict file access to these paths
-   }
-   ```
-
-**Priority:** High (documentation) / Low (sandboxing feature)
+**Documentation:** README.md and CLAUDE.md updated with security guarantees and usage examples.
 
 ---
 
@@ -1184,25 +1160,15 @@ if aligned < size {
 
 ---
 
-#### Fix #2: Filesystem Security Documentation (§4.2.2) ✅
-**Commit:** [9199b0b](https://github.com/lookbusy1344/arm_emulator/commit/9199b0b)
+#### Fix #2: Filesystem Security Documentation (§4.2.2) ✅ **SUPERSEDED**
+**Initial Commit:** [9199b0b](https://github.com/lookbusy1344/arm_emulator/commit/9199b0b)
 **Files Changed:** `README.md`
 
 **Problem:** Users may not be aware that guest programs have full filesystem access.
 
-**Solution:** Added prominent security warning to README under the Security section:
+**Initial Solution:** Added prominent security warning to README.
 
-> ### ⚠️ Important: Filesystem Access
->
-> **The ARM emulator grants guest programs full access to the host filesystem.** This is intentional behavior for an emulator, but means you should treat assembly source files with the same caution as executable binaries.
->
-> **Only run trusted assembly code.** Malicious or buggy programs can:
-> - Read any file the user can access
-> - Write or delete any file the user can access
-> - Execute arbitrary file operations (create, rename, seek, etc.)
-> - Consume system resources (memory, disk space, CPU)
-
-**Impact:** Critical security disclosure for users, prevents security surprises.
+**Status:** **SUPERSEDED by Fix #5 (Filesystem Sandboxing Implementation)** - Documentation was a temporary measure. The underlying security issue has now been fully resolved with mandatory filesystem restriction.
 
 ---
 
@@ -1244,13 +1210,73 @@ if _, err := fmt.Fprintf(vm.OutputWriter, "%c", char); err != nil {
 
 ---
 
+#### Fix #5: Filesystem Sandboxing Implementation (§4.2.2) ✅
+**Commits:**
+- [0f9c8c0](https://github.com/lookbusy1344/arm_emulator/commit/0f9c8c0) - Design document
+- [2e6a305](https://github.com/lookbusy1344/arm_emulator/commit/2e6a305) - Implementation
+- [3d967aa](https://github.com/lookbusy1344/arm_emulator/commit/3d967aa) - Security hardening (remove backward compatibility)
+
+**Files Changed:** `vm/executor.go`, `vm/syscall.go`, `main.go`, `README.md`, `CLAUDE.md`, tests
+
+**Problem:** Guest programs had unrestricted access to the host filesystem, creating a significant security risk. Malicious or buggy assembly programs could read, write, or delete any file accessible to the user.
+
+**Solution:** Implemented comprehensive filesystem sandboxing with mandatory enforcement:
+
+1. **New `-fsroot` CLI flag**: Restricts file operations to a specified directory (defaults to CWD)
+   ```bash
+   ./arm-emulator -fsroot /tmp/sandbox program.s
+   ```
+
+2. **Path validation function** (`vm.ValidatePath()`):
+   ```go
+   // Security checks (in order):
+   0. Verify FilesystemRoot is configured (mandatory - no unrestricted mode)
+   1. Block empty paths
+   2. Block ".." components (path traversal)
+   3. Treat absolute paths as relative to fsroot
+   4. Detect and block symlink escapes
+   5. Verify canonical path stays within fsroot
+   ```
+
+3. **Integration with handleOpen()**: All file operations validate paths before opening
+   - Validation failures halt the VM with security error
+   - Standard fds (stdin/stdout/stderr) remain unrestricted
+
+4. **Security hardening**: Removed backward compatibility mode
+   - Initial implementation allowed unrestricted access when FilesystemRoot was empty
+   - **Security fix**: Now requires FilesystemRoot to always be configured
+   - File operations without FilesystemRoot halt VM with error
+
+**Security Guarantees:**
+- ✅ Guest programs restricted to specified directory
+- ✅ Path traversal with `..` blocked and halts VM
+- ✅ Symlink escapes blocked and halt VM
+- ✅ Absolute paths treated as relative to fsroot
+- ✅ **No unrestricted access mode** - mandatory sandboxing enforced
+
+**Testing:**
+- 7 new unit tests for path validation scenarios
+- 2 integration tests with assembly programs (allowed access + escape attempt)
+- All 1,024+ existing tests updated and passing
+- Verified escape attempts properly blocked
+
+**Impact:** **CRITICAL SECURITY IMPROVEMENT** - Eliminates unrestricted filesystem access vulnerability. Guest programs can now only access files within the configured directory, preventing malicious code from accessing sensitive data or system files.
+
+---
+
 ### 8.2 Summary of Changes
 
-**3 fixes implemented, 1 deferred for good reasons:**
-- ✅ Security vulnerability fixed (heap overflow)
-- ✅ Documentation improved (filesystem security warning)
-- ✅ Error handling improved (logging instead of silent suppression)
+**4 critical fixes implemented, 1 deferred for good reasons:**
+- ✅ **Security vulnerability fixed (heap overflow)** - Prevents exploitable integer overflow
+- ✅ **Filesystem security warning** (superseded by sandboxing implementation)
+- ✅ **Error handling improved** - Logging instead of silent suppression
+- ✅ **Filesystem sandboxing implemented** - **CRITICAL SECURITY IMPROVEMENT**
+  - Restricts guest programs to specified directory
+  - Blocks path traversal and symlink escapes
+  - Mandatory enforcement with no unrestricted mode
 - ⏭️ Stack bounds validation deferred (requires extensive refactoring)
+
+**Security Impact:** The filesystem sandboxing implementation represents a **major security milestone**, eliminating the most significant vulnerability in the emulator (unrestricted filesystem access).
 
 **All changes follow the project's established patterns and error handling philosophy.**
 
@@ -1258,9 +1284,11 @@ if _, err := fmt.Fprintf(vm.OutputWriter, "%c", char); err != nil {
 
 ## 9. Phased Implementation Plan
 
-### Phase 1: Security and Correctness (Week 1-2) - **PARTIALLY COMPLETE**
+### Phase 1: Security and Correctness (Week 1-2) - **MOSTLY COMPLETE**
 
 **Goal:** Address critical security vulnerabilities and correctness issues.
+
+**Status:** 2 of 5 tasks complete, 1 critical task (filesystem security) fully implemented with sandboxing, 1 deferred for refactoring.
 
 **Tasks:**
 1. ✅ **DONE** - Fix heap allocation wraparound (§2.2.1) - Commit 61ddfbf
@@ -1275,11 +1303,13 @@ if _, err := fmt.Fprintf(vm.OutputWriter, "%c", char); err != nil {
    - Add test cases for stack overflow/underflow
    - Estimated: 2 hours
 
-3. ✅ **DONE** - Document file operation security (§4.2.2) - Commit 9199b0b
-   - Add security warning to README
-   - Document filesystem access in syscall docs
-   - Add example of safe program structure
-   - Estimated: 30 minutes
+3. ✅ **FULLY RESOLVED** - Filesystem security (§4.2.2) - Commits 0f9c8c0, 2e6a305, 3d967aa
+   - Initial: Documentation (Commit 9199b0b) - SUPERSEDED
+   - **Final: Mandatory filesystem sandboxing implemented**
+   - Added `-fsroot` flag with path validation
+   - Blocks path traversal and symlink escapes
+   - All tests updated and passing
+   - Actual time: ~6 hours (full implementation)
 
 4. ⏭️ **NOT STARTED** - Add input validation (§4.2.1)
    - Implement ValidateSourceInput function
