@@ -582,6 +582,18 @@ This project has undergone a comprehensive security audit. Key findings:
 
 **Anti-Virus False Positives:** Some anti-virus software may flag the Windows binary as `Program:Win32/Wacapew.C!ml` due to heuristic detection of legitimate emulator behaviors (memory management, file I/O, code execution patterns). This is a **false positive** - the software contains no malicious code.
 
+### ⚠️ Important: Filesystem Access
+
+**The ARM emulator grants guest programs full access to the host filesystem.** This is intentional behavior for an emulator, but means you should treat assembly source files with the same caution as executable binaries.
+
+**Only run trusted assembly code.** Malicious or buggy programs can:
+- Read any file the user can access
+- Write or delete any file the user can access
+- Execute arbitrary file operations (create, rename, seek, etc.)
+- Consume system resources (memory, disk space, CPU)
+
+**Recommendation:** Run untrusted code in a sandboxed environment (container, VM, or restricted user account) to limit potential damage.
+
 For a detailed security analysis, see **[docs/SECURITY.md](docs/SECURITY.md)**.
 
 ## License
