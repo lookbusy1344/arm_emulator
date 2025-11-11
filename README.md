@@ -601,6 +601,7 @@ By default, file operations are restricted to the current working directory. Use
 - ✅ Path traversal attempts (using `..`) are blocked and halt the VM
 - ✅ Symlink escapes outside the root are blocked and halt the VM
 - ✅ Absolute paths are treated as relative to the filesystem root
+- ✅ Filesystem sandboxing is always enforced - no unrestricted access mode
 
 **Still treat assembly code with caution.** Within the allowed directory, programs can:
 - Read, write, or delete any accessible file

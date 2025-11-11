@@ -43,10 +43,11 @@ Implement filesystem sandboxing by restricting all file operations to a specifie
 **Validation function:**
 ```go
 // In vm/syscall.go
-func (vm *VM) validatePath(path string) (string, error)
+func (vm *VM) ValidatePath(path string) (string, error)
 ```
 
 **Validation rules (in order):**
+0. Check FilesystemRoot is configured (required - no unrestricted access mode)
 1. Check path is non-empty
 2. Block paths containing `..` components (anywhere)
 3. Strip leading `/` if present (treat absolute paths as relative to fsroot)
@@ -161,14 +162,17 @@ Filesystem escape attempts are security violations, not expected runtime errors.
 - This doesn't provide resource limits (disk space, file size - already limited to 1MB)
 - This doesn't prevent timing attacks or covert channels
 
-## Backwards Compatibility
+## Security Policy
 
-**Breaking change:**
-Default behavior changes from unrestricted access to restricted (CWD). Users wanting old behavior must explicitly set `-fsroot /`.
+**Filesystem sandboxing is mandatory:**
+- All file operations require FilesystemRoot to be configured
+- No backward compatibility mode with unrestricted access
+- Default behavior: restrict to current working directory (CWD)
+- CLI always sets fsroot (defaults to CWD if not specified)
 
-**Migration path:**
-- Document the change prominently in release notes
-- Provide examples showing how to set fsroot
+**For programmatic use (direct VM instantiation):**
+- Must explicitly set vm.FilesystemRoot before any file operations
+- File operations without FilesystemRoot will halt the VM with error
 - Test suite automatically sets appropriate fsroot for each test
 
 ## Open Questions

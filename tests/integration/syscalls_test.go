@@ -61,6 +61,14 @@ func runAssemblyWithInput(t *testing.T, code string, stdin string) (stdout strin
 	machine := vm.NewVM()
 	machine.CycleLimit = 1000000
 
+	// Set filesystem root to current directory for tests
+	// This allows test programs to access files in their directory
+	cwd, err := os.Getwd()
+	if err != nil {
+		return "", "", -1, fmt.Errorf("failed to get current directory: %w", err)
+	}
+	machine.FilesystemRoot = cwd
+
 	// Initialize stack
 	stackTop := uint32(vm.StackSegmentStart + vm.StackSegmentSize)
 	machine.InitializeStack(stackTop)

@@ -611,9 +611,9 @@ func handleDumpMemory(vm *VM) error {
 // ValidatePath validates a file path for filesystem sandboxing
 // Returns the validated absolute path or an error
 func (vm *VM) ValidatePath(path string) (string, error) {
-	// If no filesystem root is configured, allow all paths (backward compatibility)
+	// Filesystem root must always be configured - no unrestricted access
 	if vm.FilesystemRoot == "" {
-		return path, nil
+		return "", fmt.Errorf("filesystem root not configured - cannot access files")
 	}
 
 	// 1. Check path is non-empty

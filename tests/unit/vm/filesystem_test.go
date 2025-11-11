@@ -9,10 +9,10 @@ import (
 )
 
 // TestValidatePathNoRoot tests that when no filesystem root is configured,
-// all paths are allowed (backward compatibility)
+// all file access is blocked (security requirement)
 func TestValidatePathNoRoot(t *testing.T) {
 	machine := vm.NewVM()
-	// Don't set FilesystemRoot - should allow all paths
+	// Don't set FilesystemRoot - should block all file access
 
 	testCases := []struct {
 		name string
@@ -26,10 +26,10 @@ func TestValidatePathNoRoot(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			// When FilesystemRoot is empty, all paths should be allowed
+			// When FilesystemRoot is empty, all paths should be blocked
 			_, err := machine.ValidatePath(tc.path)
-			if err != nil {
-				t.Errorf("Expected no error for '%s' with no fsroot, got: %v", tc.path, err)
+			if err == nil {
+				t.Errorf("Expected error for '%s' with no fsroot (security violation)", tc.path)
 			}
 		})
 	}
