@@ -77,12 +77,13 @@ The application only modifies files that the user explicitly specifies:
 
 **🔒 SECURITY UPDATE (November 11, 2025): Mandatory Filesystem Sandboxing Implemented**
 
-- **Sandboxing:** Guest programs restricted to specified directory (defaults to CWD)
-  - Use `-fsroot` flag to specify allowed directory: `./arm-emulator -fsroot /tmp/sandbox program.s`
+- **Sandboxing:** Guest programs restricted to specified directory
+  - **Default:** If `-fsroot` not specified, restricts to current working directory (CWD)
+  - **Explicit:** Use `-fsroot` flag to specify allowed directory: `./arm-emulator -fsroot /tmp/sandbox program.s`
   - Path traversal (`..`) blocked and halts VM
   - Symlink escapes blocked and halt VM
   - Absolute paths treated as relative to sandbox root
-  - **No unrestricted access mode** - sandboxing always enforced
+  - **No unrestricted access mode** - FilesystemRoot always configured
 
 - **Read Operations:** User-provided assembly files (`.s` files)
 - **Write Operations:** 
@@ -252,14 +253,19 @@ The emulator implements ARM syscalls (SWIs) with mandatory security boundaries:
 
 **Feature:** Mandatory filesystem restriction for guest program file operations
 
-**Implementation:** The `-fsroot` flag specifies the directory that guest programs can access for file operations. This defaults to the current working directory but should be set explicitly for untrusted code.
+**Implementation:** The `-fsroot` flag specifies the directory that guest programs can access for file operations.
+
+**Default Behavior:**
+- **If `-fsroot` is NOT specified:** Defaults to current working directory (CWD)
+- **If `-fsroot` is specified:** Uses the specified directory
+- **Important:** FilesystemRoot is always configured - there is no mode without filesystem restrictions
 
 **Usage:**
 ```bash
-# Restrict to specific sandbox directory (recommended)
+# Restrict to specific sandbox directory (recommended for untrusted code)
 ./arm-emulator -fsroot /tmp/sandbox program.s
 
-# Default: current working directory
+# Defaults to current working directory
 ./arm-emulator program.s
 ```
 
