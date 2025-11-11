@@ -434,9 +434,15 @@ func (m *Memory) Allocate(size uint32) (uint32, error) {
 		return 0, fmt.Errorf("allocation size too large (would overflow during alignment)")
 	}
 
-	// Align to 4-byte boundary (round up)
+	// Align to 4-byte boundary (round up) with overflow check
 	if size&AlignMaskWord != 0 {
-		size = (size + AlignMaskWord) & AlignRoundUpMaskWord
+		aligned := (size + AlignMaskWord) & AlignRoundUpMaskWord
+		// Check for wraparound: if aligned < size, overflow occurred
+		// This happens when size+3 exceeds 0xFFFFFFFF
+		if aligned < size {
+			return 0, fmt.Errorf("allocation size causes overflow during alignment")
+		}
+		size = aligned
 	}
 
 	// Check for overflow in m.NextHeapAddress + size
