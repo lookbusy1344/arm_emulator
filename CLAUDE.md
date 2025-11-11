@@ -41,6 +41,25 @@ go mod verify
 ./arm-emulator program.s
 ```
 
+### Filesystem Security
+
+**IMPORTANT:** The emulator restricts file operations to a specified directory for security.
+
+```bash
+# Restrict to current directory (default)
+./arm-emulator program.s
+
+# Restrict to specific directory
+./arm-emulator -fsroot /path/to/sandbox program.s
+
+# Restrict to examples directory
+./arm-emulator -fsroot ./examples program.s
+```
+
+By default, guest programs can only access files within the current working directory. Attempts to escape using `..` or symlinks will halt the VM with a security error.
+
+When running tests, the filesystem root is automatically set appropriately for each test case.
+
 ## GUI Commands (Wails)
 
 **IMPORTANT:** Always use the `-nocolour` flag with `wails build` and `wails dev` to prevent ANSI escape codes in output.

@@ -72,6 +72,7 @@ type VM struct {
 	StackTop         uint32 // Initial stack pointer value for reset
 	ProgramArguments []string
 	ExitCode         int32
+	FilesystemRoot   string // Root directory for file operations (sandboxing)
 
 	// I/O redirection (for TUI and testing)
 	OutputWriter io.Writer // Writer for program output (defaults to os.Stdout)

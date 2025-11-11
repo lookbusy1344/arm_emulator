@@ -584,15 +584,30 @@ This project has undergone a comprehensive security audit. Key findings:
 
 ### ⚠️ Important: Filesystem Access
 
-**The ARM emulator grants guest programs full access to the host filesystem.** This is intentional behavior for an emulator, but means you should treat assembly source files with the same caution as executable binaries.
+**The ARM emulator restricts guest program file access to a specified directory for security.**
 
-**Only run trusted assembly code.** Malicious or buggy programs can:
-- Read any file the user can access
-- Write or delete any file the user can access
-- Execute arbitrary file operations (create, rename, seek, etc.)
-- Consume system resources (memory, disk space, CPU)
+By default, file operations are restricted to the current working directory. Use the `-fsroot` flag to specify a different allowed directory:
 
-**Recommendation:** Run untrusted code in a sandboxed environment (container, VM, or restricted user account) to limit potential damage.
+```bash
+# Restrict to current directory (default)
+./arm-emulator program.s
+
+# Restrict to specific sandbox directory
+./arm-emulator -fsroot /tmp/sandbox program.s
+```
+
+**Security guarantees:**
+- ✅ Guest programs can only access files within the specified root directory
+- ✅ Path traversal attempts (using `..`) are blocked and halt the VM
+- ✅ Symlink escapes outside the root are blocked and halt the VM
+- ✅ Absolute paths are treated as relative to the filesystem root
+
+**Still treat assembly code with caution.** Within the allowed directory, programs can:
+- Read, write, or delete any accessible file
+- Create new files
+- Consume system resources (memory, disk space, CPU up to configured limits)
+
+**Recommendation:** Create a dedicated sandbox directory with only necessary files for maximum isolation.
 
 For a detailed security analysis, see **[docs/SECURITY.md](docs/SECURITY.md)**.
 

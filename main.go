@@ -33,6 +33,7 @@ func main() {
 		stackSize   = flag.Uint("stack-size", vm.StackSegmentSize, "Stack size in bytes")
 		entryPoint  = flag.String("entry", "0x8000", "Entry point address (hex or decimal)")
 		verboseMode = flag.Bool("verbose", false, "Verbose output")
+		fsRoot      = flag.String("fsroot", "", "Restrict file operations to this directory (default: current directory)")
 
 		// Tracing and statistics flags
 		enableTrace    = flag.Bool("trace", false, "Enable execution trace")
@@ -121,6 +122,29 @@ func main() {
 	// Create VM instance
 	machine := vm.NewVM()
 	machine.CycleLimit = *maxCycles
+
+	// Configure filesystem root for sandboxing
+	filesystemRoot := *fsRoot
+	if filesystemRoot == "" {
+		// Default to current working directory
+		cwd, err := os.Getwd()
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Error getting current directory: %v\n", err)
+			os.Exit(1)
+		}
+		filesystemRoot = cwd
+	}
+	// Convert to absolute path
+	absRoot, err := filepath.Abs(filesystemRoot)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error resolving filesystem root path: %v\n", err)
+		os.Exit(1)
+	}
+	machine.FilesystemRoot = absRoot
+
+	if *verboseMode {
+		fmt.Printf("Filesystem root: %s\n", absRoot)
+	}
 
 	// Initialize stack
 	// Safe: StackSegmentStart is 0x30000000 (uint32), stackSize is flag with default 4096
@@ -882,6 +906,7 @@ Options:
   -stack-size N      Set stack size in bytes (default: %d)
   -entry ADDR        Set entry point address (default: 0x8000)
   -verbose           Enable verbose output
+  -fsroot DIR        Restrict file operations to directory (default: current directory)
 
 Symbol Options:
   -dump-symbols      Dump symbol table and exit
@@ -951,6 +976,10 @@ Examples:
   # Dump symbol table
   arm-emulator -dump-symbols program.s
   arm-emulator -dump-symbols -symbols-file symbols.txt program.s
+
+  # Restrict file operations to a specific directory
+  arm-emulator -fsroot /tmp/sandbox program.s
+  arm-emulator -fsroot ./test_data program.s
 
 Debugger Commands (when in -debug mode):
   run, r             Start/restart program execution

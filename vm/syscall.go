@@ -7,6 +7,7 @@ import (
 	"io"
 	"math/rand"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -607,6 +608,78 @@ func handleDumpMemory(vm *VM) error {
 	return nil
 }
 
+// ValidatePath validates a file path for filesystem sandboxing
+// Returns the validated absolute path or an error
+func (vm *VM) ValidatePath(path string) (string, error) {
+	// If no filesystem root is configured, allow all paths (backward compatibility)
+	if vm.FilesystemRoot == "" {
+		return path, nil
+	}
+
+	// 1. Check path is non-empty
+	if path == "" {
+		return "", fmt.Errorf("empty file path")
+	}
+
+	// 2. Block paths containing .. components
+	if strings.Contains(path, "..") {
+		return "", fmt.Errorf("path contains '..' component")
+	}
+
+	// 3. Strip leading / if present (treat absolute paths as relative to fsroot)
+	if strings.HasPrefix(path, "/") {
+		path = path[1:]
+	}
+
+	// 4. Join with FilesystemRoot
+	fullPath := filepath.Join(vm.FilesystemRoot, path)
+
+	// 5. Canonicalize
+	fullPath = filepath.Clean(fullPath)
+
+	// 6. Check for symlinks - EvalSymlinks returns error if any component is a symlink
+	// We resolve symlinks and then check if the resolved path escapes fsroot
+	resolvedPath, err := filepath.EvalSymlinks(fullPath)
+	if err != nil {
+		// If the path doesn't exist yet (for write mode), that's OK
+		// But we still need to check the parent directory
+		if !os.IsNotExist(err) {
+			return "", fmt.Errorf("symlink resolution failed: %w", err)
+		}
+		// Path doesn't exist - check parent directory
+		parentDir := filepath.Dir(fullPath)
+		resolvedPath, err = filepath.EvalSymlinks(parentDir)
+		if err != nil && !os.IsNotExist(err) {
+			return "", fmt.Errorf("parent directory symlink resolution failed: %w", err)
+		}
+		// Use the full path with the unresolved filename
+		if err == nil {
+			resolvedPath = filepath.Join(resolvedPath, filepath.Base(fullPath))
+		} else {
+			// Parent also doesn't exist - use the canonical path
+			resolvedPath = fullPath
+		}
+	}
+
+	// 7. Verify canonical path starts with fsroot
+	// Both paths must be canonical for proper comparison
+	canonicalRoot, err := filepath.EvalSymlinks(vm.FilesystemRoot)
+	if err != nil {
+		return "", fmt.Errorf("failed to resolve filesystem root: %w", err)
+	}
+	canonicalRoot = filepath.Clean(canonicalRoot)
+	resolvedPath = filepath.Clean(resolvedPath)
+
+	// Check if resolved path is under the canonical root
+	// Use filepath.Rel to check containment
+	relPath, err := filepath.Rel(canonicalRoot, resolvedPath)
+	if err != nil || strings.HasPrefix(relPath, "..") {
+		return "", fmt.Errorf("path '%s' is outside allowed filesystem root '%s'", path, vm.FilesystemRoot)
+	}
+
+	return fullPath, nil
+}
+
 // File operation handlers
 func handleOpen(vm *VM) error {
 	filenameAddr := vm.CPU.GetRegister(0)
@@ -647,16 +720,24 @@ func handleOpen(vm *VM) error {
 	var file *os.File
 	var err error
 	s := string(filename)
+
+	// Validate path for filesystem sandboxing
+	// This is a VM-level security check - failures halt execution
+	validatedPath, err := vm.ValidatePath(s)
+	if err != nil {
+		return fmt.Errorf("filesystem access denied: attempted to access '%s' - %w", s, err)
+	}
+
 	switch mode {
 	case FileModeRead:
-		//nolint:gosec // G304: File path is intentionally controlled by emulated program
-		file, err = os.Open(s)
+		//nolint:gosec // G304: File path is validated by ValidatePath above
+		file, err = os.Open(validatedPath)
 	case FileModeWrite:
-		//nolint:gosec // G304,G302: File operations are intentional for emulated program I/O
-		file, err = os.OpenFile(s, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, FilePermDefault)
+		//nolint:gosec // G304,G302: File path is validated by ValidatePath above
+		file, err = os.OpenFile(validatedPath, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, FilePermDefault)
 	case FileModeAppend:
-		//nolint:gosec // G304,G302: File operations are intentional for emulated program I/O
-		file, err = os.OpenFile(s, os.O_CREATE|os.O_APPEND|os.O_RDWR, FilePermDefault)
+		//nolint:gosec // G304,G302: File path is validated by ValidatePath above
+		file, err = os.OpenFile(validatedPath, os.O_CREATE|os.O_APPEND|os.O_RDWR, FilePermDefault)
 	default:
 		err = errors.New("bad mode")
 	}
