@@ -197,10 +197,14 @@ func (vm *VM) SetEntryPoint(address uint32) {
 	vm.CPU.PC = address
 }
 
-// InitializeStack initializes the stack pointer
-func (vm *VM) InitializeStack(stackTop uint32) {
+// InitializeStack sets up the stack pointer at the provided top address.
+// Returns error if stackTop is outside valid stack bounds.
+func (vm *VM) InitializeStack(stackTop uint32) error {
 	vm.StackTop = stackTop
-	vm.CPU.SetSP(stackTop)
+	if err := vm.CPU.SetSP(stackTop); err != nil {
+		return fmt.Errorf("failed to initialize stack: %w", err)
+	}
+	return nil
 }
 
 // Step executes a single instruction
