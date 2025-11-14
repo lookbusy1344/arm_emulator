@@ -47,7 +47,7 @@ This code review examines the ARM2 emulator project with fresh perspective, assu
 
 ### 1.1 Core VM Architecture
 
-**Finding:** The VM design follows a classic fetch-decode-execute pattern, which is appropriate. However, the VM struct has grown to contain 20+ fields, indicating potential God Object anti-pattern.
+**Finding:** The VM design follows a classic fetch-decode-execute pattern with integrated execution, I/O, file descriptors, tracing, and statistics management. The VM struct contains 20+ fields to support the full emulation environment.
 
 **File:** `vm/executor.go:56-103`
 
@@ -81,17 +81,8 @@ type VM struct {
 }
 ```
 
-**Issues:**
-1. **Single Responsibility Violation** - VM handles execution, I/O, file descriptors, tracing, statistics, and more
-2. **Tight Coupling** - All diagnostic features directly embedded in VM
-3. **Growing Complexity** - Each new feature adds fields to VM struct
-
-**Recommendation:**
-- Extract I/O handling into separate `IOContext` struct
-- Extract diagnostic features into `DiagnosticContext` with plugin-style registration
-- Consider using composition over direct embedding
-
-**Priority:** Medium (refactoring can be gradual)
+**Assessment:**
+This centralized design is appropriate for an emulator where all components need coordinated access to execution state. The VM serves as the central coordinator for the emulated environment.
 
 ---
 
@@ -1090,46 +1081,41 @@ return fmt.Errorf("unknown data processing opcode: 0x%X at PC=0x%08X (instructio
 
 ### 7.3 Medium Priority (Plan for Next Release)
 
-8. **Refactor VM architecture** (§1.1)
-   - Extract I/O and diagnostics into separate contexts
-   - Risk: Growing complexity
-   - Effort: 2 weeks
-
-9. **Fix E2E test reliability** (§3.3)
+8. **Fix E2E test reliability** (§3.3)
    - Unskip keyboard shortcut test or document why it's skipped
    - Risk: Silent test degradation
    - Effort: 1 day
 
-10. **Add fuzzing tests** (§3.1)
-    - Fuzz parser and instruction decoder
-    - Risk: Undiscovered edge cases
-    - Effort: 1 week
+9. **Add fuzzing tests** (§3.1)
+   - Fuzz parser and instruction decoder
+   - Risk: Undiscovered edge cases
+   - Effort: 1 week
 
-11. **Enable cycle limit by default** (§4.2.3)
+10. **Enable cycle limit by default** (§4.2.3)
     - Set CycleLimit = DefaultMaxCycles
     - Risk: Infinite loops consume resources
     - Effort: 5 minutes
 
-12. **Improve test coverage** (§3.2)
+11. **Improve test coverage** (§3.2)
     - Add concurrent access tests (with documentation)
     - Add parser error recovery tests
     - Risk: Missed bugs
     - Effort: 1 week
 
-13. **Centralize register handling** (§2.3.1)
+12. **Centralize register handling** (§2.3.1)
     - Create registers package
     - Risk: Code duplication, inconsistency
     - Effort: 1 day
 
 ### 7.4 Low Priority (Nice to Have)
 
-14. **Optimize hot paths** (§5.1)
+13. **Optimize hot paths** (§5.1)
     - Fast path for CondAL
     - Fast path for code segment reads
     - Risk: None (optimization only)
     - Effort: 2 days
 
-15. **Add architecture documentation** (§6.1)
+14. **Add architecture documentation** (§6.1)
     - Create docs/ARCHITECTURE.md with diagrams
     - Risk: None (documentation)
     - Effort: 1 week
@@ -1401,19 +1387,7 @@ if _, err := fmt.Fprintf(vm.OutputWriter, "%c", char); err != nil {
    - Update tests
    - Estimated: 2 weeks
 
-3. ⏭️ Extract VM I/O context (§1.1)
-   - Create IOContext struct
-   - Move file descriptors and I/O to context
-   - Update VM to use context
-   - Estimated: 3 days
-
-4. ⏭️ Extract diagnostic context (§1.1)
-   - Create DiagnosticContext with plugin registration
-   - Migrate tracing features
-   - Update VM to use context
-   - Estimated: 4 days
-
-5. ⏭️ Centralize register handling (§2.3.1)
+3. ⏭️ Centralize register handling (§2.3.1)
    - Create registers package
    - Migrate all register name conversions
    - Update all packages
@@ -1421,14 +1395,11 @@ if _, err := fmt.Fprintf(vm.OutputWriter, "%c", char); err != nil {
 
 **Deliverables:**
 - Parser uses three-pass architecture
-- VM complexity reduced (fewer fields)
-- Diagnostic features plugin-based
 - Register handling centralized
 
 **Acceptance Criteria:**
 - All tests passing
 - Parser is easier to understand and modify
-- VM struct has <15 fields
 - No duplicate register handling code
 
 ---
