@@ -9,7 +9,8 @@ import (
 // TestLDM_WithSBit_RestoresCPSR tests that LDM with S bit and PC restores CPSR from SPSR
 func TestLDM_WithSBit_RestoresCPSR(t *testing.T) {
 	v := vm.NewVM()
-	v.CPU.R[13] = 0x10000 // SP
+	stackAddr := uint32(vm.StackSegmentStart + 0x1000) // 0x00041000
+	v.CPU.R[13] = stackAddr                            // SP
 	v.CPU.PC = 0x8000
 
 	// Set current CPSR flags (these should be replaced)
@@ -25,8 +26,8 @@ func TestLDM_WithSBit_RestoresCPSR(t *testing.T) {
 	v.CPU.SPSR.V = true
 
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x10000, 0xAAAA0000) // R0
-	v.Memory.WriteWord(0x10004, 0x9000)     // PC (return address)
+	v.Memory.WriteWord(stackAddr, 0xAAAA0000)   // R0
+	v.Memory.WriteWord(stackAddr+4, 0x00009000) // PC (return address)
 
 	// LDMIA SP!, {R0, PC}^ - S bit set (bit 22)
 	// Base encoding: LDMIA SP!, {R0, PC} = 0xE8BD8001
@@ -41,8 +42,8 @@ func TestLDM_WithSBit_RestoresCPSR(t *testing.T) {
 	}
 
 	// Verify PC was loaded
-	if v.CPU.PC != 0x9000 {
-		t.Errorf("expected PC=0x9000, got PC=0x%X", v.CPU.PC)
+	if v.CPU.PC != 0x00009000 {
+		t.Errorf("expected PC=0x00009000, got PC=0x%X", v.CPU.PC)
 	}
 
 	// Verify CPSR was restored from SPSR
@@ -63,7 +64,8 @@ func TestLDM_WithSBit_RestoresCPSR(t *testing.T) {
 // TestLDM_WithoutSBit_PreservesCPSR tests that LDM without S bit doesn't affect CPSR
 func TestLDM_WithoutSBit_PreservesCPSR(t *testing.T) {
 	v := vm.NewVM()
-	v.CPU.R[13] = 0x10000 // SP
+	stackAddr := uint32(vm.StackSegmentStart + 0x1000)
+	v.CPU.R[13] = stackAddr // SP
 	v.CPU.PC = 0x8000
 
 	// Set current CPSR flags (these should be preserved)
@@ -79,8 +81,8 @@ func TestLDM_WithoutSBit_PreservesCPSR(t *testing.T) {
 	v.CPU.SPSR.V = true
 
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x10000, 0xAAAA0000) // R0
-	v.Memory.WriteWord(0x10004, 0x9000)     // PC
+	v.Memory.WriteWord(stackAddr, 0xAAAA0000) // R0
+	v.Memory.WriteWord(stackAddr+4, 0x9000)   // PC
 
 	// LDMIA SP!, {R0, PC} - NO S bit
 	opcode := uint32(0xE8BD8001) // LDMIA SP!, {R0, PC}
@@ -113,7 +115,8 @@ func TestLDM_WithoutSBit_PreservesCPSR(t *testing.T) {
 // TestLDM_WithSBit_NoPCLoad_NoCPSRRestore tests that S bit without PC load doesn't restore CPSR
 func TestLDM_WithSBit_NoPCLoad_NoCPSRRestore(t *testing.T) {
 	v := vm.NewVM()
-	v.CPU.R[13] = 0x10000 // SP
+	stackAddr := uint32(vm.StackSegmentStart + 0x1000)
+	v.CPU.R[13] = stackAddr // SP
 	v.CPU.PC = 0x8000
 
 	// Set current CPSR flags (these should be preserved)
@@ -129,8 +132,8 @@ func TestLDM_WithSBit_NoPCLoad_NoCPSRRestore(t *testing.T) {
 	v.CPU.SPSR.V = true
 
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x10000, 0xAAAA0000) // R0
-	v.Memory.WriteWord(0x10004, 0xBBBB0001) // R1
+	v.Memory.WriteWord(stackAddr, 0xAAAA0000)   // R0
+	v.Memory.WriteWord(stackAddr+4, 0xBBBB0001) // R1
 
 	// LDMIA SP!, {R0, R1}^ - S bit set but NO PC in list
 	// Base encoding: LDMIA SP!, {R0, R1} = 0xE8BD0003
@@ -192,7 +195,8 @@ func TestLDM_AllFlagCombinations(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			v := vm.NewVM()
-			v.CPU.R[13] = 0x10000 // SP
+			stackAddr := uint32(vm.StackSegmentStart + 0x1000)
+			v.CPU.R[13] = stackAddr // SP
 			v.CPU.PC = 0x8000
 
 			// Set CPSR to opposite of test values (should be overwritten)
@@ -208,7 +212,7 @@ func TestLDM_AllFlagCombinations(t *testing.T) {
 			v.CPU.SPSR.V = tc.v
 
 			setupCodeWrite(v)
-			v.Memory.WriteWord(0x10000, 0x9000) // PC
+			v.Memory.WriteWord(stackAddr, 0x9000) // PC
 
 			// LDMIA SP!, {PC}^ - S bit set
 			opcode := uint32(0xE8FD8000) // LDMIA SP!, {PC}^
@@ -240,7 +244,8 @@ func TestLDM_AllFlagCombinations(t *testing.T) {
 // TestLDM_SBit_MultipleRegisters tests S bit with multiple registers including PC
 func TestLDM_SBit_MultipleRegisters(t *testing.T) {
 	v := vm.NewVM()
-	v.CPU.R[13] = 0x10000 // SP
+	stackAddr := uint32(vm.StackSegmentStart + 0x1000)
+	v.CPU.R[13] = stackAddr // SP
 	v.CPU.PC = 0x8000
 
 	// Set current CPSR (should be replaced)
@@ -256,11 +261,11 @@ func TestLDM_SBit_MultipleRegisters(t *testing.T) {
 	v.CPU.SPSR.V = false
 
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x10000, 0x11111111) // R0
-	v.Memory.WriteWord(0x10004, 0x22222222) // R1
-	v.Memory.WriteWord(0x10008, 0x33333333) // R2
-	v.Memory.WriteWord(0x1000C, 0x44444444) // R3
-	v.Memory.WriteWord(0x10010, 0x9000)     // PC
+	v.Memory.WriteWord(stackAddr, 0x11111111)    // R0
+	v.Memory.WriteWord(stackAddr+4, 0x22222222)  // R1
+	v.Memory.WriteWord(stackAddr+8, 0x33333333)  // R2
+	v.Memory.WriteWord(stackAddr+12, 0x44444444) // R3
+	v.Memory.WriteWord(stackAddr+16, 0x9000)     // PC
 
 	// LDMIA SP!, {R0-R3, PC}^ - S bit set
 	// Register list: R0-R3, PC = 0x800F
@@ -306,7 +311,8 @@ func TestSTM_WithSBit_NoEffect(t *testing.T) {
 	v := vm.NewVM()
 	v.CPU.R[0] = 0xAAAA0000
 	v.CPU.R[1] = 0xBBBB0001
-	v.CPU.R[13] = 0x10000 // SP
+	stackAddr := uint32(vm.StackSegmentStart + 0x1000)
+	v.CPU.R[13] = stackAddr // SP
 	v.CPU.PC = 0x8000
 
 	// Set CPSR (should remain unchanged)
@@ -330,14 +336,15 @@ func TestSTM_WithSBit_NoEffect(t *testing.T) {
 	v.Memory.WriteWord(0x8000, opcode)
 	v.Step()
 
-	// Verify registers were stored
-	val0, _ := v.Memory.ReadWord(0xFFF8)
-	val1, _ := v.Memory.ReadWord(0xFFFC)
+	// Verify registers were stored (SP decremented by 8 for 2 registers)
+	expectedAddr := stackAddr - 8
+	val0, _ := v.Memory.ReadWord(expectedAddr)
+	val1, _ := v.Memory.ReadWord(expectedAddr + 4)
 	if val0 != 0xAAAA0000 {
-		t.Errorf("expected memory[0xFFF8]=0xAAAA0000, got 0x%X", val0)
+		t.Errorf("expected memory[0x%X]=0xAAAA0000, got 0x%X", expectedAddr, val0)
 	}
 	if val1 != 0xBBBB0001 {
-		t.Errorf("expected memory[0xFFFC]=0xBBBB0001, got 0x%X", val1)
+		t.Errorf("expected memory[0x%X]=0xBBBB0001, got 0x%X", expectedAddr+4, val1)
 	}
 
 	// Verify CPSR was not affected
@@ -463,7 +470,8 @@ func TestRestoreCPSR_HelperMethod(t *testing.T) {
 func TestIntegration_ExceptionHandlerSimulation(t *testing.T) {
 	v := vm.NewVM()
 	v.CPU.PC = 0x8000
-	v.CPU.R[13] = 0x10000 // SP
+	stackAddr := uint32(vm.StackSegmentStart + 0x1000)
+	v.CPU.R[13] = stackAddr // SP
 
 	// Set initial CPSR state (normal execution)
 	v.CPU.CPSR.N = false
@@ -483,7 +491,7 @@ func TestIntegration_ExceptionHandlerSimulation(t *testing.T) {
 	v.CPU.CPSR.V = true
 
 	// Step 3: Prepare stack for exception return
-	v.Memory.WriteWord(0x10000, 0x9000) // Return address (PC)
+	v.Memory.WriteWord(stackAddr, 0x9000) // Return address (PC)
 
 	// Step 4: Execute LDM with S bit to return from exception
 	// LDMIA SP!, {PC}^

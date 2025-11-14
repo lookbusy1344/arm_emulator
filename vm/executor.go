@@ -168,17 +168,22 @@ func (vm *VM) Reset() {
 // ResetRegisters resets only CPU registers and state, preserving memory contents
 // This is useful for debugger operations that need to restart execution without
 // losing the loaded program
-func (vm *VM) ResetRegisters() {
+func (vm *VM) ResetRegisters() error {
 	vm.CPU.Reset()
 	// Restore PC to entry point after reset
 	vm.CPU.PC = vm.EntryPoint
 	// Restore stack pointer to initial value
 	if vm.StackTop != 0 {
-		vm.CPU.SetSP(vm.StackTop)
+		if err := vm.CPU.SetSP(vm.StackTop); err != nil {
+			// Should never happen - StackTop was validated during Bootstrap
+			// But handle defensively
+			return fmt.Errorf("failed to reset stack pointer: %w", err)
+		}
 	}
 	vm.State = StateHalted
 	vm.InstructionLog = vm.InstructionLog[:0]
 	vm.LastError = nil
+	return nil
 }
 
 // LoadProgram loads program bytes into code memory
@@ -197,10 +202,14 @@ func (vm *VM) SetEntryPoint(address uint32) {
 	vm.CPU.PC = address
 }
 
-// InitializeStack initializes the stack pointer
-func (vm *VM) InitializeStack(stackTop uint32) {
+// InitializeStack sets up the stack pointer at the provided top address.
+// Returns error if stackTop is outside valid stack bounds.
+func (vm *VM) InitializeStack(stackTop uint32) error {
 	vm.StackTop = stackTop
-	vm.CPU.SetSP(stackTop)
+	if err := vm.CPU.SetSP(stackTop); err != nil {
+		return fmt.Errorf("failed to initialize stack: %w", err)
+	}
+	return nil
 }
 
 // Step executes a single instruction
@@ -481,7 +490,9 @@ func (vm *VM) Bootstrap(args []string) error {
 
 	// Initialize stack pointer to top of stack
 	stackTop := uint32(StackSegmentStart + StackSegmentSize)
-	vm.InitializeStack(stackTop)
+	if err := vm.InitializeStack(stackTop); err != nil {
+		return fmt.Errorf("failed to bootstrap VM: %w", err)
+	}
 
 	// Set link register to a halt address (so returning from main halts)
 	vm.CPU.SetLR(LRInitValue)

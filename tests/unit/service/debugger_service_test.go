@@ -23,7 +23,7 @@ func TestNewDebuggerService(t *testing.T) {
 
 func TestDebuggerService_LoadProgram(t *testing.T) {
 	machine := vm.NewVM()
-	machine.InitializeStack(0x30001000)
+	machine.InitializeStack(vm.StackSegmentStart + vm.StackSegmentSize) // Valid stack top
 	svc := service.NewDebuggerService(machine)
 
 	// Parse simple program with .org directive
@@ -48,7 +48,7 @@ func TestDebuggerService_LoadProgram(t *testing.T) {
 func TestDebuggerService_GetSourceMap(t *testing.T) {
 	// Create service with VM
 	machine := vm.NewVM()
-	machine.InitializeStack(0x30001000)
+	machine.InitializeStack(vm.StackSegmentStart + vm.StackSegmentSize) // Valid stack top
 	svc := service.NewDebuggerService(machine)
 
 	// Load a simple program
@@ -90,7 +90,7 @@ main:
 func TestDebuggerService_GetSourceMap_DefensiveCopy(t *testing.T) {
 	// Create service with VM
 	machine := vm.NewVM()
-	machine.InitializeStack(0x30001000)
+	machine.InitializeStack(vm.StackSegmentStart + vm.StackSegmentSize) // Valid stack top
 	svc := service.NewDebuggerService(machine)
 
 	// Load a simple program
@@ -132,7 +132,7 @@ main:
 
 func TestDebuggerService_GetSymbolForAddress(t *testing.T) {
 	machine := vm.NewVM()
-	machine.InitializeStack(0x30001000)
+	machine.InitializeStack(vm.StackSegmentStart + vm.StackSegmentSize) // Valid stack top
 	svc := service.NewDebuggerService(machine)
 
 	program := `
@@ -175,7 +175,7 @@ loop:
 
 func TestDebuggerService_GetDisassembly(t *testing.T) {
 	machine := vm.NewVM()
-	machine.InitializeStack(0x30001000)
+	machine.InitializeStack(vm.StackSegmentStart + vm.StackSegmentSize) // Valid stack top
 	svc := service.NewDebuggerService(machine)
 
 	program := `
@@ -222,7 +222,7 @@ main:
 
 func TestDebuggerService_GetDisassembly_MemoryError(t *testing.T) {
 	machine := vm.NewVM()
-	machine.InitializeStack(0x30001000)
+	machine.InitializeStack(vm.StackSegmentStart + vm.StackSegmentSize) // Valid stack top
 	svc := service.NewDebuggerService(machine)
 
 	program := `
@@ -252,7 +252,7 @@ main:
 
 func TestDebuggerService_GetDisassembly_EdgeCases(t *testing.T) {
 	machine := vm.NewVM()
-	machine.InitializeStack(0x30001000)
+	machine.InitializeStack(vm.StackSegmentStart + vm.StackSegmentSize) // Valid stack top
 	svc := service.NewDebuggerService(machine)
 
 	program := `
@@ -582,7 +582,7 @@ main:
 
 func TestDebuggerService_GetOutput(t *testing.T) {
 	machine := vm.NewVM()
-	machine.InitializeStack(0x30001000)
+	machine.InitializeStack(vm.StackSegmentStart + vm.StackSegmentSize) // Valid stack top
 	svc := service.NewDebuggerService(machine)
 
 	program := `
@@ -625,7 +625,7 @@ main:
 
 func TestDebuggerService_StepOver(t *testing.T) {
 	machine := vm.NewVM()
-	machine.InitializeStack(0x30001000)
+	machine.InitializeStack(vm.StackSegmentStart + vm.StackSegmentSize) // Valid stack top
 	svc := service.NewDebuggerService(machine)
 
 	program := `
@@ -661,7 +661,7 @@ function:
 
 func TestDebuggerService_StepOut(t *testing.T) {
 	machine := vm.NewVM()
-	machine.InitializeStack(0x30001000)
+	machine.InitializeStack(vm.StackSegmentStart + vm.StackSegmentSize) // Valid stack top
 	svc := service.NewDebuggerService(machine)
 
 	program := `
@@ -701,7 +701,7 @@ function:
 
 func TestDebuggerService_AddWatchpoint(t *testing.T) {
 	machine := vm.NewVM()
-	machine.InitializeStack(0x30001000)
+	machine.InitializeStack(vm.StackSegmentStart + vm.StackSegmentSize) // Valid stack top
 	svc := service.NewDebuggerService(machine)
 
 	program := `
@@ -738,7 +738,7 @@ main:
 
 func TestDebuggerService_RemoveWatchpoint(t *testing.T) {
 	machine := vm.NewVM()
-	machine.InitializeStack(0x30001000)
+	machine.InitializeStack(vm.StackSegmentStart + vm.StackSegmentSize) // Valid stack top
 	svc := service.NewDebuggerService(machine)
 
 	program := `
@@ -784,7 +784,7 @@ main:
 
 func TestDebuggerService_AddWatchpoint_InvalidType(t *testing.T) {
 	machine := vm.NewVM()
-	machine.InitializeStack(0x30001000)
+	machine.InitializeStack(vm.StackSegmentStart + vm.StackSegmentSize) // Valid stack top
 	svc := service.NewDebuggerService(machine)
 
 	program := `
@@ -812,7 +812,7 @@ main:
 
 func TestDebuggerService_StepOver_NoProgramLoaded(t *testing.T) {
 	machine := vm.NewVM()
-	machine.InitializeStack(0x30001000)
+	machine.InitializeStack(vm.StackSegmentStart + vm.StackSegmentSize) // Valid stack top
 	svc := service.NewDebuggerService(machine)
 
 	// Try to step over without loading a program
@@ -829,7 +829,7 @@ func TestDebuggerService_StepOver_NoProgramLoaded(t *testing.T) {
 
 func TestDebuggerService_StepOut_NoProgramLoaded(t *testing.T) {
 	machine := vm.NewVM()
-	machine.InitializeStack(0x30001000)
+	machine.InitializeStack(vm.StackSegmentStart + vm.StackSegmentSize) // Valid stack top
 	svc := service.NewDebuggerService(machine)
 
 	// Try to step out without loading a program
@@ -846,7 +846,7 @@ func TestDebuggerService_StepOut_NoProgramLoaded(t *testing.T) {
 
 func TestDebuggerService_RemoveWatchpoint_InvalidID(t *testing.T) {
 	machine := vm.NewVM()
-	machine.InitializeStack(0x30001000)
+	machine.InitializeStack(vm.StackSegmentStart + vm.StackSegmentSize) // Valid stack top
 	svc := service.NewDebuggerService(machine)
 
 	program := `
@@ -874,7 +874,7 @@ main:
 
 func TestDebuggerService_ExecuteCommand(t *testing.T) {
 	machine := vm.NewVM()
-	machine.InitializeStack(0x30001000)
+	machine.InitializeStack(vm.StackSegmentStart + vm.StackSegmentSize) // Valid stack top
 	svc := service.NewDebuggerService(machine)
 
 	program := `
@@ -926,7 +926,7 @@ func containsAny(s string, substrs []string) bool {
 
 func TestDebuggerService_EvaluateExpression(t *testing.T) {
 	machine := vm.NewVM()
-	machine.InitializeStack(0x30001000)
+	machine.InitializeStack(vm.StackSegmentStart + vm.StackSegmentSize) // Valid stack top
 	svc := service.NewDebuggerService(machine)
 
 	program := `
@@ -965,7 +965,7 @@ main:
 
 func TestDebuggerService_ExecuteCommand_NoProgram(t *testing.T) {
 	machine := vm.NewVM()
-	machine.InitializeStack(0x30001000)
+	machine.InitializeStack(vm.StackSegmentStart + vm.StackSegmentSize) // Valid stack top
 	svc := service.NewDebuggerService(machine)
 
 	// Try to execute command without loading a program
@@ -986,7 +986,7 @@ func TestDebuggerService_ExecuteCommand_NoProgram(t *testing.T) {
 
 func TestDebuggerService_EvaluateExpression_NoProgram(t *testing.T) {
 	machine := vm.NewVM()
-	machine.InitializeStack(0x30001000)
+	machine.InitializeStack(vm.StackSegmentStart + vm.StackSegmentSize) // Valid stack top
 	svc := service.NewDebuggerService(machine)
 
 	// Try to evaluate expression without loading a program
@@ -1009,7 +1009,7 @@ func TestDebuggerService_EvaluateExpression_NoProgram(t *testing.T) {
 
 func TestDebuggerService_EvaluateExpression_InvalidExpression(t *testing.T) {
 	machine := vm.NewVM()
-	machine.InitializeStack(0x30001000)
+	machine.InitializeStack(vm.StackSegmentStart + vm.StackSegmentSize) // Valid stack top
 	svc := service.NewDebuggerService(machine)
 
 	program := `
@@ -1063,7 +1063,7 @@ main:
 
 func TestDebuggerService_EvaluateExpression_ComplexExpressions(t *testing.T) {
 	machine := vm.NewVM()
-	machine.InitializeStack(0x30001000)
+	machine.InitializeStack(vm.StackSegmentStart + vm.StackSegmentSize) // Valid stack top
 	svc := service.NewDebuggerService(machine)
 
 	program := `
@@ -1143,7 +1143,7 @@ main:
 
 func TestDebuggerService_Reset(t *testing.T) {
 	machine := vm.NewVM()
-	machine.InitializeStack(0x30001000)
+	machine.InitializeStack(vm.StackSegmentStart + vm.StackSegmentSize) // Valid stack top
 	svc := service.NewDebuggerService(machine)
 
 	// Load a program
@@ -1234,7 +1234,7 @@ main:
 
 func TestDebuggerService_ResetToEntryPoint(t *testing.T) {
 	machine := vm.NewVM()
-	machine.InitializeStack(0x30001000)
+	machine.InitializeStack(vm.StackSegmentStart + vm.StackSegmentSize) // Valid stack top
 	svc := service.NewDebuggerService(machine)
 
 	// Load a program
@@ -1298,8 +1298,9 @@ main:
 	}
 
 	// 3. SP should be restored to initial stack value
-	if machine.CPU.GetSP() != 0x30001000 {
-		t.Errorf("Expected SP=0x30001000 after reset, got 0x%08X", machine.CPU.GetSP())
+	expectedSP := uint32(vm.StackSegmentStart + vm.StackSegmentSize)
+	if machine.CPU.GetSP() != expectedSP {
+		t.Errorf("Expected SP=0x%08X after reset, got 0x%08X", expectedSP, machine.CPU.GetSP())
 	}
 
 	// 4. Program should still be loaded (source map should exist)
@@ -1326,7 +1327,7 @@ main:
 
 func TestDebuggerService_ResetToEntryPoint_NoProgramLoaded(t *testing.T) {
 	machine := vm.NewVM()
-	machine.InitializeStack(0x30001000)
+	machine.InitializeStack(vm.StackSegmentStart + vm.StackSegmentSize) // Valid stack top
 	svc := service.NewDebuggerService(machine)
 
 	// Attempt reset without loading a program

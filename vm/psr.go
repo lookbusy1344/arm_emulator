@@ -34,8 +34,16 @@ func executeMRS(vm *VM, inst *Instruction) error {
 	// Read CPSR value
 	cpsrValue := vm.CPU.CPSR.ToUint32()
 
-	// Store in destination register
-	vm.CPU.SetRegister(rd, cpsrValue)
+	// Store in destination register - if destination is SP, use SetSPWithTrace for bounds validation
+	if rd == SP {
+		if err := vm.CPU.SetSPWithTrace(vm, cpsrValue, inst.Address); err != nil {
+			vm.State = StateError
+			vm.LastError = err
+			return err
+		}
+	} else {
+		vm.CPU.SetRegister(rd, cpsrValue)
+	}
 
 	// Increment PC
 	vm.CPU.IncrementPC()

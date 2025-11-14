@@ -14,7 +14,9 @@ import (
 // cmdRun starts or restarts program execution
 func (d *Debugger) cmdRun(args []string) error {
 	// Reset CPU registers and state, but preserve memory (loaded program)
-	d.VM.ResetRegisters()
+	if err := d.VM.ResetRegisters(); err != nil {
+		return fmt.Errorf("failed to reset registers: %w", err)
+	}
 	d.VM.State = vm.StateRunning
 	d.Running = true
 	d.StepMode = StepNone

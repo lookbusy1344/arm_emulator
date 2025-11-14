@@ -341,7 +341,9 @@ func (s *DebuggerService) loadProgramIntoVM(program *parser.Program, entryPoint 
 	// Stack grows downward from top of stack segment
 	if s.vm.StackTop == 0 {
 		s.vm.StackTop = vm.StackSegmentStart + vm.StackSegmentSize
-		s.vm.CPU.SetSP(s.vm.StackTop)
+		if err := s.vm.CPU.SetSP(s.vm.StackTop); err != nil {
+			return fmt.Errorf("failed to initialize stack pointer: %w", err)
+		}
 	}
 
 	// Reset execution state to halted (not running until execution begins)
@@ -443,7 +445,9 @@ func (s *DebuggerService) ResetToEntryPoint() error {
 	}
 
 	// Reset registers and execution state but preserve memory contents
-	s.vm.ResetRegisters()
+	if err := s.vm.ResetRegisters(); err != nil {
+		return fmt.Errorf("failed to reset registers: %w", err)
+	}
 	s.debugger.Running = false
 
 	return nil

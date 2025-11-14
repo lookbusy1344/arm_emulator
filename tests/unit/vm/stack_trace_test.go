@@ -9,6 +9,22 @@ import (
 	"github.com/lookbusy1344/arm-emulator/vm"
 )
 
+// Stack Trace Tests
+//
+// These tests verify the StackTrace component's diagnostic and analysis capabilities.
+// Tests call RecordPush/RecordPop/RecordSPMove directly to test the StackTrace's
+// independent detection logic, bypassing the CPU's proactive bounds validation.
+//
+// In production:
+// - SetSPWithTrace validates SP bounds BEFORE setting SP
+// - Invalid SP values are rejected and never reach StackTrace.Record* functions
+// - StackTrace's overflow/underflow detection serves as analysis/diagnostic layer
+//
+// In these tests:
+// - We call StackTrace.Record* methods directly to test detection in isolation
+// - This allows testing the StackTrace component's capabilities independently
+// - Tests intentionally use invalid SP values to verify detection logic works
+
 func TestStackTraceBasic(t *testing.T) {
 	var buf bytes.Buffer
 	stackTrace := vm.NewStackTrace(&buf, 0x50000, 0x40000)
@@ -120,6 +136,10 @@ func TestStackTraceOverflow(t *testing.T) {
 	stackTrace.Start(0x50000)
 
 	// Push past the stack limit (below StackTop)
+	// NOTE: This test calls RecordPush directly to test StackTrace's detection logic.
+	// In production, SetSPWithTrace validates bounds proactively, so invalid SP values
+	// never reach RecordPush. This test verifies the StackTrace component's independent
+	// detection capabilities for diagnostic/analysis purposes.
 	stackTrace.RecordPush(1, 0x8000, 0x40004, 0x3FFFC, 0x11111111, 0x3FFFC, "R1")
 
 	if !stackTrace.HasOverflow() {
@@ -138,6 +158,10 @@ func TestStackTraceUnderflow(t *testing.T) {
 	stackTrace.Start(0x50000)
 
 	// Pop past the stack base (above StackBase)
+	// NOTE: This test calls RecordPop directly to test StackTrace's detection logic.
+	// In production, SetSPWithTrace validates bounds proactively, so invalid SP values
+	// never reach RecordPop. This test verifies the StackTrace component's independent
+	// detection capabilities for diagnostic/analysis purposes.
 	stackTrace.RecordPop(1, 0x8000, 0x50000, 0x50004, 0x11111111, 0x50000, "R1")
 
 	if !stackTrace.HasUnderflow() {

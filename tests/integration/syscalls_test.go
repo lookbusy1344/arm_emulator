@@ -71,7 +71,9 @@ func runAssemblyWithInput(t *testing.T, code string, stdin string) (stdout strin
 
 	// Initialize stack
 	stackTop := uint32(vm.StackSegmentStart + vm.StackSegmentSize)
-	machine.InitializeStack(stackTop)
+	if err := machine.InitializeStack(stackTop); err != nil {
+		return "", "", -1, fmt.Errorf("failed to initialize stack: %w", err)
+	}
 
 	// Determine entry point: use _start symbol first, then .org if set, otherwise default to 0x8000
 	entryPoint := uint32(0x8000)

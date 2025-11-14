@@ -186,11 +186,13 @@ func ExecuteDataProcessing(vm *VM, inst *Instruction) error {
 
 	// Write result to destination register
 	if writeResult {
-		// If writing to SP (R13), record stack trace
-		if rd == SP && vm.StackTrace != nil {
-			oldSP := vm.CPU.GetSP()
-			vm.CPU.SetRegister(rd, result)
-			vm.StackTrace.RecordSPMove(vm.CPU.Cycles, inst.Address, oldSP, result)
+		// If writing to SP (R13), use SetSPWithTrace for bounds validation
+		if rd == SP {
+			if err := vm.CPU.SetSPWithTrace(vm, result, inst.Address); err != nil {
+				vm.State = StateError
+				vm.LastError = err
+				return err
+			}
 		} else {
 			vm.CPU.SetRegister(rd, result)
 		}

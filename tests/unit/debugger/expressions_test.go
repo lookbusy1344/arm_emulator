@@ -44,10 +44,14 @@ func TestExpressionEvaluator_Registers(t *testing.T) {
 	machine := vm.NewVM()
 	symbols := make(map[string]uint32)
 
-	// Set register values
+	// Set register values (use valid stack address)
+	validSP := uint32(vm.StackSegmentStart + 0x1000) // 0x00041000
 	machine.CPU.R[0] = 100
 	machine.CPU.R[5] = 200
-	machine.CPU.SetSP(0x1000)
+	err := machine.CPU.SetSP(validSP)
+	if err != nil {
+		t.Fatalf("SetSP failed: %v", err)
+	}
 	machine.CPU.SetLR(0x2000)
 	machine.CPU.PC = 0x3000
 
@@ -58,8 +62,8 @@ func TestExpressionEvaluator_Registers(t *testing.T) {
 	}{
 		{"R0", "r0", 100},
 		{"R5", "r5", 200},
-		{"SP", "sp", 0x1000},
-		{"R13", "r13", 0x1000},
+		{"SP", "sp", validSP},
+		{"R13", "r13", validSP},
 		{"LR", "lr", 0x2000},
 		{"R14", "r14", 0x2000},
 		{"PC", "pc", 0x3000},

@@ -104,13 +104,22 @@ func (c *CPU) GetSP() uint32 {
 	return c.R[SP]
 }
 
-// SetSP sets the stack pointer value
-func (c *CPU) SetSP(value uint32) {
+// SetSP sets the stack pointer (R13).
+// Note: Like real ARM hardware, this function does not validate bounds.
+// SP can be set to any value, and actual memory protection occurs when
+// memory is accessed. This allows advanced use cases like cooperative
+// multitasking with multiple stacks (see examples/task_scheduler.s).
+func (c *CPU) SetSP(value uint32) error {
 	c.R[SP] = value
+	return nil
 }
 
-// SetSPWithTrace sets the stack pointer value and records it for stack tracing
-func (c *CPU) SetSPWithTrace(vm *VM, value uint32, pc uint32) {
+// SetSPWithTrace sets the stack pointer with tracing support.
+// Note: Like real ARM hardware, this function does not validate bounds.
+// Stack trace monitoring (when enabled) will detect overflow/underflow conditions.
+// Memory protection occurs when memory is accessed, allowing advanced use cases
+// like cooperative multitasking with multiple stacks.
+func (c *CPU) SetSPWithTrace(vm *VM, value uint32, pc uint32) error {
 	oldSP := c.R[SP]
 	c.R[SP] = value
 
@@ -118,6 +127,8 @@ func (c *CPU) SetSPWithTrace(vm *VM, value uint32, pc uint32) {
 	if vm.StackTrace != nil {
 		vm.StackTrace.RecordSPMove(vm.CPU.Cycles, pc, oldSP, value)
 	}
+
+	return nil
 }
 
 // GetLR returns the link register value

@@ -150,16 +150,17 @@ func TestADD_PC_AsBranch(t *testing.T) {
 func TestLDM_WithPC(t *testing.T) {
 	// LDMIA SP!, {R0-R3, PC} (return from function with register restore)
 	v := vm.NewVM()
-	v.CPU.R[13] = 0x9000 // SP
+	initialSP := uint32(vm.StackSegmentStart + 0x1000) // 0x00041000
+	v.CPU.R[13] = initialSP                            // SP
 	v.CPU.PC = 0x8000
 
 	// Setup stack with values to load
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x9000, 0xAAAAAAAA) // R0
-	v.Memory.WriteWord(0x9004, 0xBBBBBBBB) // R1
-	v.Memory.WriteWord(0x9008, 0xCCCCCCCC) // R2
-	v.Memory.WriteWord(0x900C, 0xDDDDDDDD) // R3
-	v.Memory.WriteWord(0x9010, 0x8100)     // PC (return address)
+	v.Memory.WriteWord(initialSP, 0xAAAAAAAA)    // R0
+	v.Memory.WriteWord(initialSP+4, 0xBBBBBBBB)  // R1
+	v.Memory.WriteWord(initialSP+8, 0xCCCCCCCC)  // R2
+	v.Memory.WriteWord(initialSP+12, 0xDDDDDDDD) // R3
+	v.Memory.WriteWord(initialSP+16, 0x00008100) // PC (return address)
 
 	// LDMIA SP!, {R0-R3, PC}
 	// Opcode: LDM, P=0, U=1, S=0, W=1 (writeback), Rn=SP, register list includes R0-R3, PC
@@ -181,11 +182,12 @@ func TestLDM_WithPC(t *testing.T) {
 	if v.CPU.R[3] != 0xDDDDDDDD {
 		t.Errorf("expected R3=0xDDDDDDDD, got R3=0x%X", v.CPU.R[3])
 	}
-	if v.CPU.PC != 0x8100 {
-		t.Errorf("expected PC=0x8100, got PC=0x%X", v.CPU.PC)
+	if v.CPU.PC != 0x00008100 {
+		t.Errorf("expected PC=0x00008100, got PC=0x%X", v.CPU.PC)
 	}
-	if v.CPU.R[13] != 0x9014 {
-		t.Errorf("expected SP=0x9014, got SP=0x%X", v.CPU.R[13])
+	expectedSP := initialSP + 20
+	if v.CPU.R[13] != expectedSP {
+		t.Errorf("expected SP=0x%X, got SP=0x%X", expectedSP, v.CPU.R[13])
 	}
 }
 
@@ -194,7 +196,8 @@ func TestLDM_WithPC(t *testing.T) {
 func TestADD_SP_Adjustment(t *testing.T) {
 	// ADD SP, SP, #16 (allocate stack space)
 	v := vm.NewVM()
-	v.CPU.R[13] = 0x10000 // SP
+	initialSP := uint32(vm.StackSegmentStart + 0x1000) // 0x00041000
+	v.CPU.R[13] = initialSP                            // SP
 	v.CPU.PC = 0x8000
 
 	// ADD SP, SP, #16
@@ -204,16 +207,18 @@ func TestADD_SP_Adjustment(t *testing.T) {
 	v.Memory.WriteWord(0x8000, opcode)
 	v.Step()
 
-	// Expected: SP = 0x10000 + 16 = 0x10010
-	if v.CPU.R[13] != 0x10010 {
-		t.Errorf("expected SP=0x10010, got SP=0x%X", v.CPU.R[13])
+	// Expected: SP = initialSP + 16
+	expectedSP := initialSP + 16
+	if v.CPU.R[13] != expectedSP {
+		t.Errorf("expected SP=0x%X, got SP=0x%X", expectedSP, v.CPU.R[13])
 	}
 }
 
 func TestSUB_SP_Adjustment(t *testing.T) {
 	// SUB SP, SP, #32 (deallocate stack space)
 	v := vm.NewVM()
-	v.CPU.R[13] = 0x10000 // SP
+	initialSP := uint32(vm.StackSegmentStart + 0x1000) // 0x00041000
+	v.CPU.R[13] = initialSP                            // SP
 	v.CPU.PC = 0x8000
 
 	// SUB SP, SP, #32
@@ -223,16 +228,18 @@ func TestSUB_SP_Adjustment(t *testing.T) {
 	v.Memory.WriteWord(0x8000, opcode)
 	v.Step()
 
-	// Expected: SP = 0x10000 - 32 = 0xFFE0
-	if v.CPU.R[13] != 0xFFE0 {
-		t.Errorf("expected SP=0xFFE0, got SP=0x%X", v.CPU.R[13])
+	// Expected: SP = initialSP - 32
+	expectedSP := initialSP - 32
+	if v.CPU.R[13] != expectedSP {
+		t.Errorf("expected SP=0x%X, got SP=0x%X", expectedSP, v.CPU.R[13])
 	}
 }
 
 func TestMOV_SP_Copy(t *testing.T) {
 	// MOV R0, SP (save stack pointer)
 	v := vm.NewVM()
-	v.CPU.R[13] = 0x10000
+	validSP := uint32(vm.StackSegmentStart + 0x1000) // 0x00041000
+	v.CPU.R[13] = validSP
 	v.CPU.PC = 0x8000
 
 	// MOV R0, SP
@@ -242,17 +249,19 @@ func TestMOV_SP_Copy(t *testing.T) {
 	v.Memory.WriteWord(0x8000, opcode)
 	v.Step()
 
-	// Expected: R0 = SP = 0x10000
-	if v.CPU.R[0] != 0x10000 {
-		t.Errorf("expected R0=0x10000, got R0=0x%X", v.CPU.R[0])
+	// Expected: R0 = SP
+	if v.CPU.R[0] != validSP {
+		t.Errorf("expected R0=0x%X, got R0=0x%X", validSP, v.CPU.R[0])
 	}
 }
 
 func TestMOV_SP_Set(t *testing.T) {
 	// MOV SP, R0 (restore stack pointer)
 	v := vm.NewVM()
-	v.CPU.R[0] = 0x20000
-	v.CPU.R[13] = 0x10000
+	newSP := uint32(vm.StackSegmentStart + 0x2000)     // 0x00042000
+	initialSP := uint32(vm.StackSegmentStart + 0x1000) // 0x00041000
+	v.CPU.R[0] = newSP
+	v.CPU.R[13] = initialSP
 	v.CPU.PC = 0x8000
 
 	// MOV SP, R0
@@ -262,9 +271,9 @@ func TestMOV_SP_Set(t *testing.T) {
 	v.Memory.WriteWord(0x8000, opcode)
 	v.Step()
 
-	// Expected: SP = R0 = 0x20000
-	if v.CPU.R[13] != 0x20000 {
-		t.Errorf("expected SP=0x20000, got SP=0x%X", v.CPU.R[13])
+	// Expected: SP = R0 = newSP
+	if v.CPU.R[13] != newSP {
+		t.Errorf("expected SP=0x%X, got SP=0x%X", newSP, v.CPU.R[13])
 	}
 }
 

@@ -115,7 +115,16 @@ func ExecuteLoadStore(v *VM, inst *Instruction) error {
 			vm.MemoryTrace.RecordRead(vm.CPU.Cycles, vm.CPU.PC, accessAddr, value, sizeStr)
 		}
 
-		vm.CPU.SetRegister(rd, value)
+		// If loading to SP (R13), use SetSPWithTrace for bounds validation
+		if rd == SP {
+			if err := vm.CPU.SetSPWithTrace(vm, value, vm.CPU.PC); err != nil {
+				vm.State = StateError
+				vm.LastError = err
+				return err
+			}
+		} else {
+			vm.CPU.SetRegister(rd, value)
+		}
 	} else {
 		// Store instruction
 		value := vm.CPU.GetRegister(rd)
