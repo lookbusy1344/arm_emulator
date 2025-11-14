@@ -168,17 +168,22 @@ func (vm *VM) Reset() {
 // ResetRegisters resets only CPU registers and state, preserving memory contents
 // This is useful for debugger operations that need to restart execution without
 // losing the loaded program
-func (vm *VM) ResetRegisters() {
+func (vm *VM) ResetRegisters() error {
 	vm.CPU.Reset()
 	// Restore PC to entry point after reset
 	vm.CPU.PC = vm.EntryPoint
 	// Restore stack pointer to initial value
 	if vm.StackTop != 0 {
-		vm.CPU.SetSP(vm.StackTop)
+		if err := vm.CPU.SetSP(vm.StackTop); err != nil {
+			// Should never happen - StackTop was validated during Bootstrap
+			// But handle defensively
+			return fmt.Errorf("failed to reset stack pointer: %w", err)
+		}
 	}
 	vm.State = StateHalted
 	vm.InstructionLog = vm.InstructionLog[:0]
 	vm.LastError = nil
+	return nil
 }
 
 // LoadProgram loads program bytes into code memory

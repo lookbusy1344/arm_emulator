@@ -150,7 +150,10 @@ func main() {
 	// Safe: StackSegmentStart is 0x30000000 (uint32), stackSize is flag with default 4096
 	// Maximum possible value is 0x30000000 + flag value, fits in uint32
 	stackTop := uint32(vm.StackSegmentStart + *stackSize) // #nosec G115 -- safe stack size addition
-	machine.InitializeStack(stackTop)
+	if err := machine.InitializeStack(stackTop); err != nil {
+		fmt.Fprintf(os.Stderr, "Error initializing stack: %v\n", err)
+		os.Exit(1)
+	}
 
 	// Parse entry point
 	var entryAddr uint32

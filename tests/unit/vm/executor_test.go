@@ -26,7 +26,9 @@ func TestResetRegisters(t *testing.T) {
 	v.CPU.Cycles = 100
 
 	// Reset registers
-	v.ResetRegisters()
+	if err := v.ResetRegisters(); err != nil {
+		t.Fatalf("ResetRegisters failed: %v", err)
+	}
 
 	// Verify CPU state is reset
 	if v.CPU.R[0] != 0 {
