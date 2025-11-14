@@ -124,8 +124,20 @@ func (c *CPU) SetSP(value uint32) error {
 	return nil
 }
 
-// SetSPWithTrace sets the stack pointer value and records it for stack tracing
-func (c *CPU) SetSPWithTrace(vm *VM, value uint32, pc uint32) {
+// SetSPWithTrace sets the stack pointer with tracing support and bounds validation.
+// Returns error if newSP is outside the valid stack segment range.
+func (c *CPU) SetSPWithTrace(vm *VM, value uint32, pc uint32) error {
+	// Validate bounds before modifying SP
+	// Uses exclusive upper bound: [Start, Start+Size)
+	if value < StackSegmentStart {
+		return fmt.Errorf("stack underflow: SP=0x%08X is below stack minimum (0x%08X)",
+			value, StackSegmentStart)
+	}
+	if value >= StackSegmentStart+StackSegmentSize {
+		return fmt.Errorf("stack overflow: SP=0x%08X exceeds stack maximum (0x%08X)",
+			value, StackSegmentStart+StackSegmentSize)
+	}
+
 	oldSP := c.R[SP]
 	c.R[SP] = value
 
@@ -133,6 +145,8 @@ func (c *CPU) SetSPWithTrace(vm *VM, value uint32, pc uint32) {
 	if vm.StackTrace != nil {
 		vm.StackTrace.RecordSPMove(vm.CPU.Cycles, pc, oldSP, value)
 	}
+
+	return nil
 }
 
 // GetLR returns the link register value
