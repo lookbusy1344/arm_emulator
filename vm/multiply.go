@@ -43,8 +43,16 @@ func ExecuteMultiply(vm *VM, inst *Instruction) error {
 		result += vm.CPU.GetRegister(rn)
 	}
 
-	// Store result
-	vm.CPU.SetRegister(rd, result)
+	// Store result - if destination is SP, use SetSPWithTrace for bounds validation
+	if rd == SP {
+		if err := vm.CPU.SetSPWithTrace(vm, result, inst.Address); err != nil {
+			vm.State = StateError
+			vm.LastError = err
+			return err
+		}
+	} else {
+		vm.CPU.SetRegister(rd, result)
+	}
 
 	// Update flags if requested
 	if setFlags {
@@ -160,9 +168,26 @@ func ExecuteMultiplyLong(vm *VM, inst *Instruction) error {
 		resultLo = uint32(uint64(result64) & Mask32Bit)   // #nosec G115 -- reinterpret signed to unsigned for bit extraction
 	}
 
-	// Store results
-	vm.CPU.SetRegister(rdHi, resultHi)
-	vm.CPU.SetRegister(rdLo, resultLo)
+	// Store results - check if either destination is SP and use SetSPWithTrace for bounds validation
+	if rdHi == SP {
+		if err := vm.CPU.SetSPWithTrace(vm, resultHi, inst.Address); err != nil {
+			vm.State = StateError
+			vm.LastError = err
+			return err
+		}
+	} else {
+		vm.CPU.SetRegister(rdHi, resultHi)
+	}
+
+	if rdLo == SP {
+		if err := vm.CPU.SetSPWithTrace(vm, resultLo, inst.Address); err != nil {
+			vm.State = StateError
+			vm.LastError = err
+			return err
+		}
+	} else {
+		vm.CPU.SetRegister(rdLo, resultLo)
+	}
 
 	// Update flags if requested
 	if setFlags {

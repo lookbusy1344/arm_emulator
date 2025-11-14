@@ -94,7 +94,16 @@ func ExecuteLoadStoreMultiple(vm *VM, inst *Instruction) error {
 				vm.MemoryTrace.RecordRead(vm.CPU.Cycles, vm.CPU.PC, addr, value, "WORD")
 			}
 
-			vm.CPU.SetRegister(i, value)
+			// If loading to SP (R13), use SetSPWithTrace for bounds validation
+			if i == SP {
+				if err := vm.CPU.SetSPWithTrace(vm, value, inst.Address); err != nil {
+					vm.State = StateError
+					vm.LastError = err
+					return err
+				}
+			} else {
+				vm.CPU.SetRegister(i, value)
+			}
 
 			if i == PCRegister {
 				pcLoaded = true
@@ -128,11 +137,13 @@ func ExecuteLoadStoreMultiple(vm *VM, inst *Instruction) error {
 
 	// Write back to base register if requested
 	if writeBack == 1 && rn != PCRegister {
-		// If modifying SP (R13), record stack trace
-		if rn == SPRegister && vm.StackTrace != nil {
-			oldSP := vm.CPU.GetSP()
-			vm.CPU.SetRegister(rn, newBase)
-			vm.StackTrace.RecordSPMove(vm.CPU.Cycles, inst.Address, oldSP, newBase)
+		// If modifying SP (R13), use SetSPWithTrace for bounds validation
+		if rn == SPRegister {
+			if err := vm.CPU.SetSPWithTrace(vm, newBase, inst.Address); err != nil {
+				vm.State = StateError
+				vm.LastError = err
+				return err
+			}
 		} else {
 			vm.CPU.SetRegister(rn, newBase)
 		}
