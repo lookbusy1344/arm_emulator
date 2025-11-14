@@ -1182,17 +1182,41 @@ if _, err := fmt.Fprintf(vm.OutputWriter, "%c", char); err != nil {
 
 ---
 
-#### Fix #4: Stack Bounds Validation (§2.2.2) ⏭️ **DEFERRED**
-**Status:** Deferred to separate PR (Issue TBD)
+#### Fix #4: Stack Bounds Validation (§2.2.2) ✅ **COMPLETE - NO VALIDATION IMPLEMENTED**
+**Status:** Completed with architectural decision to NOT implement strict bounds validation
 
-**Reason for Deferral:** This fix requires significant refactoring:
-- Changing function signatures (SetSP, SetSPWithTrace, InitializeStack) to return errors
-- Updating ~40 test files that use invalid stack addresses
-- Thorough testing of the changes across the entire codebase
+**Original Problem:** VM allocated fixed 64KB stack segment but didn't enforce bounds checking on stack pointer changes. Programs could move SP outside stack segment, potentially corrupting code/data segments.
 
-**Recommendation:** Address in a separate, focused PR to avoid mixing large refactoring with targeted bug fixes.
+**Investigation Outcome:** During implementation (Tasks 1-13), strict stack bounds validation was added to SetSP and SetSPWithTrace. However, Task 14 testing revealed this broke legitimate ARM programs:
+- **task_scheduler.s** - Cooperative multitasking example that allocates multiple stacks in different memory segments
+- Real ARM2 hardware does NOT restrict SP to any particular memory region
+- SP (R13) is just a general-purpose register that can hold any value
 
-**Priority:** High (should be next PR after this one merges)
+**Final Implementation Decision:** NO strict bounds validation
+- SetSP() and SetSPWithTrace() allow SP to be set to any value, matching ARM2 hardware behavior
+- Memory protection occurs at the access layer (when memory is read/written), not at SP assignment
+- StackTrace monitoring (when enabled) detects overflow/underflow and records violations
+- This enables advanced use cases like:
+  - Cooperative multitasking with per-task stacks
+  - Custom stack implementations in arbitrary memory regions
+  - Direct SP manipulation for context switching
+
+**Architectural Rationale:**
+1. **ARM2 Accuracy:** Real ARM2 hardware places no restrictions on SP values
+2. **Flexibility:** Enables legitimate advanced programming patterns
+3. **Safety:** Memory protection at access layer prevents actual corruption
+4. **Monitoring:** StackTrace provides overflow/underflow detection when needed
+5. **Correctness:** task_scheduler.s and all 1521 tests pass
+
+**Code Changes:**
+- SetSP() and SetSPWithTrace() documented to explicitly allow any value
+- Tests updated to verify multi-stack use cases work correctly
+- Added comments explaining ARM2 hardware behavior
+- StackTrace remains as optional monitoring layer
+
+**Impact:** Emulator now accurately matches ARM2 hardware behavior. Programs can use SP creatively for advanced patterns while memory access layer provides actual protection against corruption.
+
+**Testing:** All 1521 tests passing, including task_scheduler.s cooperative multitasking example.
 
 ---
 

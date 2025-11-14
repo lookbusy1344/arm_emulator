@@ -1,5 +1,7 @@
 # Stack Bounds Validation Implementation Plan
 
+> **FINAL OUTCOME:** This plan was executed through Task 13, then **reversed in Task 14** after discovering that strict bounds validation breaks legitimate ARM programs. Final decision: **NO strict bounds validation** - SP behaves like real ARM2 hardware (can be set to any value). See bottom of this document for complete outcome summary.
+
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
 
 **Goal:** Add proactive stack pointer bounds validation to prevent stack overflow/underflow corruption.
@@ -1231,3 +1233,105 @@ After completing this plan:
 **Plan created:** 2025-11-14
 **For feature:** Stack Bounds Validation
 **Resolves:** CODE_REVIEW.md Fix #4 (§2.2.2)
+
+---
+
+## FINAL IMPLEMENTATION OUTCOME
+
+**Date:** 2025-11-14
+**Decision:** Do NOT implement strict stack bounds validation
+
+### What Was Implemented (Tasks 1-13)
+
+Tasks 1-13 of this plan were successfully executed:
+- ✅ Added bounds validation to SetSP() and SetSPWithTrace()
+- ✅ Updated InitializeStack(), Bootstrap(), and Reset() error handling
+- ✅ Updated all VM and instruction call sites to handle errors
+- ✅ Fixed ~40 test files to use valid stack addresses
+- ✅ All 1521 tests passing with strict validation
+
+### Task 14 Discovery - Validation Breaks Legitimate Programs
+
+During final validation testing, the strict bounds checking was found to break valid ARM programs:
+
+**Problem Program:** `examples/task_scheduler.s`
+- Implements cooperative multitasking with multiple tasks
+- Allocates separate 256-byte stack for each task in data/code segments
+- Uses `MOV SP, Rx` to switch between task contexts
+- This is a **legitimate ARM programming pattern** used in embedded systems
+
+**Architectural Analysis:**
+1. Real ARM2 hardware does NOT restrict SP to any memory region
+2. SP (R13) is just a general-purpose register that can hold any value
+3. Memory protection happens at access time (when reading/writing), not at SP assignment
+4. Stack segment (0x00040000-0x00050000) is an emulator convention, not a hardware restriction
+
+### Final Decision: Remove All Strict Validation
+
+**Commit:** c599a7b "fix: remove strict stack bounds validation to support multi-stack programs"
+
+**Changes Made:**
+- Removed bounds checks from SetSP() and SetSPWithTrace()
+- Updated documentation to explain ARM2 hardware behavior
+- Modified tests to verify multi-stack use cases work correctly
+- SetSP() and SetSPWithTrace() still return error (for future use), but always succeed
+- StackTrace monitoring remains available as optional diagnostic tool
+
+**Why This Is The Right Decision:**
+
+1. **ARM2 Accuracy:** Emulator now matches real hardware behavior
+2. **Flexibility:** Enables advanced programming patterns (multitasking, custom stacks)
+3. **Safety:** Memory protection at correct layer (memory access, not SP assignment)
+4. **Monitoring:** StackTrace provides overflow/underflow detection when enabled
+5. **Correctness:** All example programs work, including task_scheduler.s
+
+**Testing Results:**
+- All 1521 tests passing
+- task_scheduler.s cooperative multitasking example works correctly
+- Multi-stack test cases added to verify flexibility
+
+### Lessons Learned
+
+1. **Hardware accuracy matters:** When emulating hardware, match the actual behavior, not idealized assumptions
+2. **Test with real programs:** The task_scheduler.s example revealed the flaw in the original approach
+3. **Separation of concerns:** Protection should occur at the right layer (memory access, not register assignment)
+4. **Monitoring vs enforcement:** StackTrace provides monitoring without restricting valid use cases
+
+### Current Implementation
+
+**SetSP() and SetSPWithTrace():**
+```go
+// SetSP sets the stack pointer (R13).
+// Note: Like real ARM hardware, this function does not validate bounds.
+// SP can be set to any value, and actual memory protection occurs when
+// memory is accessed. This allows advanced use cases like cooperative
+// multitasking with multiple stacks (see examples/task_scheduler.s).
+func (c *CPU) SetSP(value uint32) error {
+    c.R[SP] = value
+    return nil
+}
+```
+
+**Memory Protection:**
+- Occurs in Memory.ReadWord(), Memory.WriteWord(), etc.
+- Segment bounds checking and permission validation
+- Actual protection against corruption
+
+**Stack Monitoring:**
+- StackTrace (optional) monitors SP movements
+- Detects overflow/underflow relative to configured stack bounds
+- Records violations for debugging
+- Does NOT halt execution (monitoring only)
+
+### Documentation Updates
+
+- ✅ CODE_REVIEW.md Fix #4 updated with final decision
+- ✅ PROGRESS.md entry added explaining investigation and outcome
+- ✅ This plan document updated with outcome summary
+- ✅ vm/cpu.go comments explain ARM2 hardware behavior
+
+### Conclusion
+
+The stack bounds validation investigation was valuable - it led to implementing error handling infrastructure (which may be useful later) and deepening understanding of ARM2 architecture. The final decision to NOT validate bounds is the correct one for an accurate ARM2 emulator.
+
+**Status:** ✅ COMPLETE - No strict bounds validation, matching ARM2 hardware

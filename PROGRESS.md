@@ -18,6 +18,56 @@ This is a complete ARM2 emulator written in Go with ARMv3 extensions, featuring 
 
 ## Recent Highlights (November 2025)
 
+### Stack Bounds Validation Investigation (Nov 14) ✅
+**Architectural Decision: NO strict bounds validation - Match ARM2 hardware behavior**
+
+**Context:** CODE_REVIEW.md identified potential stack overflow/underflow issues where SP could be set outside the designated stack segment (0x00040000-0x00050000).
+
+**Implementation Process (Tasks 1-13):**
+- Added strict bounds validation to SetSP() and SetSPWithTrace()
+- Functions returned errors when SP set outside stack segment
+- Updated error handling throughout call chain (InitializeStack, Bootstrap, Reset)
+- Updated ~40 test files to use valid stack addresses
+- All 1521 tests passing with validation in place
+
+**Task 14 Discovery - Validation Breaks Legitimate Programs:**
+During final testing, discovered that strict validation broke `examples/task_scheduler.s`:
+- Implements cooperative multitasking with multiple task stacks
+- Allocates per-task stacks in data/code segments (not stack segment)
+- Uses `MOV SP, Rx` to switch between task contexts
+- This is a **valid ARM programming pattern** used in real embedded systems
+
+**Architectural Analysis:**
+- Real ARM2 hardware does NOT restrict SP to any memory region
+- SP (R13) is a general-purpose register that can hold any value
+- Memory protection occurs at access time, not SP assignment
+- Stack segment is a convention, not a hardware restriction
+
+**Final Decision: Remove All Strict Validation**
+- SetSP() and SetSPWithTrace() now allow any value (matching ARM2 hardware)
+- Memory access layer provides actual protection against corruption
+- StackTrace monitoring (optional) detects overflow/underflow violations
+- Tests updated to verify multi-stack use cases work correctly
+
+**Benefits of This Approach:**
+1. **ARM2 Accuracy:** Emulator matches real hardware behavior
+2. **Flexibility:** Enables advanced patterns (multitasking, custom stacks)
+3. **Safety:** Memory protection at correct layer (access, not assignment)
+4. **Monitoring:** StackTrace provides overflow detection when needed
+5. **Correctness:** All example programs work, including task_scheduler.s
+
+**Code Changes:**
+- Removed bounds checks from SetSP() and SetSPWithTrace()
+- Added documentation explaining ARM2 hardware behavior
+- Updated tests to include multi-stack use cases
+- StackTrace remains as optional diagnostic tool
+
+**Testing:** All 1521 tests passing, including cooperative multitasking example
+
+**See:** docs/plans/2025-11-14-stack-bounds-validation.md for complete implementation history
+
+---
+
 ### Filesystem Sandboxing Implementation (Nov 11) ✅
 - ✅ **CRITICAL SECURITY IMPROVEMENT:** Mandatory filesystem sandboxing
   - Guest programs now restricted to specified directory (`-fsroot` flag)
