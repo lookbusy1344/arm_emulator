@@ -485,7 +485,9 @@ func (vm *VM) Bootstrap(args []string) error {
 
 	// Initialize stack pointer to top of stack
 	stackTop := uint32(StackSegmentStart + StackSegmentSize)
-	vm.InitializeStack(stackTop)
+	if err := vm.InitializeStack(stackTop); err != nil {
+		return fmt.Errorf("failed to bootstrap VM: %w", err)
+	}
 
 	// Set link register to a halt address (so returning from main halts)
 	vm.CPU.SetLR(LRInitValue)
