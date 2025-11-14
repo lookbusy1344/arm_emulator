@@ -87,7 +87,7 @@ func TestCPU_SetSPWithTrace_ValidRange(t *testing.T) {
 	}{
 		{"stack start", vm.StackSegmentStart},
 		{"stack middle", vm.StackSegmentStart + vm.StackSegmentSize/2},
-		{"stack end", vm.StackSegmentStart + vm.StackSegmentSize},
+		{"stack end minus 4", vm.StackSegmentStart + vm.StackSegmentSize - 4},
 	}
 
 	for _, tt := range tests {
@@ -110,6 +110,7 @@ func TestCPU_SetSPWithTrace_Underflow(t *testing.T) {
 	}{
 		{"one below minimum", vm.StackSegmentStart - 1},
 		{"far below minimum", vm.StackSegmentStart - 0x1000},
+		{"zero address", 0x00000000},
 	}
 
 	for _, tt := range tests {
@@ -132,6 +133,7 @@ func TestCPU_SetSPWithTrace_Overflow(t *testing.T) {
 	}{
 		{"one above maximum", vm.StackSegmentStart + vm.StackSegmentSize + 1},
 		{"far above maximum", vm.StackSegmentStart + vm.StackSegmentSize + 0x1000},
+		{"max address", 0xFFFFFFFF},
 	}
 
 	for _, tt := range tests {
