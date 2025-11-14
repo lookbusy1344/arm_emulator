@@ -17,6 +17,11 @@
 **Error Handling Strategy:**
 Following VM's two-tier error philosophy (`vm/syscall.go:16-34`), stack bounds violations are **Tier 1: VM Integrity Errors** that halt execution immediately by returning `fmt.Errorf()`.
 
+**ARCHITECTURAL DECISION (Made During Implementation):**
+During Task 6 implementation, the stack validation boundary semantics were corrected from exclusive to inclusive upper bound. The original plan specified `value >= StackSegmentStart+StackSegmentSize` (exclusive), but ARM Full Descending stack convention requires `value > StackSegmentStart+StackSegmentSize` (inclusive). This allows SP to point to the empty stack position (one word above the allocated segment), which is standard ARM behavior. Empty stack SP never gets dereferenced - STMFD pre-decrements before storing. Memory access layer still protects against invalid access at the boundary address.
+
+**Valid SP Range:** `[0x00040000, 0x00050000]` inclusive (not exclusive as originally planned)
+
 ---
 
 ## Task 1: Write Failing Tests for SetSP Bounds Validation
