@@ -580,3 +580,12 @@ func (a *App) emitEvent(name string, data ...interface{}) {
 		runtime.EventsEmit(a.ctx, name, data...)
 	}
 }
+
+// SendInput sends user input to the guest program's stdin
+// This is called from the frontend when the user provides input for the running program
+func (a *App) SendInput(input string) error {
+	if a.service == nil {
+		return fmt.Errorf("no program loaded")
+	}
+	return a.service.SendInput(input)
+}

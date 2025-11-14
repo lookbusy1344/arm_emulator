@@ -62,6 +62,8 @@ export function Reset():Promise<void>;
 
 export function Restart():Promise<void>;
 
+export function SendInput(arg1:string):Promise<void>;
+
 export function Step():Promise<void>;
 
 export function StepOut():Promise<void>;

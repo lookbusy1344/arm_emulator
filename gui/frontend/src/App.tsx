@@ -10,6 +10,7 @@ import { StatusView } from './components/StatusView';
 import { BreakpointsView } from './components/BreakpointsView';
 import { CommandInput } from './components/CommandInput';
 import { ExpressionEvaluator } from './components/ExpressionEvaluator';
+import { ProgramInput } from './components/ProgramInput';
 import {
   Step,
   StepOver,
@@ -225,6 +226,11 @@ function App() {
               </div>
             </div>
           </div>
+        </Allotment.Pane>
+
+        {/* Program Input - for guest program stdin */}
+        <Allotment.Pane snap minSize={50} preferredSize={50}>
+          <ProgramInput />
         </Allotment.Pane>
 
         {/* Command Input - fixed at very bottom */}

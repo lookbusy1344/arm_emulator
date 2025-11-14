@@ -47,15 +47,25 @@ type DebuggerService struct {
 	outputWriter         *EventEmittingWriter
 	ctx                  context.Context
 	stateChangedCallback func() // Callback for GUI state updates
+
+	// stdin redirection for guest programs (GUI)
+	stdinPipeReader *io.PipeReader
+	stdinPipeWriter *io.PipeWriter
 }
 
 // NewDebuggerService creates a new debugger service
 func NewDebuggerService(machine *vm.VM) *DebuggerService {
+	// Setup stdin pipe for guest program input (GUI)
+	stdinReader, stdinWriter := io.Pipe()
+	machine.SetStdinReader(stdinReader)
+
 	return &DebuggerService{
-		vm:        machine,
-		debugger:  debugger.NewDebugger(machine),
-		symbols:   make(map[string]uint32),
-		sourceMap: make(map[uint32]string),
+		vm:              machine,
+		debugger:        debugger.NewDebugger(machine),
+		symbols:         make(map[string]uint32),
+		sourceMap:       make(map[uint32]string),
+		stdinPipeReader: stdinReader,
+		stdinPipeWriter: stdinWriter,
 	}
 }
 
@@ -998,4 +1008,19 @@ func (s *DebuggerService) EvaluateExpression(expr string) (uint32, error) {
 	}
 
 	return s.debugger.Evaluator.EvaluateExpression(expr, s.vm, s.symbols)
+}
+
+// SendInput sends user input to the guest program's stdin
+// This is called from the GUI frontend when the user provides input
+func (s *DebuggerService) SendInput(input string) error {
+	// NOTE: No mutex lock here! io.Pipe is already thread-safe for concurrent reads/writes.
+	// Taking a lock here causes deadlock when RunUntilHalt holds the lock while blocked on stdin read.
+
+	if s.stdinPipeWriter == nil {
+		return fmt.Errorf("stdin pipe not initialized")
+	}
+
+	// Write input + newline to the stdin pipe (io.Pipe.Write is thread-safe)
+	_, err := s.stdinPipeWriter.Write([]byte(input + "\n"))
+	return err
 }
