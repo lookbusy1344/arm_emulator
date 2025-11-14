@@ -156,11 +156,11 @@ func TestLDM_WithPC(t *testing.T) {
 
 	// Setup stack with values to load
 	setupCodeWrite(v)
-	v.Memory.WriteWord(initialSP, 0xAAAAAAAA)     // R0
-	v.Memory.WriteWord(initialSP+4, 0xBBBBBBBB)   // R1
-	v.Memory.WriteWord(initialSP+8, 0xCCCCCCCC)   // R2
-	v.Memory.WriteWord(initialSP+12, 0xDDDDDDDD)  // R3
-	v.Memory.WriteWord(initialSP+16, 0x00008100)  // PC (return address)
+	v.Memory.WriteWord(initialSP, 0xAAAAAAAA)    // R0
+	v.Memory.WriteWord(initialSP+4, 0xBBBBBBBB)  // R1
+	v.Memory.WriteWord(initialSP+8, 0xCCCCCCCC)  // R2
+	v.Memory.WriteWord(initialSP+12, 0xDDDDDDDD) // R3
+	v.Memory.WriteWord(initialSP+16, 0x00008100) // PC (return address)
 
 	// LDMIA SP!, {R0-R3, PC}
 	// Opcode: LDM, P=0, U=1, S=0, W=1 (writeback), Rn=SP, register list includes R0-R3, PC

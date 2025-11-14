@@ -1,7 +1,5 @@
 package vm
 
-import "fmt"
-
 // CPU represents the ARM2 processor state
 type CPU struct {
 	// General purpose registers R0-R14
@@ -106,39 +104,22 @@ func (c *CPU) GetSP() uint32 {
 	return c.R[SP]
 }
 
-// SetSP sets the stack pointer (R13) with bounds validation.
-// Returns error if newSP is outside the valid stack segment range.
+// SetSP sets the stack pointer (R13).
+// Note: Like real ARM hardware, this function does not validate bounds.
+// SP can be set to any value, and actual memory protection occurs when
+// memory is accessed. This allows advanced use cases like cooperative
+// multitasking with multiple stacks (see examples/task_scheduler.s).
 func (c *CPU) SetSP(value uint32) error {
-	// Validate SP is within stack segment bounds
-	// Stack segment: 0x00040000 - 0x00050000 (64KB, grows downward)
-	// SP can point to StackSegmentStart + StackSegmentSize (empty stack, per ARM convention)
-	if value < StackSegmentStart {
-		return fmt.Errorf("stack underflow: SP=0x%08X is below stack minimum (0x%08X)",
-			value, StackSegmentStart)
-	}
-	if value > StackSegmentStart+StackSegmentSize {
-		return fmt.Errorf("stack overflow: SP=0x%08X exceeds stack maximum (0x%08X)",
-			value, StackSegmentStart+StackSegmentSize)
-	}
-
 	c.R[SP] = value
 	return nil
 }
 
-// SetSPWithTrace sets the stack pointer with tracing support and bounds validation.
-// Returns error if newSP is outside the valid stack segment range.
+// SetSPWithTrace sets the stack pointer with tracing support.
+// Note: Like real ARM hardware, this function does not validate bounds.
+// Stack trace monitoring (when enabled) will detect overflow/underflow conditions.
+// Memory protection occurs when memory is accessed, allowing advanced use cases
+// like cooperative multitasking with multiple stacks.
 func (c *CPU) SetSPWithTrace(vm *VM, value uint32, pc uint32) error {
-	// Validate bounds before modifying SP
-	// SP can point to StackSegmentStart + StackSegmentSize (empty stack, per ARM convention)
-	if value < StackSegmentStart {
-		return fmt.Errorf("stack underflow: SP=0x%08X is below stack minimum (0x%08X)",
-			value, StackSegmentStart)
-	}
-	if value > StackSegmentStart+StackSegmentSize {
-		return fmt.Errorf("stack overflow: SP=0x%08X exceeds stack maximum (0x%08X)",
-			value, StackSegmentStart+StackSegmentSize)
-	}
-
 	oldSP := c.R[SP]
 	c.R[SP] = value
 

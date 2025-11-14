@@ -1446,11 +1446,11 @@ func TestLDM_IncludingPC_Return(t *testing.T) {
 	v.CPU.PC = 0x8000
 
 	setupCodeWrite(v)
-	v.Memory.WriteWord(initialSP, 0xAAAA0000)      // R0
-	v.Memory.WriteWord(initialSP+4, 0xBBBB0001)    // R1
-	v.Memory.WriteWord(initialSP+8, 0xCCCC0002)    // R2
-	v.Memory.WriteWord(initialSP+12, 0xDDDD0003)   // R3
-	v.Memory.WriteWord(initialSP+16, 0x00009000)   // PC
+	v.Memory.WriteWord(initialSP, 0xAAAA0000)    // R0
+	v.Memory.WriteWord(initialSP+4, 0xBBBB0001)  // R1
+	v.Memory.WriteWord(initialSP+8, 0xCCCC0002)  // R2
+	v.Memory.WriteWord(initialSP+12, 0xDDDD0003) // R3
+	v.Memory.WriteWord(initialSP+16, 0x00009000) // PC
 
 	// LDMIA SP!, {R0-R3, PC}
 	// Register list: R0-R3, PC = 0x800F
