@@ -39,6 +39,16 @@ func (vm *VM) ResetStdinReader() {
 	vm.stdinReader = bufio.NewReader(os.Stdin)
 }
 
+// shouldSyncFile checks if a file should be synced to disk
+// Only regular files should be synced; character devices, pipes, and terminals should not
+func shouldSyncFile(f *os.File) bool {
+	info, err := f.Stat()
+	if err != nil {
+		return false // If we can't stat it, don't sync
+	}
+	return info.Mode().IsRegular()
+}
+
 // SWI (Software Interrupt) syscall numbers
 const (
 	// Console I/O
@@ -190,8 +200,8 @@ func ExecuteSWI(vm *VM, inst *Instruction) error {
 		if _, err = fmt.Fprintln(vm.OutputWriter); err != nil {
 			fmt.Fprintf(os.Stderr, "Warning: console write failed: %v\n", err)
 		}
-		// Sync if it's os.Stdout
-		if f, ok := vm.OutputWriter.(*os.File); ok {
+		// Sync if it's a regular file (not a character device like stdout)
+		if f, ok := vm.OutputWriter.(*os.File); ok && shouldSyncFile(f) {
 			if err := f.Sync(); err != nil {
 				fmt.Fprintf(os.Stderr, "Warning: console sync failed: %v\n", err)
 			}
@@ -280,11 +290,9 @@ func handleWriteChar(vm *VM) error {
 		// (broken pipe, disk full, etc. are typically non-recoverable)
 		fmt.Fprintf(os.Stderr, "Warning: console write failed: %v\n", err)
 	}
-	// Sync if it's os.Stdout
-	if f, ok := vm.OutputWriter.(*os.File); ok {
+	// Sync if it's a regular file (not a character device like stdout)
+	if f, ok := vm.OutputWriter.(*os.File); ok && shouldSyncFile(f) {
 		if err := f.Sync(); err != nil {
-			// Sync errors are typically benign (not a real file, etc.)
-			// Only log if it's a real error
 			fmt.Fprintf(os.Stderr, "Warning: console sync failed: %v\n", err)
 		}
 	}
@@ -321,8 +329,8 @@ func handleWriteString(vm *VM) error {
 	}
 
 	_, _ = fmt.Fprint(vm.OutputWriter, string(str)) // Ignore write errors
-	// Sync if it's os.Stdout
-	if f, ok := vm.OutputWriter.(*os.File); ok {
+	// Sync if it's a regular file (not a character device like stdout)
+	if f, ok := vm.OutputWriter.(*os.File); ok && shouldSyncFile(f) {
 		_ = f.Sync() // Ignore sync errors
 	}
 	vm.CPU.IncrementPC()
@@ -358,8 +366,8 @@ func handleWriteInt(vm *VM) error {
 		fmt.Fprintf(os.Stderr, "Warning: console write failed: %v\n", err)
 	}
 
-	// Sync if it's os.Stdout
-	if f, ok := vm.OutputWriter.(*os.File); ok {
+	// Sync if it's a regular file (not a character device like stdout)
+	if f, ok := vm.OutputWriter.(*os.File); ok && shouldSyncFile(f) {
 		if err := f.Sync(); err != nil {
 			fmt.Fprintf(os.Stderr, "Warning: console sync failed: %v\n", err)
 		}
