@@ -110,7 +110,7 @@ func NewVM() *VM {
 		State:            StateHalted,
 		Mode:             ModeRun,
 		MaxCycles:        DefaultMaxCycles, // Default 1M instruction limit
-		CycleLimit:       0,
+		CycleLimit:       DefaultMaxCycles, // Enable cycle limit by default (CODE_REVIEW.md §4.2.3)
 		InstructionLog:   make([]uint32, 0, DefaultLogCapacity),
 		EntryPoint:       CodeSegmentStart,
 		ProgramArguments: make([]string, 0),

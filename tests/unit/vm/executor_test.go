@@ -616,3 +616,19 @@ func containsHelper(s, substr string) bool {
 	}
 	return false
 }
+
+// TestNewVM_CycleLimitDefault verifies that NewVM sets CycleLimit to DefaultMaxCycles
+// to prevent infinite loops by default (CODE_REVIEW.md §4.2.3)
+func TestNewVM_CycleLimitDefault(t *testing.T) {
+	v := vm.NewVM()
+
+	// CycleLimit should default to DefaultMaxCycles (1,000,000), not 0 (unlimited)
+	if v.CycleLimit != vm.DefaultMaxCycles {
+		t.Errorf("Expected CycleLimit=%d (DefaultMaxCycles), got %d", vm.DefaultMaxCycles, v.CycleLimit)
+	}
+
+	// Verify the constant has the expected value
+	if vm.DefaultMaxCycles != 1000000 {
+		t.Errorf("Expected DefaultMaxCycles=1000000, got %d", vm.DefaultMaxCycles)
+	}
+}
