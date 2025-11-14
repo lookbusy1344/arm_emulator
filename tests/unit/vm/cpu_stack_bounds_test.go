@@ -75,3 +75,70 @@ func TestCPU_SetSP_Overflow(t *testing.T) {
 		})
 	}
 }
+
+func TestCPU_SetSPWithTrace_ValidRange(t *testing.T) {
+	v := vm.NewVM()
+	v.StackTrace = vm.NewStackTrace(nil, vm.StackSegmentStart+vm.StackSegmentSize, vm.StackSegmentStart)
+	pc := uint32(0x00008000)
+
+	tests := []struct {
+		name  string
+		value uint32
+	}{
+		{"stack start", vm.StackSegmentStart},
+		{"stack middle", vm.StackSegmentStart + vm.StackSegmentSize/2},
+		{"stack end", vm.StackSegmentStart + vm.StackSegmentSize},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := v.CPU.SetSPWithTrace(v, tt.value, pc)
+			assert.NoError(t, err, "Valid SP value should not error")
+			assert.Equal(t, tt.value, v.CPU.GetSP(), "SP should be set to requested value")
+		})
+	}
+}
+
+func TestCPU_SetSPWithTrace_Underflow(t *testing.T) {
+	v := vm.NewVM()
+	v.StackTrace = vm.NewStackTrace(nil, vm.StackSegmentStart+vm.StackSegmentSize, vm.StackSegmentStart)
+	pc := uint32(0x00008000)
+
+	tests := []struct {
+		name  string
+		value uint32
+	}{
+		{"one below minimum", vm.StackSegmentStart - 1},
+		{"far below minimum", vm.StackSegmentStart - 0x1000},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := v.CPU.SetSPWithTrace(v, tt.value, pc)
+			require.Error(t, err, "SP below stack segment should error")
+			assert.Contains(t, err.Error(), "stack underflow")
+		})
+	}
+}
+
+func TestCPU_SetSPWithTrace_Overflow(t *testing.T) {
+	v := vm.NewVM()
+	v.StackTrace = vm.NewStackTrace(nil, vm.StackSegmentStart+vm.StackSegmentSize, vm.StackSegmentStart)
+	pc := uint32(0x00008000)
+
+	tests := []struct {
+		name  string
+		value uint32
+	}{
+		{"one above maximum", vm.StackSegmentStart + vm.StackSegmentSize + 1},
+		{"far above maximum", vm.StackSegmentStart + vm.StackSegmentSize + 0x1000},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := v.CPU.SetSPWithTrace(v, tt.value, pc)
+			require.Error(t, err, "SP above stack segment should error")
+			assert.Contains(t, err.Error(), "stack overflow")
+		})
+	}
+}
