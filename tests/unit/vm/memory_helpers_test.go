@@ -10,8 +10,12 @@ import (
 func TestInitializeStack(t *testing.T) {
 	v := vm.NewVM()
 
-	stackTop := uint32(0x00030000)
-	v.InitializeStack(stackTop)
+	// Use valid stack address within stack segment
+	stackTop := uint32(vm.StackSegmentStart + 0x3000) // 0x00043000
+	err := v.InitializeStack(stackTop)
+	if err != nil {
+		t.Fatalf("InitializeStack failed: %v", err)
+	}
 
 	if v.CPU.GetSP() != stackTop {
 		t.Errorf("Expected SP=0x%08X after InitializeStack, got 0x%08X", stackTop, v.CPU.GetSP())

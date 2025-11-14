@@ -17,10 +17,13 @@ func TestSetSPWithTrace(t *testing.T) {
 	trace.Start(uint32(vm.StackSegmentStart + vm.StackSegmentSize))
 	v.StackTrace = trace
 
-	// Set SP with trace
-	newSP := uint32(0x00020000)
+	// Set SP with trace (use valid stack address)
+	newSP := uint32(vm.StackSegmentStart + 0x1000) // 0x00041000
 	pc := uint32(0x00008000)
-	v.CPU.SetSPWithTrace(v, newSP, pc)
+	err := v.CPU.SetSPWithTrace(v, newSP, pc)
+	if err != nil {
+		t.Fatalf("SetSPWithTrace failed: %v", err)
+	}
 
 	// Verify SP was set
 	if v.CPU.GetSP() != newSP {
@@ -38,10 +41,13 @@ func TestSetSPWithTrace(t *testing.T) {
 func TestSetSPWithTraceDisabled(t *testing.T) {
 	v := vm.NewVM()
 
-	// No stack trace enabled
-	newSP := uint32(0x00020000)
+	// No stack trace enabled (use valid stack address)
+	newSP := uint32(vm.StackSegmentStart + 0x2000) // 0x00042000
 	pc := uint32(0x00008000)
-	v.CPU.SetSPWithTrace(v, newSP, pc)
+	err := v.CPU.SetSPWithTrace(v, newSP, pc)
+	if err != nil {
+		t.Fatalf("SetSPWithTrace failed: %v", err)
+	}
 
 	// Verify SP was set
 	if v.CPU.GetSP() != newSP {
