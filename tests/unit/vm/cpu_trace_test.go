@@ -207,15 +207,16 @@ func TestGetRegisterWithTraceSP(t *testing.T) {
 	trace.Start()
 	v.RegisterTrace = trace
 
-	// Set SP
-	v.CPU.R[13] = 0x00020000
+	// Set SP (use valid stack address)
+	validSP := uint32(vm.StackSegmentStart + 0x2000) // 0x00042000
+	v.CPU.R[13] = validSP
 
 	// Read SP (R13) with trace
 	pc := uint32(0x00008000)
 	value := v.CPU.GetRegisterWithTrace(v, 13, pc)
 
-	if value != 0x00020000 {
-		t.Errorf("Expected SP=0x00020000, got 0x%08X", value)
+	if value != validSP {
+		t.Errorf("Expected SP=0x%08X, got 0x%08X", validSP, value)
 	}
 
 	// Verify trace recorded the read
@@ -235,12 +236,13 @@ func TestSetRegisterWithTraceSP(t *testing.T) {
 	trace.Start()
 	v.RegisterTrace = trace
 
-	// Write SP with trace
+	// Write SP with trace (use valid stack address)
+	validSP := uint32(vm.StackSegmentStart + 0x3000) // 0x00043000
 	pc := uint32(0x00008000)
-	v.CPU.SetRegisterWithTrace(v, 13, 0x00021000, pc)
+	v.CPU.SetRegisterWithTrace(v, 13, validSP, pc)
 
-	if v.CPU.R[13] != 0x00021000 {
-		t.Errorf("Expected SP=0x00021000, got 0x%08X", v.CPU.R[13])
+	if v.CPU.R[13] != validSP {
+		t.Errorf("Expected SP=0x%08X, got 0x%08X", validSP, v.CPU.R[13])
 	}
 
 	// Verify trace recorded the write

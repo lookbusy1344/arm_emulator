@@ -314,8 +314,9 @@ func TestDumpState(t *testing.T) {
 
 	// Set some known values
 	v.CPU.PC = 0x00008000
-	v.CPU.R[13] = 0x00020000 // SP
-	v.CPU.R[14] = 0x00008100 // LR
+	validSP := uint32(vm.StackSegmentStart + 0x2000) // 0x00042000
+	v.CPU.R[13] = validSP                            // SP
+	v.CPU.R[14] = 0x00008100                 // LR
 	v.CPU.CPSR.N = true
 	v.CPU.CPSR.Z = false
 	v.CPU.CPSR.C = true
@@ -327,7 +328,7 @@ func TestDumpState(t *testing.T) {
 	// Verify dump contains key information
 	expectedSubstrings := []string{
 		"0x00008000", // PC
-		"0x00020000", // SP
+		"0x00042000", // SP (updated to valid stack address)
 		"0x00008100", // LR
 		"N",          // N flag set
 		"C",          // C flag set

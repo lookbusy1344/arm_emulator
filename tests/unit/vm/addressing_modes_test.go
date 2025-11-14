@@ -457,7 +457,8 @@ func TestAddressing_LDM_DB(t *testing.T) {
 // Full Descending Stack (LDMFD/STMFD)
 func TestAddressing_Stack_FD(t *testing.T) {
 	v := vm.NewVM()
-	v.CPU.R[13] = 0x30000 // SP
+	initialSP := uint32(vm.StackSegmentStart + 0x3000) // 0x00043000
+	v.CPU.R[13] = initialSP                            // SP
 	v.CPU.R[1] = 0xAAAA
 	v.CPU.R[2] = 0xBBBB
 	v.CPU.PC = 0x8000
@@ -469,8 +470,9 @@ func TestAddressing_Stack_FD(t *testing.T) {
 	v.Memory.WriteWord(0x8000, opcode)
 	v.Step()
 
-	if v.CPU.R[13] != 0x2FFF8 {
-		t.Errorf("SP should be 0x2FFF8 after push, got 0x%X", v.CPU.R[13])
+	expectedSPAfterPush := initialSP - 8
+	if v.CPU.R[13] != expectedSPAfterPush {
+		t.Errorf("SP should be 0x%X after push, got 0x%X", expectedSPAfterPush, v.CPU.R[13])
 	}
 
 	// Clear R1, R2
@@ -489,7 +491,7 @@ func TestAddressing_Stack_FD(t *testing.T) {
 	if v.CPU.R[2] != 0xBBBB {
 		t.Errorf("Expected R2=0xBBBB after pop, got 0x%X", v.CPU.R[2])
 	}
-	if v.CPU.R[13] != 0x30000 {
+	if v.CPU.R[13] != initialSP {
 		t.Errorf("SP should be restored to 0x30000, got 0x%X", v.CPU.R[13])
 	}
 }

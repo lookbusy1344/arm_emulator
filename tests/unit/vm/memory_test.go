@@ -1396,13 +1396,21 @@ func TestLDM_NonContiguous(t *testing.T) {
 func TestLDM_AllRegisters(t *testing.T) {
 	// LDMIA R0, {R0-R15} - all registers (including base)
 	v := vm.NewVM()
-	v.CPU.R[0] = 0x10000
+	baseAddr := uint32(0x10000)
+	v.CPU.R[0] = baseAddr
 	v.CPU.PC = 0x8000
 
 	setupCodeWrite(v)
 	// Write values for all 16 registers
+	// Use valid stack address for R13 (SP)
+	validSP := uint32(vm.StackSegmentStart + 0x1D00) // 0x00041D00
 	for i := uint32(0); i < 16; i++ {
-		v.Memory.WriteWord(0x10000+i*4, 0x1000+i*0x100)
+		if i == 13 {
+			// Use valid SP value for R13
+			v.Memory.WriteWord(baseAddr+i*4, validSP)
+		} else {
+			v.Memory.WriteWord(baseAddr+i*4, 0x1000+i*0x100)
+		}
 	}
 
 	// LDMIA R0, {R0-R15}
@@ -1415,9 +1423,13 @@ func TestLDM_AllRegisters(t *testing.T) {
 	if v.CPU.R[0] != 0x1000 {
 		t.Errorf("expected R0=0x1000, got R0=0x%X", v.CPU.R[0])
 	}
-	// R1-R14 should be loaded
+	// R1-R12, R14 should be loaded
 	if v.CPU.R[1] != 0x1100 {
 		t.Errorf("expected R1=0x1100, got R1=0x%X", v.CPU.R[1])
+	}
+	// R13 (SP) should be loaded with valid stack address
+	if v.CPU.R[13] != validSP {
+		t.Errorf("expected SP=0x%X, got SP=0x%X", validSP, v.CPU.R[13])
 	}
 	// R15 (PC) should be loaded
 	if v.CPU.PC != 0x1F00 {
@@ -1429,15 +1441,16 @@ func TestLDM_IncludingPC_Return(t *testing.T) {
 	// LDMIA SP!, {R0-R3, PC} - common function return pattern
 	// This was tested in special_registers_test.go, but adding here for completeness
 	v := vm.NewVM()
-	v.CPU.R[13] = 0x10000 // SP
+	initialSP := uint32(vm.StackSegmentStart + 0x1000) // 0x00041000
+	v.CPU.R[13] = initialSP                            // SP
 	v.CPU.PC = 0x8000
 
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x10000, 0xAAAA0000) // R0
-	v.Memory.WriteWord(0x10004, 0xBBBB0001) // R1
-	v.Memory.WriteWord(0x10008, 0xCCCC0002) // R2
-	v.Memory.WriteWord(0x1000C, 0xDDDD0003) // R3
-	v.Memory.WriteWord(0x10010, 0x9000)     // PC
+	v.Memory.WriteWord(initialSP, 0xAAAA0000)      // R0
+	v.Memory.WriteWord(initialSP+4, 0xBBBB0001)    // R1
+	v.Memory.WriteWord(initialSP+8, 0xCCCC0002)    // R2
+	v.Memory.WriteWord(initialSP+12, 0xDDDD0003)   // R3
+	v.Memory.WriteWord(initialSP+16, 0x00009000)   // PC
 
 	// LDMIA SP!, {R0-R3, PC}
 	// Register list: R0-R3, PC = 0x800F
@@ -1448,11 +1461,12 @@ func TestLDM_IncludingPC_Return(t *testing.T) {
 	if v.CPU.R[0] != 0xAAAA0000 {
 		t.Errorf("expected R0=0xAAAA0000, got R0=0x%X", v.CPU.R[0])
 	}
-	if v.CPU.PC != 0x9000 {
-		t.Errorf("expected PC=0x9000, got PC=0x%X", v.CPU.PC)
+	if v.CPU.PC != 0x00009000 {
+		t.Errorf("expected PC=0x00009000, got PC=0x%X", v.CPU.PC)
 	}
-	if v.CPU.R[13] != 0x10014 {
-		t.Errorf("expected SP=0x10014 (writeback), got SP=0x%X", v.CPU.R[13])
+	expectedSP := initialSP + 20
+	if v.CPU.R[13] != expectedSP {
+		t.Errorf("expected SP=0x%X (writeback), got SP=0x%X", expectedSP, v.CPU.R[13])
 	}
 }
 
@@ -1523,8 +1537,9 @@ func TestSTM_WithPC_And_LR(t *testing.T) {
 	v.CPU.R[1] = 0xBBBB
 	v.CPU.R[2] = 0xCCCC
 	v.CPU.R[3] = 0xDDDD
-	v.CPU.R[13] = 0x10020 // SP
-	v.CPU.R[14] = 0x8100  // LR
+	initialSP := uint32(vm.StackSegmentStart + 0x1020) // 0x00041020
+	v.CPU.R[13] = initialSP                            // SP
+	v.CPU.R[14] = 0x8100                               // LR
 	v.CPU.PC = 0x8000
 
 	setupCodeWrite(v)
@@ -1537,7 +1552,7 @@ func TestSTM_WithPC_And_LR(t *testing.T) {
 
 	// 6 registers * 4 bytes = 24 bytes
 	// SP should be decremented by 24
-	expectedSP := uint32(0x10020 - 24)
+	expectedSP := initialSP - 24
 	if v.CPU.R[13] != expectedSP {
 		t.Errorf("expected SP=0x%X, got SP=0x%X", expectedSP, v.CPU.R[13])
 	}
