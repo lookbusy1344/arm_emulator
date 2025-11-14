@@ -111,11 +111,12 @@ func (c *CPU) GetSP() uint32 {
 func (c *CPU) SetSP(value uint32) error {
 	// Validate SP is within stack segment bounds
 	// Stack segment: 0x00040000 - 0x00050000 (64KB, grows downward)
+	// SP can point to StackSegmentStart + StackSegmentSize (empty stack, per ARM convention)
 	if value < StackSegmentStart {
 		return fmt.Errorf("stack underflow: SP=0x%08X is below stack minimum (0x%08X)",
 			value, StackSegmentStart)
 	}
-	if value >= StackSegmentStart+StackSegmentSize {
+	if value > StackSegmentStart+StackSegmentSize {
 		return fmt.Errorf("stack overflow: SP=0x%08X exceeds stack maximum (0x%08X)",
 			value, StackSegmentStart+StackSegmentSize)
 	}
@@ -128,12 +129,12 @@ func (c *CPU) SetSP(value uint32) error {
 // Returns error if newSP is outside the valid stack segment range.
 func (c *CPU) SetSPWithTrace(vm *VM, value uint32, pc uint32) error {
 	// Validate bounds before modifying SP
-	// Uses exclusive upper bound: [Start, Start+Size)
+	// SP can point to StackSegmentStart + StackSegmentSize (empty stack, per ARM convention)
 	if value < StackSegmentStart {
 		return fmt.Errorf("stack underflow: SP=0x%08X is below stack minimum (0x%08X)",
 			value, StackSegmentStart)
 	}
-	if value >= StackSegmentStart+StackSegmentSize {
+	if value > StackSegmentStart+StackSegmentSize {
 		return fmt.Errorf("stack overflow: SP=0x%08X exceeds stack maximum (0x%08X)",
 			value, StackSegmentStart+StackSegmentSize)
 	}

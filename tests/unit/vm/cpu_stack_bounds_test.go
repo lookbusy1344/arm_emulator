@@ -8,10 +8,10 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// Stack segments use exclusive upper bounds: [Start, Start+Size)
+// Stack segment validation allows SP to point at the top (empty stack position)
 // For a stack at 0x00040000 with size 0x10000 (64KB):
-// - Valid addresses: [0x00040000..0x0004FFFF]
-// - First invalid address: 0x00050000
+// - Valid SP range: [0x00040000..0x00050000] (inclusive upper bound for ARM convention)
+// - First invalid address: 0x00050001
 
 func TestCPU_SetSP_ValidRange(t *testing.T) {
 	cpu := vm.NewCPU()
@@ -23,6 +23,7 @@ func TestCPU_SetSP_ValidRange(t *testing.T) {
 		{"stack start (minimum)", vm.StackSegmentStart},
 		{"stack middle", vm.StackSegmentStart + vm.StackSegmentSize/2},
 		{"stack end minus 4 (last valid word)", vm.StackSegmentStart + vm.StackSegmentSize - 4},
+		{"stack end (empty stack position)", vm.StackSegmentStart + vm.StackSegmentSize},
 	}
 
 	for _, tt := range tests {
@@ -62,7 +63,7 @@ func TestCPU_SetSP_Overflow(t *testing.T) {
 		name  string
 		value uint32
 	}{
-		{"stack end (one past)", vm.StackSegmentStart + vm.StackSegmentSize},
+		{"one above stack end", vm.StackSegmentStart + vm.StackSegmentSize + 1},
 		{"far above maximum", vm.StackSegmentStart + vm.StackSegmentSize + 0x1000},
 		{"max address", 0xFFFFFFFF},
 	}
@@ -88,6 +89,7 @@ func TestCPU_SetSPWithTrace_ValidRange(t *testing.T) {
 		{"stack start", vm.StackSegmentStart},
 		{"stack middle", vm.StackSegmentStart + vm.StackSegmentSize/2},
 		{"stack end minus 4", vm.StackSegmentStart + vm.StackSegmentSize - 4},
+		{"stack end (empty stack position)", vm.StackSegmentStart + vm.StackSegmentSize},
 	}
 
 	for _, tt := range tests {
@@ -131,7 +133,7 @@ func TestCPU_SetSPWithTrace_Overflow(t *testing.T) {
 		name  string
 		value uint32
 	}{
-		{"one above maximum", vm.StackSegmentStart + vm.StackSegmentSize + 1},
+		{"one above stack end", vm.StackSegmentStart + vm.StackSegmentSize + 1},
 		{"far above maximum", vm.StackSegmentStart + vm.StackSegmentSize + 0x1000},
 		{"max address", 0xFFFFFFFF},
 	}
