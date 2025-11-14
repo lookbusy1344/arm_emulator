@@ -33,6 +33,30 @@ import (
 // This distinction allows guest programs to handle expected errors (file I/O)
 // while protecting the VM from integrity violations (memory corruption).
 
+// SetStdinReader sets the VM's stdin reader to read from a custom source
+// This allows TUI/GUI frontends to provide their own input mechanism
+// The reader should be buffered for efficiency; if not, it will be wrapped in bufio.Reader
+//
+// Usage pattern for TUI/GUI:
+//
+//	// Create a pipe for stdin
+//	stdinReader, stdinWriter := io.Pipe()
+//	vm.SetStdinReader(stdinReader)
+//
+//	// When user provides input (e.g., types in an input field and presses Enter):
+//	stdinWriter.Write([]byte(userInput + "\n"))
+//
+// This solves the problem where TUI/GUI event loops capture keyboard input,
+// preventing os.Stdin from working normally. The pipe allows the frontend to
+// explicitly send input to the VM when ready.
+func (vm *VM) SetStdinReader(r io.Reader) {
+	if br, ok := r.(*bufio.Reader); ok {
+		vm.stdinReader = br
+	} else {
+		vm.stdinReader = bufio.NewReader(r)
+	}
+}
+
 // ResetStdinReader resets the VM's stdin reader to read from os.Stdin
 // This is useful for testing when os.Stdin has been redirected
 func (vm *VM) ResetStdinReader() {

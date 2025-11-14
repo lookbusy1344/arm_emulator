@@ -2,6 +2,7 @@ package debugger
 
 import (
 	"fmt"
+	"io"
 	"strings"
 
 	"github.com/gdamore/tcell/v2"
@@ -37,9 +38,14 @@ type TUI struct {
 	StackView       *tview.TextView
 	DisassemblyView *tview.TextView
 	BreakpointsView *tview.TextView
-	StatusView      *tview.TextView // Status messages (breakpoints, stepping, errors)
-	OutputView      *tview.TextView // Program output only
-	CommandInput    *tview.InputField
+	StatusView      *tview.TextView   // Status messages (breakpoints, stepping, errors)
+	OutputView      *tview.TextView   // Program output only
+	CommandInput    *tview.InputField // Debugger command input
+	ProgramInput    *tview.InputField // Guest program stdin input
+
+	// stdin redirection for guest programs
+	stdinPipeReader *io.PipeReader
+	stdinPipeWriter *io.PipeWriter
 
 	// Focus management
 	focusables []tview.Primitive
@@ -114,6 +120,10 @@ func NewTUIWithScreen(debugger *Debugger, screen tcell.Screen) *TUI {
 
 	// Redirect VM output to TUI OutputView
 	debugger.VM.OutputWriter = &tuiWriter{tui: tui}
+
+	// Setup stdin pipe for guest program input
+	tui.stdinPipeReader, tui.stdinPipeWriter = io.Pipe()
+	debugger.VM.SetStdinReader(tui.stdinPipeReader)
 
 	// Enable MemoryTrace for tracking memory writes in the TUI
 	if debugger.VM.MemoryTrace == nil {
@@ -228,6 +238,13 @@ func (t *TUI) initializeViews() {
 		SetFieldWidth(0)
 	t.CommandInput.SetBorder(true).SetTitle(" Command ")
 	t.CommandInput.SetDoneFunc(t.handleCommand)
+
+	// Program Input - for guest program stdin
+	t.ProgramInput = tview.NewInputField().
+		SetLabel("").
+		SetFieldWidth(0)
+	t.ProgramInput.SetBorder(true).SetTitle(" Program Input ")
+	t.ProgramInput.SetDoneFunc(t.handleProgramInput)
 }
 
 // buildLayout constructs the TUI layout
@@ -259,11 +276,12 @@ func (t *TUI) buildLayout() {
 		AddItem(t.LeftPanel, 0, 3, false). // Source window gets more width (flex weight 3)
 		AddItem(t.RightPanel, 0, 2, false) // Registers window gets less width (flex weight 2)
 
-	// Main layout: Content + Output + Command
+	// Main layout: Content + Output + Program Input + Command
 	t.MainLayout = tview.NewFlex().
 		SetDirection(tview.FlexRow).
 		AddItem(mainContent, 0, 4, false).
 		AddItem(t.OutputView, 8, 0, false).
+		AddItem(t.ProgramInput, 3, 0, false).
 		AddItem(t.CommandInput, 3, 0, true)
 
 	// Create pages for potential dialogs/modals
@@ -273,7 +291,7 @@ func (t *TUI) buildLayout() {
 
 // initFocusChain sets the order of focusable widgets for Tab navigation
 func (t *TUI) initFocusChain() {
-	// Only views we want to focus with Tab (source, disasm, memory, stack, breakpoints, output, command)
+	// Only views we want to focus with Tab (source, disasm, memory, stack, breakpoints, output, program input, command)
 	t.focusables = []tview.Primitive{
 		t.SourceView,
 		t.DisassemblyView,
@@ -281,6 +299,7 @@ func (t *TUI) initFocusChain() {
 		t.StackView,
 		t.BreakpointsView,
 		t.OutputView,
+		t.ProgramInput,
 		t.CommandInput,
 	}
 	// Start focusing command input by default (matches Run())
@@ -342,6 +361,18 @@ func (t *TUI) handleCommand(key tcell.Key) {
 			go t.executeCommand(cmd)
 			t.CommandInput.SetText("")
 		}
+	}
+}
+
+// handleProgramInput sends user input to the guest program's stdin
+func (t *TUI) handleProgramInput(key tcell.Key) {
+	if key == tcell.KeyEnter {
+		input := t.ProgramInput.GetText()
+		// Write input + newline to the stdin pipe
+		go func() {
+			_, _ = t.stdinPipeWriter.Write([]byte(input + "\n"))
+		}()
+		t.ProgramInput.SetText("")
 	}
 }
 

@@ -717,6 +717,11 @@ func (d *Debugger) cmdHelp(args []string) error {
 	d.Println("  reset             - Reset VM")
 	d.Println("  help (h, ?)       - Show this help")
 	d.Println()
+	d.Println("TUI Only:")
+	d.Println("  Program Input     - Type input for guest program, press Enter to send")
+	d.Println("  TAB               - Cycle through focusable panels")
+	d.Println("  F6                - Center PC in Source/Disassembly views")
+	d.Println()
 	d.Println("Type 'help <command>' for detailed help on a specific command.")
 
 	return nil
