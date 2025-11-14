@@ -1,5 +1,7 @@
 package vm
 
+import "fmt"
+
 // CPU represents the ARM2 processor state
 type CPU struct {
 	// General purpose registers R0-R14
@@ -104,9 +106,22 @@ func (c *CPU) GetSP() uint32 {
 	return c.R[SP]
 }
 
-// SetSP sets the stack pointer value
-func (c *CPU) SetSP(value uint32) {
+// SetSP sets the stack pointer (R13) with bounds validation.
+// Returns error if newSP is outside the valid stack segment range.
+func (c *CPU) SetSP(value uint32) error {
+	// Validate SP is within stack segment bounds
+	// Stack segment: 0x00040000 - 0x00050000 (64KB, grows downward)
+	if value < StackSegmentStart {
+		return fmt.Errorf("stack underflow: SP=0x%08X is below stack minimum (0x%08X)",
+			value, StackSegmentStart)
+	}
+	if value >= StackSegmentStart+StackSegmentSize {
+		return fmt.Errorf("stack overflow: SP=0x%08X exceeds stack maximum (0x%08X)",
+			value, StackSegmentStart+StackSegmentSize)
+	}
+
 	c.R[SP] = value
+	return nil
 }
 
 // SetSPWithTrace sets the stack pointer value and records it for stack tracing
