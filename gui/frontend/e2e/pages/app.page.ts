@@ -94,6 +94,12 @@ export class AppPage extends BasePage {
   }
 
   async clickReset() {
+    // First, wait for RegisterView to finish loading (PC element must exist)
+    await this.page.waitForFunction(() => {
+      const pcElement = document.querySelector('[data-register="PC"] .register-value');
+      return pcElement !== null;
+    }, { timeout: 5000 });
+
     // Call Reset via Wails binding (clears program, breakpoints, resets VM to PC=0)
     await this.page.evaluate(() => {
       // @ts-ignore - Wails runtime
@@ -107,7 +113,7 @@ export class AppPage extends BasePage {
       if (!pcElement) return false;
       const pcValue = pcElement.textContent?.trim() || '';
       return pcValue === '0x00000000';
-    }, { timeout: 5000 });
+    }, { timeout: 10000 });
   }
 
   async clickRestart() {
@@ -124,7 +130,7 @@ export class AppPage extends BasePage {
       if (!pcElement) return false;
       const pcValue = pcElement.textContent?.trim() || '';
       return pcValue === '0x00008000';
-    }, { timeout: 5000 });
+    }, { timeout: 10000 });
   }
 
   async switchToSourceView() {

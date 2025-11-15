@@ -25,23 +25,6 @@ test.describe('Example Programs', () => {
     appPage = new AppPage(page);
     await appPage.goto();
     await appPage.waitForLoad();
-
-    // Reset VM and clear all breakpoints to ensure clean state
-    // Note: clickReset() now waits for PC to be 0x00000000 internally
-    await appPage.clickReset();
-
-    // Clear any existing breakpoints
-    const breakpoints = await page.evaluate(() => {
-      // @ts-ignore - Wails runtime
-      return window.go.main.App.GetBreakpoints();
-    });
-
-    for (const bp of breakpoints) {
-      await page.evaluate((address) => {
-        // @ts-ignore - Wails runtime
-        return window.go.main.App.RemoveBreakpoint(address);
-      }, bp.Address);
-    }
   });
 
   for (const file of exampleFiles) {
@@ -83,23 +66,6 @@ test.describe('Complex Example Programs', () => {
     appPage = new AppPage(page);
     await appPage.goto();
     await appPage.waitForLoad();
-
-    // Reset VM and clear all breakpoints to ensure clean state
-    // Note: clickReset() now waits for PC to be 0x00000000 internally
-    await appPage.clickReset();
-
-    // Clear any existing breakpoints
-    const breakpoints = await page.evaluate(() => {
-      // @ts-ignore - Wails runtime
-      return window.go.main.App.GetBreakpoints();
-    });
-
-    for (const bp of breakpoints) {
-      await page.evaluate((address) => {
-        // @ts-ignore - Wails runtime
-        return window.go.main.App.RemoveBreakpoint(address);
-      }, bp.Address);
-    }
   });
 
   test('should execute quicksort.s', async ({ page }) => {
@@ -239,23 +205,6 @@ test.describe('Example Program Stepping', () => {
     appPage = new AppPage(page);
     await appPage.goto();
     await appPage.waitForLoad();
-
-    // Reset VM and clear all breakpoints to ensure clean state
-    // Note: clickReset() now waits for PC to be 0x00000000 internally
-    await appPage.clickReset();
-
-    // Clear any existing breakpoints
-    const breakpoints = await page.evaluate(() => {
-      // @ts-ignore - Wails runtime
-      return window.go.main.App.GetBreakpoints();
-    });
-
-    for (const bp of breakpoints) {
-      await page.evaluate((address) => {
-        // @ts-ignore - Wails runtime
-        return window.go.main.App.RemoveBreakpoint(address);
-      }, bp.Address);
-    }
   });
 
   test('should step through hello.s', async ({ page }) => {
@@ -348,23 +297,6 @@ test.describe('Example Program Output Verification', () => {
     appPage = new AppPage(page);
     await appPage.goto();
     await appPage.waitForLoad();
-
-    // Reset VM and clear all breakpoints to ensure clean state
-    // Note: clickReset() now waits for PC to be 0x00000000 internally
-    await appPage.clickReset();
-
-    // Clear any existing breakpoints
-    const breakpoints = await page.evaluate(() => {
-      // @ts-ignore - Wails runtime
-      return window.go.main.App.GetBreakpoints();
-    });
-
-    for (const bp of breakpoints) {
-      await page.evaluate((address) => {
-        // @ts-ignore - Wails runtime
-        return window.go.main.App.RemoveBreakpoint(address);
-      }, bp.Address);
-    }
   });
 
   test('hello.s should output "Hello, World!"', async ({ page }) => {
