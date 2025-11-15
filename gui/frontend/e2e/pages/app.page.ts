@@ -94,20 +94,20 @@ export class AppPage extends BasePage {
   }
 
   async clickReset() {
-    // First, wait for RegisterView to finish loading (PC element must exist)
-    await this.page.waitForFunction(() => {
-      const pcElement = document.querySelector('[data-register="PC"] .register-value');
-      return pcElement !== null;
-    }, { timeout: 5000 });
-
     // Call Reset via Wails binding (clears program, breakpoints, resets VM to PC=0)
     await this.page.evaluate(() => {
       // @ts-ignore - Wails runtime
       return window.go.main.App.Reset();
     });
 
-    // Wait for frontend to process the state-changed event and update UI
-    // Check that PC has been reset to zero
+    // Wait for RegisterView to load (it might have been stuck in "Loading..." if backend was dirty)
+    // The Reset() call above triggers state-changed event which should unstick RegisterView
+    await this.page.waitForFunction(() => {
+      const pcElement = document.querySelector('[data-register="PC"] .register-value');
+      return pcElement !== null;
+    }, { timeout: 10000 });
+
+    // Now wait for PC to actually be reset to zero
     await this.page.waitForFunction(() => {
       const pcElement = document.querySelector('[data-register="PC"] .register-value');
       if (!pcElement) return false;

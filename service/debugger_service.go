@@ -421,6 +421,10 @@ func (s *DebuggerService) Reset() error {
 	// Full VM reset: clears all registers (PC=0), memory, and execution state
 	s.vm.Reset()
 
+	// Reset stdin reader to prevent hangs when stdin was redirected by GUI
+	// This ensures clean stdin state for the next program
+	s.vm.ResetStdinReader()
+
 	// Clear loaded program and associated metadata
 	s.program = nil
 	s.entryPoint = 0

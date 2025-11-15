@@ -25,6 +25,10 @@ test.describe('Example Programs', () => {
     appPage = new AppPage(page);
     await appPage.goto();
     await appPage.waitForLoad();
+
+    // Reset VM to ensure clean state between tests
+    // This prevents state pollution (memory, stdin, breakpoints) from previous test
+    await appPage.clickReset();
   });
 
   for (const file of exampleFiles) {
@@ -66,6 +70,10 @@ test.describe('Complex Example Programs', () => {
     appPage = new AppPage(page);
     await appPage.goto();
     await appPage.waitForLoad();
+
+    // Reset VM to ensure clean state between tests
+    // This prevents state pollution (memory, stdin, breakpoints) from previous test
+    await appPage.clickReset();
   });
 
   test('should execute quicksort.s', async ({ page }) => {
@@ -205,6 +213,10 @@ test.describe('Example Program Stepping', () => {
     appPage = new AppPage(page);
     await appPage.goto();
     await appPage.waitForLoad();
+
+    // Reset VM to ensure clean state between tests
+    // This prevents state pollution (memory, stdin, breakpoints) from previous test
+    await appPage.clickReset();
   });
 
   test('should step through hello.s', async ({ page }) => {
@@ -297,6 +309,10 @@ test.describe('Example Program Output Verification', () => {
     appPage = new AppPage(page);
     await appPage.goto();
     await appPage.waitForLoad();
+
+    // Reset VM to ensure clean state between tests
+    // This prevents state pollution (memory, stdin, breakpoints) from previous test
+    await appPage.clickReset();
   });
 
   test('hello.s should output "Hello, World!"', async ({ page }) => {
