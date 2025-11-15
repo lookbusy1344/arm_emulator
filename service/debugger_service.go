@@ -421,6 +421,10 @@ func (s *DebuggerService) Reset() error {
 	// Full VM reset: clears all registers (PC=0), memory, and execution state
 	s.vm.Reset()
 
+	// Reset stdin reader to prevent hangs when stdin was redirected by GUI
+	// This ensures clean stdin state for the next program
+	s.vm.ResetStdinReader()
+
 	// Clear loaded program and associated metadata
 	s.program = nil
 	s.entryPoint = 0
@@ -1018,6 +1022,11 @@ func (s *DebuggerService) SendInput(input string) error {
 
 	if s.stdinPipeWriter == nil {
 		return fmt.Errorf("stdin pipe not initialized")
+	}
+
+	// Echo the input to the output window so the user can see what they typed
+	if s.vm.OutputWriter != nil {
+		_, _ = s.vm.OutputWriter.Write([]byte(input + "\n"))
 	}
 
 	// Write input + newline to the stdin pipe (io.Pipe.Write is thread-safe)

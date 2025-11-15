@@ -78,12 +78,13 @@ export default defineConfig({
     // },
   ],
 
-  // Run dev server before starting tests (only in local development)
-  // In CI, the workflow manually starts Wails dev server
-  webServer: process.env.CI ? undefined : {
-    command: 'npm run dev',
-    port: PORT as number,
-    reuseExistingServer: true,
-    timeout: 120000,
-  },
+  // Wails dev server must be started manually with "wails dev" before running tests
+  // We don't use webServer.command because:
+  // 1. "npm run dev" starts Vite (port 5173), not Wails backend (port 34115)
+  // 2. Wails needs "wails dev" which integrates backend + frontend
+  // 3. Tests require the full Wails stack to be running
+  //
+  // To run tests:
+  //   Terminal 1: cd gui && wails dev -nocolour
+  //   Terminal 2: cd gui/frontend && npm run test:e2e
 });

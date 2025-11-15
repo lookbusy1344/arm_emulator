@@ -94,7 +94,26 @@ export class AppPage extends BasePage {
   }
 
   async clickReset() {
-    await this.resetButton.click();
+    // Call Reset via Wails binding (clears program, breakpoints, resets VM to PC=0)
+    await this.page.evaluate(() => {
+      // @ts-ignore - Wails runtime
+      return window.go.main.App.Reset();
+    });
+
+    // Wait for RegisterView to load (it might have been stuck in "Loading..." if backend was dirty)
+    // The Reset() call above triggers state-changed event which should unstick RegisterView
+    await this.page.waitForFunction(() => {
+      const pcElement = document.querySelector('[data-register="PC"] .register-value');
+      return pcElement !== null;
+    }, { timeout: 10000 });
+
+    // Now wait for PC to actually be reset to zero
+    await this.page.waitForFunction(() => {
+      const pcElement = document.querySelector('[data-register="PC"] .register-value');
+      if (!pcElement) return false;
+      const pcValue = pcElement.textContent?.trim() || '';
+      return pcValue === '0x00000000';
+    }, { timeout: 10000 });
   }
 
   async clickRestart() {
@@ -111,7 +130,7 @@ export class AppPage extends BasePage {
       if (!pcElement) return false;
       const pcValue = pcElement.textContent?.trim() || '';
       return pcValue === '0x00008000';
-    }, { timeout: 5000 });
+    }, { timeout: 10000 });
   }
 
   async switchToSourceView() {

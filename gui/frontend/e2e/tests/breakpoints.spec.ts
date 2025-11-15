@@ -30,15 +30,8 @@ test.describe('Breakpoints', () => {
     });
 
     // Reset VM to clean state
+    // Note: clickReset() now waits for PC to be 0x00000000 internally
     await appPage.clickReset();
-
-    // Wait for reset to complete by checking PC is back at zero
-    await page.waitForFunction(() => {
-      const pcElement = document.querySelector('[data-register="PC"] .register-value');
-      if (!pcElement) return false;
-      const pcValue = pcElement.textContent?.trim() || '';
-      return pcValue === '0x00000000';
-    }, { timeout: TIMEOUTS.EXECUTION_MAX });
   });
 
   test('should set breakpoint via F9', async () => {

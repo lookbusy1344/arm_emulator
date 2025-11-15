@@ -301,20 +301,10 @@ test.describe('Error Scenarios', () => {
     );
 
     // Reset while running (Reset clears program, so PC will be 0x00000000)
+    // Note: clickReset() now waits for PC to be 0x00000000 internally
     await appPage.clickReset();
 
-    // Wait for reset to complete by checking PC is cleared to 0
     const expectedPC = '0x00000000';
-    await appPage.page.waitForFunction(
-      (pc) => {
-        const pcElement = document.querySelector('[data-register="PC"] .register-value');
-        if (!pcElement) return false;
-        return pcElement.textContent?.trim() === pc;
-      },
-      expectedPC,
-      { timeout: TIMEOUTS.WAIT_FOR_RESET }
-    );
-
     const pc = await appPage.getRegisterValue('PC');
     expect(pc).toBe(expectedPC); // Should clear to 0x00000000
   });
