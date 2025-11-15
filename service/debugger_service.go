@@ -1020,6 +1020,11 @@ func (s *DebuggerService) SendInput(input string) error {
 		return fmt.Errorf("stdin pipe not initialized")
 	}
 
+	// Echo the input to the output window so the user can see what they typed
+	if s.vm.OutputWriter != nil {
+		_, _ = s.vm.OutputWriter.Write([]byte(input + "\n"))
+	}
+
 	// Write input + newline to the stdin pipe (io.Pipe.Write is thread-safe)
 	_, err := s.stdinPipeWriter.Write([]byte(input + "\n"))
 	return err

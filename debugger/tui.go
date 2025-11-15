@@ -368,6 +368,8 @@ func (t *TUI) handleCommand(key tcell.Key) {
 func (t *TUI) handleProgramInput(key tcell.Key) {
 	if key == tcell.KeyEnter {
 		input := t.ProgramInput.GetText()
+		// Echo the input to the output view (WriteOutput is thread-safe via QueueUpdateDraw)
+		t.WriteOutput(input + "\n")
 		// Write input + newline to the stdin pipe
 		go func() {
 			_, _ = t.stdinPipeWriter.Write([]byte(input + "\n"))
