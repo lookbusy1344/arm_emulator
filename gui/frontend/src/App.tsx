@@ -183,7 +183,7 @@ function App() {
         </Allotment.Pane>
 
         {/* Bottom: Output/Breakpoints/Status/Expressions tabs */}
-        <Allotment.Pane snap minSize={120} preferredSize={130} maxSize={140}>
+        <Allotment.Pane snap minSize={160} preferredSize={170} maxSize={200}>
           <div className="tabbed-panel">
             <div className="tabs">
               <button
