@@ -27,15 +27,8 @@ test.describe('Example Programs', () => {
     await appPage.waitForLoad();
 
     // Reset VM and clear all breakpoints to ensure clean state
+    // Note: clickReset() now waits for PC to be 0x00000000 internally
     await appPage.clickReset();
-
-    // Wait for reset to complete by checking PC is at zero
-    await page.waitForFunction(() => {
-      const pcElement = document.querySelector('[data-register="PC"] .register-value');
-      if (!pcElement) return false;
-      const pcValue = pcElement.textContent?.trim() || '';
-      return pcValue === '0x00000000';
-    }, { timeout: TIMEOUTS.WAIT_FOR_RESET });
 
     // Clear any existing breakpoints
     const breakpoints = await page.evaluate(() => {
@@ -92,15 +85,8 @@ test.describe('Complex Example Programs', () => {
     await appPage.waitForLoad();
 
     // Reset VM and clear all breakpoints to ensure clean state
+    // Note: clickReset() now waits for PC to be 0x00000000 internally
     await appPage.clickReset();
-
-    // Wait for reset to complete by checking PC is at zero
-    await page.waitForFunction(() => {
-      const pcElement = document.querySelector('[data-register="PC"] .register-value');
-      if (!pcElement) return false;
-      const pcValue = pcElement.textContent?.trim() || '';
-      return pcValue === '0x00000000';
-    }, { timeout: TIMEOUTS.WAIT_FOR_RESET });
 
     // Clear any existing breakpoints
     const breakpoints = await page.evaluate(() => {
@@ -255,15 +241,8 @@ test.describe('Example Program Stepping', () => {
     await appPage.waitForLoad();
 
     // Reset VM and clear all breakpoints to ensure clean state
+    // Note: clickReset() now waits for PC to be 0x00000000 internally
     await appPage.clickReset();
-
-    // Wait for reset to complete by checking PC is at zero
-    await page.waitForFunction(() => {
-      const pcElement = document.querySelector('[data-register="PC"] .register-value');
-      if (!pcElement) return false;
-      const pcValue = pcElement.textContent?.trim() || '';
-      return pcValue === '0x00000000';
-    }, { timeout: TIMEOUTS.WAIT_FOR_RESET });
 
     // Clear any existing breakpoints
     const breakpoints = await page.evaluate(() => {
@@ -371,15 +350,8 @@ test.describe('Example Program Output Verification', () => {
     await appPage.waitForLoad();
 
     // Reset VM and clear all breakpoints to ensure clean state
+    // Note: clickReset() now waits for PC to be 0x00000000 internally
     await appPage.clickReset();
-
-    // Wait for reset to complete by checking PC is at zero
-    await page.waitForFunction(() => {
-      const pcElement = document.querySelector('[data-register="PC"] .register-value');
-      if (!pcElement) return false;
-      const pcValue = pcElement.textContent?.trim() || '';
-      return pcValue === '0x00000000';
-    }, { timeout: TIMEOUTS.WAIT_FOR_RESET });
 
     // Clear any existing breakpoints
     const breakpoints = await page.evaluate(() => {

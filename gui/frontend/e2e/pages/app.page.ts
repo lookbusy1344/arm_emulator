@@ -94,7 +94,20 @@ export class AppPage extends BasePage {
   }
 
   async clickReset() {
-    await this.resetButton.click();
+    // Call Reset via Wails binding (clears program, breakpoints, resets VM to PC=0)
+    await this.page.evaluate(() => {
+      // @ts-ignore - Wails runtime
+      return window.go.main.App.Reset();
+    });
+
+    // Wait for frontend to process the state-changed event and update UI
+    // Check that PC has been reset to zero
+    await this.page.waitForFunction(() => {
+      const pcElement = document.querySelector('[data-register="PC"] .register-value');
+      if (!pcElement) return false;
+      const pcValue = pcElement.textContent?.trim() || '';
+      return pcValue === '0x00000000';
+    }, { timeout: 5000 });
   }
 
   async clickRestart() {
