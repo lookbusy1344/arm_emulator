@@ -48,13 +48,13 @@ arm_emulator/
 ├── config/              (1 file)      - Configuration management
 ├── tools/               (3 files)     - Linter, formatter, xref
 ├── gui/                 (3 files)     - Wails desktop GUI
-├── tests/               (77 files)    - Comprehensive test suite
-└── examples/            (51 files)    - Example ARM assembly programs
+├── tests/               (75 files)    - Comprehensive test suite
+└── examples/            (49 files)    - Example ARM assembly programs
 ```
 
 **Statistics:**
 - Production code: ~19,380 lines across 55 files
-- Test code: ~31,500 lines across 77 files
+- Test code: ~31,500 lines across 75 files
 - Test-to-production ratio: 1.6:1 (excellent)
 
 ### 1.2 Package Dependencies
