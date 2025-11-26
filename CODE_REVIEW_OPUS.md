@@ -17,18 +17,19 @@ This ARM2 emulator is a **well-engineered project** with strong architectural fo
 |----------|--------|-------|
 | **Architecture** | A- | Clean separation, good abstractions |
 | **Code Quality** | B+ | Consistent style, some complexity issues |
-| **Testing** | A | 77 test files, 31K lines, comprehensive coverage |
+| **Testing** | A | 75 test files, 31K lines, comprehensive coverage |
 | **Security** | A | Defense-in-depth, filesystem sandboxing |
 | **Error Handling** | A- | Consistent philosophy, few gaps |
-| **Thread Safety** | C | Critical issues in TUI and service layer |
+| **Thread Safety** | B- | TUI race conditions, but service layer properly mitigated |
 | **Documentation** | B+ | Good inline comments, complete API docs |
 
 ### Critical Issues Found
 
-1. **Thread Safety in TUI** - Race conditions in `executeUntilBreak()` goroutine
-2. **Potential Deadlock** - `RunUntilHalt()` + `SendInput()` interaction
-3. **Encoder Bugs** - Immediate rotation undefined behavior, MOVW encoding
-4. **Parser Complexity** - `parseOperand()` is 163 lines of nested logic
+1. **Thread Safety in TUI** - Race conditions in `executeUntilBreak()` goroutine - VALID
+2. ~~**Potential Deadlock**~~ - `RunUntilHalt()` + `SendInput()` interaction - MITIGATED (uses lock-free io.Pipe)
+3. ~~**Encoder Bugs**~~ - Immediate rotation "undefined behavior" - NOT A BUG (Go defines shift by 32)
+4. ~~**Multiply Encoding**~~ - Different shift constants - INTENTIONAL per ARM spec
+5. **Parser Complexity** - `parseOperand()` is 163 lines of nested logic - VALID (refactoring opportunity)
 
 ---
 
@@ -142,13 +143,13 @@ This is well-documented in `vm/syscall.go:16-34`.
 
 ### 2.3 Code Smells Identified
 
-| Location | Issue | Severity |
-|----------|-------|----------|
-| `parser/parser.go:468-630` | parseOperand() too complex (163 lines) | Medium |
-| `debugger/tui.go:420-496` | Goroutine modifies shared state | High |
-| `encoder/encoder.go:260-279` | Undefined behavior when rotate=0 | High |
-| `vm/multiply.go:19-22` | Rd/Rn use swapped shift constants | Medium |
-| `service/debugger_service.go:597-664` | Lock held during blocking I/O | High |
+| Location | Issue | Severity | Status |
+|----------|-------|----------|--------|
+| `parser/parser.go:468-630` | parseOperand() too complex (163 lines) | Medium | Valid - refactoring opportunity |
+| `debugger/tui.go:420-496` | Goroutine modifies shared state | High | Valid - needs mutex |
+| `encoder/encoder.go:260-279` | ~~Undefined behavior when rotate=0~~ | ~~High~~ | Not a bug - Go defines shift by 32 |
+| `vm/multiply.go:19-22` | ~~Rd/Rn use swapped shift constants~~ | ~~Medium~~ | Intentional per ARM multiply format |
+| `service/debugger_service.go:597-664` | ~~Lock held during blocking I/O~~ | ~~High~~ | Mitigated via lock-free io.Pipe |
 
 ### 2.4 Positive Patterns
 
@@ -245,44 +246,29 @@ go func() {
 
 **Fix:** Add mutex protection for `ChangedRegs`, `RecentWrites`, `PrevRegisters`.
 
-### 4.2 HIGH: Service Layer Deadlock
+### 4.2 ~~HIGH: Service Layer Deadlock~~ ALREADY MITIGATED
 
 **File:** `service/debugger_service.go:597-664`
 
+**Status:** This issue has been addressed in the code. Looking at `SendInput()` (lines 1017-1035):
+
 ```go
-func (s *DebuggerService) RunUntilHalt() error {
-    for {
-        s.mu.Lock()
-        err := s.vm.Step()  // May block on stdin read!
-        s.mu.Unlock()
-    }
-}
+// NOTE: No mutex lock here! io.Pipe is already thread-safe for concurrent reads/writes.
+// Taking a lock here causes deadlock when RunUntilHalt holds the lock while blocked on stdin read.
 ```
 
-If guest program calls `READ_CHAR` while lock is held, `SendInput()` cannot deliver input.
+The `SendInput()` function intentionally does NOT acquire the mutex and uses `io.Pipe` which is inherently thread-safe. This allows input to be delivered even when `RunUntilHalt()` holds the lock during `Step()`. The deadlock has been proactively prevented.
 
-**Fix:** Release lock before blocking operations, use condition variables.
-
-### 4.3 HIGH: Encoder Undefined Behavior
+### 4.3 ~~HIGH: Encoder Undefined Behavior~~ NOT A BUG
 
 **File:** `encoder/encoder.go:260-279`
 
-```go
-for rotate := uint32(0); rotate < 32; rotate += 2 {
-    rotated := (value >> rotate) | (value << (32 - rotate))
-    // When rotate=0: value << 32 is UNDEFINED in Go
-```
+**Status:** This was incorrectly identified as a bug. In Go, shifting by 32 bits is well-defined (not undefined behavior like in C/C++). When `rotate=0`, `value << 32` evaluates to `0` for a `uint32`, so:
+- `(value >> 0) | (value << 32)` = `value | 0` = `value`
 
-**Fix:** Add special case for rotate=0:
-```go
-if rotate == 0 {
-    rotated = value
-} else {
-    rotated = (value >> rotate) | (value << (32 - rotate))
-}
-```
+This is the correct result. The code works as intended - no fix needed.
 
-### 4.4 MEDIUM: Multiply Register Encoding
+### 4.4 ~~MEDIUM: Multiply Register Encoding~~ INTENTIONAL ARM DESIGN
 
 **File:** `vm/multiply.go:19-22`
 
@@ -291,7 +277,12 @@ rd := int((inst.Opcode >> RnShift) & Mask4Bit)  // Uses RnShift for rd!
 rn := int((inst.Opcode >> RdShift) & Mask4Bit)  // Uses RdShift for rn!
 ```
 
-The shift constants appear swapped. This may be an intentional ARM quirk (MUL has non-standard encoding), but needs verification and documentation.
+**Status:** This is NOT a bug. The ARM multiply instruction format is intentionally different from data processing instructions:
+- Per ARM specification (see SPECIFICATION.md lines 1062-1063):
+  - Bits 19-16: Rd (destination register) - uses RnShift because that's the bit position
+  - Bits 15-12: Rn (accumulate register) - uses RdShift because that's the bit position
+- The shift constants are named for data processing instructions, but multiply uses different encoding
+- The code is correct; the comments clearly document the actual purpose of each register
 
 ### 4.5 MEDIUM: Literal Pool Deduplication
 
@@ -338,13 +329,13 @@ If the same value needs different addresses (due to PC-relative range limits), t
 
 1. Split `parseOperand()` into separate functions per operand type
 2. Add encoder unit tests for edge cases
-3. Document ARM multiply register encoding quirk
-4. Add thread safety tests
+3. ~~Document ARM multiply register encoding quirk~~ - Already documented in code comments
+4. Add thread safety tests for TUI
 
 ### 6.3 Long-Term Refactoring
 
 1. Introduce observer pattern for state change notifications
-2. Consider async execution model for RunUntilHalt
+2. ~~Consider async execution model for RunUntilHalt~~ - Already properly designed with io.Pipe
 3. Add interfaces for BreakpointManager/WatchpointManager for testability
 4. Consolidate duplicate constants across packages
 
@@ -352,54 +343,28 @@ If the same value needs different addresses (due to PC-relative range limits), t
 
 ## 7. Staged Remediation Plan
 
-### Phase 1: Critical Bug Fixes (1-2 days)
+### Phase 1: TUI Thread Safety (1-2 days)
 
-**Goal:** Fix bugs that can cause crashes or data corruption.
+**Goal:** Fix race conditions in TUI shared state.
 
 | Task | File | Lines | Priority |
 |------|------|-------|----------|
 | Add TUI mutex for shared state | `debugger/tui.go` | 420-496 | P0 |
-| Fix encoder rotate=0 undefined behavior | `encoder/encoder.go` | 260-279 | P0 |
-| Add special case for immediate rotation | `encoder/encoder.go` | 264 | P0 |
-| Add comment explaining multiply register encoding | `vm/multiply.go` | 19-22 | P1 |
+| Move state captures inside QueueUpdateDraw | `debugger/tui.go` | 440-467 | P0 |
+| Make TUI tracking fields private | `debugger/tui.go` | 65-72 | P1 |
 
 **Verification:**
 - Run full test suite
 - Manual test with TUI in rapid stepping mode
-- Test programs using rotated immediates
+- Run with `-race` flag to detect races
 
-### Phase 2: Thread Safety (2-3 days)
+### ~~Phase 2: Thread Safety~~ Already Addressed
 
-**Goal:** Eliminate race conditions and deadlock potential.
+The service layer deadlock concern has been proactively addressed:
+- `SendInput()` uses lock-free `io.Pipe` (thread-safe by design)
+- Comment at line 1020-1021 documents this design decision
 
-| Task | File | Priority |
-|------|------|----------|
-| Redesign RunUntilHalt locking | `service/debugger_service.go:597-664` | P0 |
-| Add condition variable for stdin blocking | `service/debugger_service.go` | P0 |
-| Make TUI fields private | `debugger/tui.go` | P1 |
-| Add thread safety tests | `tests/unit/service/` | P1 |
-
-**Design:**
-```go
-func (s *DebuggerService) RunUntilHalt() error {
-    for {
-        s.mu.Lock()
-        if !s.debugger.Running {
-            s.mu.Unlock()
-            break
-        }
-        s.mu.Unlock()  // Release lock BEFORE potentially blocking step
-
-        err := s.vm.Step()
-
-        s.mu.Lock()
-        // Handle result
-        s.mu.Unlock()
-    }
-}
-```
-
-### Phase 3: Parser Refactoring (3-4 days)
+### Phase 2: Parser Refactoring (3-4 days)
 
 **Goal:** Reduce complexity and improve maintainability.
 
@@ -415,7 +380,7 @@ func (s *DebuggerService) RunUntilHalt() error {
 **Current:** 163 lines in one function
 **Target:** 5 functions, ~40 lines each
 
-### Phase 4: Encoder Hardening (2-3 days)
+### Phase 3: Encoder Hardening (2-3 days)
 
 **Goal:** Fix subtle encoding bugs and add tests.
 
@@ -432,7 +397,7 @@ func (s *DebuggerService) RunUntilHalt() error {
 - Halfword addressing with maximum offsets
 - Literal pool with duplicate values at different PC ranges
 
-### Phase 5: Test Coverage Expansion (2-3 days)
+### Phase 4: Test Coverage Expansion (2-3 days)
 
 **Goal:** Close identified test gaps.
 
@@ -449,7 +414,7 @@ func (s *DebuggerService) RunUntilHalt() error {
 3. Concurrent TUI operations
 4. Literal pool capacity limits
 
-### Phase 6: Architectural Improvements (5-7 days)
+### Phase 5: Architectural Improvements (5-7 days)
 
 **Goal:** Long-term maintainability.
 
@@ -458,27 +423,33 @@ func (s *DebuggerService) RunUntilHalt() error {
 | Add interfaces for managers | Better testability |
 | Implement observer pattern for state changes | Decouple layers |
 | Consolidate duplicate constants | Reduce maintenance burden |
-| Add async execution model | Better responsiveness |
 
 ---
 
 ## 8. Conclusion
 
-This ARM2 emulator is a **well-crafted project** with strong foundations. The identified issues are typical of a maturing codebase and are addressable through the staged plan above.
+This ARM2 emulator is a **well-crafted project** with strong foundations. The review initially identified several issues, but upon closer inspection:
+
+**Issues that were NOT bugs:**
+- Encoder rotate=0 behavior - Go defines shift by 32 as producing 0, not undefined
+- Multiply register encoding - Intentionally different per ARM multiply format
+- Service layer deadlock - Already mitigated via lock-free io.Pipe design
 
 **Key strengths to preserve:**
 - Comprehensive test coverage (1.6:1 test-to-code ratio)
 - Security-conscious design (defense-in-depth)
 - Clear architectural separation
 - Consistent coding style
+- Proactive thread safety in service layer
 
-**Critical fixes required:**
-- Thread safety in TUI and service layers
-- Encoder undefined behavior for rotate=0
-- Parser complexity reduction
+**Remaining improvements suggested:**
+- Thread safety in TUI layer (race conditions in state tracking)
+- Parser complexity reduction (163-line function)
+- Additional encoder unit tests
 
-The 6-phase remediation plan provides a structured approach to addressing these issues while maintaining the existing high quality bar.
+The 5-phase remediation plan provides a structured approach to addressing these remaining items while maintaining the existing high quality bar.
 
 ---
 
 *Generated by independent code review - 2025-11-26*
+*Corrections added following verification - 2025-11-26*
