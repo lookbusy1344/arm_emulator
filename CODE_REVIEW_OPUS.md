@@ -253,8 +253,15 @@ go func() {
 **Status:** This issue has been addressed in the code. Looking at `SendInput()` (lines 1017-1035):
 
 ```go
-// NOTE: No mutex lock here! io.Pipe is already thread-safe for concurrent reads/writes.
-// Taking a lock here causes deadlock when RunUntilHalt holds the lock while blocked on stdin read.
+func (s *DebuggerService) SendInput(input string) error {
+    // NOTE: No mutex lock here! io.Pipe is already thread-safe for concurrent reads/writes.
+    // Taking a lock here causes deadlock when RunUntilHalt holds the lock while blocked on stdin read.
+
+    if s.stdinPipeWriter == nil {
+        return fmt.Errorf("stdin pipe not initialized")
+    }
+    // ... writes to io.Pipe (thread-safe)
+}
 ```
 
 The `SendInput()` function intentionally does NOT acquire the mutex and uses `io.Pipe` which is inherently thread-safe. This allows input to be delivered even when `RunUntilHalt()` holds the lock during `Step()`. The deadlock has been proactively prevented.
@@ -358,7 +365,7 @@ If the same value needs different addresses (due to PC-relative range limits), t
 - Manual test with TUI in rapid stepping mode
 - Run with `-race` flag to detect races
 
-### ~~Phase 2: Thread Safety~~ Already Addressed
+### ~~Service Layer Thread Safety~~ Already Addressed
 
 The service layer deadlock concern has been proactively addressed:
 - `SendInput()` uses lock-free `io.Pipe` (thread-safe by design)
