@@ -61,6 +61,8 @@ Estimated time spent vibing this project, based on git logs:
 
 Length of Go code on 23 Oct 2025 is **45,218 lines**. About 800 lines per hour, or 6,400 lines per standard 8 hour day. This excludes documentation and other files.
 
+On 26 Nov I asked Opus 4.5 to run a thorough code review, which can be found in [CODE_REVIEW_OPUS.md](./CODE_REVIEW_OPUS.md).
+
 
 ## Daily progress
 
