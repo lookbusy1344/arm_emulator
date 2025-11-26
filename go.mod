@@ -4,7 +4,7 @@ go 1.25.2
 
 require (
 	github.com/BurntSushi/toml v1.5.0
-	github.com/gdamore/tcell/v2 v2.9.0
+	github.com/gdamore/tcell/v2 v2.12.0
 	github.com/rivo/tview v0.42.0
 	github.com/stretchr/testify v1.10.0
 	github.com/wailsapp/wails/v2 v2.11.0
