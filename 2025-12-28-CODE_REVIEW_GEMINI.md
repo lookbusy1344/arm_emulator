@@ -38,13 +38,17 @@ to use the shared utility for character literals.
 
 ## 3. Architectural Observations
 
-### 3.1. Stack/Heap Collision Risk
+### 3.1. Stack/Heap Collision Risk ✅ ADDRESSED
 **Location:** `vm/memory.go`, `vm/constants.go`
 
 *   **Observation:** The Heap segment (0x30000-0x40000) and Stack segment (0x40000-0x50000) are adjacent.
 *   **Behavior:** The heap allocator correctly checks bounds and won't grow beyond 0x40000. However, the stack pointer (SP) is not bounds-checked (by design, to simulate hardware).
 *   **Risk:** If the stack grows downwards past 0x40000, it will silently overwrite heap data. While this mimics real hardware behavior, it can lead to difficult-to-debug corruption in the emulator.
 *   **Recommendation:** Consider adding a "Stack Guard" feature (optional/debug mode) that warns or halts if SP crosses into the Heap segment.
+
+**Resolution:** Added `-stack-guard` CLI flag that enables `HaltOnOverflow` in the `StackTrace` component.
+When enabled, execution halts with an error if SP crosses below 0x40000 into the heap segment.
+This is an opt-in feature that doesn't change default behavior (which mimics real ARM2 hardware).
 
 ### 3.2. Split Literal Pool Logic
 **Location:** `parser/parser.go`, `encoder/encoder.go`
@@ -75,4 +79,4 @@ to use the shared utility for character literals.
 1.  ~~**Fix the DoS vulnerability** in `vm/syscall.go` immediately.~~ ✅ **DONE** - Added input limits
 2.  ~~**Refactor escape sequence parsing** into a shared utility function.~~ ✅ **DONE** - Created `parser/escape.go`
 3.  ~~**Add hex escape support** to the new utility.~~ ✅ **DONE** - Supports `\xNN` hex escapes
-4.  **Add a stack overflow warning** if SP enters the heap segment.
+4.  ~~**Add a stack overflow warning** if SP enters the heap segment.~~ ✅ **DONE** - Added `-stack-guard` flag
