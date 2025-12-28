@@ -18,6 +18,30 @@ This file tracks outstanding work only. Completed items are in `PROGRESS.md`.
 
 ## High Priority Tasks
 
+### **Fix DoS Vulnerability in Syscalls**
+**Priority:** HIGH
+**Type:** Security Fix
+**Added:** 2025-12-28
+**Status:** OPEN
+
+**Problem:**
+`handleReadString` and `handleReadInt` in `vm/syscall.go` use `ReadString('\n')` which is unbounded. A malicious input could cause OOM.
+
+**Solution:**
+Use `ReadSlice` or a bounded reader to limit input size.
+
+### **Implement Full Escape Sequence Support**
+**Priority:** HIGH
+**Type:** Feature
+**Added:** 2025-12-28
+**Status:** OPEN
+
+**Problem:**
+The emulator lacks support for hex (`\xNN`) and octal (`\NNN`) escape sequences in strings and character literals.
+
+**Solution:**
+Implement a centralized `ParseEscapeSequence` utility and use it in `main.go` and `encoder/encoder.go`.
+
 ### **✅ RESOLVED: E2E Test Failures - Flaky Test Infrastructure**
 **Priority:** COMPLETE ✅
 **Type:** E2E Testing - Test Infrastructure
