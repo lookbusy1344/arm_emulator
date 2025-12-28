@@ -221,7 +221,7 @@ func TestMOV_AllConditions(t *testing.T) {
 
 3. ~~**Thread safety tests**~~ **FIXED 2025-12-28** - Added 12 concurrent access tests for TUI state synchronization
 
-4. **Literal pool stress tests** - No tests for >16 literals per pool
+4. ~~**Literal pool stress tests**~~ **FIXED 2025-12-28** - Added 12 literal pool tests including 50+ and 100+ literals
 
 ---
 
