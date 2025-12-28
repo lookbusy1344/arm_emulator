@@ -309,3 +309,44 @@ func TestStackTraceStatistics(t *testing.T) {
 		t.Error("Should show 2 pops")
 	}
 }
+
+func TestStackTraceHaltOnOverflow(t *testing.T) {
+	var buf bytes.Buffer
+	stackTrace := vm.NewStackTrace(&buf, 0x50000, 0x40000)
+	stackTrace.Start(0x50000)
+
+	// By default, HaltOnOverflow is false
+	if stackTrace.HaltOnOverflow {
+		t.Error("HaltOnOverflow should be false by default")
+	}
+
+	// Push within bounds - should not halt
+	halt := stackTrace.RecordPush(1, 0x8000, 0x50000, 0x4FFFC, 0x11111111, 0x4FFFC, "R1")
+	if halt {
+		t.Error("Should not halt when within bounds")
+	}
+
+	// Push past bounds with HaltOnOverflow disabled - should not halt
+	halt = stackTrace.RecordPush(2, 0x8004, 0x40004, 0x3FFFC, 0x22222222, 0x3FFFC, "R2")
+	if halt {
+		t.Error("Should not halt when HaltOnOverflow is disabled")
+	}
+	if !stackTrace.HasOverflow() {
+		t.Error("Should still detect overflow")
+	}
+
+	// Enable HaltOnOverflow
+	stackTrace.HaltOnOverflow = true
+
+	// Push past bounds with HaltOnOverflow enabled - should halt
+	halt = stackTrace.RecordPush(3, 0x8008, 0x3FFFC, 0x3FFF8, 0x33333333, 0x3FFF8, "R3")
+	if !halt {
+		t.Error("Should halt when HaltOnOverflow is enabled and SP is below StackTop")
+	}
+
+	// Test RecordSPMove with HaltOnOverflow
+	halt = stackTrace.RecordSPMove(4, 0x800C, 0x40000, 0x3FFF0)
+	if !halt {
+		t.Error("RecordSPMove should also halt when HaltOnOverflow is enabled")
+	}
+}

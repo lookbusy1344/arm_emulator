@@ -38,6 +38,9 @@ type StackTrace struct {
 	StackBase uint32 // Bottom of stack (highest address)
 	StackTop  uint32 // Top of stack (lowest valid address)
 
+	// Stack guard configuration
+	HaltOnOverflow bool // If true, signal to halt execution on stack overflow (SP enters heap)
+
 	// Tracking
 	entries    []StackTraceEntry
 	maxEntries int
@@ -89,14 +92,15 @@ func (s *StackTrace) Start(initialSP uint32) {
 	s.underflowCount = 0
 }
 
-// RecordPush records a push operation
-func (s *StackTrace) RecordPush(sequence uint64, pc, oldSP, newSP, value, address uint32, register string) {
+// RecordPush records a push operation and returns true if execution should halt
+// (when HaltOnOverflow is enabled and SP enters the heap segment)
+func (s *StackTrace) RecordPush(sequence uint64, pc, oldSP, newSP, value, address uint32, register string) bool {
 	if !s.Enabled {
-		return
+		return false
 	}
 
 	if s.maxEntries > 0 && len(s.entries) >= s.maxEntries {
-		return
+		return false
 	}
 
 	size := oldSP - newSP
@@ -117,10 +121,12 @@ func (s *StackTrace) RecordPush(sequence uint64, pc, oldSP, newSP, value, addres
 	s.updateTracking(newSP, size)
 	s.totalPushes++
 
-	// Check for overflow (SP went below valid range)
+	// Check for overflow (SP went below valid range - entering heap)
 	if newSP < s.StackTop {
 		s.overflowCount++
+		return s.HaltOnOverflow
 	}
+	return false
 }
 
 // RecordPop records a pop operation
@@ -157,14 +163,15 @@ func (s *StackTrace) RecordPop(sequence uint64, pc, oldSP, newSP, value, address
 	}
 }
 
-// RecordSPMove records a direct SP register update
-func (s *StackTrace) RecordSPMove(sequence uint64, pc, oldSP, newSP uint32) {
+// RecordSPMove records a direct SP register update and returns true if execution should halt
+// (when HaltOnOverflow is enabled and SP enters the heap segment)
+func (s *StackTrace) RecordSPMove(sequence uint64, pc, oldSP, newSP uint32) bool {
 	if !s.Enabled {
-		return
+		return false
 	}
 
 	if s.maxEntries > 0 && len(s.entries) >= s.maxEntries {
-		return
+		return false
 	}
 
 	var size uint32
@@ -185,6 +192,13 @@ func (s *StackTrace) RecordSPMove(sequence uint64, pc, oldSP, newSP uint32) {
 
 	s.entries = append(s.entries, entry)
 	s.updateTracking(newSP, size)
+
+	// Check for overflow (SP went below valid range - entering heap)
+	if newSP < s.StackTop {
+		s.overflowCount++
+		return s.HaltOnOverflow
+	}
+	return false
 }
 
 // updateTracking updates internal tracking state

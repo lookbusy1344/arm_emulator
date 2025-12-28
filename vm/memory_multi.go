@@ -151,8 +151,10 @@ func ExecuteLoadStoreMultiple(vm *VM, inst *Instruction) error {
 
 	// Also check if SP was loaded (but not base register)
 	if load == 1 && (regList&(1<<SPRegister)) != 0 && rn != SPRegister && vm.StackTrace != nil {
-		// SP was loaded from memory, record as SP move
-		vm.StackTrace.RecordSPMove(vm.CPU.Cycles, inst.Address, baseAddr, vm.CPU.GetSP())
+		// SP was loaded from memory, record as SP move and check for overflow
+		if vm.StackTrace.RecordSPMove(vm.CPU.Cycles, inst.Address, baseAddr, vm.CPU.GetSP()) {
+			return fmt.Errorf("stack overflow: SP=0x%08X crossed into heap segment (below 0x%08X)", vm.CPU.GetSP(), vm.StackTrace.StackTop)
+		}
 	}
 
 	// Handle S bit (PSR transfer for LDM with PC)

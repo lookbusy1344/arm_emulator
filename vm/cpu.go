@@ -1,5 +1,7 @@
 package vm
 
+import "fmt"
+
 // CPU represents the ARM2 processor state
 type CPU struct {
 	// General purpose registers R0-R14
@@ -119,13 +121,16 @@ func (c *CPU) SetSP(value uint32) error {
 // Stack trace monitoring (when enabled) will detect overflow/underflow conditions.
 // Memory protection occurs when memory is accessed, allowing advanced use cases
 // like cooperative multitasking with multiple stacks.
+// Returns an error if HaltOnOverflow is enabled and SP enters the heap segment.
 func (c *CPU) SetSPWithTrace(vm *VM, value uint32, pc uint32) error {
 	oldSP := c.R[SP]
 	c.R[SP] = value
 
-	// Record stack trace if enabled
+	// Record stack trace if enabled and check for overflow
 	if vm.StackTrace != nil {
-		vm.StackTrace.RecordSPMove(vm.CPU.Cycles, pc, oldSP, value)
+		if vm.StackTrace.RecordSPMove(vm.CPU.Cycles, pc, oldSP, value) {
+			return fmt.Errorf("stack overflow: SP=0x%08X crossed into heap segment (below 0x%08X)", value, vm.StackTrace.StackTop)
+		}
 	}
 
 	return nil

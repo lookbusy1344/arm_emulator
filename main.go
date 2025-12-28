@@ -52,6 +52,7 @@ func main() {
 		enableStackTrace    = flag.Bool("stack-trace", false, "Enable stack operation tracing")
 		stackTraceFile      = flag.String("stack-trace-file", "", "Stack trace output file (default: stack_trace.txt)")
 		stackTraceFormat    = flag.String("stack-trace-format", "text", "Stack trace format (text, json)")
+		stackGuard          = flag.Bool("stack-guard", false, "Halt execution if stack overflows into heap segment")
 		enableFlagTrace     = flag.Bool("flag-trace", false, "Enable CPSR flag change tracing")
 		flagTraceFile       = flag.String("flag-trace-file", "", "Flag trace output file (default: flag_trace.txt)")
 		flagTraceFormat     = flag.String("flag-trace-format", "text", "Flag trace format (text, json)")
@@ -339,33 +340,48 @@ func main() {
 		}
 	}
 
-	if *enableStackTrace {
-		// Determine stack trace file path
-		stPath := *stackTraceFile
-		if stPath == "" {
-			ext := "txt"
-			if *stackTraceFormat == "json" {
-				ext = "json"
-			}
-			stPath = filepath.Join(config.GetLogPath(), "stack_trace."+ext)
-		}
+	// Stack guard requires stack trace (even without output file)
+	if *enableStackTrace || *stackGuard {
+		var stWriter *os.File
+		var stPath string
 
-		stWriter, err := os.Create(stPath) // #nosec G304 -- user-specified stack trace output path
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "Error creating stack trace file: %v\n", err)
-			os.Exit(1)
-		}
-		defer func() {
-			if err := stWriter.Close(); err != nil {
-				fmt.Fprintf(os.Stderr, "Warning: failed to close stack trace file: %v\n", err)
+		if *enableStackTrace {
+			// Determine stack trace file path
+			stPath = *stackTraceFile
+			if stPath == "" {
+				ext := "txt"
+				if *stackTraceFormat == "json" {
+					ext = "json"
+				}
+				stPath = filepath.Join(config.GetLogPath(), "stack_trace."+ext)
 			}
-		}()
+
+			var err error
+			stWriter, err = os.Create(stPath) // #nosec G304 -- user-specified stack trace output path
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "Error creating stack trace file: %v\n", err)
+				os.Exit(1)
+			}
+			defer func() {
+				if err := stWriter.Close(); err != nil {
+					fmt.Fprintf(os.Stderr, "Warning: failed to close stack trace file: %v\n", err)
+				}
+			}()
+		}
 
 		machine.StackTrace = vm.NewStackTrace(stWriter, stackTop, vm.StackSegmentStart)
 		machine.StackTrace.LoadSymbols(symbols)
 		machine.StackTrace.Start(stackTop)
 
-		if *verboseMode {
+		// Enable halt on overflow if stack guard is enabled
+		if *stackGuard {
+			machine.StackTrace.HaltOnOverflow = true
+			if *verboseMode {
+				fmt.Println("Stack guard enabled: execution will halt if SP enters heap segment")
+			}
+		}
+
+		if *verboseMode && *enableStackTrace {
 			fmt.Printf("Stack trace enabled: %s\n", stPath)
 		}
 	}
@@ -888,6 +904,7 @@ Diagnostic Modes:
   -stack-trace       Enable stack operation tracing
   -stack-trace-file  Stack trace file (default: stack_trace.txt)
   -stack-trace-format Stack trace format: text, json (default: text)
+  -stack-guard       Halt execution if stack overflows into heap segment
   -flag-trace        Enable CPSR flag change tracing
   -flag-trace-file   Flag trace file (default: flag_trace.txt)
   -flag-trace-format Flag trace format: text, json (default: text)
