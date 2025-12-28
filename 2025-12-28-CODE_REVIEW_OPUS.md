@@ -420,13 +420,19 @@ Similar escape sequence logic exists in multiple places.
 Both `main.go` and `encoder/encoder.go` now use `parser.ProcessEscapeSequences()`.
 Commit `b409e46`.
 
-### 5.3. Missing Coprocessor Implementation
+### 5.3. Missing Coprocessor Implementation ✅ DOCUMENTED
 **Severity:** LOW (Expected for ARM2)
-**Location:** `instructions/`
+**Location:** `vm/executor.go`, `docs/INSTRUCTIONS.md`
 
 Coprocessor stubs exist but have no implementation.
 
 **Note:** This is expected for an ARM2 emulator, but should be documented.
+
+**Resolution:** Added "Unsupported Instructions" section to `docs/INSTRUCTIONS.md` documenting:
+- List of unsupported coprocessor instructions (CDP, MCR, MRC, LDC, STC)
+- Rationale for not implementing (optional feature, FPU-focused)
+- Behavior when attempted (VM halts with clear error message)
+Documented 2025-12-28.
 
 ### 5.4. No Stack Guard Feature ✅ FIXED
 **Severity:** LOW

@@ -15,6 +15,7 @@ This document details the ARM2 CPU instructions supported by this emulator.
 4. [Branch Instructions](#branch-instructions)
 5. [Multiply Instructions](#multiply-instructions)
 6. [System Instructions](#system-instructions)
+7. [Unsupported Instructions](#unsupported-instructions)
 
 ---
 
@@ -1164,5 +1165,27 @@ MSR CPSR_f, R1        ; Restore saved flags from R1
 - Restoring processor flags after critical section
 - Manually setting/clearing flags for testing
 - Context switching in operating systems
+
+---
+
+## Unsupported Instructions
+
+The following ARM instructions are intentionally not supported in this ARM2 emulator:
+
+### Coprocessor Instructions (Not Implemented)
+
+The ARM2 architecture included coprocessor support for floating-point units (FPA) and other external processors, but this emulator does not implement coprocessor functionality. The following instructions are not supported:
+
+| Mnemonic | Description |
+|----------|-------------|
+| CDP | Coprocessor Data Processing |
+| MCR | Move ARM register to Coprocessor register |
+| MRC | Move Coprocessor register to ARM register |
+| LDC | Load Coprocessor register from memory |
+| STC | Store Coprocessor register to memory |
+
+**Rationale:** Coprocessor support was optional in the ARM2 architecture and was primarily used for floating-point operations (FPA10, FPA11). This emulator focuses on the core ARM2 integer instruction set. Programs requiring floating-point operations should implement software floating-point routines or use fixed-point arithmetic.
+
+**Behavior:** Attempting to execute a coprocessor instruction will halt the VM with the error: "coprocessor instructions not supported".
 
 ---
