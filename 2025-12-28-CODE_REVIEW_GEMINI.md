@@ -10,13 +10,17 @@ However, there are a few areas that require attention, particularly regarding in
 
 ## 2. Critical Issues & Bugs
 
-### 2.1. Unbounded Memory Allocation in Syscalls (DoS Risk)
+### 2.1. Unbounded Memory Allocation in Syscalls (DoS Risk) ✅ FIXED
 **Severity:** High
 **Location:** `vm/syscall.go` (`handleReadString`, `handleReadInt`)
 
 The `handleReadString` and `handleReadInt` functions use `vm.stdinReader.ReadString('\n')` to read input from the standard input. `bufio.Reader.ReadString` reads until the delimiter is found, expanding the buffer as needed.
 *   **Risk:** A malicious actor or a large input file (e.g., via pipe) without newlines could cause the VM to allocate an unbounded amount of memory, leading to a Denial of Service (OOM crash).
 *   **Recommendation:** Use a bounded reader or `ReadSlice` with a fixed buffer size, or implement a limit on the number of bytes read before a newline is found.
+
+**Resolution:** Added `readLineWithLimit()` helper function and `MaxStdinInputSize` constant (4KB limit)
+in `vm/constants.go`. Both `handleReadString` and `handleReadInt` now use bounded reading to prevent
+memory exhaustion attacks.
 
 ### 2.2. Incomplete Escape Sequence Support
 **Severity:** Medium
@@ -63,7 +67,7 @@ The project implements custom escape sequence parsing in multiple places.
 
 ## 6. Recommendations
 
-1.  **Fix the DoS vulnerability** in `vm/syscall.go` immediately.
+1.  ~~**Fix the DoS vulnerability** in `vm/syscall.go` immediately.~~ ✅ **DONE** - Added input limits
 2.  **Refactor escape sequence parsing** into a shared utility function.
 3.  **Add hex escape support** to the new utility.
 4.  **Add a stack overflow warning** if SP enters the heap segment.
