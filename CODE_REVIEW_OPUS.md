@@ -219,7 +219,7 @@ func TestMOV_AllConditions(t *testing.T) {
    - Shifted registers (all shift types), writeback syntax
    - Unclosed brackets behavior documentation
 
-3. **Thread safety tests** - No concurrent access tests for TUI/service
+3. ~~**Thread safety tests**~~ **FIXED 2025-12-28** - Added 12 concurrent access tests for TUI state synchronization
 
 4. **Literal pool stress tests** - No tests for >16 literals per pool
 
@@ -457,7 +457,7 @@ This ARM2 emulator is a **well-crafted project** with strong foundations. The re
 - ~~Thread safety in TUI layer (race conditions in state tracking)~~ **FIXED 2025-12-28**
 - ~~Parser complexity reduction (163-line function)~~ **FIXED 2025-12-28**
 - ~~Additional encoder unit tests~~ **FIXED 2025-12-28**
-- Thread safety tests for TUI (testing the new mutex protection)
+- ~~Thread safety tests for TUI (testing the new mutex protection)~~ **FIXED 2025-12-28**
 - ~~Parser operand edge case tests~~ **FIXED 2025-12-28**
 
 The 5-phase remediation plan provides a structured approach to addressing these remaining items while maintaining the existing high quality bar.
