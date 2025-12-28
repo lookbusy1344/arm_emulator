@@ -214,10 +214,10 @@ func TestMOV_AllConditions(t *testing.T) {
    - Memory addressing modes
    - Branch, multiply, SWI encoding
 
-2. **Parser operand edge cases** not tested:
-   - `[R0, R1]` (invalid memory addressing)
-   - `R0, LSL` (shift without amount)
-   - `{R0,` (unclosed register list)
+2. ~~**Parser operand edge cases**~~ **FIXED 2025-12-28** - Added comprehensive operand parsing tests:
+   - Immediate values, memory addressing, register lists, pseudo-instructions
+   - Shifted registers (all shift types), writeback syntax
+   - Unclosed brackets behavior documentation
 
 3. **Thread safety tests** - No concurrent access tests for TUI/service
 
@@ -386,7 +386,7 @@ The service layer deadlock concern has been proactively addressed:
 | Extract `parseRegisterOrLabelOperand()` | P1 | ✅ Done |
 | Add `isShiftOperator()` helper | P1 | ✅ Done |
 | Add error messages for invalid operand syntax | P2 | Pending |
-| Add tests for operand parsing edge cases | P1 | Pending |
+| Add tests for operand parsing edge cases | P1 | ✅ Done |
 
 **Before:** 163 lines in one function
 **After:** 6 functions, 18-33 lines each
@@ -458,7 +458,7 @@ This ARM2 emulator is a **well-crafted project** with strong foundations. The re
 - ~~Parser complexity reduction (163-line function)~~ **FIXED 2025-12-28**
 - ~~Additional encoder unit tests~~ **FIXED 2025-12-28**
 - Thread safety tests for TUI (testing the new mutex protection)
-- Parser operand edge case tests
+- ~~Parser operand edge case tests~~ **FIXED 2025-12-28**
 
 The 5-phase remediation plan provides a structured approach to addressing these remaining items while maintaining the existing high quality bar.
 
