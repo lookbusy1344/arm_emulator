@@ -8,12 +8,16 @@ import (
 )
 
 // WatchType represents the type of watchpoint
+// NOTE: The current implementation can only detect value changes, not specific
+// read/write operations. All watchpoint types behave the same way - they trigger
+// when the monitored value differs from its previous value. True read-only or
+// write-only tracking would require integration with the VM's memory access layer.
 type WatchType int
 
 const (
-	WatchWrite     WatchType = iota // Trigger on write
-	WatchRead                       // Trigger on read
-	WatchReadWrite                  // Trigger on read or write
+	WatchWrite     WatchType = iota // Trigger on write (currently same as WatchReadWrite)
+	WatchRead                       // Trigger on read (currently same as WatchReadWrite)
+	WatchReadWrite                  // Trigger on read or write (value change detection)
 )
 
 // Watchpoint represents a watchpoint for monitoring memory or register changes
@@ -130,6 +134,9 @@ func (wm *WatchpointManager) GetAllWatchpoints() []*Watchpoint {
 }
 
 // CheckWatchpoints checks all watchpoints and returns the first that has changed
+// NOTE: This implementation uses value change detection, not true read/write tracking.
+// The watchpoint Type field is currently not enforced - all types behave the same way,
+// triggering when the monitored value differs from its previous value.
 func (wm *WatchpointManager) CheckWatchpoints(machine *vm.VM) (*Watchpoint, bool) {
 	wm.mu.Lock()
 	defer wm.mu.Unlock()
