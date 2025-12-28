@@ -15,7 +15,7 @@ The ARM2 emulator is a robust and well-structured project, demonstrating high co
 
 1.  ~~**CRITICAL: TUI Race Conditions Persist**~~ - **FIXED 2025-12-28** - Added `sync.RWMutex` to protect shared state in `debugger/tui.go`.
 2.  ~~**CRITICAL: Missing Encoder Tests**~~ - **FIXED 2025-12-28** - Added comprehensive encoder unit tests in `tests/unit/encoder/`.
-3.  **High Complexity in Parser** - `parseOperand` remains a monolithic function that is difficult to maintain.
+3.  ~~**High Complexity in Parser**~~ - **FIXED 2025-12-28** - Refactored `parseOperand` into 6 focused functions.
 4.  ~~**Feature Creep/Inaccuracy**~~ - **FIXED 2025-12-28** - Removed `MOVW` (ARMv7) support for strict ARM2 compliance. Updated `hash_table.s` to use literal pools.
 
 ---
@@ -31,8 +31,15 @@ The `executeUntilBreak` method spawns a goroutine that modifies `t.Debugger.Runn
 
 ### 1.2 Parser Complexity (Confirmed)
 **File:** `parser/parser.go` (Lines 468-630)
-The `parseOperand` function is approximately 160 lines long, containing a large switch statement that handles immediate values, memory addresses, register lists, and pseudo-instructions.
-*   **Status:** 🔴 **Unfixed**. Refactoring into smaller functions (`parseImmediateOperand`, `parseMemoryOperand`, etc.) is highly recommended.
+The `parseOperand` function was approximately 160 lines long, containing a large switch statement that handles immediate values, memory addresses, register lists, and pseudo-instructions.
+*   **Status:** ✅ **FIXED 2025-12-28** - Refactored into 6 focused functions:
+    - `parseOperand` (18 lines) - dispatcher
+    - `parseImmediateOperand` (20 lines) - handles `#value`
+    - `parseMemoryOperand` (32 lines) - handles `[Rn, ...]`
+    - `parseRegisterListOperand` (23 lines) - handles `{R0-R3}`
+    - `parsePseudoOperand` (24 lines) - handles `=label`
+    - `parseRegisterOrLabelOperand` (33 lines) - handles registers with shifts
+    - `isShiftOperator` (8 lines) - helper function
 
 ---
 
@@ -74,7 +81,7 @@ The `encodeImmediate` function correctly implements the ARM immediate encoding l
 2.  ~~**Add Encoder Tests:**~~ ✅ **DONE** - Created comprehensive test suite in `tests/unit/encoder/`.
 
 ### 3.2 Refactoring
-1.  **Refactor `parseOperand`:** Split this function into `parseImmediate`, `parseMemory`, `parseRegisterList`, etc.
+1.  ~~**Refactor `parseOperand`:**~~ ✅ **DONE 2025-12-28** - Split into 6 focused functions.
 2.  ~~**Remove `MOVW`:**~~ ✅ **DONE** - Encoder now adheres to ARM2 specification.
 
 ### 3.3 Documentation

@@ -29,7 +29,7 @@ This ARM2 emulator is a **well-engineered project** with strong architectural fo
 2. ~~**Potential Deadlock**~~ - `RunUntilHalt()` + `SendInput()` interaction - MITIGATED (uses lock-free io.Pipe)
 3. ~~**Encoder Bugs**~~ - Immediate rotation "undefined behavior" - NOT A BUG (Go defines shift by 32)
 4. ~~**Multiply Encoding**~~ - Different shift constants - INTENTIONAL per ARM spec
-5. **Parser Complexity** - `parseOperand()` is 163 lines of nested logic - VALID (refactoring opportunity)
+5. ~~**Parser Complexity**~~ - `parseOperand()` refactored into 6 focused functions - **FIXED 2025-12-28**
 
 ---
 
@@ -107,10 +107,10 @@ main.go
    - Can cause deadlocks with stdin-dependent programs
    - File: `service/debugger_service.go:597-664`
 
-3. **Parser Operand Complexity**
-   - `parseOperand()` is 163 lines handling 6 operand types
-   - Should be split into separate parser functions
-   - File: `parser/parser.go:468-630`
+3. ~~**Parser Operand Complexity**~~ **FIXED 2025-12-28**
+   - `parseOperand()` was 163 lines handling 6 operand types
+   - Split into 6 focused functions: `parseOperand`, `parseImmediateOperand`, `parseMemoryOperand`, `parseRegisterListOperand`, `parsePseudoOperand`, `parseRegisterOrLabelOperand`
+   - File: `parser/parser.go:468-635`
 
 ---
 
@@ -145,7 +145,7 @@ This is well-documented in `vm/syscall.go:16-34`.
 
 | Location | Issue | Severity | Status |
 |----------|-------|----------|--------|
-| `parser/parser.go:468-630` | parseOperand() too complex (163 lines) | Medium | Valid - refactoring opportunity |
+| ~~`parser/parser.go:468-630`~~ | ~~parseOperand() too complex (163 lines)~~ | ~~Medium~~ | **FIXED 2025-12-28** - Refactored into 6 functions |
 | ~~`debugger/tui.go:420-496`~~ | ~~Goroutine modifies shared state~~ | ~~High~~ | **FIXED 2025-12-28** - Added sync.RWMutex |
 | `encoder/encoder.go:260-279` | ~~Undefined behavior when rotate=0~~ | ~~High~~ | Not a bug - Go defines shift by 32 |
 | `vm/multiply.go:19-22` | ~~Rd/Rn use swapped shift constants~~ | ~~Medium~~ | Intentional per ARM multiply format |
@@ -336,8 +336,8 @@ If the same value needs different addresses (due to PC-relative range limits), t
 
 ### 6.2 Short-Term Improvements
 
-1. Split `parseOperand()` into separate functions per operand type
-2. Add encoder unit tests for edge cases
+1. ~~Split `parseOperand()` into separate functions per operand type~~ **FIXED 2025-12-28**
+2. ~~Add encoder unit tests for edge cases~~ **FIXED 2025-12-28**
 3. ~~Document ARM multiply register encoding quirk~~ - Already documented in code comments
 4. Add thread safety tests for TUI
 
@@ -373,21 +373,23 @@ The service layer deadlock concern has been proactively addressed:
 - `SendInput()` uses lock-free `io.Pipe` (thread-safe by design)
 - Comment at line 1020-1021 documents this design decision
 
-### Phase 2: Parser Refactoring (3-4 days)
+### ~~Phase 2: Parser Refactoring~~ COMPLETED 2025-12-28
 
 **Goal:** Reduce complexity and improve maintainability.
 
-| Task | Priority |
-|------|----------|
-| Extract `parseImmediateOperand()` from parseOperand | P1 |
-| Extract `parseMemoryOperand()` | P1 |
-| Extract `parseRegisterListOperand()` | P1 |
-| Extract `parsePseudoOperand()` | P1 |
-| Add error messages for invalid operand syntax | P2 |
-| Add tests for operand parsing edge cases | P1 |
+| Task | Priority | Status |
+|------|----------|--------|
+| Extract `parseImmediateOperand()` from parseOperand | P1 | ✅ Done |
+| Extract `parseMemoryOperand()` | P1 | ✅ Done |
+| Extract `parseRegisterListOperand()` | P1 | ✅ Done |
+| Extract `parsePseudoOperand()` | P1 | ✅ Done |
+| Extract `parseRegisterOrLabelOperand()` | P1 | ✅ Done |
+| Add `isShiftOperator()` helper | P1 | ✅ Done |
+| Add error messages for invalid operand syntax | P2 | Pending |
+| Add tests for operand parsing edge cases | P1 | Pending |
 
-**Current:** 163 lines in one function
-**Target:** 5 functions, ~40 lines each
+**Before:** 163 lines in one function
+**After:** 6 functions, 18-33 lines each
 
 ### Phase 3: Encoder Hardening (2-3 days)
 
@@ -452,9 +454,11 @@ This ARM2 emulator is a **well-crafted project** with strong foundations. The re
 - Proactive thread safety in service layer
 
 **Remaining improvements suggested:**
-- Thread safety in TUI layer (race conditions in state tracking)
-- Parser complexity reduction (163-line function)
-- Additional encoder unit tests
+- ~~Thread safety in TUI layer (race conditions in state tracking)~~ **FIXED 2025-12-28**
+- ~~Parser complexity reduction (163-line function)~~ **FIXED 2025-12-28**
+- ~~Additional encoder unit tests~~ **FIXED 2025-12-28**
+- Thread safety tests for TUI (testing the new mutex protection)
+- Parser operand edge case tests
 
 The 5-phase remediation plan provides a structured approach to addressing these remaining items while maintaining the existing high quality bar.
 

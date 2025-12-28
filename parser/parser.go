@@ -465,168 +465,173 @@ func (p *Parser) parseInstruction() *Instruction {
 	return inst
 }
 
-// parseOperand parses a single operand
+// parseOperand parses a single operand by dispatching to type-specific parsers
 func (p *Parser) parseOperand() string {
-	var parts []string
-
-	// Handle different operand types
 	switch p.currentToken.Type {
 	case TokenHash:
-		// Immediate value: #123 or #'A'
-		parts = append(parts, "#")
-		p.nextToken()
-		if p.currentToken.Type == TokenNumber || p.currentToken.Type == TokenIdentifier || p.currentToken.Type == TokenMinus || p.currentToken.Type == TokenString {
-			if p.currentToken.Type == TokenMinus {
-				parts = append(parts, "-")
-				p.nextToken()
-			}
-			// Handle character literals: #'A'
-			if p.currentToken.Type == TokenString {
-				parts = append(parts, "'"+p.currentToken.Literal+"'")
-			} else {
-				parts = append(parts, p.currentToken.Literal)
-			}
-			p.nextToken()
-		}
-		// Return without joining with spaces for #value
-		return strings.Join(parts, "")
-
+		return p.parseImmediateOperand()
 	case TokenLBracket:
-		// Memory address: [Rn], [Rn, #offset], etc.
-		parts = append(parts, "[")
-		p.nextToken()
-
-		for p.currentToken.Type != TokenRBracket && p.currentToken.Type != TokenNewline && p.currentToken.Type != TokenEOF {
-			if p.currentToken.Type == TokenComma {
-				parts = append(parts, ",")
-			} else if p.currentToken.Type == TokenHash {
-				// Add space before # for shift amounts like "LSL #2"
-				parts = append(parts, " #")
-			} else if p.currentToken.Literal != "" && strings.TrimSpace(p.currentToken.Literal) != "" {
-				lit := p.currentToken.Literal
-				// Add space before shift operators for proper parsing
-				shiftOp := strings.ToUpper(lit)
-				if shiftOp == "LSL" || shiftOp == "LSR" || shiftOp == "ASR" || shiftOp == "ROR" || shiftOp == "RRX" {
-					parts = append(parts, " "+lit)
-				} else {
-					parts = append(parts, lit)
-				}
-			}
-			p.nextToken()
-		}
-
-		if p.currentToken.Type == TokenRBracket {
-			parts = append(parts, "]")
-			p.nextToken()
-
-			// Check for post-indexed addressing: ]!
-			if p.currentToken.Type == TokenExclaim {
-				parts = append(parts, "!")
-				p.nextToken()
-			}
-		}
-		// Return without joining with spaces for memory addressing
-		return strings.Join(parts, "")
-
+		return p.parseMemoryOperand()
 	case TokenLBrace:
-		// Register list: {R0, R1, R2} or {R0-R3}
-		parts = append(parts, "{")
-		p.nextToken()
-
-		for p.currentToken.Type != TokenRBrace && p.currentToken.Type != TokenNewline && p.currentToken.Type != TokenEOF {
-			if p.currentToken.Type == TokenComma {
-				parts = append(parts, ",")
-			} else if p.currentToken.Type == TokenMinus {
-				// Handle register range: R0-R3
-				parts = append(parts, "-")
-			} else {
-				parts = append(parts, p.currentToken.Literal)
-			}
-			p.nextToken()
-		}
-
-		if p.currentToken.Type == TokenRBrace {
-			parts = append(parts, "}")
-			p.nextToken()
-		}
-		// Return without joining with spaces for register lists
-		return strings.Join(parts, "")
-
+		return p.parseRegisterListOperand()
 	case TokenEqual:
-		// Handle =label or =value for pseudo-instructions like LDR Rd, =label
-		// Now also supports constant expressions: =label + 12, =label - 4
-		parts = append(parts, "=")
-		p.nextToken()
-
-		// Get the first identifier or number after =
-		if p.currentToken.Type == TokenIdentifier || p.currentToken.Type == TokenNumber {
-			parts = append(parts, p.currentToken.Literal)
-			p.nextToken()
-
-			// Check for arithmetic operators to form expressions
-			for p.currentToken.Type == TokenPlus || p.currentToken.Type == TokenMinus {
-				// Append the operator
-				parts = append(parts, p.currentToken.Literal)
-				p.nextToken()
-
-				// Append the operand (number or identifier)
-				if p.currentToken.Type == TokenNumber || p.currentToken.Type == TokenIdentifier {
-					parts = append(parts, p.currentToken.Literal)
-					p.nextToken()
-				} else {
-					// Invalid expression
-					break
-				}
-			}
-		}
-		// Return without joining with spaces for =value
-		return strings.Join(parts, "")
-
+		return p.parsePseudoOperand()
 	case TokenRegister, TokenIdentifier, TokenNumber:
-		// Register or label
-		parts = append(parts, p.currentToken.Literal)
+		return p.parseRegisterOrLabelOperand()
+	default:
+		lit := p.currentToken.Literal
 		p.nextToken()
+		return lit
+	}
+}
 
-		// Check for writeback: R13! or SP!
-		if p.currentToken.Type == TokenExclaim {
-			parts = append(parts, "!")
+// parseImmediateOperand parses immediate values: #123, #-45, #'A'
+func (p *Parser) parseImmediateOperand() string {
+	var parts []string
+	parts = append(parts, "#")
+	p.nextToken()
+
+	if p.currentToken.Type == TokenNumber || p.currentToken.Type == TokenIdentifier ||
+		p.currentToken.Type == TokenMinus || p.currentToken.Type == TokenString {
+		if p.currentToken.Type == TokenMinus {
+			parts = append(parts, "-")
 			p.nextToken()
-			// Return immediately for writeback syntax
-			return strings.Join(parts, "")
 		}
+		if p.currentToken.Type == TokenString {
+			parts = append(parts, "'"+p.currentToken.Literal+"'")
+		} else {
+			parts = append(parts, p.currentToken.Literal)
+		}
+		p.nextToken()
+	}
+	return strings.Join(parts, "")
+}
 
-		// Check for shift operations: Rm, LSL #shift
-		if p.currentToken.Type == TokenComma {
-			// Peek ahead to see if this is a shift
-			if p.peekToken.Type == TokenIdentifier {
-				shiftOp := strings.ToUpper(p.peekToken.Literal)
-				if shiftOp == "LSL" || shiftOp == "LSR" || shiftOp == "ASR" || shiftOp == "ROR" || shiftOp == "RRX" {
-					p.nextToken() // consume comma
-					// Build shift operand: R0,LSL #2
-					shiftPart := p.currentToken.Literal // shift op (LSL/LSR/etc)
-					p.nextToken()                       // consume shift op
+// parseMemoryOperand parses memory addresses: [Rn], [Rn, #offset], [Rn, Rm, LSL #2]
+func (p *Parser) parseMemoryOperand() string {
+	var parts []string
+	parts = append(parts, "[")
+	p.nextToken()
 
-					// Parse shift amount
-					if p.currentToken.Type == TokenHash {
-						p.nextToken() // consume hash
-						shiftPart += " #" + p.currentToken.Literal
-						p.nextToken() // consume number
-					} else if p.currentToken.Type == TokenRegister {
-						shiftPart += " " + p.currentToken.Literal
-						p.nextToken()
-					}
-					// Return as "R0,LSL #2" format (register,shift)
-					return parts[0] + "," + shiftPart
-				}
+	for p.currentToken.Type != TokenRBracket && p.currentToken.Type != TokenNewline && p.currentToken.Type != TokenEOF {
+		switch {
+		case p.currentToken.Type == TokenComma:
+			parts = append(parts, ",")
+		case p.currentToken.Type == TokenHash:
+			parts = append(parts, " #")
+		case p.currentToken.Literal != "" && strings.TrimSpace(p.currentToken.Literal) != "":
+			lit := p.currentToken.Literal
+			if isShiftOperator(lit) {
+				parts = append(parts, " "+lit)
+			} else {
+				parts = append(parts, lit)
 			}
 		}
-
-	default:
-		parts = append(parts, p.currentToken.Literal)
 		p.nextToken()
 	}
 
-	return strings.Join(parts, " ")
+	if p.currentToken.Type == TokenRBracket {
+		parts = append(parts, "]")
+		p.nextToken()
+		if p.currentToken.Type == TokenExclaim {
+			parts = append(parts, "!")
+			p.nextToken()
+		}
+	}
+	return strings.Join(parts, "")
+}
+
+// parseRegisterListOperand parses register lists: {R0, R1, R2}, {R0-R3}
+func (p *Parser) parseRegisterListOperand() string {
+	var parts []string
+	parts = append(parts, "{")
+	p.nextToken()
+
+	for p.currentToken.Type != TokenRBrace && p.currentToken.Type != TokenNewline && p.currentToken.Type != TokenEOF {
+		switch p.currentToken.Type {
+		case TokenComma:
+			parts = append(parts, ",")
+		case TokenMinus:
+			parts = append(parts, "-")
+		default:
+			parts = append(parts, p.currentToken.Literal)
+		}
+		p.nextToken()
+	}
+
+	if p.currentToken.Type == TokenRBrace {
+		parts = append(parts, "}")
+		p.nextToken()
+	}
+	return strings.Join(parts, "")
+}
+
+// parsePseudoOperand parses pseudo-instruction operands: =label, =value, =label+offset
+func (p *Parser) parsePseudoOperand() string {
+	var parts []string
+	parts = append(parts, "=")
+	p.nextToken()
+
+	if p.currentToken.Type == TokenIdentifier || p.currentToken.Type == TokenNumber {
+		parts = append(parts, p.currentToken.Literal)
+		p.nextToken()
+
+		// Parse arithmetic expressions: =label+12, =label-4
+		for p.currentToken.Type == TokenPlus || p.currentToken.Type == TokenMinus {
+			parts = append(parts, p.currentToken.Literal)
+			p.nextToken()
+			if p.currentToken.Type == TokenNumber || p.currentToken.Type == TokenIdentifier {
+				parts = append(parts, p.currentToken.Literal)
+				p.nextToken()
+			} else {
+				break
+			}
+		}
+	}
+	return strings.Join(parts, "")
+}
+
+// parseRegisterOrLabelOperand parses registers, labels, and shifted registers: R0, label, R0!, R0,LSL #2
+func (p *Parser) parseRegisterOrLabelOperand() string {
+	base := p.currentToken.Literal
+	p.nextToken()
+
+	// Writeback: R13! or SP!
+	if p.currentToken.Type == TokenExclaim {
+		p.nextToken()
+		return base + "!"
+	}
+
+	// Shifted register: Rm, LSL #shift or Rm, LSL Rs
+	if p.currentToken.Type == TokenComma && p.peekToken.Type == TokenIdentifier {
+		if isShiftOperator(p.peekToken.Literal) {
+			p.nextToken() // consume comma
+			shiftOp := p.currentToken.Literal
+			p.nextToken() // consume shift operator
+
+			var shiftAmount string
+			if p.currentToken.Type == TokenHash {
+				p.nextToken()
+				shiftAmount = " #" + p.currentToken.Literal
+				p.nextToken()
+			} else if p.currentToken.Type == TokenRegister {
+				shiftAmount = " " + p.currentToken.Literal
+				p.nextToken()
+			}
+			return base + "," + shiftOp + shiftAmount
+		}
+	}
+
+	return base
+}
+
+// isShiftOperator returns true if the given string is a shift operator
+func isShiftOperator(s string) bool {
+	switch strings.ToUpper(s) {
+	case "LSL", "LSR", "ASR", "ROR", "RRX":
+		return true
+	}
+	return false
 }
 
 // parseInstructionMnemonic parses the mnemonic and extracts condition and S flag
