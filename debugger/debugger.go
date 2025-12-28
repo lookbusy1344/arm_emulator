@@ -3,6 +3,7 @@ package debugger
 import (
 	"fmt"
 	"strings"
+	"sync"
 
 	"github.com/lookbusy1344/arm-emulator/vm"
 )
@@ -40,6 +41,10 @@ type Debugger struct {
 
 	// Output buffer
 	Output strings.Builder
+
+	// Mutex for thread-safe access to execution state
+	// Protects: Running, StepMode, StepOverCallDepth, StepOverPC, and VM state during execution
+	mu sync.Mutex
 }
 
 // StepMode represents different stepping modes
@@ -65,6 +70,34 @@ func NewDebugger(machine *vm.VM) *Debugger {
 		Symbols:     make(map[string]uint32),
 		SourceMap:   make(map[uint32]string),
 	}
+}
+
+// IsRunning returns whether the debugger is currently running (thread-safe)
+func (d *Debugger) IsRunning() bool {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	return d.Running
+}
+
+// SetRunning sets the running state (thread-safe)
+func (d *Debugger) SetRunning(running bool) {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	d.Running = running
+}
+
+// GetStepMode returns the current step mode (thread-safe)
+func (d *Debugger) GetStepMode() StepMode {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	return d.StepMode
+}
+
+// SetStepMode sets the step mode (thread-safe)
+func (d *Debugger) SetStepMode(mode StepMode) {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	d.StepMode = mode
 }
 
 // LoadSymbols loads the symbol table for label resolution
@@ -196,20 +229,23 @@ func (d *Debugger) handleCommand(cmd string, args []string) error {
 	}
 }
 
-// ShouldBreak checks if execution should pause at the current PC
+// ShouldBreak checks if execution should pause at the current PC (thread-safe)
 func (d *Debugger) ShouldBreak() (bool, string) {
 	pc := d.VM.CPU.PC
 
-	// Check step mode
+	// Check step mode (protected by mutex)
+	d.mu.Lock()
 	switch d.StepMode {
 	case StepSingle:
 		d.StepMode = StepNone
+		d.mu.Unlock()
 		return true, "single step"
 
 	case StepOver:
 		// Continue until we return to the same call depth
 		if pc == d.StepOverPC {
 			d.StepMode = StepNone
+			d.mu.Unlock()
 			return true, "step over complete"
 		}
 
@@ -217,6 +253,7 @@ func (d *Debugger) ShouldBreak() (bool, string) {
 		// This would require call stack tracking
 		// For now, simplified implementation
 	}
+	d.mu.Unlock()
 
 	// Check breakpoints
 	if bp := d.Breakpoints.GetBreakpoint(pc); bp != nil {
@@ -271,9 +308,11 @@ func (d *Debugger) Println(args ...interface{}) {
 	d.Output.WriteString(fmt.Sprintln(args...))
 }
 
-// SetStepOver configures the debugger to step over function calls
-// This should be called while holding the appropriate locks in the calling code
+// SetStepOver configures the debugger to step over function calls (thread-safe)
 func (d *Debugger) SetStepOver() {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+
 	// Read instruction at current PC
 	instr, err := d.VM.Memory.ReadWord(d.VM.CPU.PC)
 	if err != nil {
@@ -299,9 +338,10 @@ func (d *Debugger) SetStepOver() {
 	}
 }
 
-// SetStepOut configures the debugger to step out of the current function
-// This should be called while holding the appropriate locks in the calling code
+// SetStepOut configures the debugger to step out of the current function (thread-safe)
 func (d *Debugger) SetStepOut() {
+	d.mu.Lock()
+	defer d.mu.Unlock()
 	d.StepMode = StepOut
 	d.Running = true
 }

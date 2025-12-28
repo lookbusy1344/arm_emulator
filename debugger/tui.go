@@ -414,7 +414,7 @@ func (t *TUI) executeCommand(cmd string) {
 	})
 
 	// If running, execute until breakpoint or halt
-	if t.Debugger.Running {
+	if t.Debugger.IsRunning() {
 		t.executeUntilBreak()
 	}
 }
@@ -423,12 +423,12 @@ func (t *TUI) executeCommand(cmd string) {
 func (t *TUI) executeUntilBreak() {
 	// Run execution in the background to keep TUI responsive
 	go func() {
-		for t.Debugger.Running {
+		for t.Debugger.IsRunning() {
 			// For single-step mode, execute instruction first before checking if we should break
 			// For other modes, check breakpoints before execution
-			if t.Debugger.StepMode != StepSingle {
+			if t.Debugger.GetStepMode() != StepSingle {
 				if shouldBreak, reason := t.Debugger.ShouldBreak(); shouldBreak {
-					t.Debugger.Running = false
+					t.Debugger.SetRunning(false)
 					t.App.QueueUpdateDraw(func() {
 						t.WriteStatus(fmt.Sprintf("[yellow]Stopped:[white] %s at PC=0x%08X\n", reason, t.Debugger.VM.CPU.PC))
 						t.DetectRegisterChanges()
@@ -443,10 +443,11 @@ func (t *TUI) executeUntilBreak() {
 			t.CaptureRegisterState()
 			t.CaptureMemoryTraceState()
 
-			// Execute one step
+			// Execute one step (VM.Step is thread-safe as it only runs in this goroutine
+			// and the mutex protects against concurrent commands)
 			if err := t.Debugger.VM.Step(); err != nil {
 				if t.Debugger.VM.State == vm.StateHalted {
-					t.Debugger.Running = false
+					t.Debugger.SetRunning(false)
 					t.App.QueueUpdateDraw(func() {
 						t.WriteStatus(fmt.Sprintf("[green]Program exited with code %d[white]\n", t.Debugger.VM.ExitCode))
 						t.DetectRegisterChanges()
@@ -455,7 +456,7 @@ func (t *TUI) executeUntilBreak() {
 					})
 					break
 				}
-				t.Debugger.Running = false
+				t.Debugger.SetRunning(false)
 				t.App.QueueUpdateDraw(func() {
 					t.WriteStatus(fmt.Sprintf("[red]Runtime error:[white] %v\n", err))
 					t.DetectRegisterChanges()
@@ -470,9 +471,9 @@ func (t *TUI) executeUntilBreak() {
 			t.DetectMemoryWrites()
 
 			// For single-step mode, check if we should break after execution
-			if t.Debugger.StepMode == StepSingle {
+			if t.Debugger.GetStepMode() == StepSingle {
 				if shouldBreak, reason := t.Debugger.ShouldBreak(); shouldBreak {
-					t.Debugger.Running = false
+					t.Debugger.SetRunning(false)
 					t.App.QueueUpdateDraw(func() {
 						t.WriteStatus(fmt.Sprintf("[yellow]Stopped:[white] %s at PC=0x%08X\n", reason, t.Debugger.VM.CPU.PC))
 						t.DetectRegisterChanges()
