@@ -632,50 +632,6 @@ func main() {
 	}
 }
 
-// processEscapeSequences processes escape sequences in a string
-func processEscapeSequences(s string) string {
-	result := make([]byte, 0, len(s))
-	i := 0
-	for i < len(s) {
-		if s[i] == '\\' && i+1 < len(s) {
-			// Process escape sequence
-			switch s[i+1] {
-			case 'n':
-				result = append(result, '\n')
-			case 't':
-				result = append(result, '\t')
-			case 'r':
-				result = append(result, '\r')
-			case '\\':
-				result = append(result, '\\')
-			case '0':
-				result = append(result, '\x00')
-			case '"':
-				result = append(result, '"')
-			case '\'':
-				result = append(result, '\'')
-			case 'a':
-				result = append(result, '\a')
-			case 'b':
-				result = append(result, '\b')
-			case 'f':
-				result = append(result, '\f')
-			case 'v':
-				result = append(result, '\v')
-			default:
-				// Unknown escape sequence, keep as is
-				result = append(result, s[i])
-				result = append(result, s[i+1])
-			}
-			i += 2
-		} else {
-			result = append(result, s[i])
-			i++
-		}
-	}
-	return string(result)
-}
-
 // loadProgramIntoVM loads a parsed program into the VM's memory
 func loadProgramIntoVM(machine *vm.VM, program *parser.Program, entryPoint uint32) error {
 	// Ensure memory segment exists for the entry point
@@ -787,7 +743,7 @@ func loadProgramIntoVM(machine *vm.VM, program *parser.Program, entryPoint uint3
 					str = str[1 : len(str)-1]
 				}
 				// Process escape sequences
-				processedStr := processEscapeSequences(str)
+				processedStr := parser.ProcessEscapeSequences(str)
 				// Write string bytes
 				for i := 0; i < len(processedStr); i++ {
 					if err := machine.Memory.WriteByteUnsafe(dataAddr, processedStr[i]); err != nil {
@@ -809,7 +765,7 @@ func loadProgramIntoVM(machine *vm.VM, program *parser.Program, entryPoint uint3
 					str = str[1 : len(str)-1]
 				}
 				// Process escape sequences
-				processedStr := processEscapeSequences(str)
+				processedStr := parser.ProcessEscapeSequences(str)
 				// Write string bytes
 				for i := 0; i < len(processedStr); i++ {
 					if err := machine.Memory.WriteByteUnsafe(dataAddr, processedStr[i]); err != nil {

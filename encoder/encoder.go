@@ -173,34 +173,21 @@ func (e *Encoder) parseImmediate(imm string) (uint32, error) {
 	// Remove leading # if present
 	imm = strings.TrimPrefix(imm, "#")
 
-	// Handle character literals like 'A' or ' ' or '\t'
+	// Handle character literals like 'A' or ' ' or '\t' or '\x41'
 	if strings.HasPrefix(imm, "'") && strings.HasSuffix(imm, "'") && len(imm) >= 3 {
 		charLiteral := imm[1 : len(imm)-1] // Remove quotes
 
-		// Handle escape sequences
+		// Handle escape sequences using shared parser utility
 		if strings.HasPrefix(charLiteral, "\\") {
-			if len(charLiteral) != 2 {
+			b, consumed, err := parser.ParseEscapeChar(charLiteral)
+			if err != nil {
+				return 0, fmt.Errorf("invalid escape sequence in character literal: %s", imm)
+			}
+			// Ensure the entire escape was consumed
+			if consumed != len(charLiteral) {
 				return 0, fmt.Errorf("invalid character literal: %s", imm)
 			}
-			escapeChar := charLiteral[1]
-			switch escapeChar {
-			case 'n':
-				return uint32('\n'), nil
-			case 't':
-				return uint32('\t'), nil
-			case 'r':
-				return uint32('\r'), nil
-			case '0':
-				return 0, nil
-			case '\\':
-				return uint32('\\'), nil
-			case '\'':
-				return uint32('\''), nil
-			case '"':
-				return uint32('"'), nil
-			default:
-				return 0, fmt.Errorf("invalid escape sequence: \\%c", escapeChar)
-			}
+			return uint32(b), nil
 		}
 
 		// Regular character literal

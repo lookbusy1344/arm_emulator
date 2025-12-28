@@ -210,7 +210,7 @@ func TestLiteralPool_InvertibleValuesUseMVN(t *testing.T) {
 		name  string
 		value uint32
 	}{
-		{"inverted zero", 0xFFFFFFFF}, // ~0
+		{"inverted zero", 0xFFFFFFFF},  // ~0
 		{"inverted small", 0xFFFFFF00}, // ~0xFF
 	}
 

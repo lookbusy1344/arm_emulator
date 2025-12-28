@@ -11,10 +11,10 @@ import (
 // TestParseOperand_Immediate tests immediate value parsing edge cases
 func TestParseOperand_Immediate(t *testing.T) {
 	tests := []struct {
-		name          string
-		input         string
-		wantOperand   string
-		wantParseErr  bool
+		name         string
+		input        string
+		wantOperand  string
+		wantParseErr bool
 	}{
 		// Valid immediate values
 		{"simple immediate", "MOV R0, #42", "#42", false},
