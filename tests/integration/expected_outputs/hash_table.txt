@@ -4,13 +4,13 @@ Inserting key-value pairs:
   Inserted: 100 -> 1000
   Inserted: 42 -> 420
   Inserted: 17 -> 170
-  Inserted: 33 -> 34055 (collision resolved)
-  Inserted: 255 -> 34055
+  Inserted: 33 -> 330 (collision resolved)
+  Inserted: 255 -> 2550
 
 Hash Table Contents:
   [0: empty]
   [1: 17 -> 170
-  [2: 33 -> 170
+  [2: 33 -> 330
   [3: empty]
   [4: 100 -> 1000
   [5: empty]
@@ -23,11 +23,11 @@ Hash Table Contents:
   [12: empty]
   [13: empty]
   [14: empty]
-  [15: 255 -> 170
+  [15: 255 -> 2550
 
 Lookup Tests:
   Found: 42 -> 420
-  Found: 33 -> 170
+  Found: 33 -> 330
   Not found: 99
 
 All operations completed successfully!

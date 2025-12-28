@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"strings"
+	"sync"
 
 	"github.com/gdamore/tcell/v2"
 	"github.com/rivo/tview"
@@ -62,14 +63,16 @@ type TUI struct {
 	SourceFile  string
 
 	// Register tracking for highlighting changes
-	PrevRegisters [16]uint32   // Previous values of R0-R15 before last step
-	PrevCPSR      vm.CPSR      // Previous CPSR flags before last step
-	ChangedRegs   map[int]bool // Registers that changed in the last step
-	ChangedCPSR   bool         // CPSR changed in the last step
-
-	// Memory write tracking for highlighting changes
-	RecentWrites        map[uint32]bool // Memory addresses written in the last step
-	LastTraceEntryCount int             // Number of memory trace entries before last step
+	// NOTE: These fields are accessed from both the background execution goroutine
+	// and the main UI thread. Access must be protected by stateMu.
+	// Writers (Capture/Detect methods) use Lock(), readers (Update methods) use RLock().
+	stateMu       sync.RWMutex   // Protects all change-tracking state below
+	PrevRegisters [16]uint32     // Previous values of R0-R15 before last step
+	PrevCPSR      vm.CPSR        // Previous CPSR flags before last step
+	ChangedRegs   map[int]bool   // Registers that changed in the last step
+	ChangedCPSR   bool           // CPSR changed in the last step
+	RecentWrites  map[uint32]bool // Memory addresses written in the last step
+	LastTraceEntryCount int      // Number of memory trace entries before last step
 }
 
 // tuiWriter redirects VM output to the TUI OutputView
@@ -662,10 +665,20 @@ func (t *TUI) UpdateSourceView() {
 	t.SourceView.SetText(strings.Join(lines, "\n"))
 }
 
-// UpdateRegisterView updates the register view
+// UpdateRegisterView updates the register view display
+// Thread-safe: acquires stateMu read lock for ChangedRegs/ChangedCPSR
 func (t *TUI) UpdateRegisterView() {
 	t.RegisterView.Clear()
 	t.RegisterView.ScrollToBeginning()
+
+	// Copy shared state under read lock to minimize lock hold time
+	t.stateMu.RLock()
+	changedRegs := make(map[int]bool, len(t.ChangedRegs))
+	for k, v := range t.ChangedRegs {
+		changedRegs[k] = v
+	}
+	changedCPSR := t.ChangedCPSR
+	t.stateMu.RUnlock()
 
 	cpu := t.Debugger.VM.CPU
 	var lines []string
@@ -691,7 +704,7 @@ func (t *TUI) UpdateRegisterView() {
 			}
 
 			// Check if this register changed in the last step
-			if t.ChangedRegs[reg] {
+			if changedRegs[reg] {
 				cols = append(cols, fmt.Sprintf("[green]%-3s: 0x%08X[white]", name, value))
 			} else {
 				cols = append(cols, fmt.Sprintf("%-3s: 0x%08X", name, value))
@@ -743,11 +756,11 @@ func (t *TUI) UpdateRegisterView() {
 
 	// Put PC, CPSR, flags, and cycles all on one compact line
 	pcColor := "white"
-	if t.ChangedRegs[15] {
+	if changedRegs[15] {
 		pcColor = "green"
 	}
 	cpsrColor := "white"
-	if t.ChangedCPSR {
+	if changedCPSR {
 		cpsrColor = "green"
 	}
 	statusLine := fmt.Sprintf("[%s]PC:0x%08X[white] [%s]CPSR:0x%08X[white] Flags:%s Cyc:%d",
@@ -758,7 +771,16 @@ func (t *TUI) UpdateRegisterView() {
 }
 
 // UpdateMemoryView updates the memory view
+// Thread-safe: acquires stateMu read lock for RecentWrites
 func (t *TUI) UpdateMemoryView() {
+	// Copy shared state under read lock to minimize lock hold time
+	t.stateMu.RLock()
+	recentWrites := make(map[uint32]bool, len(t.RecentWrites))
+	for k, v := range t.RecentWrites {
+		recentWrites[k] = v
+	}
+	t.stateMu.RUnlock()
+
 	// Use current memory address or PC if not set
 	addr := t.MemoryAddress
 	if addr == 0 {
@@ -800,7 +822,7 @@ func (t *TUI) UpdateMemoryView() {
 					hexPart += " "
 				}
 				// Highlight recently written bytes in green
-				if t.RecentWrites[byteAddr] {
+				if recentWrites[byteAddr] {
 					hexPart += fmt.Sprintf("[green]%02X[white]", b)
 				} else {
 					hexPart += fmt.Sprintf("%02X", b)
@@ -818,8 +840,17 @@ func (t *TUI) UpdateMemoryView() {
 }
 
 // UpdateStackView updates the stack view
+// Thread-safe: acquires stateMu read lock for RecentWrites
 func (t *TUI) UpdateStackView() {
 	t.StackView.Clear()
+
+	// Copy shared state under read lock to minimize lock hold time
+	t.stateMu.RLock()
+	recentWrites := make(map[uint32]bool, len(t.RecentWrites))
+	for k, v := range t.RecentWrites {
+		recentWrites[k] = v
+	}
+	t.stateMu.RUnlock()
 
 	sp := t.Debugger.VM.CPU.R[13] // Stack pointer
 
@@ -848,8 +879,8 @@ func (t *TUI) UpdateStackView() {
 		}
 
 		// Check if this stack location was recently written
-		isRecentWrite := t.RecentWrites[addr] || t.RecentWrites[addr+1] ||
-			t.RecentWrites[addr+2] || t.RecentWrites[addr+3]
+		isRecentWrite := recentWrites[addr] || recentWrites[addr+1] ||
+			recentWrites[addr+2] || recentWrites[addr+3]
 
 		var line string
 		if isRecentWrite {
@@ -1081,7 +1112,11 @@ func (t *TUI) LoadSource(filename string, lines []string) {
 }
 
 // CaptureRegisterState captures the current register state before stepping
+// Thread-safe: acquires stateMu
 func (t *TUI) CaptureRegisterState() {
+	t.stateMu.Lock()
+	defer t.stateMu.Unlock()
+
 	cpu := t.Debugger.VM.CPU
 
 	// Save current register values
@@ -1095,7 +1130,11 @@ func (t *TUI) CaptureRegisterState() {
 }
 
 // DetectRegisterChanges compares current registers with previous state
+// Thread-safe: acquires stateMu
 func (t *TUI) DetectRegisterChanges() {
+	t.stateMu.Lock()
+	defer t.stateMu.Unlock()
+
 	cpu := t.Debugger.VM.CPU
 
 	// Clear previous changes
@@ -1122,7 +1161,11 @@ func (t *TUI) DetectRegisterChanges() {
 }
 
 // CaptureMemoryTraceState captures the current memory trace entry count before stepping
+// Thread-safe: acquires stateMu
 func (t *TUI) CaptureMemoryTraceState() {
+	t.stateMu.Lock()
+	defer t.stateMu.Unlock()
+
 	if t.Debugger.VM.MemoryTrace != nil && t.Debugger.VM.MemoryTrace.Enabled {
 		entries := t.Debugger.VM.MemoryTrace.GetEntries()
 		t.LastTraceEntryCount = len(entries)
@@ -1130,7 +1173,11 @@ func (t *TUI) CaptureMemoryTraceState() {
 }
 
 // DetectMemoryWrites tracks memory writes from the last step using MemoryTrace
+// Thread-safe: acquires stateMu
 func (t *TUI) DetectMemoryWrites() {
+	t.stateMu.Lock()
+	defer t.stateMu.Unlock()
+
 	// Clear previous writes
 	t.RecentWrites = make(map[uint32]bool)
 

@@ -54,12 +54,12 @@ const (
 
 // Instruction Type Values (for bits shifted into position)
 const (
-	BranchTypeValue = 5    // Value 0b101 (5) in bits 27-25 for branch (before shift)
-	LDMSTMTypeValue = 4    // Value 0b100 (4) in bits 27-25 for LDM/STM (before shift)
-	MultiplyMarker  = 9    // Value 0b1001 (9) in bits 7-4 for multiply instructions
-	MOVOpcodeValue  = 0xD  // MOV opcode (13, 0b1101)
-	SWITypeValue    = 0xF  // SWI type bits (15, 0b1111)
-	MOVWOpcodeValue = 0x30 // MOVW opcode pattern (0b110000)
+	BranchTypeValue = 5   // Value 0b101 (5) in bits 27-25 for branch (before shift)
+	LDMSTMTypeValue = 4   // Value 0b100 (4) in bits 27-25 for LDM/STM (before shift)
+	MultiplyMarker  = 9   // Value 0b1001 (9) in bits 7-4 for multiply instructions
+	MOVOpcodeValue  = 0xD // MOV opcode (13, 0b1101)
+	SWITypeValue    = 0xF // SWI type bits (15, 0b1111)
+	// Note: MOVW (ARMv6T2+) is intentionally not supported for ARM2 compatibility
 )
 
 // Word Size

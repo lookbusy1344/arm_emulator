@@ -24,7 +24,7 @@ main:
 
     ; Insert: key=100, value=1000
     MOV r0, #100
-    MOV r1, #1000
+    LDR r1, =1000              ; Use LDR for values not encodable as ARM immediate
     BL hash_insert
     CMP r0, #0
     BNE insert_fail
@@ -34,14 +34,14 @@ main:
     BL print_int
     LDR r0, =arrow_msg
     BL print_string
-    MOV r0, #1000
+    LDR r0, =1000              ; Use LDR for values not encodable as ARM immediate
     BL print_int
     LDR r0, =newline
     BL print_string
 
     ; Insert: key=42, value=420
     MOV r0, #42
-    MOV r1, #420
+    LDR r1, =420               ; Use LDR for values not encodable as ARM immediate
     BL hash_insert
     CMP r0, #0
     BNE insert_fail
@@ -51,7 +51,7 @@ main:
     BL print_int
     LDR r0, =arrow_msg
     BL print_string
-    MOV r0, #420
+    LDR r0, =420               ; Use LDR for values not encodable as ARM immediate
     BL print_int
     LDR r0, =newline
     BL print_string
@@ -75,7 +75,7 @@ main:
 
     ; Insert: key=33, value=330 (will collide with key=17)
     MOV r0, #33
-    MOV r1, #330
+    LDR r1, =330               ; Use LDR for values not encodable as ARM immediate
     BL hash_insert
     CMP r0, #0
     BNE insert_fail
@@ -85,14 +85,14 @@ main:
     BL print_int
     LDR r0, =arrow_msg
     BL print_string
-    MOV r0, #330
+    LDR r0, =330               ; Use LDR for values not encodable as ARM immediate
     BL print_int
     LDR r0, =collision_msg
     BL print_string
 
     ; Insert: key=255, value=2550
     MOV r0, #255
-    MOV r1, #2550
+    LDR r1, =2550              ; Use LDR for values not encodable as ARM immediate
     BL hash_insert
     CMP r0, #0
     BNE insert_fail
@@ -102,7 +102,7 @@ main:
     BL print_int
     LDR r0, =arrow_msg
     BL print_string
-    MOV r0, #2550
+    LDR r0, =2550              ; Use LDR for values not encodable as ARM immediate
     BL print_int
     LDR r0, =newline
     BL print_string

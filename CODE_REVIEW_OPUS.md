@@ -25,7 +25,7 @@ This ARM2 emulator is a **well-engineered project** with strong architectural fo
 
 ### Critical Issues Found
 
-1. **Thread Safety in TUI** - Race conditions in `executeUntilBreak()` goroutine - VALID
+1. ~~**Thread Safety in TUI**~~ - Race conditions in `executeUntilBreak()` goroutine - **FIXED 2025-12-28** (added sync.RWMutex)
 2. ~~**Potential Deadlock**~~ - `RunUntilHalt()` + `SendInput()` interaction - MITIGATED (uses lock-free io.Pipe)
 3. ~~**Encoder Bugs**~~ - Immediate rotation "undefined behavior" - NOT A BUG (Go defines shift by 32)
 4. ~~**Multiply Encoding**~~ - Different shift constants - INTENTIONAL per ARM spec
@@ -146,7 +146,7 @@ This is well-documented in `vm/syscall.go:16-34`.
 | Location | Issue | Severity | Status |
 |----------|-------|----------|--------|
 | `parser/parser.go:468-630` | parseOperand() too complex (163 lines) | Medium | Valid - refactoring opportunity |
-| `debugger/tui.go:420-496` | Goroutine modifies shared state | High | Valid - needs mutex |
+| ~~`debugger/tui.go:420-496`~~ | ~~Goroutine modifies shared state~~ | ~~High~~ | **FIXED 2025-12-28** - Added sync.RWMutex |
 | `encoder/encoder.go:260-279` | ~~Undefined behavior when rotate=0~~ | ~~High~~ | Not a bug - Go defines shift by 32 |
 | `vm/multiply.go:19-22` | ~~Rd/Rn use swapped shift constants~~ | ~~Medium~~ | Intentional per ARM multiply format |
 | `service/debugger_service.go:597-664` | ~~Lock held during blocking I/O~~ | ~~High~~ | Mitigated via lock-free io.Pipe |
@@ -206,11 +206,13 @@ func TestMOV_AllConditions(t *testing.T) {
 
 ### 3.3 Test Gaps
 
-1. **Encoder unit tests missing** for:
-   - `encodeImmediate()` edge cases
-   - Rotation encoding with rotate=0
-   - Halfword offset splitting
-   - MOVW encoding correctness
+1. ~~**Encoder unit tests missing**~~ - **FIXED 2025-12-28** - Added comprehensive encoder unit tests in `tests/unit/encoder/`:
+   - Condition code encoding
+   - Immediate value encoding and rotation
+   - Register parsing
+   - Data processing instructions
+   - Memory addressing modes
+   - Branch, multiply, SWI encoding
 
 2. **Parser operand edge cases** not tested:
    - `[R0, R1]` (invalid memory addressing)

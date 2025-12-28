@@ -13,10 +13,10 @@ The ARM2 emulator is a robust and well-structured project, demonstrating high co
 
 ### Key Findings
 
-1.  **CRITICAL: TUI Race Conditions Persist** - The `debugger/tui.go` file still contains unprotected concurrent access to shared state.
-2.  **CRITICAL: Missing Encoder Tests** - The `encoder` package has zero unit tests, despite being a complex and critical component.
+1.  ~~**CRITICAL: TUI Race Conditions Persist**~~ - **FIXED 2025-12-28** - Added `sync.RWMutex` to protect shared state in `debugger/tui.go`.
+2.  ~~**CRITICAL: Missing Encoder Tests**~~ - **FIXED 2025-12-28** - Added comprehensive encoder unit tests in `tests/unit/encoder/`.
 3.  **High Complexity in Parser** - `parseOperand` remains a monolithic function that is difficult to maintain.
-4.  **Feature Creep/Inaccuracy** - The encoder implements `MOVW` (ARMv7) which is not present in ARM2, potentially leading to compatibility issues if strict emulation is required.
+4.  ~~**Feature Creep/Inaccuracy**~~ - **FIXED 2025-12-28** - Removed `MOVW` (ARMv7) support for strict ARM2 compliance. Updated `hash_table.s` to use literal pools.
 
 ---
 
@@ -27,7 +27,7 @@ I have verified the findings from the `CODE_REVIEW_OPUS.md` (dated 2025-11-26) a
 ### 1.1 TUI Thread Safety (Confirmed Critical)
 **File:** `debugger/tui.go` (Lines 420-496)
 The `executeUntilBreak` method spawns a goroutine that modifies `t.Debugger.Running` and calls methods like `t.CaptureRegisterState()` and `t.DetectRegisterChanges()` without any mutex locking. These methods modify fields that are also accessed by the main thread during `RefreshAll()`.
-*   **Status:** 🔴 **Unfixed**. This is a race condition waiting to happen.
+*   **Status:** ✅ **FIXED 2025-12-28** - Added `sync.RWMutex` (`stateMu`) to protect shared state. Writers (Capture/Detect methods) use `Lock()`, readers (Update methods) use `RLock()` and copy state to minimize lock hold time.
 
 ### 1.2 Parser Complexity (Confirmed)
 **File:** `parser/parser.go` (Lines 468-630)
@@ -41,18 +41,24 @@ The `parseOperand` function is approximately 160 lines long, containing a large 
 ### 2.1 Missing Encoder Tests (Critical)
 **Location:** `tests/unit/encoder/` (Missing)
 The `encoder` package is responsible for generating machine code. While the `vm` and `parser` have extensive tests, the `encoder` has **no unit tests**.
-*   **Risk:** High. Bugs in encoding (e.g., incorrect bit offsets, wrong rotation calculation) could go undetected until they cause obscure runtime errors in the emulator or on real hardware.
-*   **Recommendation:** Create `tests/unit/encoder` and add comprehensive tests for all instruction types, especially edge cases in immediate encoding and addressing modes.
+*   **Status:** ✅ **FIXED 2025-12-28** - Created `tests/unit/encoder/encoder_test.go` with comprehensive tests:
+    - Condition code encoding (all 16 conditions)
+    - Immediate value encoding with rotation
+    - Register parsing (R0-R15, SP, LR, PC aliases)
+    - Data processing instructions (MOV, ADD, SUB, AND, ORR, CMP, etc.)
+    - Shift encoding (LSL, LSR, ASR, ROR)
+    - Memory addressing modes
+    - Branch, multiply, SWI, NOP encoding
+    - Error handling for invalid inputs
 
 ### 2.2 ARM2 Incompatibility (MOVW)
 **File:** `encoder/data_processing.go` (Line 237)
 The encoder attempts to use `MOVW` (Move Wide) if an immediate value fits in 16 bits but cannot be encoded as a standard ARM immediate (8-bit rotated).
-```go
-// Use MOVW encoding for 16-bit immediates
-return (cond << ConditionShift) | (MOVWOpcodeValue << SBitShift) | ...
-```
-*   **Issue:** `MOVW` was introduced in ARMv6T2/ARMv7. It does **not** exist in ARM2. An actual ARM2 processor would likely treat this as an undefined instruction or execute it incorrectly.
-*   **Recommendation:** Remove `MOVW` support if the goal is a strict ARM2 emulator. If the immediate cannot be encoded, the encoder should return an error or suggest using a literal pool (`LDR Rd, =value`).
+*   **Status:** ✅ **FIXED 2025-12-28** - Removed `MOVW` support for strict ARM2 compliance:
+    - Encoder now returns clear error: "use LDR Rd, =value with literal pool"
+    - Removed `MOVWOpcodeValue` constant
+    - Updated `hash_table.s` example to use `LDR Rd, =value` for large immediates (330, 420, 1000, 2550)
+    - Updated expected test output
 
 ### 2.3 Encoder Immediate Rotation Logic
 **File:** `encoder/encoder.go` (Line 260)
@@ -64,12 +70,12 @@ The `encodeImmediate` function correctly implements the ARM immediate encoding l
 ## 3. Recommendations
 
 ### 3.1 Immediate Actions
-1.  **Fix TUI Concurrency:** Add a `sync.Mutex` to the `TUI` struct and lock it whenever accessing `ChangedRegs`, `RecentWrites`, `PrevRegisters`, or `Debugger.Running` from both the background goroutine and the UI thread.
-2.  **Add Encoder Tests:** Create a test suite for the encoder. Verify that generated machine code matches expected binary output for a wide range of instructions.
+1.  ~~**Fix TUI Concurrency:**~~ ✅ **DONE** - Added `sync.RWMutex` to the `TUI` struct.
+2.  ~~**Add Encoder Tests:**~~ ✅ **DONE** - Created comprehensive test suite in `tests/unit/encoder/`.
 
 ### 3.2 Refactoring
 1.  **Refactor `parseOperand`:** Split this function into `parseImmediate`, `parseMemory`, `parseRegisterList`, etc.
-2.  **Remove `MOVW`:** Ensure the encoder adheres to the ARM2 specification.
+2.  ~~**Remove `MOVW`:**~~ ✅ **DONE** - Encoder now adheres to ARM2 specification.
 
 ### 3.3 Documentation
 1.  **Update `TODO.md`:** Add these findings to the TODO list to ensure they are tracked.
