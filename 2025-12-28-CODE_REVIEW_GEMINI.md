@@ -22,7 +22,7 @@ The `handleReadString` and `handleReadInt` functions use `vm.stdinReader.ReadStr
 in `vm/constants.go`. Both `handleReadString` and `handleReadInt` now use bounded reading to prevent
 memory exhaustion attacks.
 
-### 2.2. Incomplete Escape Sequence Support
+### 2.2. Incomplete Escape Sequence Support ✅ FIXED
 **Severity:** Medium
 **Location:** `main.go` (`processEscapeSequences`), `encoder/encoder.go` (`parseImmediate`)
 
@@ -30,6 +30,11 @@ The project implements custom escape sequence parsing in multiple places.
 *   **Issue:** The current implementation supports basic escapes (`\n`, `\t`, `\\`, etc.) but lacks support for hex (`\xNN`) and octal (`\NNN`) escape sequences, which are standard in assembly and C.
 *   **Impact:** Users cannot easily embed arbitrary byte values in strings or character literals if they don't map to standard escapes.
 *   **Recommendation:** Implement a centralized `ParseEscapeSequence` utility in the `parser` or `tools` package that supports full C-style escape sequences, and use it consistently across the codebase.
+
+**Resolution:** Created `parser/escape.go` with shared `ProcessEscapeSequences` and `ParseEscapeChar`
+functions supporting hex escapes (`\xNN`). Removed duplicated code from `main.go`,
+`service/debugger_service.go`, and `tests/integration/syscalls_test.go`. Updated `encoder/encoder.go`
+to use the shared utility for character literals.
 
 ## 3. Architectural Observations
 
@@ -49,7 +54,7 @@ The project implements custom escape sequence parsing in multiple places.
 *   **Recommendation:** Ensure strict synchronization between parser estimation and encoder generation. Ideally, the assembler would be single-pass with backpatching or strictly two-pass where the first pass calculates exact sizes.
 
 ### 3.3. Code Duplication
-*   **Escape Sequences:** Logic is duplicated between `main.go` and `encoder/encoder.go`.
+*   ~~**Escape Sequences:** Logic is duplicated between `main.go` and `encoder/encoder.go`.~~ ✅ **FIXED** - Now uses shared `parser.ProcessEscapeSequences`
 *   **Address Calculation:** Both `parser` and `main.go` (during loading) calculate addresses for directives.
 
 ## 4. Code Quality & Style
@@ -61,13 +66,13 @@ The project implements custom escape sequence parsing in multiple places.
 
 ## 5. Missing Features
 
-*   **Full Escape Sequences:** As mentioned above (`\xNN`, `\uNNNN`).
+*   ~~**Full Escape Sequences:** As mentioned above (`\xNN`, `\uNNNN`).~~ ✅ **FIXED** - Hex escapes (`\xNN`) now supported
 *   **Memory Protection:** No MMU or MPU simulation (expected for ARM2, but limits OS simulation).
 *   **Coprocessor Support:** Stubs exist but no implementation (e.g., for floating point).
 
 ## 6. Recommendations
 
 1.  ~~**Fix the DoS vulnerability** in `vm/syscall.go` immediately.~~ ✅ **DONE** - Added input limits
-2.  **Refactor escape sequence parsing** into a shared utility function.
-3.  **Add hex escape support** to the new utility.
+2.  ~~**Refactor escape sequence parsing** into a shared utility function.~~ ✅ **DONE** - Created `parser/escape.go`
+3.  ~~**Add hex escape support** to the new utility.~~ ✅ **DONE** - Supports `\xNN` hex escapes
 4.  **Add a stack overflow warning** if SP enters the heap segment.
