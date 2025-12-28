@@ -2,6 +2,7 @@ package vm
 
 import (
 	"fmt"
+	"math"
 )
 
 // ExecuteLoadStore executes load/store instructions (LDR, STR, LDRB, STRB, LDRH, STRH)
@@ -63,11 +64,19 @@ func ExecuteLoadStore(v *VM, inst *Instruction) error {
 		}
 	}
 
-	// Apply sign of offset
+	// Apply sign of offset with overflow/underflow detection
 	var effectiveAddr uint32
 	if addOffset == 1 {
+		// Check for unsigned overflow: baseAddr + offset > MaxUint32
+		if offset > 0 && baseAddr > math.MaxUint32-offset {
+			return fmt.Errorf("address overflow: base 0x%08X + offset 0x%08X wraps around", baseAddr, offset)
+		}
 		effectiveAddr = baseAddr + offset
 	} else {
+		// Check for unsigned underflow: baseAddr - offset < 0
+		if offset > baseAddr {
+			return fmt.Errorf("address underflow: base 0x%08X - offset 0x%08X wraps around", baseAddr, offset)
+		}
 		effectiveAddr = baseAddr - offset
 	}
 
