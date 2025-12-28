@@ -36,6 +36,20 @@ func init() {
 
 // DebuggerService provides a thread-safe interface to debugger functionality
 // This service is shared by TUI, GUI, and CLI interfaces
+//
+// Lock Ordering:
+// The service uses its own sync.RWMutex (s.mu) to protect all field access,
+// including access to the debugger. When calling Debugger methods that have
+// their own internal mutex (like ShouldBreak), the lock order is:
+// s.mu -> debugger.mu
+//
+// This is safe because:
+// - The TUI uses the Debugger's internal mutex directly (no service mutex)
+// - The service always acquires s.mu before any Debugger method that uses d.mu
+// - The GUI only accesses debugger state through the service
+//
+// Do NOT acquire locks in the reverse order (debugger.mu -> s.mu) as this
+// would create a deadlock risk.
 type DebuggerService struct {
 	mu                   sync.RWMutex
 	vm                   *vm.VM
