@@ -269,3 +269,67 @@ func TestPreprocessor_BaseDir(t *testing.T) {
 		t.Fatal("NewPreprocessor returned nil")
 	}
 }
+
+// TestPreprocessor_NestedIfdef_ElseInSkippedBlock verifies that .else inside
+// a skipped parent block doesn't enable output (issue 3.3)
+func TestPreprocessor_NestedIfdef_ElseInSkippedBlock(t *testing.T) {
+	pp := parser.NewPreprocessor(".")
+
+	// FOO is NOT defined, so the outer block is skipped
+	// The inner .else should NOT enable output since parent is skipped
+	content := `.ifdef FOO
+; A - should be skipped (FOO not defined)
+.ifdef BAR
+; B - should be skipped
+.else
+; C - should STILL be skipped (parent FOO block is skipped!)
+.endif
+.endif
+; D - should be included (outside all conditionals)
+`
+	result, err := pp.ProcessContent(content, "test.s")
+	if err != nil {
+		t.Fatalf("ProcessContent failed: %v", err)
+	}
+
+	// Only line D should be in the output
+	expected := "; D - should be included (outside all conditionals)\n"
+	if result != expected {
+		t.Errorf("Expected:\n%q\nGot:\n%q", expected, result)
+	}
+}
+
+// TestPreprocessor_NestedIfdef_ElseInActiveBlock verifies that .else inside
+// an active parent block works correctly
+func TestPreprocessor_NestedIfdef_ElseInActiveBlock(t *testing.T) {
+	pp := parser.NewPreprocessor(".")
+
+	// Define FOO so outer block is active
+	pp.Define("FOO")
+
+	// FOO is defined, so outer block is active
+	// BAR is NOT defined, so inner .else should enable output
+	content := `.ifdef FOO
+; A - should be included (FOO is defined)
+.ifdef BAR
+; B - should be skipped (BAR not defined)
+.else
+; C - should be included (BAR not defined, but FOO block is active)
+.endif
+.endif
+; D - should be included (outside all conditionals)
+`
+	result, err := pp.ProcessContent(content, "test.s")
+	if err != nil {
+		t.Fatalf("ProcessContent failed: %v", err)
+	}
+
+	// Lines A, C, and D should be in the output
+	expected := `; A - should be included (FOO is defined)
+; C - should be included (BAR not defined, but FOO block is active)
+; D - should be included (outside all conditionals)
+`
+	if result != expected {
+		t.Errorf("Expected:\n%q\nGot:\n%q", expected, result)
+	}
+}
