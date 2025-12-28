@@ -333,7 +333,7 @@ if err != nil {
 1. Config file parsing fails (returns defaults with warning)
 2. Unrecognized keys are present in the config file
 
-### 4.6. Breakpoint Condition Pollutes Value History
+### 4.6. Breakpoint Condition Pollutes Value History ✅ FALSE POSITIVE
 **Severity:** MEDIUM
 **Location:** `debugger/debugger.go`
 
@@ -347,6 +347,11 @@ result, err := d.EvaluateExpression(bp.Condition)
 **Risk:** History becomes cluttered with automatic evaluations, confusing users.
 
 **Recommendation:** Use a separate evaluation context for condition checks that doesn't modify history.
+
+**Resolution:** This is a false positive. The code uses `d.Evaluator.Evaluate()`, not
+`d.EvaluateExpression()`. The `Evaluate()` method was specifically designed to NOT
+store results in history (it just returns a boolean). Only `EvaluateExpression()` adds
+to history. Added documentation to clarify this design decision.
 
 ---
 

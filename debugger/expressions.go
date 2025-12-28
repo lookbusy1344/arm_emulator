@@ -35,7 +35,10 @@ func (e *ExpressionEvaluator) EvaluateExpression(expr string, machine *vm.VM, sy
 	return result, nil
 }
 
-// Evaluate evaluates an expression and returns a boolean result (for conditions)
+// Evaluate evaluates an expression and returns a boolean result (for conditions).
+// Unlike EvaluateExpression, this method does NOT store the result in value history.
+// This is intentional for breakpoint condition evaluation, which should not pollute
+// the user's $1, $2, etc. history references.
 func (e *ExpressionEvaluator) Evaluate(expr string, machine *vm.VM, symbols map[string]uint32) (bool, error) {
 	result, err := e.evaluate(expr, machine, symbols)
 	if err != nil {
