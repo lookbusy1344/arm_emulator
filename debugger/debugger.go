@@ -250,8 +250,12 @@ func (d *Debugger) ShouldBreak() (bool, string) {
 		}
 
 	case StepOut:
-		// This would require call stack tracking
-		// For now, simplified implementation
+		// NOTE: StepOut is not fully implemented. Proper step-out would require:
+		// 1. Recording the current LR value when step-out is initiated
+		// 2. Running until PC equals the recorded LR value
+		// OR maintaining a call stack by monitoring BL/BX instructions.
+		// Currently, this falls through and execution continues until a breakpoint is hit.
+		// Users should set a breakpoint at the expected return location as a workaround.
 	}
 	d.mu.Unlock()
 
