@@ -66,13 +66,13 @@ type TUI struct {
 	// NOTE: These fields are accessed from both the background execution goroutine
 	// and the main UI thread. Access must be protected by stateMu.
 	// Writers (Capture/Detect methods) use Lock(), readers (Update methods) use RLock().
-	stateMu       sync.RWMutex   // Protects all change-tracking state below
-	PrevRegisters [16]uint32     // Previous values of R0-R15 before last step
-	PrevCPSR      vm.CPSR        // Previous CPSR flags before last step
-	ChangedRegs   map[int]bool   // Registers that changed in the last step
-	ChangedCPSR   bool           // CPSR changed in the last step
-	RecentWrites  map[uint32]bool // Memory addresses written in the last step
-	LastTraceEntryCount int      // Number of memory trace entries before last step
+	stateMu             sync.RWMutex    // Protects all change-tracking state below
+	PrevRegisters       [16]uint32      // Previous values of R0-R15 before last step
+	PrevCPSR            vm.CPSR         // Previous CPSR flags before last step
+	ChangedRegs         map[int]bool    // Registers that changed in the last step
+	ChangedCPSR         bool            // CPSR changed in the last step
+	RecentWrites        map[uint32]bool // Memory addresses written in the last step
+	LastTraceEntryCount int             // Number of memory trace entries before last step
 }
 
 // tuiWriter redirects VM output to the TUI OutputView

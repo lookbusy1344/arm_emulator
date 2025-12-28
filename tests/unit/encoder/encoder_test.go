@@ -135,10 +135,10 @@ func TestEncodeImmediateRotations(t *testing.T) {
 		{"0x00", "#0x00"},
 		{"0x01", "#0x01"},
 		{"0xFF", "#0xFF"},
-		{"0x100", "#0x100"},       // 1 rotated left by 8
-		{"0x200", "#0x200"},       // 2 rotated left by 8
-		{"0x3FC", "#0x3FC"},       // 0xFF rotated left by 2
-		{"0xFF00", "#0xFF00"},     // 0xFF rotated left by 8
+		{"0x100", "#0x100"},           // 1 rotated left by 8
+		{"0x200", "#0x200"},           // 2 rotated left by 8
+		{"0x3FC", "#0x3FC"},           // 0xFF rotated left by 2
+		{"0xFF00", "#0xFF00"},         // 0xFF rotated left by 8
 		{"0xFF000000", "#0xFF000000"}, // 0xFF rotated left by 24
 		{"0x80000000", "#0x80000000"}, // 2 rotated left by 31
 	}
@@ -171,7 +171,7 @@ func TestEncodeImmediateUnencodable(t *testing.T) {
 		// Values that can be encoded via MVN (inverted value is encodable)
 		{"0xFFFFFF00 (can use MVN)", "#0xFFFFFF00", false}, // ~0xFF
 		// Values that cannot be encoded as ARM2 immediate
-		{"0x12345678", "#0x12345678", true}, // Cannot be encoded
+		{"0x12345678", "#0x12345678", true},           // Cannot be encoded
 		{"0xABCD (no MOVW in ARM2)", "#0xABCD", true}, // Would need MOVW which is not ARM2
 	}
 
@@ -436,11 +436,11 @@ func TestEncodeBranch(t *testing.T) {
 	enc := newTestEncoderWithSymbols(symbols)
 
 	tests := []struct {
-		name      string
-		mnemonic  string
-		operands  []string
-		addr      uint32
-		wantLink  uint32 // Link bit (bit 24)
+		name     string
+		mnemonic string
+		operands []string
+		addr     uint32
+		wantLink uint32 // Link bit (bit 24)
 	}{
 		{"B forward", "B", []string{"target"}, 0x8000, 0},
 		{"BL forward", "BL", []string{"target"}, 0x8000, 1},
