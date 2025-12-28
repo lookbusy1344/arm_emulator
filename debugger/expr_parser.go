@@ -305,8 +305,18 @@ func (p *ExprParser) applyOperator(left, right uint32, op string) (uint32, error
 	case "^":
 		return left ^ right, nil
 	case "<<":
+		// Clamp shift amount to prevent undefined behavior
+		// Shifting uint32 by >= 32 produces 0, but be explicit
+		if right >= 32 {
+			return 0, nil
+		}
 		return left << right, nil
 	case ">>":
+		// Clamp shift amount to prevent undefined behavior
+		// Shifting uint32 by >= 32 produces 0, but be explicit
+		if right >= 32 {
+			return 0, nil
+		}
 		return left >> right, nil
 	default:
 		return 0, fmt.Errorf("unknown operator: %s", op)
