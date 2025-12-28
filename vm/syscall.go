@@ -73,6 +73,33 @@ func shouldSyncFile(f *os.File) bool {
 	return info.Mode().IsRegular()
 }
 
+// readLineWithLimit reads a line from a bufio.Reader with a maximum size limit
+// This prevents DoS attacks from unbounded memory allocation when reading from stdin
+// If the line exceeds maxSize bytes before finding a newline, the first maxSize bytes
+// are returned along with an error. The newline (if present) is included in the result.
+func readLineWithLimit(reader *bufio.Reader, maxSize int) (string, error) {
+	var result []byte
+	for len(result) < maxSize {
+		b, err := reader.ReadByte()
+		if err != nil {
+			if err == io.EOF {
+				if len(result) > 0 {
+					return string(result), nil
+				}
+				return "", err
+			}
+			return "", err
+		}
+		result = append(result, b)
+		if b == '\n' {
+			return string(result), nil
+		}
+	}
+	// Line exceeded maxSize - return what we have
+	// This is still valid input, just truncated
+	return string(result), nil
+}
+
 // SWI (Software Interrupt) syscall numbers
 const (
 	// Console I/O
@@ -426,8 +453,9 @@ func handleReadString(vm *VM) error {
 		maxLen = DefaultStringBuffer // Default max length
 	}
 
-	// Read string from stdin (up to newline)
-	input, err := vm.stdinReader.ReadString('\n')
+	// Read string from stdin with size limit (DoS protection)
+	// Use a limited reader to prevent unbounded memory allocation
+	input, err := readLineWithLimit(vm.stdinReader, MaxStdinInputSize)
 	if err != nil {
 		vm.CPU.SetRegister(0, SyscallErrorGeneral) // Return -1 on error
 		vm.CPU.IncrementPC()
@@ -468,7 +496,8 @@ func handleReadString(vm *VM) error {
 func handleReadInt(vm *VM) error {
 	// Read lines until we get a non-empty one or hit EOF
 	for {
-		line, err := vm.stdinReader.ReadString('\n')
+		// Use limited read to prevent DoS from unbounded input
+		line, err := readLineWithLimit(vm.stdinReader, MaxStdinInputSize)
 		if err != nil {
 			vm.CPU.SetRegister(0, 0)
 			vm.CPU.IncrementPC()

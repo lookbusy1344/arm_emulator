@@ -282,6 +282,7 @@ const (
 	MaxFileDescriptors  = 1024        // Maximum number of open FDs
 	DefaultStringBuffer = 256         // Default buffer for READ_STRING
 	MaxMemoryDump       = 1024        // 1KB limit for memory dumps
+	MaxStdinInputSize   = 4096        // 4KB maximum stdin input per read (DoS protection)
 )
 
 // Note: Number bases (2, 8, 10, 16) are used directly as literals - they are self-documenting
