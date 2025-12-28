@@ -299,9 +299,9 @@ The parser estimates literal pool sizes in one pass and the encoder places liter
 
 **Recommendation:** Consider a strict two-pass approach where the first pass calculates exact sizes.
 
-### 4.2. Possible Register Field Swap in Multiply
+### 4.2. Possible Register Field Swap in Multiply ✅ VERIFIED OK
 **Severity:** MEDIUM
-**Location:** `instructions/multiply.go`
+**Location:** `vm/multiply.go`, `encoder/other.go`
 
 There may be inconsistency in how Rd and Rm are handled in multiply instructions:
 
@@ -311,7 +311,14 @@ rm := instruction & 0xF
 // ARM2 restricts: Rd != Rm, Rd != R15
 ```
 
-**Verification Needed:** Compare against ARM2 architecture reference to ensure field positions are correct.
+**Resolution:** Verified against ARM2 architecture and existing tests. The encoding is correct:
+- MUL format: `cccc 0000 00AS dddd 0000 ssss 1001 mmmm`
+- Rd (destination) in bits 19-16, Rs in bits 11-8, Rm in bits 3-0
+- Test `0xE0000291` (MUL R0, R1, R2) correctly encodes Rd=0, Rs=2, Rm=1
+
+The variable names using `RnShift` for Rd are intentionally reusing data processing constants
+since multiply uses the same bit positions differently. Code comments document this.
+Verified with 20+ multiply tests passing. 2025-12-28.
 
 ### 4.3. Halfword Offset Uses Wrong Constant
 **Severity:** MEDIUM
@@ -497,7 +504,7 @@ The project has 1,024 tests with 100% pass rate. Coverage is generally good, but
 2. ~~Add config parsing warnings~~ → Fixed (commit `98cccf4`)
 3. ~~Centralize string escape parsing~~ → Fixed (commit `b409e46`)
 4. Add register alias consistency - **Documented limitation**
-5. Verify multiply register fields - **Outstanding** (needs ARM2 reference check)
+5. ~~Verify multiply register fields~~ → Verified OK (2025-12-28)
 6. Verify halfword offset encoding - **Outstanding** (needs ARM2 reference check)
 7. ~~Add string slice boundary checks~~ → False positive (already guarded)
 
@@ -533,11 +540,10 @@ The ARM emulator is a substantial and well-organized project with impressive fun
 |----------|--------|
 | Critical Issues (5) | ✅ All resolved |
 | High Severity (8) | ✅ All resolved (5 fixed, 3 documented limitations/false positives) |
-| Medium Severity (6) | ⚠️ 3 fixed, 1 false positive, 2 outstanding |
+| Medium Severity (6) | ⚠️ 3 fixed, 2 verified OK/false positive, 1 outstanding |
 | Low Severity (4) | ✅ All resolved |
 
 **Remaining work** (Medium priority, non-blocking):
-- Verify multiply instruction register field positions against ARM2 reference
 - Verify halfword offset encoding against ARM2 reference
 - Consider simplifying literal pool handling (architectural improvement)
 
