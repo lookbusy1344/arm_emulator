@@ -630,6 +630,50 @@ func TestEncodeSWI(t *testing.T) {
 	}
 }
 
+// TestEncodeSWI_VMDetection verifies encoded SWI matches VM's detection pattern
+func TestEncodeSWI_VMDetection(t *testing.T) {
+	enc := newTestEncoder()
+
+	tests := []struct {
+		name    string
+		operand string
+		wantImm uint32
+	}{
+		{"SWI #0 (EXIT)", "#0", 0},
+		{"SWI #1 (WRITE_CHAR)", "#1", 1},
+		{"SWI #0x10 (OPEN)", "#0x10", 0x10},
+		{"SWI #0xF0 (DEBUG_PRINT)", "#0xF0", 0xF0},
+		{"SWI #0xFFFFFF (max)", "#0xFFFFFF", 0xFFFFFF},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			inst := &parser.Instruction{
+				Mnemonic: "SWI",
+				Operands: []string{tt.operand},
+			}
+			encoded, err := enc.EncodeInstruction(inst, 0)
+			if err != nil {
+				t.Fatalf("Failed to encode: %v", err)
+			}
+
+			// Verify the encoded instruction matches VM's SWI detection pattern
+			// VM uses: (opcode & SWIDetectMask) == SWIPattern
+			if (encoded & vm.SWIDetectMask) != vm.SWIPattern {
+				t.Errorf("Encoded SWI doesn't match VM detection pattern: got 0x%08X, mask 0x%08X, pattern 0x%08X",
+					encoded, vm.SWIDetectMask, vm.SWIPattern)
+			}
+
+			// Verify the immediate can be extracted correctly
+			// VM uses: swiNum := inst.Opcode & SWIMask
+			extractedImm := encoded & vm.SWIMask
+			if extractedImm != tt.wantImm {
+				t.Errorf("Extracted immediate: got 0x%X, want 0x%X", extractedImm, tt.wantImm)
+			}
+		})
+	}
+}
+
 // TestEncodeNOP tests NOP encoding
 func TestEncodeNOP(t *testing.T) {
 	enc := newTestEncoder()

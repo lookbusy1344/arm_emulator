@@ -268,6 +268,13 @@ func (e *Encoder) encodeNOP(cond uint32) uint32 {
 }
 
 // encodeSWI encodes software interrupt instruction
+// ARM SWI instruction format (32 bits):
+//
+//	Bits 31-28: Condition code (cccc)
+//	Bits 27-24: 1111 (SWI opcode identifier - SWITypeValue=0xF shifted by 24)
+//	Bits 23-0:  24-bit immediate value (syscall number)
+//
+// Example: SWI #0x01 with condition AL (0xE) encodes as 0xEF000001
 func (e *Encoder) encodeSWI(inst *parser.Instruction, cond uint32) (uint32, error) {
 	if len(inst.Operands) < 1 {
 		return 0, fmt.Errorf("SWI requires 1 operand, got %d", len(inst.Operands))
@@ -284,7 +291,8 @@ func (e *Encoder) encodeSWI(inst *parser.Instruction, cond uint32) (uint32, erro
 		return 0, fmt.Errorf("SWI immediate too large: 0x%X (max 0x%X)", imm, vm.Mask24Bit)
 	}
 
-	// Format: cccc 1111 iiii iiii iiii iiii iiii iiii
+	// Build instruction: condition in bits 31-28, 0xF in bits 27-24, immediate in bits 23-0
+	// SWITypeValue (0xF) << PBitShift (24) = 0x0F000000 (bits 27-24 = 1111)
 	instruction := (cond << ConditionShift) | (SWITypeValue << PBitShift) | imm
 
 	return instruction, nil
