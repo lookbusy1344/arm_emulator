@@ -320,9 +320,9 @@ The variable names using `RnShift` for Rd are intentionally reusing data process
 since multiply uses the same bit positions differently. Code comments document this.
 Verified with 20+ multiply tests passing. 2025-12-28.
 
-### 4.3. Halfword Offset Uses Wrong Constant
+### 4.3. Halfword Offset Uses Wrong Constant ✅ VERIFIED OK
 **Severity:** MEDIUM
-**Location:** `encoder/encoder.go`
+**Location:** `encoder/memory.go`
 
 Halfword load/store instructions may use an incorrect constant for offset encoding:
 
@@ -330,7 +330,13 @@ Halfword load/store instructions may use an incorrect constant for offset encodi
 offset := immediate & 0xFF  // Should this be 0xF for high/low nibbles?
 ```
 
-**Recommendation:** Verify against ARM architecture reference for LDRH/STRH encoding format.
+**Resolution:** Verified correct. The code in `encodeMemoryHalfword()`:
+1. Validates offset ≤ 255 (8-bit max) via `MaxOffsetHalfword`
+2. Correctly splits into two 4-bit nibbles: `offsetHigh = (offset >> 4) & 0xF`, `offsetLow = offset & 0xF`
+3. Places offsetHigh in bits 11-8, offsetLow in bits 3-0 per ARM specification
+
+Verified with test `0xE1D100B4` (LDRH R0, [R1, #4]) which correctly encodes offset=4
+as offsetH=0, offsetL=4. All 14 halfword tests pass. 2025-12-28.
 
 ### 4.4. String Slice Boundary Assumptions ✅ FALSE POSITIVE
 **Severity:** MEDIUM
@@ -505,7 +511,7 @@ The project has 1,024 tests with 100% pass rate. Coverage is generally good, but
 3. ~~Centralize string escape parsing~~ → Fixed (commit `b409e46`)
 4. Add register alias consistency - **Documented limitation**
 5. ~~Verify multiply register fields~~ → Verified OK (2025-12-28)
-6. Verify halfword offset encoding - **Outstanding** (needs ARM2 reference check)
+6. ~~Verify halfword offset encoding~~ → Verified OK (2025-12-28)
 7. ~~Add string slice boundary checks~~ → False positive (already guarded)
 
 ### Long-term Actions (Low): ✅ ALL RESOLVED
@@ -540,12 +546,11 @@ The ARM emulator is a substantial and well-organized project with impressive fun
 |----------|--------|
 | Critical Issues (5) | ✅ All resolved |
 | High Severity (8) | ✅ All resolved (5 fixed, 3 documented limitations/false positives) |
-| Medium Severity (6) | ⚠️ 3 fixed, 2 verified OK/false positive, 1 outstanding |
+| Medium Severity (6) | ✅ 3 fixed, 3 verified OK/false positive |
 | Low Severity (4) | ✅ All resolved |
 
-**Remaining work** (Medium priority, non-blocking):
-- Verify halfword offset encoding against ARM2 reference
-- Consider simplifying literal pool handling (architectural improvement)
+**Remaining work** (Low priority, non-blocking):
+- Consider simplifying literal pool handling (architectural improvement - issue 4.1)
 
 The emulator is now robust and suitable for educational and development purposes.
 
