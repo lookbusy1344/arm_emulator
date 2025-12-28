@@ -181,10 +181,15 @@ max_cycles = "not a number"  # Invalid: should be uint64
 		t.Fatalf("Failed to create test file: %v", err)
 	}
 
-	// Should return error
-	_, err := config.LoadFrom(configPath)
-	if err == nil {
-		t.Error("Expected error when loading invalid TOML")
+	// Should return default config (graceful degradation with warning logged)
+	cfg, err := config.LoadFrom(configPath)
+	if err != nil {
+		t.Errorf("LoadFrom should return defaults on invalid TOML, not error: %v", err)
+	}
+
+	// Verify we got default config values
+	if cfg.Execution.MaxCycles != 1000000 {
+		t.Errorf("Expected default MaxCycles=1000000, got %d", cfg.Execution.MaxCycles)
 	}
 }
 

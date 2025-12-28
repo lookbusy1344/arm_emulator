@@ -315,7 +315,7 @@ operand[1:]  // Assumes len(operand) >= 1
 
 **Recommendation:** Add explicit length checks before slicing.
 
-### 4.5. Config Silent Failure
+### 4.5. Config Silent Failure ✅ FIXED
 **Severity:** MEDIUM
 **Location:** `config/config.go`
 
@@ -328,6 +328,10 @@ if err != nil {
 ```
 
 **Recommendation:** Log a warning when config parsing fails.
+
+**Resolution:** Modified `LoadFrom()` to log warnings when:
+1. Config file parsing fails (returns defaults with warning)
+2. Unrecognized keys are present in the config file
 
 ### 4.6. Breakpoint Condition Pollutes Value History
 **Severity:** MEDIUM

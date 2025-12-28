@@ -2,6 +2,7 @@ package config
 
 import (
 	"fmt"
+	"log"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -181,8 +182,17 @@ func LoadFrom(path string) (*Config, error) {
 	}
 
 	// Read and parse config file
-	if _, err := toml.DecodeFile(path, cfg); err != nil {
-		return nil, fmt.Errorf("failed to parse config file: %w", err)
+	meta, err := toml.DecodeFile(path, cfg)
+	if err != nil {
+		// Log warning and return defaults instead of failing
+		log.Printf("Warning: failed to parse config file %s: %v (using defaults)", path, err)
+		return DefaultConfig(), nil
+	}
+
+	// Warn about unrecognized keys in config file
+	undecoded := meta.Undecoded()
+	if len(undecoded) > 0 {
+		log.Printf("Warning: unrecognized keys in config file %s: %v", path, undecoded)
 	}
 
 	return cfg, nil
