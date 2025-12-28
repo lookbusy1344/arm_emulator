@@ -325,7 +325,7 @@ offset := immediate & 0xFF  // Should this be 0xF for high/low nibbles?
 
 **Recommendation:** Verify against ARM architecture reference for LDRH/STRH encoding format.
 
-### 4.4. String Slice Boundary Assumptions
+### 4.4. String Slice Boundary Assumptions ✅ FALSE POSITIVE
 **Severity:** MEDIUM
 **Location:** `parser/parser.go`, `encoder/encoder.go`
 
@@ -337,7 +337,11 @@ operand[1:]  // Assumes len(operand) >= 1
 
 **Risk:** Panics on malformed input.
 
-**Recommendation:** Add explicit length checks before slicing.
+**Resolution:** This was a false positive. All string slices are properly guarded:
+- Slices after `strings.HasPrefix()` checks are safe (prefix guarantees length)
+- All `inst.Operands[N]` accesses are guarded by `len(inst.Operands) < N+1` checks
+- Array slice operations like `parts[1:]` are guarded by `len(parts) > 1` checks
+Verified 2025-12-28.
 
 ### 4.5. Config Silent Failure ✅ FIXED
 **Severity:** MEDIUM
@@ -489,13 +493,13 @@ The project has 1,024 tests with 100% pass rate. Coverage is generally good, but
 6. ~~Implement output buffer limits in GUI~~ → Fixed (commit `afee088`)
 
 ### Medium-term Actions (Medium): PARTIALLY RESOLVED
-1. Simplify literal pool handling - **Outstanding**
+1. Simplify literal pool handling - **Outstanding** (architectural improvement)
 2. ~~Add config parsing warnings~~ → Fixed (commit `98cccf4`)
 3. ~~Centralize string escape parsing~~ → Fixed (commit `b409e46`)
 4. Add register alias consistency - **Documented limitation**
 5. Verify multiply register fields - **Outstanding** (needs ARM2 reference check)
 6. Verify halfword offset encoding - **Outstanding** (needs ARM2 reference check)
-7. Add string slice boundary checks - **Outstanding**
+7. ~~Add string slice boundary checks~~ → False positive (already guarded)
 
 ### Long-term Actions (Low): ✅ ALL RESOLVED
 1. ~~Add optional stack guard feature~~ → Fixed (commit `0626583`)
@@ -529,13 +533,12 @@ The ARM emulator is a substantial and well-organized project with impressive fun
 |----------|--------|
 | Critical Issues (5) | ✅ All resolved |
 | High Severity (8) | ✅ All resolved (5 fixed, 3 documented limitations/false positives) |
-| Medium Severity (6) | ⚠️ 2 fixed, 4 outstanding (verification/enhancement items) |
+| Medium Severity (6) | ⚠️ 3 fixed, 1 false positive, 2 outstanding |
 | Low Severity (4) | ✅ All resolved |
 
 **Remaining work** (Medium priority, non-blocking):
 - Verify multiply instruction register field positions against ARM2 reference
 - Verify halfword offset encoding against ARM2 reference
-- Add string slice boundary validation (defensive programming)
 - Consider simplifying literal pool handling (architectural improvement)
 
 The emulator is now robust and suitable for educational and development purposes.
