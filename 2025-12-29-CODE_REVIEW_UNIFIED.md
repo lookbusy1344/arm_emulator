@@ -32,8 +32,8 @@ This is a well-structured ARM2 emulator with strong test coverage (1,024 tests, 
 ### HIGH Priority
 
 #### 1. String Directives Use Raw Length Instead of Processed Length
-**Status:** CONFIRMED BUG
-**Location:** `parser/parser.go:356-368`
+**Status:** ✅ FIXED
+**Location:** `parser/parser.go:356-371`
 
 The parser reserves bytes for `.ascii`, `.asciz`, `.string` using `len(str)` on the raw string after quote removal, but `main.go` writes `ProcessEscapeSequences(str)` to memory. This causes address drift:
 

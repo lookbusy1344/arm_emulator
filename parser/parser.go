@@ -354,15 +354,17 @@ func (p *Parser) handleDirective(d *Directive, program *Program) {
 		p.currentAddress += uint32(len(d.Args)) // #nosec G115 -- reasonable argument count
 
 	case ".ascii", ".asciz", ".string":
-		// Reserve bytes for string
+		// Reserve bytes for string (use processed length to account for escape sequences)
 		if len(d.Args) > 0 {
 			str := d.Args[0]
 			// Remove quotes
 			if len(str) >= 2 && (str[0] == '"' || str[0] == '\'') {
 				str = str[1 : len(str)-1]
 			}
+			// Process escape sequences to get actual byte count (e.g., "\n" = 1 byte, "\x41" = 1 byte)
+			processedStr := ProcessEscapeSequences(str)
 			// Safe: string length is limited by available memory
-			p.currentAddress += uint32(len(str)) // #nosec G115 -- reasonable string length
+			p.currentAddress += uint32(len(processedStr)) // #nosec G115 -- reasonable string length
 			if d.Name == ".asciz" || d.Name == ".string" {
 				p.currentAddress++ // Null terminator
 			}
