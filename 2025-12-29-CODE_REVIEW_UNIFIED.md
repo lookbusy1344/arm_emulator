@@ -49,8 +49,8 @@ Labels and branch targets after these directives will have incorrect addresses.
 ---
 
 #### 2. Literal Pool Counting Does Not Deduplicate
-**Status:** CONFIRMED BUG
-**Location:** `parser/parser.go:829-888`
+**Status:** ✅ FIXED
+**Location:** `parser/parser.go:843-888`
 
 `countLiteralsPerPool()` claims to count "unique literals" but actually just counts pseudo-instructions:
 

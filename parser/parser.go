@@ -842,11 +842,11 @@ func (p *Parser) countLiteralsPerPool(program *Program) {
 
 	// Scan all instructions to count LDR pseudo-instructions for each pool
 	// An LDR Rd, =value instruction needs one literal pool entry
-	literalsBeforePool := make(map[int]map[uint32]bool) // pool index -> set of literal values
+	literalsBeforePool := make(map[int]map[string]bool) // pool index -> set of unique literal expressions
 
 	// Initialize literal tracking for each pool
 	for i := range program.LiteralPoolLocs {
-		literalsBeforePool[i] = make(map[uint32]bool)
+		literalsBeforePool[i] = make(map[string]bool)
 	}
 
 	// Track which pool each instruction belongs to
@@ -872,11 +872,10 @@ func (p *Parser) countLiteralsPerPool(program *Program) {
 				// Record that this pool will need this literal
 				if poolIdx >= 0 {
 					// Add to the set of unique literals for this pool
-					// We just mark that a literal is needed; we don't evaluate it here
-					// since it might contain forward references
-					count := len(literalsBeforePool[poolIdx])
-					// #nosec G115 -- count is controlled by number of LDR instructions, safe conversion
-					literalsBeforePool[poolIdx][uint32(count)] = true
+					// Use the literal expression string as key for deduplication
+					// (e.g., "=0x1234" used twice only needs one pool entry)
+					literalExpr := operand[1:] // Remove the '=' prefix
+					literalsBeforePool[poolIdx][literalExpr] = true
 				}
 			}
 		}

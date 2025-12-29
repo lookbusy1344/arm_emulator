@@ -422,19 +422,18 @@ main:
 		t.Fatalf("Parser errors: %v", p.Errors())
 	}
 
-	// The parser counts LDR instructions, not unique values
-	// So it should count 4 LDR pseudo-instructions, even though there are only 2 unique values
-	// (This is because at parse time, we haven't evaluated the expressions)
+	// The parser deduplicates literals by expression string
+	// 4 LDR instructions with only 2 unique values should count as 2 literals
 	if len(program.LiteralPoolCounts) != 1 {
 		t.Fatalf("Expected 1 pool, got %d", len(program.LiteralPoolCounts))
 	}
 
-	// At parse time, we count LDR instructions, so expect 4
-	if program.LiteralPoolCounts[0] != 4 {
-		t.Errorf("Expected 4 LDR instructions, got %d", program.LiteralPoolCounts[0])
+	// With deduplication: 3x =0x12345678 and 1x =0xABCDEF00 = 2 unique literals
+	if program.LiteralPoolCounts[0] != 2 {
+		t.Errorf("Expected 2 unique literals, got %d", program.LiteralPoolCounts[0])
 	}
 
-	t.Logf("Duplicates test: correctly counted %d LDR instructions", program.LiteralPoolCounts[0])
+	t.Logf("Duplicates test: correctly deduplicated to %d unique literals", program.LiteralPoolCounts[0])
 }
 
 // TestMultiplePoolsWithDifferentCounts tests accurate counting across multiple pools
@@ -635,8 +634,9 @@ section3:`
 section4:`
 
 	// Pool 4: 8 literals (will be assigned to pool 3 since no .ltorg after it)
+	// Use 0x50000000 base to avoid overlap with section3's range (0x30..0x48)
 	for i := 0; i < 8; i++ {
-		source += fmt.Sprintf("\n    LDR R0, =0x%08X", 0x40000000+uint32(i)*0x01000000)
+		source += fmt.Sprintf("\n    LDR R0, =0x%08X", 0x50000000+uint32(i)*0x01000000)
 	}
 	source += `
     MOV R0, #0
