@@ -6,6 +6,11 @@ import (
 	"strconv"
 )
 
+// isOctalDigit returns true if the byte is an octal digit (0-7)
+func isOctalDigit(b byte) bool {
+	return b >= '0' && b <= '7'
+}
+
 // ProcessEscapeSequences converts escape sequences in a string to their actual byte values.
 // Supports standard C-style escape sequences plus hex escapes (\xNN).
 //
@@ -14,7 +19,7 @@ import (
 //   - \t  tab
 //   - \r  carriage return
 //   - \\  backslash
-//   - \0  null byte
+//   - \0  null byte (also works as octal 0)
 //   - \"  double quote
 //   - \'  single quote
 //   - \a  alert/bell
@@ -22,6 +27,7 @@ import (
 //   - \f  form feed
 //   - \v  vertical tab
 //   - \xNN  hex byte value (exactly 2 hex digits required)
+//   - \NNN octal byte value (1-3 octal digits, value 0-377)
 //
 // Unknown escape sequences are preserved as-is.
 //
@@ -88,10 +94,11 @@ func parseEscapeAt(s string, i int) (int, []byte, bool) {
 		return 2, []byte{'\r'}, true
 	case '\\':
 		return 2, []byte{'\\'}, true
-	case '0':
-		return 2, []byte{'\x00'}, true
 	case '"':
 		return 2, []byte{'"'}, true
+	case '0', '1', '2', '3', '4', '5', '6', '7':
+		// Octal escape: \N, \NN, or \NNN (1-3 octal digits)
+		return parseOctalEscape(s, i)
 	case '\'':
 		return 2, []byte{'\''}, true
 	case 'a':
@@ -118,4 +125,34 @@ func parseEscapeAt(s string, i int) (int, []byte, bool) {
 	default:
 		return 0, nil, false
 	}
+}
+
+// parseOctalEscape parses an octal escape sequence starting at position i.
+// Octal sequences are \N, \NN, or \NNN where N is an octal digit (0-7).
+// The value must be <= 255 (octal 377).
+// Returns the number of characters consumed, the resulting byte, and success status.
+func parseOctalEscape(s string, i int) (int, []byte, bool) {
+	// We know s[i] == '\\' and s[i+1] is an octal digit
+	start := i + 1 // Start after backslash
+	end := start
+
+	// Consume up to 3 octal digits
+	maxEnd := start + 3
+	if maxEnd > len(s) {
+		maxEnd = len(s)
+	}
+
+	for end < maxEnd && isOctalDigit(s[end]) {
+		end++
+	}
+
+	// Parse the octal value
+	octalStr := s[start:end]
+	val, err := strconv.ParseUint(octalStr, 8, 9) // 9 bits to detect overflow > 255
+	if err != nil || val > 255 {
+		return 0, nil, false
+	}
+
+	consumed := 1 + (end - start) // 1 for backslash + octal digits
+	return consumed, []byte{byte(val)}, true
 }

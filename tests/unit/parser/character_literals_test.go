@@ -206,7 +206,7 @@ func TestCharacterLiteral_InvalidEscapes(t *testing.T) {
 	}{
 		{"invalid escape x", "MOV R0, #'\\x'\n"},
 		{"invalid escape z", "MOV R0, #'\\z'\n"},
-		{"invalid escape 1", "MOV R0, #'\\1'\n"},
+		{"invalid escape 8", "MOV R0, #'\\8'\n"}, // 8 and 9 are not valid octal digits
 	}
 
 	for _, tt := range tests {

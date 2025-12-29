@@ -31,17 +31,26 @@ This file tracks outstanding work only. Completed items are in `PROGRESS.md`.
 **Solution Implemented:**
 Created `readLineWithLimit()` function (vm/syscall.go:80-101) that bounds input to `MaxStdinInputSize` (4KB). Both `handleReadString` and `handleReadInt` now use this bounded reader.
 
-### **Implement Full Escape Sequence Support**
-**Priority:** HIGH
+### **✅ RESOLVED: Implement Full Escape Sequence Support**
+**Priority:** COMPLETE ✅
 **Type:** Feature
 **Added:** 2025-12-28
-**Status:** OPEN
+**Resolved:** 2025-12-29
+**Status:** RESOLVED
 
 **Problem:**
-The emulator lacks support for hex (`\xNN`) and octal (`\NNN`) escape sequences in strings and character literals.
+The emulator lacked support for octal (`\NNN`) escape sequences in strings and character literals.
+(Hex `\xNN` was already supported.)
 
-**Solution:**
-Implement a centralized `ParseEscapeSequence` utility and use it in `main.go` and `encoder/encoder.go`.
+**Solution Implemented:**
+Added octal escape sequence support to `parser/escape.go`:
+- Supports 1-3 octal digits (`\N`, `\NN`, `\NNN`)
+- Value range 0-377 (0-255 decimal)
+- Stops at non-octal digit (8, 9) or after 3 digits
+- `\0` now treated as octal 0 (backward compatible)
+
+Both `main.go` and `encoder/encoder.go` already use the centralized
+`parser.ProcessEscapeSequences` and `parser.ParseEscapeChar` functions.
 
 ### **✅ RESOLVED: E2E Test Failures - Flaky Test Infrastructure**
 **Priority:** COMPLETE ✅
