@@ -7,6 +7,7 @@ import (
 	"io"
 	"log"
 	"os"
+	"path/filepath"
 	"sync"
 	"time"
 
@@ -22,7 +23,8 @@ func init() {
 	// Check if debug logging is enabled via environment variable
 	if os.Getenv("ARM_EMULATOR_DEBUG") != "" {
 		// Create debug log file
-		f, err := os.OpenFile("/tmp/arm-emulator-service-debug.log", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0600)
+		logPath := filepath.Join(os.TempDir(), "arm-emulator-service-debug.log")
+		f, err := os.OpenFile(logPath, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0600) // #nosec G304 -- fixed filename in temp dir
 		if err != nil {
 			serviceLog = log.New(os.Stderr, "SERVICE: ", log.Ltime|log.Lmicroseconds|log.Lshortfile)
 		} else {

@@ -148,8 +148,8 @@ Actual behavior: logs warning to stderr, sets `R0 = 0xFFFFFFFF`, continues execu
 ---
 
 #### 9. Debug Logging Hardcoded to `/tmp`
-**Status:** CONFIRMED
-**Location:** `service/debugger_service.go:25`, `gui/app.go:27`
+**Status:** ✅ FIXED
+**Location:** `service/debugger_service.go:26-27`, `gui/app.go:28-29`
 
 ```go
 f, err := os.OpenFile("/tmp/arm-emulator-service-debug.log", ...)
