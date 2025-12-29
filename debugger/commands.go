@@ -56,7 +56,7 @@ func (d *Debugger) cmdNext(args []string) error {
 
 	// Check if this is a BL (Branch with Link) instruction
 	// BL: bits[31:28] = condition, bits[27:24] = 1011
-	isBL := (instr & 0x0F000000) == 0x0B000000
+	isBL := (instr & vm.BranchLinkMask) == vm.BranchLinkPattern
 
 	if isBL {
 		// This is a function call - set up step over

@@ -192,9 +192,11 @@ const (
 	MSRImmMask    = 0x0FB00000 // Mask to detect MSR immediate
 
 	// Branch detection patterns
-	BranchBitMask = 0x02000000 // Bit 25 set indicates branch in bits27-26=10 case
-	SWIPattern    = 0x0F000000 // SWI pattern: bits [27:24] = 0b1111
-	SWIDetectMask = 0x0F000000 // Mask to detect SWI instruction (different from syscall extraction mask)
+	BranchBitMask     = 0x02000000 // Bit 25 set indicates branch in bits27-26=10 case
+	BranchLinkPattern = 0x0B000000 // BL pattern: bits [27:24] = 0b1011
+	BranchLinkMask    = 0x0F000000 // Mask to detect BL instruction
+	SWIPattern        = 0x0F000000 // SWI pattern: bits [27:24] = 0b1111
+	SWIDetectMask     = 0x0F000000 // Mask to detect SWI instruction (different from syscall extraction mask)
 
 	// Link register initialization
 	LRInitValue = 0xFFFFFFFF // Initial LR value for exception detection

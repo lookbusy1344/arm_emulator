@@ -230,7 +230,7 @@ However, the implementation pattern could be more consistent. Some handlers may 
 
 ## 4. Low Severity Issues
 
-### 4.1 Magic Number in BL Detection
+### 4.1 Magic Number in BL Detection ✅ FIXED
 
 **Location:** `debugger/commands.go` line 59
 
@@ -239,6 +239,8 @@ isBL := (instr & 0x0F000000) == 0x0B000000
 ```
 
 **Recommendation:** Use named constant from `vm/constants.go`.
+
+**Resolution:** Added `BranchLinkPattern` and `BranchLinkMask` constants to `vm/constants.go` and updated `debugger/commands.go` to use them.
 
 ---
 
