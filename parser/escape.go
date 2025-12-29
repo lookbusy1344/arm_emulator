@@ -24,6 +24,10 @@ import (
 //   - \xNN  hex byte value (exactly 2 hex digits required)
 //
 // Unknown escape sequences are preserved as-is.
+//
+// Note: Incomplete hex escapes (e.g., "\x" or "\x1" without full 2 digits)
+// are treated as unknown escapes and preserved as-is. Use ParseEscapeChar
+// for validation if strict error handling is required.
 func ProcessEscapeSequences(s string) string {
 	result := make([]byte, 0, len(s))
 	i := 0
@@ -99,9 +103,11 @@ func parseEscapeAt(s string, i int) (int, []byte, bool) {
 	case 'v':
 		return 2, []byte{'\v'}, true
 	case 'x':
-		// Hex escape: \xNN (exactly 2 hex digits)
+		// Hex escape: \xNN (exactly 2 hex digits required)
+		// Incomplete hex escapes (e.g., "\x" or "\x1") return false
+		// and are preserved as-is by the caller
 		if i+3 >= len(s) {
-			return 0, nil, false
+			return 0, nil, false // Not enough characters for \xNN
 		}
 		hexStr := s[i+2 : i+4]
 		val, err := strconv.ParseUint(hexStr, 16, 8)

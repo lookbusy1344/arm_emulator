@@ -286,11 +286,13 @@ return 0, fmt.Errorf("branch offset out of range: %d (max +-32MB)", offset)
 
 ---
 
-### 4.5 Escape Sequence Edge Case
+### 4.5 Escape Sequence Edge Case ✅ DOCUMENTED
 
 **Location:** `parser/escape.go` line 103
 
 **Problem:** For `\x` at end of string (e.g., `"test\x"`), returns false (unknown escape) rather than error, causing backslash to be preserved.
+
+**Resolution:** This is by-design behavior since `ProcessEscapeSequences` doesn't return errors. Added documentation noting that incomplete hex escapes are preserved as-is, and that `ParseEscapeChar` should be used for strict validation.
 
 ---
 
