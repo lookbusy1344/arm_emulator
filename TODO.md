@@ -444,28 +444,21 @@ Expected improvement: 5-15% speedup in trace output generation.
 
 ---
 
-### RegisterTrace Memory Bounds
-**Priority:** LOW
-**Effort:** 2-3 hours
+### ✅ RESOLVED: RegisterTrace Memory Bounds
+**Priority:** COMPLETE ✅
 **Type:** Robustness
+**Resolved:** 2025-12-29
+**Status:** RESOLVED
 
 **Problem:**
-`vm/register_trace.go` `RecordWrite()` can accumulate unlimited entries in `valuesSeen` map. In pathological cases with high register write variety, this could consume excessive memory.
+`vm/register_trace.go` `RecordWrite()` could accumulate unlimited entries in `valuesSeen` map.
 
-**Solution:** Cap unique values tracking:
-```go
-const maxTrackedUniqueValues = 10000
-
-if len(r.valuesSeen) < maxTrackedUniqueValues && !r.valuesSeen[value] {
-    r.valuesSeen[value] = true
-    r.UniqueValues++
-}
-```
-
-Document the limit in output.
-
-**Files:**
-- `vm/register_trace.go` (RecordWrite method)
+**Solution Implemented:**
+- Added `MaxTrackedUniqueValues` constant (10,000)
+- Added `trackingCapped` field to RegisterStats
+- Modified RecordWrite to stop tracking after cap is reached
+- Added `IsTrackingCapped()` method to query capped status
+- Added tests for capping behavior
 
 ---
 

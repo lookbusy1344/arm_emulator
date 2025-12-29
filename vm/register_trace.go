@@ -26,18 +26,23 @@ type RegisterAccessEntry struct {
 	OldValue   uint32             // Previous value (for writes)
 }
 
+// MaxTrackedUniqueValues is the maximum number of unique values to track per register.
+// This prevents unbounded memory growth in pathological cases with high value variety.
+const MaxTrackedUniqueValues = 10000
+
 // RegisterStats contains statistics for a single register
 type RegisterStats struct {
-	RegisterName string // Register name
-	ReadCount    uint64 // Number of reads
-	WriteCount   uint64 // Number of writes
-	FirstRead    uint64 // Sequence number of first read (0 if never read)
-	FirstWrite   uint64 // Sequence number of first write (0 if never written)
-	LastRead     uint64 // Sequence number of last read
-	LastWrite    uint64 // Sequence number of last write
-	LastValue    uint32 // Most recent value
-	UniqueValues uint64 // Number of unique values written
-	valuesSeen   map[uint32]bool
+	RegisterName   string // Register name
+	ReadCount      uint64 // Number of reads
+	WriteCount     uint64 // Number of writes
+	FirstRead      uint64 // Sequence number of first read (0 if never read)
+	FirstWrite     uint64 // Sequence number of first write (0 if never written)
+	LastRead       uint64 // Sequence number of last read
+	LastWrite      uint64 // Sequence number of last write
+	LastValue      uint32 // Most recent value
+	UniqueValues   uint64 // Number of unique values written (may be capped at MaxTrackedUniqueValues)
+	valuesSeen     map[uint32]bool
+	trackingCapped bool // True if we stopped tracking due to MaxTrackedUniqueValues
 }
 
 // NewRegisterStats creates a new register statistics tracker
@@ -67,10 +72,25 @@ func (r *RegisterStats) RecordWrite(sequence uint64, value uint32) {
 	r.LastWrite = sequence
 	r.LastValue = value
 
+	// Track unique values up to the cap to prevent unbounded memory growth
+	if r.trackingCapped {
+		return // Already capped, don't track more unique values
+	}
+
 	if !r.valuesSeen[value] {
+		if len(r.valuesSeen) >= MaxTrackedUniqueValues {
+			// Hit the cap - stop tracking to prevent memory growth
+			r.trackingCapped = true
+			return
+		}
 		r.valuesSeen[value] = true
 		r.UniqueValues++
 	}
+}
+
+// IsTrackingCapped returns true if unique value tracking was capped
+func (r *RegisterStats) IsTrackingCapped() bool {
+	return r.trackingCapped
 }
 
 // RegisterTrace tracks register access patterns

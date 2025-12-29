@@ -321,3 +321,47 @@ func TestRegisterTrace_SequenceTracking(t *testing.T) {
 		t.Errorf("LastRead = %d, want 40", stats.LastRead)
 	}
 }
+
+func TestRegisterStats_UniqueValuesCapping(t *testing.T) {
+	stats := vm.NewRegisterStats("R0")
+
+	// Write unique values up to the cap
+	for i := uint32(0); i <= vm.MaxTrackedUniqueValues; i++ {
+		stats.RecordWrite(uint64(i), i)
+	}
+
+	// Should be capped at MaxTrackedUniqueValues
+	if stats.UniqueValues > vm.MaxTrackedUniqueValues {
+		t.Errorf("UniqueValues = %d, should not exceed MaxTrackedUniqueValues (%d)",
+			stats.UniqueValues, vm.MaxTrackedUniqueValues)
+	}
+
+	// Should be flagged as capped
+	if !stats.IsTrackingCapped() {
+		t.Error("Expected tracking to be capped after MaxTrackedUniqueValues writes")
+	}
+
+	// Verify write count is accurate (tracking all writes, not just unique)
+	if stats.WriteCount != vm.MaxTrackedUniqueValues+1 {
+		t.Errorf("WriteCount = %d, want %d", stats.WriteCount, vm.MaxTrackedUniqueValues+1)
+	}
+}
+
+func TestRegisterStats_UniqueValuesNotCappedNormally(t *testing.T) {
+	stats := vm.NewRegisterStats("R0")
+
+	// Write 100 unique values (well under the cap)
+	for i := uint32(0); i < 100; i++ {
+		stats.RecordWrite(uint64(i), i)
+	}
+
+	// Should have exactly 100 unique values
+	if stats.UniqueValues != 100 {
+		t.Errorf("UniqueValues = %d, want 100", stats.UniqueValues)
+	}
+
+	// Should not be capped
+	if stats.IsTrackingCapped() {
+		t.Error("Tracking should not be capped after only 100 unique values")
+	}
+}
