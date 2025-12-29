@@ -258,7 +258,7 @@ for i := 0; i < 8; i++ {  // Show 8 words from stack
 
 ---
 
-### 4.3 Test Panic Instead of t.Fatal
+### 4.3 Test Panic Instead of t.Fatal ✅ FIXED
 
 **Location:** `tests/unit/debugger/tui_test.go` line 20
 
@@ -267,6 +267,8 @@ panic(fmt.Sprintf("failed to init simulation screen: %v", err))
 ```
 
 **Recommendation:** Use `t.Fatal()` in test setup.
+
+**Resolution:** Updated `createTestTUI` helper to accept `*testing.T` and use `t.Fatal()`. Added `t.Helper()` for proper stack traces.
 
 ---
 

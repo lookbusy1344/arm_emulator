@@ -11,13 +11,14 @@ import (
 )
 
 // createTestTUI creates a TUI with a simulation screen for testing
-func createTestTUI() (*debugger.TUI, tcell.SimulationScreen) {
+func createTestTUI(t *testing.T) (*debugger.TUI, tcell.SimulationScreen) {
+	t.Helper()
 	machine := vm.NewVM()
 	dbg := debugger.NewDebugger(machine)
 	screen := tcell.NewSimulationScreen("UTF-8")
 	err := screen.Init()
 	if err != nil {
-		panic(fmt.Sprintf("failed to init simulation screen: %v", err))
+		t.Fatalf("failed to init simulation screen: %v", err)
 	}
 	tui := debugger.NewTUIWithScreen(dbg, screen)
 	return tui, screen
@@ -55,7 +56,7 @@ func TestNewTUI(t *testing.T) {
 
 // TestTUIViewsInitialized tests that all views are initialized
 func TestTUIViewsInitialized(t *testing.T) {
-	tui, screen := createTestTUI()
+	tui, screen := createTestTUI(t)
 	defer screen.Fini()
 
 	tests := []struct {
@@ -81,7 +82,7 @@ func TestTUIViewsInitialized(t *testing.T) {
 
 // TestTUILayoutInitialized tests that layout is initialized
 func TestTUILayoutInitialized(t *testing.T) {
-	tui, screen := createTestTUI()
+	tui, screen := createTestTUI(t)
 	defer screen.Fini()
 
 	if tui.MainLayout == nil {
@@ -99,7 +100,7 @@ func TestTUILayoutInitialized(t *testing.T) {
 
 // TestTUIWriteOutput tests output writing
 func TestTUIWriteOutput(t *testing.T) {
-	tui, screen := createTestTUI()
+	tui, screen := createTestTUI(t)
 	defer screen.Fini()
 
 	// Write some output
@@ -114,7 +115,7 @@ func TestTUIWriteOutput(t *testing.T) {
 
 // TestTUIWriteStatus tests status message writing
 func TestTUIWriteStatus(t *testing.T) {
-	tui, screen := createTestTUI()
+	tui, screen := createTestTUI(t)
 	defer screen.Fini()
 
 	// Write some status
@@ -135,7 +136,7 @@ func TestTUIWriteStatus(t *testing.T) {
 
 // TestTUIExecuteCommand tests command execution
 func TestTUIExecuteCommand(t *testing.T) {
-	tui, screen := createTestTUI()
+	tui, screen := createTestTUI(t)
 	defer screen.Fini()
 
 	// We can't test executeCommand directly because it calls RefreshAll which tries to Draw
@@ -151,7 +152,7 @@ func TestTUIExecuteCommand(t *testing.T) {
 
 // TestTUIUpdateRegisterView tests register view update
 func TestTUIUpdateRegisterView(t *testing.T) {
-	tui, screen := createTestTUI()
+	tui, screen := createTestTUI(t)
 	defer screen.Fini()
 
 	// Set some register values
@@ -181,7 +182,7 @@ func TestTUIUpdateRegisterView(t *testing.T) {
 
 // TestTUIUpdateMemoryView tests memory view update
 func TestTUIUpdateMemoryView(t *testing.T) {
-	tui, screen := createTestTUI()
+	tui, screen := createTestTUI(t)
 	defer screen.Fini()
 
 	// Write some data to memory
@@ -206,7 +207,7 @@ func TestTUIUpdateMemoryView(t *testing.T) {
 
 // TestTUIUpdateStackView tests stack view update
 func TestTUIUpdateStackView(t *testing.T) {
-	tui, screen := createTestTUI()
+	tui, screen := createTestTUI(t)
 	defer screen.Fini()
 
 	// Set stack pointer
@@ -234,7 +235,7 @@ func TestTUIUpdateStackView(t *testing.T) {
 
 // TestTUIUpdateDisassemblyView tests disassembly view update
 func TestTUIUpdateDisassemblyView(t *testing.T) {
-	tui, screen := createTestTUI()
+	tui, screen := createTestTUI(t)
 	defer screen.Fini()
 
 	// Set PC
@@ -264,7 +265,7 @@ func TestTUIUpdateDisassemblyView(t *testing.T) {
 
 // TestTUIUpdateSourceView tests source view update
 func TestTUIUpdateSourceView(t *testing.T) {
-	tui, screen := createTestTUI()
+	tui, screen := createTestTUI(t)
 	defer screen.Fini()
 
 	// Add source map entries
@@ -288,7 +289,7 @@ func TestTUIUpdateSourceView(t *testing.T) {
 
 // TestTUIUpdateSourceViewNoSource tests source view with no source map
 func TestTUIUpdateSourceViewNoSource(t *testing.T) {
-	tui, screen := createTestTUI()
+	tui, screen := createTestTUI(t)
 	defer screen.Fini()
 
 	// Update view with empty source map
@@ -303,7 +304,7 @@ func TestTUIUpdateSourceViewNoSource(t *testing.T) {
 
 // TestTUIUpdateBreakpointsView tests breakpoints view update
 func TestTUIUpdateBreakpointsView(t *testing.T) {
-	tui, screen := createTestTUI()
+	tui, screen := createTestTUI(t)
 	defer screen.Fini()
 
 	// Add some breakpoints
@@ -334,7 +335,7 @@ func TestTUIUpdateBreakpointsView(t *testing.T) {
 
 // TestTUIUpdateBreakpointsViewNoBreakpoints tests breakpoints view with no breakpoints
 func TestTUIUpdateBreakpointsViewNoBreakpoints(t *testing.T) {
-	tui, screen := createTestTUI()
+	tui, screen := createTestTUI(t)
 	defer screen.Fini()
 
 	// Update view with no breakpoints
@@ -349,7 +350,7 @@ func TestTUIUpdateBreakpointsViewNoBreakpoints(t *testing.T) {
 
 // TestTUIUpdateBreakpointsViewWithWatchpoints tests breakpoints view with watchpoints
 func TestTUIUpdateBreakpointsViewWithWatchpoints(t *testing.T) {
-	tui, screen := createTestTUI()
+	tui, screen := createTestTUI(t)
 	defer screen.Fini()
 
 	// Add a watchpoint (expression, type, address, isRegister, register)
@@ -367,7 +368,7 @@ func TestTUIUpdateBreakpointsViewWithWatchpoints(t *testing.T) {
 
 // TestTUIRefreshAll tests refreshing all views
 func TestTUIRefreshAll(t *testing.T) {
-	tui, screen := createTestTUI()
+	tui, screen := createTestTUI(t)
 	defer screen.Fini()
 
 	// Set up some state
@@ -393,7 +394,7 @@ func TestTUIRefreshAll(t *testing.T) {
 
 // TestTUILoadSource tests source code loading
 func TestTUILoadSource(t *testing.T) {
-	tui, screen := createTestTUI()
+	tui, screen := createTestTUI(t)
 	defer screen.Fini()
 
 	// Load source code
@@ -424,7 +425,7 @@ func TestTUILoadSource(t *testing.T) {
 
 // TestTUIExecuteQuitCommand tests that quit command stops the TUI
 func TestTUIExecuteQuitCommand(t *testing.T) {
-	tui, screen := createTestTUI()
+	tui, screen := createTestTUI(t)
 	defer screen.Fini()
 
 	// Can't test executeCommand as it calls Draw
@@ -440,7 +441,7 @@ func TestTUIExecuteQuitCommand(t *testing.T) {
 
 // TestTUIExecuteInvalidCommand tests handling of invalid commands
 func TestTUIExecuteInvalidCommand(t *testing.T) {
-	tui, screen := createTestTUI()
+	tui, screen := createTestTUI(t)
 	defer screen.Fini()
 
 	// Can't test executeCommand as it calls Draw
@@ -456,7 +457,7 @@ func TestTUIExecuteInvalidCommand(t *testing.T) {
 
 // TestTUIKeyBindings tests that key bindings are set up
 func TestTUIKeyBindings(t *testing.T) {
-	tui, screen := createTestTUI()
+	tui, screen := createTestTUI(t)
 	defer screen.Fini()
 
 	// The key bindings are set up via SetInputCapture
