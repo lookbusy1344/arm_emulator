@@ -682,9 +682,12 @@ func (vm *VM) ValidatePath(path string) (string, error) {
 		return "", fmt.Errorf("empty file path")
 	}
 
-	// 2. Block paths containing .. components
-	if strings.Contains(path, "..") {
-		return "", fmt.Errorf("path contains '..' component")
+	// 2. Block paths with ".." directory components (but allow "foo..bar" filenames)
+	// Split by separator and check for exact ".." components
+	for _, component := range strings.Split(path, "/") {
+		if component == ".." {
+			return "", fmt.Errorf("path contains '..' component")
+		}
 	}
 
 	// 3. Strip leading / if present (treat absolute paths as relative to fsroot)
@@ -698,8 +701,8 @@ func (vm *VM) ValidatePath(path string) (string, error) {
 	// 5. Canonicalize
 	fullPath = filepath.Clean(fullPath)
 
-	// 6. Check for symlinks - EvalSymlinks returns error if any component is a symlink
-	// We resolve symlinks and then check if the resolved path escapes fsroot
+	// 6. Resolve symlinks - EvalSymlinks follows symlinks and returns the canonical path
+	// We then verify the resolved path doesn't escape fsroot
 	resolvedPath, err := filepath.EvalSymlinks(fullPath)
 	if err != nil {
 		// If the path doesn't exist yet (for write mode), that's OK

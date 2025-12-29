@@ -134,8 +134,8 @@ Actual behavior: logs warning to stderr, sets `R0 = 0xFFFFFFFF`, continues execu
 ---
 
 #### 8. `ValidatePath` Implementation Issues
-**Status:** CONFIRMED
-**Location:** `vm/syscall.go:672-694`
+**Status:** ✅ FIXED
+**Location:** `vm/syscall.go:685-691, 704-705`
 
 1. Comment says "EvalSymlinks returns error if any component is a symlink" - incorrect; it **resolves** symlinks
 2. `strings.Contains(path, "..")` blocks legitimate names like `foo..bar`
@@ -213,8 +213,8 @@ This is a minor issue since it's one file per process and gets cleaned up on exi
 ---
 
 ### 14. ValidatePath Comment Is Inaccurate
-**Status:** CONFIRMED
-**Location:** `vm/syscall.go:701-702`
+**Status:** ✅ FIXED (addressed in #8)
+**Location:** `vm/syscall.go:704-705`
 
 Comment says:
 ```go
