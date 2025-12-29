@@ -122,8 +122,8 @@ The project has `parser.ParseEscapeChar()` that could handle these.
 ---
 
 #### 7. Documentation Says Sandbox Violations Halt; Code Returns Error
-**Status:** CONFIRMED MISMATCH (implementation is arguably better)
-**Location:** `vm/syscall.go:786-793`, `CLAUDE.md`
+**Status:** ✅ FIXED (docs updated to match implementation)
+**Location:** `docs/SECURITY.md`, `docs/CHANGELOG.md`
 
 CLAUDE.md says: "Attempts to escape using `..` or symlinks will halt the VM with a security error."
 

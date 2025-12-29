@@ -27,13 +27,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   5. Detect and block symlink escapes
   6. Verify canonical path stays within fsroot
 - **Integration with file operations:** All file syscalls (OPEN, READ, WRITE) validate paths
-- **VM halt on security violations:** Escape attempts halt execution with security error
+- **Error code on security violations:** Escape attempts return 0xFFFFFFFF to guest and log warning
 - **Security hardening:** Removed backward compatibility mode - sandboxing always enforced
 
 **Security Guarantees:**
 - ✅ Guest programs restricted to specified directory only
-- ✅ Path traversal with `..` blocked and halts VM
-- ✅ Symlink escapes outside root blocked and halt VM
+- ✅ Path traversal with `..` blocked and returns error to guest
+- ✅ Symlink escapes outside root blocked and return error to guest
 - ✅ Absolute paths treated as relative to filesystem root
 - ✅ No unrestricted access mode exists - mandatory enforcement
 

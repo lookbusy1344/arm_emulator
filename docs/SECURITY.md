@@ -107,7 +107,7 @@ The application only modifies files that the user explicitly specifies:
 // - Blocks ".." path traversal
 // - Blocks symlink escapes
 // - Treats absolute paths as relative to fsroot
-// - VM halts on security violations
+// - Returns error code (0xFFFFFFFF) to guest on security violations
 ```
 
 Security guarantees:
@@ -236,7 +236,7 @@ The emulator implements ARM syscalls (SWIs) with mandatory security boundaries:
   - Path validation enforced on all file operations
   - Path traversal blocked
   - Symlink escapes blocked
-  - VM halts on security violations
+  - Returns error code (0xFFFFFFFF) to guest on violations
 - Memory Management: Allocate/free (within emulator heap only)
 - System Info: Time, random numbers (non-cryptographic)
 - Debugging: Breakpoints, memory dumps (development tools)
@@ -278,7 +278,7 @@ The emulator implements ARM syscalls (SWIs) with mandatory security boundaries:
 6. **Canonical path verification** - Ensures resolved path stays within boundaries
 
 **Enforcement:**
-- All validation failures **halt the VM** with security error
+- All validation failures **return error code (0xFFFFFFFF) to guest** and log security warning
 - No fallback or backward compatibility mode
 - Standard file descriptors (stdin/stdout/stderr) remain unrestricted
 
