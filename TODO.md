@@ -18,17 +18,18 @@ This file tracks outstanding work only. Completed items are in `PROGRESS.md`.
 
 ## High Priority Tasks
 
-### **Fix DoS Vulnerability in Syscalls**
-**Priority:** HIGH
+### **✅ RESOLVED: DoS Vulnerability in Syscalls**
+**Priority:** COMPLETE ✅
 **Type:** Security Fix
 **Added:** 2025-12-28
-**Status:** OPEN
+**Resolved:** 2025-12-29
+**Status:** RESOLVED
 
 **Problem:**
-`handleReadString` and `handleReadInt` in `vm/syscall.go` use `ReadString('\n')` which is unbounded. A malicious input could cause OOM.
+`handleReadString` and `handleReadInt` in `vm/syscall.go` used `ReadString('\n')` which was unbounded. A malicious input could cause OOM.
 
-**Solution:**
-Use `ReadSlice` or a bounded reader to limit input size.
+**Solution Implemented:**
+Created `readLineWithLimit()` function (vm/syscall.go:80-101) that bounds input to `MaxStdinInputSize` (4KB). Both `handleReadString` and `handleReadInt` now use this bounded reader.
 
 ### **Implement Full Escape Sequence Support**
 **Priority:** HIGH
