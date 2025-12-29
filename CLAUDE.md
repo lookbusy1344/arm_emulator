@@ -308,7 +308,15 @@ These programs work correctly when provided with stdin input:
 - **calculator.s** - Interactive calculator with +, -, *, / operations (fully working)
 - **fibonacci.s** - Prompts for count of Fibonacci numbers (fully working)
 
-#### Recent Fixes (Oct 2025)
+#### Recent Fixes (Dec 2025)
+- **Security:** Fixed DoS vulnerability in stdin syscalls (bounded input to 4KB)
+- **Parser:** Added octal escape sequence support (`\NNN` format)
+- **Performance:** Optimized string building in trace output (strings.Builder)
+- **Performance:** Eliminated per-call map allocation in trace.go
+- **Performance:** Added memory bounds to RegisterTrace unique value tracking
+- **TUI:** Fixed help command display (black-on-black text issue)
+
+#### Previous Fixes (Oct 2025)
 - **calculator.s** - Fixed infinite loop bug when stdin exhausted (EOF handling)
 - **test_ltorg.s** - Fixed literal pool space reservation in parser
 - **test_org_0_with_ltorg.s** - Fixed literal pool space reservation + added missing branch instruction

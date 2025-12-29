@@ -36,7 +36,7 @@ Claude can sometimes suffer from groupthink, just confirming the code is excelle
 
 ## Project duration and size
 
-Estimated time spent vibing this project, based on git logs:
+Estimated time spent vibing this project in the initial phase, based on git logs:
 
 | Date       | Hours | Tool    |
 |------------|-------|---------|
@@ -59,10 +59,7 @@ Estimated time spent vibing this project, based on git logs:
 | **Total**  | **57.0** |
 | **Average** | **3.6** |
 
-Length of Go code on 23 Oct 2025 is **45,218 lines**. About 800 lines per hour, or 6,400 lines per standard 8 hour day. This excludes documentation and other files.
-
-On 26 Nov I asked Opus 4.5 to run a thorough code review, which can be found in [CODE_REVIEW_OPUS.md](./CODE_REVIEW_OPUS.md).
-
+Length of Go code on 29 Dec 2025 is **54,046 lines**. About 800 lines per hour, or 6,400 lines per standard 8 hour day. This excludes documentation and other files.
 
 ## Daily progress
 
