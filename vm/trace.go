@@ -38,8 +38,8 @@ type ExecutionTrace struct {
 
 	entries      []TraceEntry
 	startTime    time.Time
-	lastSnapshot map[string]uint32 // Previous register values
-	symbols      *SymbolResolver   // Symbol resolver for address annotation
+	lastSnapshot RegisterSnapshot // Previous register values
+	symbols      *SymbolResolver  // Symbol resolver for address annotation
 }
 
 // NewExecutionTrace creates a new execution trace
@@ -52,7 +52,7 @@ func NewExecutionTrace(writer io.Writer) *ExecutionTrace {
 		IncludeTiming: true,
 		MaxEntries:    100000,
 		entries:       make([]TraceEntry, 0, 1000),
-		lastSnapshot:  make(map[string]uint32),
+		lastSnapshot:  RegisterSnapshot{},
 	}
 }
 
@@ -74,7 +74,7 @@ func (t *ExecutionTrace) LoadSymbols(symbols map[string]uint32) {
 func (t *ExecutionTrace) Start() {
 	t.startTime = time.Now()
 	t.entries = t.entries[:0]
-	t.lastSnapshot = make(map[string]uint32)
+	t.lastSnapshot = RegisterSnapshot{}
 }
 
 // RecordInstruction records an instruction execution
@@ -103,11 +103,19 @@ func (t *ExecutionTrace) RecordInstruction(vm *VM, disasm string) {
 		entry.Duration = time.Since(t.startTime)
 	}
 
-	// Track register changes using direct array access (avoids per-call map allocation)
-	// Check R0-R14 registers (R15/PC is stored separately in CPU.PC)
-	for i := 0; i < ARMGeneralRegisterCount; i++ {
-		name := registerNames[i]
-		value := vm.CPU.R[i]
+	// Capture current state
+	var currentSnapshot RegisterSnapshot
+	currentSnapshot.Capture(vm.CPU)
+
+	// Track register changes
+	// Check R0-R15
+	for i := 0; i < 16; i++ {
+		var name string
+		if i < 15 {
+			name = registerNames[i]
+		} else {
+			name = "PC" // R15
+		}
 
 		// Apply filter if set
 		if len(t.FilterRegs) > 0 && !t.FilterRegs[name] {
@@ -115,39 +123,23 @@ func (t *ExecutionTrace) RecordInstruction(vm *VM, disasm string) {
 		}
 
 		// Check if register changed
-		if oldValue, exists := t.lastSnapshot[name]; !exists || oldValue != value {
-			entry.RegisterChanges[name] = value
-			t.lastSnapshot[name] = value
+		if currentSnapshot.R[i] != t.lastSnapshot.R[i] {
+			entry.RegisterChanges[name] = currentSnapshot.R[i]
 		}
 	}
 
-	// Check R15 (PC is stored separately, not in R array)
-	if len(t.FilterRegs) == 0 || t.FilterRegs["R15"] {
-		if oldValue, exists := t.lastSnapshot["R15"]; !exists || oldValue != vm.CPU.PC {
-			entry.RegisterChanges["R15"] = vm.CPU.PC
-			t.lastSnapshot["R15"] = vm.CPU.PC
+	// Also check SP, LR aliases if they're in the filter
+	if len(t.FilterRegs) > 0 {
+		if t.FilterRegs["SP"] && currentSnapshot.R[13] != t.lastSnapshot.R[13] {
+			entry.RegisterChanges["SP"] = currentSnapshot.R[13]
+		}
+		if t.FilterRegs["LR"] && currentSnapshot.R[14] != t.lastSnapshot.R[14] {
+			entry.RegisterChanges["LR"] = currentSnapshot.R[14]
 		}
 	}
 
-	// Also check SP, LR, PC aliases if they're in the filter (or no filter)
-	if len(t.FilterRegs) == 0 || t.FilterRegs["SP"] {
-		if oldValue, exists := t.lastSnapshot["SP"]; !exists || oldValue != vm.CPU.R[13] {
-			entry.RegisterChanges["SP"] = vm.CPU.R[13]
-			t.lastSnapshot["SP"] = vm.CPU.R[13]
-		}
-	}
-	if len(t.FilterRegs) == 0 || t.FilterRegs["LR"] {
-		if oldValue, exists := t.lastSnapshot["LR"]; !exists || oldValue != vm.CPU.R[14] {
-			entry.RegisterChanges["LR"] = vm.CPU.R[14]
-			t.lastSnapshot["LR"] = vm.CPU.R[14]
-		}
-	}
-	if len(t.FilterRegs) == 0 || t.FilterRegs["PC"] {
-		if oldValue, exists := t.lastSnapshot["PC"]; !exists || oldValue != vm.CPU.PC {
-			entry.RegisterChanges["PC"] = vm.CPU.PC
-			t.lastSnapshot["PC"] = vm.CPU.PC
-		}
-	}
+	// Update snapshot
+	t.lastSnapshot = currentSnapshot
 
 	t.entries = append(t.entries, entry)
 }
@@ -237,7 +229,7 @@ func (t *ExecutionTrace) GetEntries() []TraceEntry {
 // Clear clears all trace entries
 func (t *ExecutionTrace) Clear() {
 	t.entries = t.entries[:0]
-	t.lastSnapshot = make(map[string]uint32)
+	t.lastSnapshot = RegisterSnapshot{}
 }
 
 // MemoryAccessEntry represents a memory access

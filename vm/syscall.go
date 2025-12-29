@@ -783,10 +783,14 @@ func handleOpen(vm *VM) error {
 	s := string(filename)
 
 	// Validate path for filesystem sandboxing
-	// This is a VM-level security check - failures halt execution
 	validatedPath, err := vm.ValidatePath(s)
 	if err != nil {
-		return fmt.Errorf("filesystem access denied: attempted to access '%s' - %w", s, err)
+		// Log the security violation but don't halt the VM, just return error to guest
+		// This allows the guest to handle the error (e.g. "Permission Denied")
+		fmt.Fprintf(os.Stderr, "Security Warning: filesystem access denied: %v\n", err)
+		vm.CPU.SetRegister(0, SyscallErrorGeneral)
+		vm.CPU.IncrementPC()
+		return nil
 	}
 
 	switch mode {

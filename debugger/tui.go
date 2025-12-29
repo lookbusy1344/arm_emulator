@@ -66,13 +66,12 @@ type TUI struct {
 	// NOTE: These fields are accessed from both the background execution goroutine
 	// and the main UI thread. Access must be protected by stateMu.
 	// Writers (Capture/Detect methods) use Lock(), readers (Update methods) use RLock().
-	stateMu             sync.RWMutex    // Protects all change-tracking state below
-	PrevRegisters       [16]uint32      // Previous values of R0-R15 before last step
-	PrevCPSR            vm.CPSR         // Previous CPSR flags before last step
-	ChangedRegs         map[int]bool    // Registers that changed in the last step
-	ChangedCPSR         bool            // CPSR changed in the last step
-	RecentWrites        map[uint32]bool // Memory addresses written in the last step
-	LastTraceEntryCount int             // Number of memory trace entries before last step
+	stateMu             sync.RWMutex        // Protects all change-tracking state below
+	PrevState           vm.RegisterSnapshot // Previous state before last step
+	ChangedRegs         map[int]bool        // Registers that changed in the last step
+	ChangedCPSR         bool                // CPSR changed in the last step
+	RecentWrites        map[uint32]bool     // Memory addresses written in the last step
+	LastTraceEntryCount int                 // Number of memory trace entries before last step
 }
 
 // tuiWriter redirects VM output to the TUI OutputView
@@ -1121,16 +1120,7 @@ func (t *TUI) CaptureRegisterState() {
 	t.stateMu.Lock()
 	defer t.stateMu.Unlock()
 
-	cpu := t.Debugger.VM.CPU
-
-	// Save current register values
-	for i := 0; i < 15; i++ {
-		t.PrevRegisters[i] = cpu.R[i]
-	}
-	t.PrevRegisters[15] = cpu.PC
-
-	// Save CPSR
-	t.PrevCPSR = cpu.CPSR
+	t.PrevState.Capture(t.Debugger.VM.CPU)
 }
 
 // DetectRegisterChanges compares current registers with previous state
@@ -1139,27 +1129,21 @@ func (t *TUI) DetectRegisterChanges() {
 	t.stateMu.Lock()
 	defer t.stateMu.Unlock()
 
-	cpu := t.Debugger.VM.CPU
-
 	// Clear previous changes
 	t.ChangedRegs = make(map[int]bool)
 	t.ChangedCPSR = false
 
-	// Check each register
-	for i := 0; i < 15; i++ {
-		if cpu.R[i] != t.PrevRegisters[i] {
-			t.ChangedRegs[i] = true
-		}
+	// Capture current state
+	var currentState vm.RegisterSnapshot
+	currentState.Capture(t.Debugger.VM.CPU)
+
+	// Compare with previous state
+	changedIndices := currentState.ChangedRegisters(&t.PrevState)
+	for _, idx := range changedIndices {
+		t.ChangedRegs[idx] = true
 	}
 
-	// Check PC (R15)
-	if cpu.PC != t.PrevRegisters[15] {
-		t.ChangedRegs[15] = true
-	}
-
-	// Check CPSR flags
-	if cpu.CPSR.N != t.PrevCPSR.N || cpu.CPSR.Z != t.PrevCPSR.Z ||
-		cpu.CPSR.C != t.PrevCPSR.C || cpu.CPSR.V != t.PrevCPSR.V {
+	if currentState.CPSRChanged(&t.PrevState) {
 		t.ChangedCPSR = true
 	}
 }

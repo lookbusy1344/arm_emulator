@@ -18,63 +18,6 @@ This file tracks outstanding work only. Completed items are in `PROGRESS.md`.
 
 ## Medium Priority Tasks
 
-### Duplicate Register State Tracking
-**Priority:** MEDIUM
-**Effort:** 4-5 hours
-**Type:** Refactoring/Code Quality
-
-**Problem:**
-Three independent systems track "last register state":
-- `vm/trace.go` - `lastSnapshot` map
-- `vm/register_trace.go` - `lastRegValues` map
-- `debugger/tui.go` - `PrevRegisters` array
-
-Code duplication creates maintenance burden and potential inconsistency in register change detection.
-
-**Solution:** Extract into shared `RegisterSnapshot` type with methods:
-- `ChangedRegs(other *RegisterSnapshot) []string`
-- `Capture(cpu *CPU)`
-- `GetRegister(name string) uint32`
-
-Use consistently across all three locations.
-
-**Files:**
-- `vm/trace.go`
-- `vm/register_trace.go`
-- `debugger/tui.go`
-
----
-
-### Syscall Error Handling Asymmetry
-**Priority:** MEDIUM
-**Effort:** 3-4 hours
-**Type:** Error Handling
-
-**Problem:**
-Syscall documentation distinguishes between:
-- "VM integrity errors" (should return Go error and halt)
-- "Expected failures" (should return 0xFFFFFFFF in R0, continue)
-
-However, this isn't consistently applied. Some handlers propagate Go errors for validation failures when they should return 0xFFFFFFFF.
-
-**Example:** File operations like `handleOpen()` may panic or return errors instead of 0xFFFFFFFF on failure.
-
-**Solution:** Create error classification system:
-```go
-type SyscallError struct {
-    IsVMError bool // true = halt, false = return 0xFFFFFFFF
-    Message   string
-}
-```
-
-Audit all syscall handlers for consistency.
-
-**Files:**
-- `vm/syscall.go` (all handler functions)
-- Create new file: `vm/syscall_error.go`
-
----
-
 ### Additional Diagnostic Modes
 
 **Proposed Extensions:**
@@ -122,32 +65,6 @@ Expected improvement: 5-15% speedup in trace output generation.
 
 **Files:**
 - `vm/symbol_resolver.go` (ResolveAddress method)
-
----
-
-### TestAssert_MessageWraparound Test Investigation
-**Status:** SKIPPED - Low Priority
-**Priority:** LOW
-**Effort:** 2-4 hours
-
-**Current Behavior:**
-The `TestAssert_MessageWraparound` test in `tests/unit/vm/security_fixes_test.go` is currently skipped. The ASSERT syscall does have wraparound protection and stops reading at address boundaries (reads 15 chars instead of wrapping), which is safe behavior. However, the test expects an explicit "wraparound" error message.
-
-**Issue:**
-When ASSERT reads a message starting at 0xFFFFFFF0 with no null terminator:
-- Expects: Error containing "wraparound"
-- Actual: Reads 15 characters (ABCDEFGHIJKLMNO) and returns "ASSERTION FAILED" error
-- The 16th character at 0xFFFFFFFF is not being read
-
-**Investigation Needed:**
-- Determine why reading from address 0xFFFFFFFF fails or returns 0
-- Verify memory segment boundary handling at maximum address
-- Consider if current behavior (stopping at 15 chars) is acceptable
-- Update test expectations or fix ASSERT handler accordingly
-
-**Files:**
-- `tests/unit/vm/security_fixes_test.go` (line 223)
-- `vm/syscall.go` `handleAssert()` function (line 940)
 
 ---
 
