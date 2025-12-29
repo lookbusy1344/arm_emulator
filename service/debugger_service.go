@@ -205,10 +205,19 @@ func (s *DebuggerService) loadProgramIntoVM(program *parser.Program, entryPoint 
 			// Write bytes
 			for _, arg := range directive.Args {
 				var value uint32
-				// Check for character literal
+				// Check for character literal: 'A', '\n', '\x41', '\123'
 				if len(arg) >= 3 && arg[0] == '\'' && arg[len(arg)-1] == '\'' {
-					if len(arg) == 3 {
-						value = uint32(arg[1])
+					charContent := arg[1 : len(arg)-1] // Content between quotes
+					if len(charContent) == 1 {
+						// Simple character: 'A'
+						value = uint32(charContent[0])
+					} else if len(charContent) >= 2 && charContent[0] == '\\' {
+						// Escape sequence: '\n', '\x41', '\123'
+						b, _, err := parser.ParseEscapeChar(charContent)
+						if err != nil {
+							return fmt.Errorf("invalid .byte escape sequence: %s", arg)
+						}
+						value = uint32(b)
 					} else {
 						return fmt.Errorf("invalid .byte character literal: %s", arg)
 					}

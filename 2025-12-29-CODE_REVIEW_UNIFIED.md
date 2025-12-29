@@ -111,8 +111,8 @@ This rejects `-2147483648` because `2147483648 > 2147483647`. However, `-2147483
 ---
 
 #### 6. `.byte` Character Literals Don't Support Escapes
-**Status:** CONFIRMED
-**Location:** `main.go` (program loading)
+**Status:** ✅ FIXED
+**Location:** `main.go:715-739`, `service/debugger_service.go:204-232`
 
 `.byte 'A'` works (3-character check), but `.byte '\n'`, `.byte '\x41'`, `.byte '\123'` fail.
 The project has `parser.ParseEscapeChar()` that could handle these.
