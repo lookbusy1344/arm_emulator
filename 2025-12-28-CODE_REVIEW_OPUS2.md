@@ -272,7 +272,7 @@ panic(fmt.Sprintf("failed to init simulation screen: %v", err))
 
 ---
 
-### 4.4 Branch Offset Error Message
+### 4.4 Branch Offset Error Message ✅ VERIFIED CORRECT
 
 **Location:** `encoder/branch.go` line 72
 
@@ -281,6 +281,8 @@ return 0, fmt.Errorf("branch offset out of range: %d (max +-32MB)", offset)
 ```
 
 **Issue:** Says "32MB" but actual range is +-32M words = +-128MB in bytes.
+
+**Verification:** FALSE POSITIVE - The reviewer's math was incorrect. The 24-bit signed offset range is ±2^23 = ±8M words, not ±32M words. In bytes: ±8M × 4 = ±32MB. The error message is already correct.
 
 ---
 
