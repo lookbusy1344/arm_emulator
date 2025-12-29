@@ -296,7 +296,7 @@ return 0, fmt.Errorf("branch offset out of range: %d (max +-32MB)", offset)
 
 ---
 
-### 4.6 Long Multiply Cycle Constants Unused
+### 4.6 Long Multiply Cycle Constants Unused ✅ FALSE POSITIVE
 
 **Location:** `vm/constants.go` lines 154-155
 
@@ -305,7 +305,7 @@ LongMultiplyBaseCycles       = 3
 LongMultiplyAccumulateCycles = 4
 ```
 
-**Observation:** These ARE used in `vm/multiply.go:209-214`. Mark as FALSE POSITIVE.
+**Status:** FALSE POSITIVE - These constants ARE used in `vm/multiply.go:209-214` for long multiply cycle cost calculation.
 
 ---
 
