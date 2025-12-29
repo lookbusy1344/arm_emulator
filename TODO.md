@@ -326,35 +326,24 @@ Use consistently across all three locations.
 
 ---
 
-### Missing Error Context in Encoder
-**Priority:** MEDIUM
-**Effort:** 3-4 hours
+### ✅ RESOLVED: Missing Error Context in Encoder
+**Priority:** COMPLETE ✅
 **Type:** Error Handling
+**Resolved:** 2025-12-29
 
-**Problem:**
-Encoder errors lack file:line information, making it hard to locate problematic instructions:
-```go
-return 0, fmt.Errorf("unknown instruction: %s", mnemonic)
-// Missing: which file? which line? what was the actual instruction?
-```
+**Solution Implemented:**
+Created `EncodingError` type in `encoder/errors.go` that includes instruction context:
+- Source location (file:line:column)
+- Raw source line for debugging context
+- Error unwrapping support for errors.Is/As
 
-Users must manually search through assembly to find the error.
+The `EncodeInstruction` function now wraps all encoding errors with instruction context,
+making it easy to locate problematic instructions in assembly files.
 
-**Solution:** Create `EncodingError` type that includes instruction context:
-```go
-type EncodingError struct {
-    Instruction *parser.Instruction
-    Message     string
-    Wrapped     error
-}
-```
-
-Propagate source location information through encoder pipeline.
-
-**Files:**
-- `encoder/encoder.go`
-- `encoder/data_processing.go`
-- `encoder/memory.go`
+**Files Modified:**
+- `encoder/errors.go` (new file with EncodingError type)
+- `encoder/encoder.go` (updated EncodeInstruction to wrap errors)
+- `tests/unit/encoder/encoder_errors_test.go` (new tests for error context)
 
 ---
 
@@ -388,43 +377,30 @@ Audit all syscall handlers for consistency.
 
 ---
 
-### TUI Help Command Display Issue
-**Status:** BLOCKED - Needs Investigation
-**Priority:** MEDIUM
+### ✅ RESOLVED: TUI Help Command Display Issue
+**Priority:** COMPLETE ✅
+**Resolved:** 2025-12-29
 
 **Problem:**
-When typing `help` (or pressing F1) in the TUI debugger, the help text appears as black-on-black (invisible until highlighted). The text IS being written to the OutputView (confirmed via debug logging showing 1040 bytes), but is not visible.
+Help text appeared as black-on-black (invisible) when written to StatusView via
+`QueueUpdateDraw` callback.
 
-**What Works:**
-- Welcome message at TUI startup displays correctly with colors (green and white)
-- All other TUI views display correctly
-- Help command works fine in non-TUI debugger mode
-- Color tags like `[green]`, `[white]` work in welcome message
+**Root Cause:**
+Command output from the debugger was plain text without tview color tags. When written
+to StatusView with `SetDynamicColors(true)`, tview could render it as black-on-black
+depending on terminal state. The welcome message worked because it included explicit
+`[green]` and `[white]` color tags.
 
-**What Doesn't Work:**
-- Help text written from within `QueueUpdateDraw` callback appears black-on-black
-- Text written via `WriteOutput()` after TUI starts running is invisible
+**Solution:**
+Wrap all command output in `[white]` color tags in `executeCommand()` before writing
+to StatusView:
+```go
+t.WriteStatus("[white]" + output + "[white]")
+```
 
-**Attempted Fixes (All Failed):**
-1. Added `SetTextColor(tcell.ColorWhite)` to OutputView - no effect
-2. Wrapped output in `[white]` color tags - no effect
-3. Tried `[yellow]` tags to test if any colors work - no effect
-4. Changed from `Write()` to `SetText()` - no effect
-5. Used `GetText(true)` to preserve color tags - no effect
-6. Tried `QueueUpdate` vs `QueueUpdateDraw` - no effect
-7. Set explicit background color with `SetBackgroundColor(tcell.ColorBlack)` - no effect
-
-**Technical Details:**
-- File: `debugger/tui.go`
-- Function: `executeCommand()` line 234
-- OutputView config: line 136, has `SetDynamicColors(true)`
-- Text written via: `go t.App.QueueUpdateDraw(func() { t.WriteOutput(...) })`
-
-**Next Steps:**
-- Investigate tview library documentation for `Write()` vs `SetText()` color handling
-- Check if `QueueUpdateDraw` from goroutine has threading issues
-- Test simpler approach without goroutines
-- Consider filing tview library issue if bug is in library
+**Files Modified:**
+- `debugger/tui.go` (executeCommand function, wrapped output in color tags)
+- `tests/unit/debugger/tui_test.go` (added TestTUIStatusOutputWithColorTags)
 
 
 ### Additional Diagnostic Modes
