@@ -34,7 +34,8 @@ func NewEncoder(symbolTable *parser.SymbolTable) *Encoder {
 	}
 }
 
-// EncodeInstruction converts a single parsed instruction into ARM machine code
+// EncodeInstruction converts a single parsed instruction into ARM machine code.
+// Errors returned include source location context for easier debugging.
 func (e *Encoder) EncodeInstruction(inst *parser.Instruction, address uint32) (uint32, error) {
 	e.currentAddr = address
 
@@ -44,57 +45,67 @@ func (e *Encoder) EncodeInstruction(inst *parser.Instruction, address uint32) (u
 	mnemonic := strings.ToUpper(inst.Mnemonic)
 
 	// Route to appropriate encoder based on instruction type
+	var encoded uint32
+	var err error
+
 	switch mnemonic {
 	// Data processing instructions
 	case "MOV", "MVN":
-		return e.encodeDataProcessingMove(inst, cond)
+		encoded, err = e.encodeDataProcessingMove(inst, cond)
 	case "ADD", "ADC", "SUB", "SBC", "RSB", "RSC":
-		return e.encodeDataProcessingArithmetic(inst, cond)
+		encoded, err = e.encodeDataProcessingArithmetic(inst, cond)
 	case "AND", "ORR", "EOR", "BIC":
-		return e.encodeDataProcessingLogical(inst, cond)
+		encoded, err = e.encodeDataProcessingLogical(inst, cond)
 	case "CMP", "CMN", "TST", "TEQ":
-		return e.encodeDataProcessingCompare(inst, cond)
+		encoded, err = e.encodeDataProcessingCompare(inst, cond)
 
 	// Memory instructions
 	case "LDR", "STR", "LDRB", "STRB", "LDRH", "STRH":
-		return e.encodeMemory(inst, cond)
+		encoded, err = e.encodeMemory(inst, cond)
 
 	// Branch instructions
 	case "B", "BL", "BX", "BLX":
-		return e.encodeBranch(inst, cond)
+		encoded, err = e.encodeBranch(inst, cond)
 
 	// Multiply instructions
 	case "MUL", "MLA":
-		return e.encodeMultiply(inst, cond)
+		encoded, err = e.encodeMultiply(inst, cond)
 
 	// Load/Store multiple
 	case "LDM", "STM", "LDMIA", "LDMIB", "LDMDA", "LDMDB":
-		return e.encodeLoadStoreMultiple(inst, cond, false)
+		encoded, err = e.encodeLoadStoreMultiple(inst, cond, false)
 	case "STMIA", "STMIB", "STMDA", "STMDB":
-		return e.encodeLoadStoreMultiple(inst, cond, true)
+		encoded, err = e.encodeLoadStoreMultiple(inst, cond, true)
 	// Load/Store multiple aliases (FD=Full Descending, FA=Full Ascending, EA=Empty Ascending, ED=Empty Descending)
 	case "LDMFD", "LDMFA", "LDMEA", "LDMED":
-		return e.encodeLoadStoreMultiple(inst, cond, false)
+		encoded, err = e.encodeLoadStoreMultiple(inst, cond, false)
 	case "STMFD", "STMFA", "STMEA", "STMED":
-		return e.encodeLoadStoreMultiple(inst, cond, true)
+		encoded, err = e.encodeLoadStoreMultiple(inst, cond, true)
 	case "PUSH":
-		return e.encodePush(inst, cond)
+		encoded, err = e.encodePush(inst, cond)
 	case "POP":
-		return e.encodePop(inst, cond)
+		encoded, err = e.encodePop(inst, cond)
 	case "NOP":
 		return e.encodeNOP(cond), nil
 
 	// Software interrupt
 	case "SWI", "SVC": // SVC is ARM7+ name for SWI
-		return e.encodeSWI(inst, cond)
+		encoded, err = e.encodeSWI(inst, cond)
 
 	// ADR pseudo-instruction
 	case "ADR":
-		return e.encodeADR(inst, cond)
+		encoded, err = e.encodeADR(inst, cond)
 
 	default:
-		return 0, fmt.Errorf("unknown instruction: %s", mnemonic)
+		return 0, NewEncodingError(inst, fmt.Sprintf("unknown instruction: %s", mnemonic))
 	}
+
+	// Wrap any encoding errors with instruction context
+	if err != nil {
+		return 0, WrapEncodingError(inst, err)
+	}
+
+	return encoded, nil
 }
 
 // encodeCondition converts condition string to 4-bit code
