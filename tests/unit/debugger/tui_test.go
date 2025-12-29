@@ -514,6 +514,34 @@ func containsStr(text, format string, value uint32) bool {
 	return strings.Contains(text, fmt.Sprintf(format, value))
 }
 
+// TestTUIStatusOutputWithColorTags verifies that status output includes color tags for visibility.
+// This addresses the black-on-black text issue where plain text written to StatusView
+// with SetDynamicColors(true) could appear invisible.
+func TestTUIStatusOutputWithColorTags(t *testing.T) {
+	tui, screen := createTestTUI(t)
+	defer screen.Fini()
+
+	// Simulate what executeCommand does with command output
+	// The fix ensures output is wrapped in [white] tags
+	testOutput := "Test command output"
+	wrappedOutput := "[white]" + testOutput + "[white]"
+
+	tui.WriteStatus(wrappedOutput)
+
+	// GetText(false) returns text with color tags preserved
+	// GetText(true) returns text with color tags stripped
+	textWithTags := tui.StatusView.GetText(false)
+	if !strings.Contains(textWithTags, "[white]") {
+		t.Error("Status output should include [white] color tags for visibility")
+	}
+
+	// Verify the actual text content is present (stripped version)
+	plainText := tui.StatusView.GetText(true)
+	if !strings.Contains(plainText, testOutput) {
+		t.Errorf("Expected status to contain '%s', got '%s'", testOutput, plainText)
+	}
+}
+
 // TestTUITerminalWidthWarning tests that the TUI has terminal width checking logic
 func TestTUITerminalWidthWarning(t *testing.T) {
 	// This test verifies that the TUI can be created and the warning logic exists

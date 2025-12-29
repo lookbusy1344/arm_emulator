@@ -408,7 +408,10 @@ func (t *TUI) executeCommand(cmd string) {
 			t.WriteStatus(fmt.Sprintf("[red]Error:[white] %v\n", err))
 		}
 		if output != "" {
-			t.WriteStatus(output)
+			// Wrap command output in [white] tags to ensure visibility.
+			// Without explicit color tags, tview with SetDynamicColors(true) may
+			// render text as black-on-black depending on terminal state.
+			t.WriteStatus("[white]" + output + "[white]")
 		}
 		t.RefreshAll()
 	})
