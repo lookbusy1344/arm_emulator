@@ -271,29 +271,23 @@ Trace output files used string concatenation with `+=` in loops, creating O(n²)
 
 ---
 
-### Memory Allocation Pressure in Hot Path (trace.go)
-**Priority:** MEDIUM
-**Effort:** 3-4 hours
+### ✅ RESOLVED: Memory Allocation Pressure in Hot Path (trace.go)
+**Priority:** COMPLETE ✅
 **Type:** Performance Optimization
+**Resolved:** 2025-12-29
+**Status:** RESOLVED
 
 **Problem:**
-`vm/trace.go` `RecordInstruction()` creates a new 16-entry map for every instruction:
-```go
-currentRegs := map[string]uint32{
-    "R0": vm.CPU.R[0],
-    "R1": vm.CPU.R[1],
-    // ... repeated per instruction
-}
-```
+`vm/trace.go` `RecordInstruction()` created a new 19-entry map for every instruction,
+causing excessive GC pressure with 1M+ instructions.
 
-With 1M+ instructions per program, this creates excessive garbage collection pressure.
-
-**Impact:** Measurable GC overhead in long-running programs. Profile before/after optimization.
-
-**Solution:** Reuse register snapshot structure or use array-based lookups instead of maps.
-
-**Files:**
-- `vm/trace.go` (RecordInstruction method, lines 99-119)
+**Solution Implemented:**
+- Replaced inline map creation with direct array iteration using `registerNames`
+  constant array
+- Loop over R0-R14 using `ARMGeneralRegisterCount` constant
+- Handle R15/PC separately (stored in CPU.PC, not R array)
+- Handle SP, LR, PC aliases explicitly
+- Zero per-call map allocations for register lookups
 
 ---
 

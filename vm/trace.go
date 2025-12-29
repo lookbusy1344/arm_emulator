@@ -8,6 +8,14 @@ import (
 	"time"
 )
 
+// registerNames maps register indices to their canonical names (R0-R14)
+// R15 (PC) is stored separately in CPU.PC, not in the R array
+// This avoids per-call map allocation in RecordInstruction
+var registerNames = [ARMGeneralRegisterCount]string{
+	"R0", "R1", "R2", "R3", "R4", "R5", "R6", "R7",
+	"R8", "R9", "R10", "R11", "R12", "R13", "R14",
+}
+
 // TraceEntry represents a single execution trace entry
 type TraceEntry struct {
 	Sequence        uint64            // Instruction sequence number
@@ -95,31 +103,12 @@ func (t *ExecutionTrace) RecordInstruction(vm *VM, disasm string) {
 		entry.Duration = time.Since(t.startTime)
 	}
 
-	// Track register changes
-	currentRegs := map[string]uint32{
-		"R0":  vm.CPU.R[0],
-		"R1":  vm.CPU.R[1],
-		"R2":  vm.CPU.R[2],
-		"R3":  vm.CPU.R[3],
-		"R4":  vm.CPU.R[4],
-		"R5":  vm.CPU.R[5],
-		"R6":  vm.CPU.R[6],
-		"R7":  vm.CPU.R[7],
-		"R8":  vm.CPU.R[8],
-		"R9":  vm.CPU.R[9],
-		"R10": vm.CPU.R[10],
-		"R11": vm.CPU.R[11],
-		"R12": vm.CPU.R[12],
-		"R13": vm.CPU.R[13],
-		"R14": vm.CPU.R[14],
-		"R15": vm.CPU.PC,
-		"SP":  vm.CPU.R[13],
-		"LR":  vm.CPU.R[14],
-		"PC":  vm.CPU.PC,
-	}
+	// Track register changes using direct array access (avoids per-call map allocation)
+	// Check R0-R14 registers (R15/PC is stored separately in CPU.PC)
+	for i := 0; i < ARMGeneralRegisterCount; i++ {
+		name := registerNames[i]
+		value := vm.CPU.R[i]
 
-	// Find changed registers
-	for name, value := range currentRegs {
 		// Apply filter if set
 		if len(t.FilterRegs) > 0 && !t.FilterRegs[name] {
 			continue
@@ -129,6 +118,34 @@ func (t *ExecutionTrace) RecordInstruction(vm *VM, disasm string) {
 		if oldValue, exists := t.lastSnapshot[name]; !exists || oldValue != value {
 			entry.RegisterChanges[name] = value
 			t.lastSnapshot[name] = value
+		}
+	}
+
+	// Check R15 (PC is stored separately, not in R array)
+	if len(t.FilterRegs) == 0 || t.FilterRegs["R15"] {
+		if oldValue, exists := t.lastSnapshot["R15"]; !exists || oldValue != vm.CPU.PC {
+			entry.RegisterChanges["R15"] = vm.CPU.PC
+			t.lastSnapshot["R15"] = vm.CPU.PC
+		}
+	}
+
+	// Also check SP, LR, PC aliases if they're in the filter (or no filter)
+	if len(t.FilterRegs) == 0 || t.FilterRegs["SP"] {
+		if oldValue, exists := t.lastSnapshot["SP"]; !exists || oldValue != vm.CPU.R[13] {
+			entry.RegisterChanges["SP"] = vm.CPU.R[13]
+			t.lastSnapshot["SP"] = vm.CPU.R[13]
+		}
+	}
+	if len(t.FilterRegs) == 0 || t.FilterRegs["LR"] {
+		if oldValue, exists := t.lastSnapshot["LR"]; !exists || oldValue != vm.CPU.R[14] {
+			entry.RegisterChanges["LR"] = vm.CPU.R[14]
+			t.lastSnapshot["LR"] = vm.CPU.R[14]
+		}
+	}
+	if len(t.FilterRegs) == 0 || t.FilterRegs["PC"] {
+		if oldValue, exists := t.lastSnapshot["PC"]; !exists || oldValue != vm.CPU.PC {
+			entry.RegisterChanges["PC"] = vm.CPU.PC
+			t.lastSnapshot["PC"] = vm.CPU.PC
 		}
 	}
 
