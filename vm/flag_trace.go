@@ -143,18 +143,18 @@ func (f *FlagTrace) Flush() error {
 		return nil
 	}
 
-	// Write header
-	header := "Flag Change Trace Report\n"
-	header += "========================\n\n"
+	// Write header using strings.Builder for efficiency
+	var header strings.Builder
+	header.WriteString("Flag Change Trace Report\n")
+	header.WriteString("========================\n\n")
+	header.WriteString("Statistics:\n")
+	header.WriteString(fmt.Sprintf("  Total Changes:    %d\n", f.totalChanges))
+	header.WriteString(fmt.Sprintf("  N flag changes:   %d\n", f.nChanges))
+	header.WriteString(fmt.Sprintf("  Z flag changes:   %d\n", f.zChanges))
+	header.WriteString(fmt.Sprintf("  C flag changes:   %d\n", f.cChanges))
+	header.WriteString(fmt.Sprintf("  V flag changes:   %d\n\n", f.vChanges))
 
-	header += fmt.Sprintf("Statistics:\n")
-	header += fmt.Sprintf("  Total Changes:    %d\n", f.totalChanges)
-	header += fmt.Sprintf("  N flag changes:   %d\n", f.nChanges)
-	header += fmt.Sprintf("  Z flag changes:   %d\n", f.zChanges)
-	header += fmt.Sprintf("  C flag changes:   %d\n", f.cChanges)
-	header += fmt.Sprintf("  V flag changes:   %d\n\n", f.vChanges)
-
-	if _, err := f.Writer.Write([]byte(header)); err != nil {
+	if _, err := f.Writer.Write([]byte(header.String())); err != nil {
 		return err
 	}
 
@@ -202,95 +202,83 @@ func (f *FlagTrace) formatEntry(entry FlagChangeEntry) string {
 
 // formatFlags formats CPSR flags as a string
 func (f *FlagTrace) formatFlags(flags CPSR) string {
-	result := ""
+	// Use a fixed-size byte slice for efficiency (4 flags)
+	result := make([]byte, 4)
 	if flags.N {
-		result += "N"
+		result[0] = 'N'
 	} else {
-		result += "-"
+		result[0] = '-'
 	}
 	if flags.Z {
-		result += "Z"
+		result[1] = 'Z'
 	} else {
-		result += "-"
+		result[1] = '-'
 	}
 	if flags.C {
-		result += "C"
+		result[2] = 'C'
 	} else {
-		result += "-"
+		result[2] = '-'
 	}
 	if flags.V {
-		result += "V"
+		result[3] = 'V'
 	} else {
-		result += "-"
+		result[3] = '-'
 	}
-	return result
+	return string(result)
 }
 
 // highlightChanges highlights changed flags in the new flags string
 func (f *FlagTrace) highlightChanges(flags CPSR, changed string) string {
-	result := ""
+	var sb strings.Builder
+	sb.Grow(8) // Max 4 flags * 2 chars each
+
+	// Helper to check if flag changed
+	hasN := strings.Contains(changed, "N")
+	hasZ := strings.Contains(changed, "Z")
+	hasC := strings.Contains(changed, "C")
+	hasV := strings.Contains(changed, "V")
 
 	// N flag
 	if flags.N {
-		if strings.Contains(changed, "N") {
-			result += "N*"
-		} else {
-			result += "N"
-		}
+		sb.WriteByte('N')
 	} else {
-		if strings.Contains(changed, "N") {
-			result += "-*"
-		} else {
-			result += "-"
-		}
+		sb.WriteByte('-')
+	}
+	if hasN {
+		sb.WriteByte('*')
 	}
 
 	// Z flag
 	if flags.Z {
-		if strings.Contains(changed, "Z") {
-			result += "Z*"
-		} else {
-			result += "Z"
-		}
+		sb.WriteByte('Z')
 	} else {
-		if strings.Contains(changed, "Z") {
-			result += "-*"
-		} else {
-			result += "-"
-		}
+		sb.WriteByte('-')
+	}
+	if hasZ {
+		sb.WriteByte('*')
 	}
 
 	// C flag
 	if flags.C {
-		if strings.Contains(changed, "C") {
-			result += "C*"
-		} else {
-			result += "C"
-		}
+		sb.WriteByte('C')
 	} else {
-		if strings.Contains(changed, "C") {
-			result += "-*"
-		} else {
-			result += "-"
-		}
+		sb.WriteByte('-')
+	}
+	if hasC {
+		sb.WriteByte('*')
 	}
 
 	// V flag
 	if flags.V {
-		if strings.Contains(changed, "V") {
-			result += "V*"
-		} else {
-			result += "V"
-		}
+		sb.WriteByte('V')
 	} else {
-		if strings.Contains(changed, "V") {
-			result += "-*"
-		} else {
-			result += "-"
-		}
+		sb.WriteByte('-')
+	}
+	if hasV {
+		sb.WriteByte('*')
 	}
 
-	return result
+	return sb.String()
 }
 
 // ExportJSON exports flag trace data as JSON
