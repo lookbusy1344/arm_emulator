@@ -66,8 +66,8 @@ If two instructions use `LDR R0, =0x1234` and `LDR R1, =0x1234`, they're counted
 ---
 
 #### 3. Preprocessor Is Implemented But Never Called
-**Status:** CONFIRMED
-**Location:** `parser/preprocessor.go` (implemented), `main.go` (not used)
+**Status:** ✅ FIXED
+**Location:** `parser/file.go` (new), `main.go`, `gui/app.go`, `gui/main.go`
 
 The parser has a full preprocessor with `.include`, `.ifdef`, `.ifndef`, `.else`, `.endif` support. However:
 - `main.go` reads the file directly: `os.ReadFile(asmFile)` → `parser.NewParser(string(input), ...)`

@@ -5,7 +5,9 @@ import (
 	"flag"
 	"log"
 	"os"
+	"path/filepath"
 
+	"github.com/lookbusy1344/arm-emulator/parser"
 	"github.com/wailsapp/wails/v2"
 	"github.com/wailsapp/wails/v2/pkg/options"
 	"github.com/wailsapp/wails/v2/pkg/options/assetserver"
@@ -21,14 +23,26 @@ func main() {
 	// Create application
 	app := NewApp()
 	
-	// Load initial file if specified
+	// Load initial file if specified (with preprocessing support)
 	if flag.NArg() > 0 {
 		filePath := flag.Arg(0)
 		source, err := os.ReadFile(filePath)
 		if err != nil {
 			log.Fatalf("Failed to read file %s: %v", filePath, err)
 		}
-		if err := app.LoadProgramFromSource(string(source), filePath, 0x8000); err != nil {
+
+		// Run preprocessor to handle .include, .ifdef, etc.
+		baseDir := filepath.Dir(filePath)
+		pp := parser.NewPreprocessor(baseDir)
+		processedSource, err := pp.ProcessContent(string(source), filepath.Base(filePath))
+		if err != nil {
+			log.Fatalf("Preprocessing error in %s: %v", filePath, err)
+		}
+		if len(pp.Errors().Errors) > 0 {
+			log.Fatalf("Preprocessing error: %v", pp.Errors().Errors[0])
+		}
+
+		if err := app.LoadProgramFromSource(processedSource, filePath, 0x8000); err != nil {
 			log.Fatalf("Failed to load program: %v", err)
 		}
 	}

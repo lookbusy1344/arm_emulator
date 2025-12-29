@@ -6,6 +6,7 @@ import (
 	"io"
 	"log"
 	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -219,8 +220,19 @@ func (a *App) LoadProgramFromFile() error {
 		return fmt.Errorf("failed to read file: %w", err)
 	}
 
+	// Run preprocessor to handle .include, .ifdef, etc.
+	baseDir := filepath.Dir(filePath)
+	pp := parser.NewPreprocessor(baseDir)
+	processedSource, err := pp.ProcessContent(string(source), filepath.Base(filePath))
+	if err != nil {
+		return fmt.Errorf("preprocessing error: %w", err)
+	}
+	if len(pp.Errors().Errors) > 0 {
+		return fmt.Errorf("preprocessing error: %v", pp.Errors().Errors[0])
+	}
+
 	// Parse and load program with default entry point (code segment start)
-	err = a.LoadProgramFromSource(string(source), filePath, vm.CodeSegmentStart)
+	err = a.LoadProgramFromSource(processedSource, filePath, vm.CodeSegmentStart)
 	if err != nil {
 		a.emitEvent("vm:error", err.Error())
 		return err

@@ -92,24 +92,12 @@ func main() {
 		os.Exit(1)
 	}
 
-	// Read assembly file
+	// Parse assembly file (with preprocessing for .include, .ifdef, etc.)
 	if *verboseMode {
-		fmt.Printf("Loading assembly file: %s\n", asmFile)
+		fmt.Printf("Loading and parsing assembly file: %s\n", asmFile)
 	}
 
-	input, err := os.ReadFile(asmFile) // #nosec G304 -- user-provided assembly file path
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error reading file: %v\n", err)
-		os.Exit(1)
-	}
-
-	// Parse assembly
-	if *verboseMode {
-		fmt.Println("Parsing assembly...")
-	}
-
-	p := parser.NewParser(string(input), filepath.Base(asmFile))
-	program, err := p.Parse()
+	program, _, err := parser.ParseFileSimple(asmFile)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Parse error:\n%v\n", err)
 		os.Exit(1)
