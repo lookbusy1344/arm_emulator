@@ -565,10 +565,18 @@ func (s *DebuggerService) GetSymbolForAddress(addr uint32) string {
 }
 
 // RunUntilHalt runs program until halt or breakpoint
+// If Running is already false (e.g., paused before goroutine started), returns immediately.
+// This handles the race where Pause() is called between Continue() setting Running=true
+// and this function starting execution.
 func (s *DebuggerService) RunUntilHalt() error {
 	serviceLog.Println("RunUntilHalt() called")
 	s.mu.Lock()
-	s.debugger.Running = true
+	// Check if already paused before we started (handles race with Pause())
+	if !s.debugger.Running {
+		serviceLog.Println("RunUntilHalt() - already paused, exiting early")
+		s.mu.Unlock()
+		return nil
+	}
 	s.vm.State = vm.StateRunning
 	s.mu.Unlock()
 

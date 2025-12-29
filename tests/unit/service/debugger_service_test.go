@@ -603,7 +603,8 @@ main:
 		t.Fatalf("Failed to load program: %v", err)
 	}
 
-	// Execute program
+	// Execute program (must set running state first)
+	svc.SetRunning(true)
 	err = svc.RunUntilHalt()
 	if err != nil {
 		t.Fatalf("RunUntilHalt failed: %v", err)

@@ -114,6 +114,7 @@ done:
 
 	// RunUntilHalt - should execute until hitting the breakpoint
 	t.Logf("Calling RunUntilHalt()...")
+	svc.SetRunning(true) // Must set running state before RunUntilHalt
 	err = svc.RunUntilHalt()
 	if err != nil {
 		// Some error is expected if we hit a breakpoint, but not other errors

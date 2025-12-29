@@ -40,7 +40,7 @@ The previously documented critical issues have been resolved:
 
 ## 2. High Severity Issues
 
-### 2.1 Race Condition Window in GUI Continue/Pause
+### 2.1 Race Condition Window in GUI Continue/Pause ✅ FIXED
 
 **Location:** `gui/app.go` lines 254-292
 
@@ -66,6 +66,8 @@ func (a *App) Continue() error {
 2. Document this as expected behavior (pause takes effect on next instruction boundary)
 
 **Severity:** HIGH - Could cause UI/execution state desynchronization
+
+**Resolution:** Modified `RunUntilHalt()` to check if already paused at start and exit early if so. Previously it unconditionally set `Running=true`, overriding any pause signal. Now if `Pause()` is called before the goroutine starts, `RunUntilHalt()` will detect `Running=false` and return immediately. Added documentation to `Continue()` explaining this synchronization.
 
 ---
 

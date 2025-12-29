@@ -251,6 +251,10 @@ func (a *App) Step() error {
 }
 
 // Continue runs until breakpoint or halt (asynchronously)
+// The running state is set synchronously before launching the execution goroutine,
+// ensuring the frontend can immediately observe the state change. If Pause() is
+// called before RunUntilHalt() starts, RunUntilHalt() will check the running state
+// and exit early, preventing the race condition where pause would be ignored.
 func (a *App) Continue() error {
 	debugLog.Println("Continue() called - setting running state")
 

@@ -68,7 +68,8 @@ loop:
 		t.Fatalf("LoadProgram failed: %v", err)
 	}
 
-	// Start execution in background
+	// Start execution in background (must set running state first)
+	svc.SetRunning(true)
 	errChan := make(chan error, 1)
 	go func() {
 		errChan <- svc.RunUntilHalt()
