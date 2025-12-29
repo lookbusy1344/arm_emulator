@@ -244,7 +244,7 @@ isBL := (instr & 0x0F000000) == 0x0B000000
 
 ---
 
-### 4.2 Hardcoded Stack Inspection Limit
+### 4.2 Hardcoded Stack Inspection Limit ✅ FIXED
 
 **Location:** `debugger/commands.go` line 550
 
@@ -253,6 +253,8 @@ for i := 0; i < 8; i++ {  // Show 8 words from stack
 ```
 
 **Recommendation:** Make configurable or use named constant.
+
+**Resolution:** Added `DefaultStackInspectionWords` constant and updated the loop to use it.
 
 ---
 

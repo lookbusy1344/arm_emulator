@@ -9,6 +9,11 @@ import (
 	"github.com/lookbusy1344/arm-emulator/vm"
 )
 
+const (
+	// DefaultStackInspectionWords is the number of stack words shown in stack dump
+	DefaultStackInspectionWords = 8
+)
+
 // Command handler implementations
 
 // cmdRun starts or restarts program execution
@@ -546,11 +551,11 @@ func (d *Debugger) showStack() error {
 	sp := d.VM.CPU.GetSP()
 	d.Printf("Stack (SP = 0x%08X):\n", sp)
 
-	// Show 8 words from stack
-	for i := 0; i < 8; i++ {
+	// Show stack words
+	for i := 0; i < DefaultStackInspectionWords; i++ {
 		offset, err := vm.SafeIntToUint32(i * 4)
 		if err != nil {
-			break // Should never happen with i < 8
+			break // Should never happen with small constant
 		}
 		addr := sp + offset
 		value, err := d.VM.Memory.ReadWord(addr)
