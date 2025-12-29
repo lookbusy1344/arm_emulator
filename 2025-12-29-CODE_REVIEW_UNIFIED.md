@@ -95,8 +95,8 @@ This causes inconsistent behavior between CLI stepping and `VM.Run()`.
 ---
 
 #### 5. `parseNumber` Rejects `-2147483648`
-**Status:** CONFIRMED BUG
-**Location:** `parser/parser.go:725-726`
+**Status:** ✅ FIXED
+**Location:** `parser/parser.go:725-734`
 
 ```go
 if result > uint32(math.MaxInt32) {

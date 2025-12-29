@@ -724,10 +724,12 @@ func parseNumber(s string) (uint32, error) {
 
 	result := uint32(value)
 	if negative {
-		if result > uint32(math.MaxInt32) {
-			return 0, fmt.Errorf("negative value %d is out of range for int32", result)
+		// Allow up to 2147483648 (which represents MinInt32 = -2147483648)
+		// MaxInt32 is 2147483647, so we allow MaxInt32+1 for the MinInt32 case
+		if result > uint32(math.MaxInt32)+1 {
+			return 0, fmt.Errorf("negative value -%d is out of range for int32", result)
 		}
-		// Safe: bounds checked above to be within int32 range
+		// Safe: bounds checked above to be within int32 range (including MinInt32)
 		result = uint32(-int32(result)) // #nosec G115 -- bounds checked
 	}
 
