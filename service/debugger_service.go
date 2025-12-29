@@ -22,7 +22,9 @@ var serviceLog *log.Logger
 func init() {
 	// Check if debug logging is enabled via environment variable
 	if os.Getenv("ARM_EMULATOR_DEBUG") != "" {
-		// Create debug log file
+		// Create debug log file.
+		// Note: File handle intentionally not closed - kept open for process lifetime.
+		// This is acceptable for debug logging; the OS cleans up on process exit.
 		logPath := filepath.Join(os.TempDir(), "arm-emulator-service-debug.log")
 		f, err := os.OpenFile(logPath, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0600) // #nosec G304 -- fixed filename in temp dir
 		if err != nil {

@@ -24,7 +24,9 @@ func init() {
 	debugEnabled = os.Getenv("ARM_EMULATOR_DEBUG") != ""
 	
 	if debugEnabled {
-		// Create debug log file with restrictive permissions (0600 = owner read/write only)
+		// Create debug log file with restrictive permissions (0600 = owner read/write only).
+		// Note: File handle intentionally not closed - kept open for process lifetime.
+		// This is acceptable for debug logging; the OS cleans up on process exit.
 		logPath := filepath.Join(os.TempDir(), "arm-emulator-gui-debug.log")
 		f, err := os.OpenFile(logPath, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0600) // #nosec G304 -- fixed filename in temp dir
 		if err != nil {

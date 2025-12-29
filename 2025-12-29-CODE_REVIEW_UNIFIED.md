@@ -162,7 +162,7 @@ On Windows, `/tmp` doesn't exist.
 ---
 
 #### 10. Program Loading Logic Duplicated
-**Status:** CONFIRMED
+**Status:** DEFERRED (refactoring task, not a bug)
 **Location:** `main.go:loadProgramIntoVM()`, `service/debugger_service.go:loadProgramIntoVM()`
 
 Substantial duplication that will drift over time.
@@ -196,8 +196,8 @@ The execution goroutine (line 427) calls `VM.Step()` while UI refreshes read VM 
 ## Additional Findings (Claude)
 
 ### 13. Debug Log File Handles Never Closed
-**Status:** CONFIRMED (minor resource leak)
-**Location:** `service/debugger_service.go:25-30`, `gui/app.go:27-33`
+**Status:** ✅ DOCUMENTED (intentional behavior)
+**Location:** `service/debugger_service.go:25-28`, `gui/app.go:27-29`
 
 When `ARM_EMULATOR_DEBUG` is set, a log file is opened in `init()` but never closed:
 
