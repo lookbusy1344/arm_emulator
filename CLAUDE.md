@@ -27,6 +27,16 @@ go clean -testcache
 go test ./...
 ```
 
+## Race Detection
+
+Run tests with the race detector to check for data races (especially important for TUI/GUI code):
+
+```bash
+go test -race ./...
+```
+
+Run periodically, especially after modifying concurrent code (TUI, service layer, goroutines).
+
 ## Update dependencies
 
 ```bash
@@ -56,7 +66,7 @@ go mod verify
 ./arm-emulator -fsroot ./examples program.s
 ```
 
-By default, guest programs can only access files within the current working directory. Attempts to escape using `..` or symlinks will halt the VM with a security error.
+By default, guest programs can only access files within the current working directory. Attempts to escape using `..` or symlinks will return an error code (`0xFFFFFFFF`) to the guest program and log a security warning to stderr.
 
 When running tests, the filesystem root is automatically set appropriately for each test case.
 
