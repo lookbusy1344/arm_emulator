@@ -510,14 +510,14 @@ func TestRun(t *testing.T) {
 	}
 
 	v.CPU.PC = startAddr
-	v.MaxCycles = 10 // Set a limit so Run terminates
+	v.CycleLimit = 10 // Set a limit so Run terminates
 
-	// Run will execute until max cycles
+	// Run will execute until cycle limit
 	_ = v.Run()
 
-	// Should be halted after max cycles
-	if v.State != vm.StateHalted {
-		t.Errorf("Expected StateHalted after Run, got %v", v.State)
+	// Should be in error state after cycle limit
+	if v.State != vm.StateError {
+		t.Errorf("Expected StateError after cycle limit, got %v", v.State)
 	}
 
 	// Should have executed at least one instruction
@@ -545,14 +545,14 @@ func TestRunWithCycleLimit(t *testing.T) {
 	}
 
 	v.CPU.PC = startAddr
-	v.MaxCycles = 3 // Small limit
+	v.CycleLimit = 3 // Small limit
 
-	// Run should hit cycle limit and halt
+	// Run should hit cycle limit
 	_ = v.Run()
 
-	// Should be halted due to max cycles or error
-	if v.State != vm.StateHalted && v.State != vm.StateError {
-		t.Errorf("Expected StateHalted or StateError after cycle limit, got %v", v.State)
+	// Should be in error state after cycle limit
+	if v.State != vm.StateError {
+		t.Errorf("Expected StateError after cycle limit, got %v", v.State)
 	}
 
 	// Should have executed some cycles

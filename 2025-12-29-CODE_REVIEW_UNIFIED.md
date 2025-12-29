@@ -80,8 +80,8 @@ The parser has a full preprocessor with `.include`, `.ifdef`, `.ifndef`, `.else`
 ### MEDIUM Priority
 
 #### 4. `MaxCycles` vs `CycleLimit` Confusion
-**Status:** CONFIRMED
-**Location:** `vm/executor.go:63-64, 112-113, 222-224, 446`
+**Status:** ✅ FIXED
+**Location:** `vm/executor.go:63, 111, 221-225`
 
 Two fields exist with identical default values but different enforcement points:
 - `CycleLimit` - checked in `VM.Step()` (line 222)

@@ -212,8 +212,8 @@ type VM struct {
     Memory *Memory
 
     // Execution control
-    Running      bool
-    MaxCycles    uint64
+    Running    bool
+    CycleLimit uint64 // Maximum cycles before halt (0 = unlimited)
 
     // Tracing and diagnostics
     ExecutionTrace *ExecutionTrace

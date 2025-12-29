@@ -60,8 +60,7 @@ type VM struct {
 	Mode   ExecutionMode
 
 	// Execution limits and statistics
-	MaxCycles      uint64
-	CycleLimit     uint64
+	CycleLimit     uint64   // Maximum cycles before halt (0 = unlimited)
 	InstructionLog []uint32 // History of executed instruction addresses
 
 	// Error handling
@@ -109,8 +108,7 @@ func NewVM() *VM {
 		Memory:           NewMemory(),
 		State:            StateHalted,
 		Mode:             ModeRun,
-		MaxCycles:        DefaultMaxCycles, // Default 1M instruction limit
-		CycleLimit:       DefaultMaxCycles, // Enable cycle limit by default (CODE_REVIEW.md §4.2.3)
+		CycleLimit:       DefaultMaxCycles, // Default 1M instruction limit
 		InstructionLog:   make([]uint32, 0, DefaultLogCapacity),
 		EntryPoint:       CodeSegmentStart,
 		ProgramArguments: make([]string, 0),
@@ -440,13 +438,7 @@ func (vm *VM) Run() error {
 		if err := vm.Step(); err != nil {
 			return err
 		}
-
-		// Check for halt conditions
-		// This is a placeholder - will be enhanced with proper halt detection
-		if vm.CPU.Cycles > vm.MaxCycles {
-			vm.State = StateHalted
-			return fmt.Errorf("maximum cycles exceeded")
-		}
+		// CycleLimit is enforced in Step(), no need to duplicate check here
 	}
 
 	return nil
