@@ -46,7 +46,10 @@ func NewMemory() *Memory {
 	}
 
 	// Initialize standard memory segments
-	// Note: Code segment is writable to support .word/.byte data and self-modifying code
+	// Note: Code segment is writable to match ARM2 hardware behavior (no MMU/memory protection).
+	// ARM2 allowed code and data to be intermixed, and many programs embed writable data in the
+	// code segment using .space/.word directives. Enforcing W^X would break historical accuracy
+	// and 37% of example programs that rely on this pattern.
 	m.AddSegment("code", CodeSegmentStart, CodeSegmentSize, PermRead|PermWrite|PermExecute)
 	m.AddSegment("data", DataSegmentStart, DataSegmentSize, PermRead|PermWrite)
 	m.AddSegment("heap", HeapSegmentStart, HeapSegmentSize, PermRead|PermWrite)

@@ -174,12 +174,23 @@ Substantial duplication that will drift over time.
 ### LOW Priority
 
 #### 11. `MakeCodeReadOnly()` Never Called
-**Status:** CONFIRMED
+**Status:** ✅ RESOLVED - Writable code is intentional for ARM2 authenticity
 **Location:** `vm/memory.go`
 
-Code segment is writable by default "to support .word/.byte data and self-modifying code". This is a design decision but weakens W^X assumptions.
+Code segment is writable by default. This is an **intentional design choice** for historical accuracy:
 
-**Decision needed:** Document whether self-modifying code is officially supported. If not, call `MakeCodeReadOnly()` after loading.
+**ARM2 Hardware Reality:**
+- ARM2 (1986) had **no MMU or memory protection** - no concept of read-only code or W^X
+- Code and data were freely intermixed in real ARM2 programs
+- The hardware allowed writes to any memory, including code
+
+**Emulator Impact:**
+- **37% of example programs** (18/49) embed writable data in code segment using `.space`/`.word`
+- Parser doesn't implement `.data`/`.text` sections - all data after code stays in code segment
+- Moving data to separate segment breaks ARM literal pools (4KB max offset from PC)
+- Enforcing W^X would break historical accuracy and many example programs
+
+**Resolution:** Documented writable code segment as intentional ARM2-authentic behavior in `vm/memory.go`.
 
 ---
 
