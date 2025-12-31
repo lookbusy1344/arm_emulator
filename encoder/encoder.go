@@ -323,37 +323,48 @@ func (e *Encoder) parseShift(shift string) (shiftType, shiftAmount uint32, shift
 	}
 }
 
-// evaluateExpression evaluates a constant expression like "label+12" or "symbol-4"
+// evaluateExpression evaluates a constant expression with support for multiple operators.
+// Examples: "label+12", "symbol-4", "buffer+255-17"
+// Uses right-to-left scanning to maintain correct left-to-right evaluation order.
 // Returns the evaluated value or an error if the expression is invalid
 func (e *Encoder) evaluateExpression(expr string) (uint32, error) {
 	expr = strings.TrimSpace(expr)
 
-	// Look for + or - operators (scanning from left to right, skip first char for potential minus)
-	for i := 1; i < len(expr); i++ {
+	// Scan right-to-left to find the last + or - operator
+	// (skip position 0 to allow for potential leading minus sign)
+	// This ensures left-to-right evaluation when we recurse on the left side
+	lastOpPos := -1
+	lastOp := byte(0)
+
+	for i := len(expr) - 1; i >= 1; i-- {
 		if expr[i] == '+' || expr[i] == '-' {
-			left := strings.TrimSpace(expr[:i])
-			right := strings.TrimSpace(expr[i+1:])
-			op := expr[i]
-
-			// Evaluate left side
-			leftVal, err := e.evaluateTerm(left)
-			if err != nil {
-				return 0, err
-			}
-
-			// Evaluate right side
-			rightVal, err := e.evaluateTerm(right)
-			if err != nil {
-				return 0, err
-			}
-
-			// Perform operation
-			if op == '+' {
-				return leftVal + rightVal, nil
-			} else {
-				return leftVal - rightVal, nil
-			}
+			lastOpPos = i
+			lastOp = expr[i]
+			break
 		}
+	}
+
+	if lastOpPos > 0 {
+		left := strings.TrimSpace(expr[:lastOpPos])
+		right := strings.TrimSpace(expr[lastOpPos+1:])
+
+		// Recursively evaluate left side (may contain more operators)
+		leftVal, err := e.evaluateExpression(left)
+		if err != nil {
+			return 0, err
+		}
+
+		// Evaluate right side as a single term
+		rightVal, err := e.evaluateTerm(right)
+		if err != nil {
+			return 0, err
+		}
+
+		// Perform operation
+		if lastOp == '+' {
+			return leftVal + rightVal, nil
+		}
+		return leftVal - rightVal, nil
 	}
 
 	// No operator found, evaluate as single term

@@ -228,21 +228,14 @@ This is incorrect. `filepath.EvalSymlinks` **resolves** symlinks to their target
 ---
 
 ### 15. Encoder Expression Evaluation Handles Only One Operator
-**Status:** POTENTIAL ISSUE
+**Status:** ✅ FIXED
 **Location:** `encoder/encoder.go:326-360`
 
-`evaluateExpression` scans left-to-right for `+` or `-` and stops at the first operator found. Expressions like `base+offset1+offset2` would evaluate incorrectly (only `base+offset1` would be computed).
+`evaluateExpression` scanned left-to-right for `+` or `-` and stopped at the first operator found. Expressions like `buffer+255-17` would fail with "invalid immediate value: 255-17".
 
-```go
-for i := 1; i < len(expr); i++ {
-    if expr[i] == '+' || expr[i] == '-' {
-        // Only handles ONE operator, then returns
-        return leftVal + rightVal, nil  // or minus
-    }
-}
-```
+**Verification:** Parser tests exist for multi-operator expressions (e.g., `buffer + 255 - 17`) but they weren't catching the encoder bug because they only tested parsing, not encoding.
 
-**Workaround:** This may not be an issue if the assembler grammar only allows single-operator expressions. Verify whether complex expressions are intended to be supported.
+**Fix:** Rewrote `evaluateExpression` to scan right-to-left for the last operator and recursively evaluate the left side. This maintains correct left-to-right evaluation order for expressions like `a+b-c` → `(a+b)-c`. Verified with test showing `buffer+255-17` correctly evaluates to `buffer+238`.
 
 ---
 
