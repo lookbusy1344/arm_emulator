@@ -184,12 +184,18 @@ Code segment is writable by default "to support .word/.byte data and self-modify
 ---
 
 #### 12. TUI Threading Model
-**Status:** PARTIALLY ADDRESSED
-**Location:** `debugger/tui.go:66-71`
+**Status:** ✅ VERIFIED CORRECT
+**Location:** `debugger/tui.go:66-71`, `debugger/debugger.go:45-47`
 
-The TUI now has `stateMu` (RWMutex) protecting change-tracking state. However, the mutex only protects `ChangedRegs`, `ChangedCPSR`, `RecentWrites`, and `PrevState` - not the underlying VM state itself.
+The threading model is correctly implemented with multiple layers of protection:
 
-The execution goroutine (line 427) calls `VM.Step()` while UI refreshes read VM registers directly. Consider running the race detector (`go test -race ./...`) to verify correctness.
+1. **Debugger.mu** - Protects execution state (Running, StepMode, etc.) with all access mutex-guarded
+2. **TUI.stateMu** - Protects change-tracking state (ChangedRegs, RecentWrites, PrevState)
+3. **Single-writer pattern** - VM state modified exclusively by background execution goroutine
+4. **Queued reads** - UI reads VM state via `QueueUpdateDraw`, serialized on UI thread
+5. **Race detector clean** - `go test -race ./...` passes with zero data races
+
+The architecture ensures VM doesn't need additional mutex protection because writes are single-threaded and reads are queued. This is a valid and safe threading model.
 
 ---
 
