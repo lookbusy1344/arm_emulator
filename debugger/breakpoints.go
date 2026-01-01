@@ -178,3 +178,28 @@ func (bm *BreakpointManager) Count() int {
 
 	return len(bm.breakpoints)
 }
+
+// ProcessHit atomically increments hit count and handles temporary breakpoint deletion
+// Returns a copy of the breakpoint for safe access after the lock is released
+func (bm *BreakpointManager) ProcessHit(address uint32) *Breakpoint {
+	bm.mu.Lock()
+	defer bm.mu.Unlock()
+
+	bp, exists := bm.breakpoints[address]
+	if !exists {
+		return nil
+	}
+
+	// Increment hit count
+	bp.HitCount++
+
+	// Make a copy for return
+	result := *bp
+
+	// Delete if temporary
+	if bp.Temporary {
+		delete(bm.breakpoints, address)
+	}
+
+	return &result
+}

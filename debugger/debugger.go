@@ -276,15 +276,11 @@ func (d *Debugger) ShouldBreak() (bool, string) {
 			}
 		}
 
-		// Increment hit count
-		bp.HitCount++
-
-		// Check if temporary breakpoint
-		if bp.Temporary {
-			_ = d.Breakpoints.DeleteBreakpoint(bp.ID) // Ignore error on cleanup
+		// Process hit atomically (increments count and handles temporary deletion)
+		hitBp := d.Breakpoints.ProcessHit(pc)
+		if hitBp != nil {
+			return true, fmt.Sprintf("breakpoint %d", hitBp.ID)
 		}
-
-		return true, fmt.Sprintf("breakpoint %d", bp.ID)
 	}
 
 	// Check watchpoints
