@@ -438,6 +438,7 @@ func (l *Linter) findSimilarLabel(target string) string {
 }
 
 // levenshteinDistance calculates edit distance between two strings
+// Uses optimized 2-row algorithm to reduce memory from O(n*m) to O(m)
 func levenshteinDistance(s1, s2 string) int {
 	if len(s1) == 0 {
 		return len(s2)
@@ -446,32 +447,36 @@ func levenshteinDistance(s1, s2 string) int {
 		return len(s1)
 	}
 
-	// Create matrix
-	matrix := make([][]int, len(s1)+1)
-	for i := range matrix {
-		matrix[i] = make([]int, len(s2)+1)
-		matrix[i][0] = i
-	}
-	for j := range matrix[0] {
-		matrix[0][j] = j
+	// Use only two rows: previous and current
+	prev := make([]int, len(s2)+1)
+	curr := make([]int, len(s2)+1)
+
+	// Initialize first row
+	for j := range prev {
+		prev[j] = j
 	}
 
-	// Fill matrix
+	// Fill rows
 	for i := 1; i <= len(s1); i++ {
+		curr[0] = i
+
 		for j := 1; j <= len(s2); j++ {
 			cost := 1
 			if s1[i-1] == s2[j-1] {
 				cost = 0
 			}
-			matrix[i][j] = min(
-				matrix[i-1][j]+1,      // deletion
-				matrix[i][j-1]+1,      // insertion
-				matrix[i-1][j-1]+cost, // substitution
+			curr[j] = min(
+				prev[j]+1,      // deletion
+				curr[j-1]+1,    // insertion
+				prev[j-1]+cost, // substitution
 			)
 		}
+
+		// Swap rows
+		prev, curr = curr, prev
 	}
 
-	return matrix[len(s1)][len(s2)]
+	return prev[len(s2)]
 }
 
 // isSpecialLabel checks if a label is a special entry point or system label

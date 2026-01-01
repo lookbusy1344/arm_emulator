@@ -366,7 +366,7 @@ The `valueHistory` slice grows unbounded with each `EvaluateExpression()` call.
 | ~~17~~ | `debugger/interface.go:90` | ~~Magic number `148` for terminal width should be constant~~ ✅ FIXED |
 | ~~18~~ | `service/debugger_service.go:711,775` | ~~Hardcoded validator limits (1000, 100000) should be named constants~~ ✅ FIXED |
 | ~~19~~ | `tools/lint.go:529` | ~~Custom `min()` function shadows Go 1.21+ builtin~~ ✅ FIXED |
-| 20 | `tools/lint.go:440-475` | Levenshtein allocates full (n+1)x(m+1) matrix; use 2-row version |
+| ~~20~~ | `tools/lint.go:440-475` | ~~Levenshtein allocates full (n+1)x(m+1) matrix; use 2-row version~~ ✅ FIXED |
 | ~~21~~ | `service/debugger_service.go:597` | ~~`stepsBeforeYield = 1000` should be package-level constant~~ ✅ FIXED |
 | 22 | `vm/constants.go` vs `vm/arch_constants.go` | Duplicate register constants (`SPRegister` = `ARMRegisterSP`) |
 | 23 | `main.go:440-462` | Exit code not propagated from debugger/TUI modes |
