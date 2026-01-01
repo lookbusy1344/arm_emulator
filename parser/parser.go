@@ -59,7 +59,8 @@ type Parser struct {
 	macroExpander  *MacroExpander
 	preprocessor   *Preprocessor
 	currentAddress uint32
-	originSet      bool // Track if .org directive has been encountered
+	originSet      bool     // Track if .org directive has been encountered
+	inputLines     []string // Cached split lines for getRawLineFromInput
 }
 
 // NewParser creates a new parser
@@ -896,13 +897,17 @@ func (p *Parser) getRawLineFromInput(lineNum int) string {
 		return ""
 	}
 
-	lines := strings.Split(p.lexer.input, "\n")
-	if lineNum < 1 || lineNum > len(lines) {
+	// Cache split lines on first access
+	if p.inputLines == nil {
+		p.inputLines = strings.Split(p.lexer.input, "\n")
+	}
+
+	if lineNum < 1 || lineNum > len(p.inputLines) {
 		return ""
 	}
 
 	// Line numbers are 1-based
-	return lines[lineNum-1]
+	return p.inputLines[lineNum-1]
 }
 
 // Errors returns the error list
