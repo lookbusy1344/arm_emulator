@@ -15,7 +15,7 @@
 
 ## Critical Issues (Must Fix)
 
-### 1. Security: Path Traversal in Preprocessor Include
+### ~~1. Security: Path Traversal in Preprocessor Include~~ ✅ FIXED
 
 **Location**: `parser/preprocessor.go:51-66`
 
@@ -40,7 +40,7 @@ if !strings.HasPrefix(absPath, absBase+string(filepath.Separator)) {
 
 ---
 
-### 2. DoS: Unbounded Include Depth
+### ~~2. DoS: Unbounded Include Depth~~ ✅ FIXED
 
 **Location**: `parser/preprocessor.go:50-79`
 
@@ -61,7 +61,7 @@ func (p *Preprocessor) ProcessFile(filename string) (string, error) {
 
 ---
 
-### 3. Race Condition: Breakpoint HitCount Modification
+### ~~3. Race Condition: Breakpoint HitCount Modification~~ ✅ FIXED
 
 **Location**: `debugger/debugger.go:263-287`
 
@@ -82,7 +82,7 @@ if bp := d.Breakpoints.GetBreakpoint(pc); bp != nil {  // Lock released here
 
 ---
 
-### 4. Race Condition: SendInput Without Lock
+### ~~4. Race Condition: SendInput Without Lock~~ ✅ FIXED
 
 **Location**: `service/debugger_service.go:1010-1026`
 
@@ -111,7 +111,7 @@ if outputWriter != nil {
 
 ---
 
-### 5. Resource Leak: stdin Pipe Never Closed
+### ~~5. Resource Leak: stdin Pipe Never Closed~~ ✅ FIXED
 
 **Location**: `debugger/tui.go:127-128`
 
@@ -130,7 +130,7 @@ func (t *TUI) Stop() {
 
 ---
 
-### 6. Integer Overflow: Stack Size Calculation
+### ~~6. Integer Overflow: Stack Size Calculation~~ ✅ FIXED
 
 **Location**: `main.go:140-141`
 
@@ -154,7 +154,7 @@ if *stackSize > maxStackSize {
 
 ## Important Issues (Should Fix)
 
-### 7. Recursive RLock Acquisition
+### ~~7. Recursive RLock Acquisition~~ ✅ FIXED
 
 **Location**: `service/debugger_service.go:738-739`
 
@@ -174,7 +174,7 @@ if *stackSize > maxStackSize {
 
 ---
 
-### 9. ADC/SBC Overflow Flag Calculation
+### ~~9. ADC/SBC Overflow Flag Calculation~~ ✅ FIXED
 
 **Location**: `vm/data_processing.go:112-139`
 
@@ -198,7 +198,7 @@ overflow = tempOverflow || finalOverflow
 
 ---
 
-### 10. MRS/MSR Double Cycle Increment
+### ~~10. MRS/MSR Double Cycle Increment~~ ✅ FIXED
 
 **Location**: `vm/psr.go:49-51, 96-98`
 
@@ -208,7 +208,7 @@ Both MRS and MSR functions call `IncrementCycles(1)` after `IncrementPC()`, but 
 
 ---
 
-### 11. Inefficient O(n) Symbol Lookup in TUI
+### ~~11. Inefficient O(n) Symbol Lookup in TUI~~ ✅ FIXED
 
 **Location**: `debugger/tui.go:1077-1084`
 
@@ -229,7 +229,7 @@ func (t *TUI) findSymbolForAddress(addr uint32) string {
 
 ---
 
-### 12. Shift Amount Range Not Validated
+### ~~12. Shift Amount Range Not Validated~~ ✅ FIXED
 
 **Location**: `encoder/encoder.go:279-324`
 
@@ -245,7 +245,7 @@ if amount > 31 {
 
 ---
 
-### 13. Inefficient String Splitting in Parser
+### ~~13. Inefficient String Splitting in Parser~~ ✅ FIXED
 
 **Location**: `parser/parser.go:894-906`
 
@@ -268,7 +268,7 @@ func (p *Parser) getRawLineFromInput(lineNum int) string {
 
 ---
 
-### 14. Bubble Sort for Symbols
+### ~~14. Bubble Sort for Symbols~~ ✅ FIXED
 
 **Location**: `main.go:1012-1019`
 
@@ -294,7 +294,7 @@ sort.Slice(entries, func(i, j int) bool {
 
 ---
 
-### 15. Unbounded Expression Value History
+### ~~15. Unbounded Expression Value History~~ ✅ FIXED
 
 **Location**: `debugger/expressions.go:30-33`
 
