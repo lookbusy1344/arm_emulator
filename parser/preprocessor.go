@@ -7,6 +7,11 @@ import (
 	"strings"
 )
 
+const (
+	// MaxIncludeDepth is the maximum depth of nested includes to prevent DoS
+	MaxIncludeDepth = 100
+)
+
 // Preprocessor handles file inclusion and conditional assembly
 type Preprocessor struct {
 	// Track included files to detect circular includes
@@ -49,6 +54,11 @@ func (p *Preprocessor) IsDefined(symbol string) bool {
 
 // ProcessFile processes a file with includes and conditionals
 func (p *Preprocessor) ProcessFile(filename string) (string, error) {
+	// Check include depth to prevent DoS
+	if len(p.includeStack) >= MaxIncludeDepth {
+		return "", fmt.Errorf("include depth exceeds maximum (%d)", MaxIncludeDepth)
+	}
+
 	// Resolve absolute path
 	absPath, err := filepath.Abs(filepath.Join(p.baseDir, filename))
 	if err != nil {
