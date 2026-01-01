@@ -118,7 +118,10 @@ func ExecuteDataProcessing(vm *VM, inst *Instruction) error {
 		// Check if carry occurred from either addition
 		temp := op1 + op2
 		carry = CalculateAddCarry(op1, op2, temp) || CalculateAddCarry(temp, carryIn, result)
-		overflow = CalculateAddOverflow(op1, op2, result)
+		// Overflow considers all three inputs (op1, op2, and carry)
+		tempOverflow := CalculateAddOverflow(op1, op2, temp)
+		finalOverflow := CalculateAddOverflow(temp, carryIn, result)
+		overflow = tempOverflow || finalOverflow
 
 	case OpSBC:
 		carryIn := uint32(1)
@@ -127,7 +130,11 @@ func ExecuteDataProcessing(vm *VM, inst *Instruction) error {
 		}
 		result = op1 - op2 - (1 - carryIn)
 		carry = CalculateSubCarry(op1, op2+1-carryIn)
-		overflow = CalculateSubOverflow(op1, op2+(1-carryIn), result)
+		// Overflow considers all inputs including borrow (NOT carry)
+		temp := op1 - op2
+		tempOverflow := CalculateSubOverflow(op1, op2, temp)
+		finalOverflow := CalculateSubOverflow(temp, 1-carryIn, result)
+		overflow = tempOverflow || finalOverflow
 
 	case OpRSC:
 		carryIn := uint32(1)
