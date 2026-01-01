@@ -1016,8 +1016,13 @@ func (s *DebuggerService) SendInput(input string) error {
 	}
 
 	// Echo the input to the output window so the user can see what they typed
-	if s.vm.OutputWriter != nil {
-		_, _ = s.vm.OutputWriter.Write([]byte(input + "\n"))
+	// Use RLock to safely access OutputWriter
+	s.mu.RLock()
+	outputWriter := s.vm.OutputWriter
+	s.mu.RUnlock()
+
+	if outputWriter != nil {
+		_, _ = outputWriter.Write([]byte(input + "\n"))
 	}
 
 	// Write input + newline to the stdin pipe (io.Pipe.Write is thread-safe)
