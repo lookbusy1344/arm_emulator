@@ -159,8 +159,6 @@ func (s *DebuggerService) loadProgramIntoVM(program *parser.Program, entryPoint 
 
 	// Create encoder
 	enc := encoder.NewEncoder(program.SymbolTable)
-	enc.LiteralPoolLocs = append([]uint32(nil), program.LiteralPoolLocs...)
-	enc.LiteralPoolCounts = append([]int(nil), program.LiteralPoolCounts...)
 
 	// Build address map
 	addressMap := make(map[*parser.Instruction]uint32)

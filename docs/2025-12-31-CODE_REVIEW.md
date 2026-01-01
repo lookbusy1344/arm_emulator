@@ -15,7 +15,54 @@
 
 ## Critical Issues (Must Fix)
 
-### ~~1. Security: Path Traversal in Preprocessor Include~~ ✅ FIXED
+### ~~1. CRITICAL BUG: Incorrect Literal Pool Setup Causing Wrong Program Output~~ ✅ FIXED
+
+**Location**: `main.go:657-661`, `service/debugger_service.go:161-163`
+
+**Severity**: CRITICAL - Produces incorrect output for programs using `.ltorg` directives
+
+**Discovery**: Found while refactoring Fix #8 (duplicate loadProgramIntoVM code). The CLI version in main.go and GUI version in service/debugger_service.go have buggy literal pool setup code that causes test_ltorg.s to produce incorrect output.
+
+**Evidence**:
+```bash
+# CLI output (WRONG - uses main.go with literal pool setup)
+./arm-emulator examples/test_ltorg.s
+-1142894555
+858993459
+
+# Expected output (test passes because it uses syscalls_test.go WITHOUT literal pool setup)
+-1142894555
+1717986918
+```
+
+**Problem Code** in main.go:657-661:
+```go
+// Pass literal pool locations and counts from parser to encoder
+enc.LiteralPoolLocs = make([]uint32, len(program.LiteralPoolLocs))
+copy(enc.LiteralPoolLocs, program.LiteralPoolLocs)
+enc.LiteralPoolCounts = make([]int, len(program.LiteralPoolCounts))
+copy(enc.LiteralPoolCounts, program.LiteralPoolCounts)
+```
+
+**Root Cause**: The three implementations of loadProgramIntoVM were NOT identical:
+- `main.go`: Has literal pool setup (WITH bug)
+- `service/debugger_service.go`: Has literal pool setup (WITH bug)
+- `tests/integration/syscalls_test.go`: NO literal pool setup (CORRECT)
+
+The bug was hidden because tests use their own implementation without the buggy code.
+
+**Impact**:
+- CLI execution of programs with `.ltorg` produces wrong results
+- GUI execution of programs with `.ltorg` produces wrong results
+- Only affects programs using explicit `.ltorg` directives (test_ltorg.s, test_org_0_with_ltorg.s)
+
+**Fix**: Remove the buggy literal pool setup code from main.go and service/debugger_service.go (lines 657-661 and 161-163 respectively). The correct behavior is to NOT pass literal pool locations to the encoder - let it handle literal placement automatically.
+
+**Related**: This bug must be fixed BEFORE completing Fix #8 (duplicate loadProgramIntoVM refactoring).
+
+---
+
+### ~~2. Security: Path Traversal in Preprocessor Include~~ ✅ FIXED
 
 **Location**: `parser/preprocessor.go:51-66`
 

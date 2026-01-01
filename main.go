@@ -654,12 +654,6 @@ func loadProgramIntoVM(machine *vm.VM, program *parser.Program, entryPoint uint3
 	// Create encoder
 	enc := encoder.NewEncoder(program.SymbolTable)
 
-	// Pass literal pool locations and counts from parser to encoder
-	enc.LiteralPoolLocs = make([]uint32, len(program.LiteralPoolLocs))
-	copy(enc.LiteralPoolLocs, program.LiteralPoolLocs)
-	enc.LiteralPoolCounts = make([]int, len(program.LiteralPoolCounts))
-	copy(enc.LiteralPoolCounts, program.LiteralPoolCounts)
-
 	// Track the maximum address used for literal pool placement
 	maxAddr := entryPoint
 
