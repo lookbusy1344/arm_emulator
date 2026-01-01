@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 
 	"github.com/lookbusy1344/arm-emulator/config"
@@ -1013,14 +1014,10 @@ func dumpSymbolTable(st *parser.SymbolTable, filename string) error {
 		entries = append(entries, symbolEntry{name, sym})
 	}
 
-	// Simple bubble sort by address
-	for i := 0; i < len(entries); i++ {
-		for j := i + 1; j < len(entries); j++ {
-			if entries[i].symbol.Value > entries[j].symbol.Value {
-				entries[i], entries[j] = entries[j], entries[i]
-			}
-		}
-	}
+	// Sort by address using O(n log n) algorithm
+	sort.Slice(entries, func(i, j int) bool {
+		return entries[i].symbol.Value < entries[j].symbol.Value
+	})
 
 	// Print each symbol
 	for _, entry := range entries {
