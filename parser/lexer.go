@@ -512,8 +512,17 @@ func (l *Lexer) NextToken() Token {
 func isRegister(s string) bool {
 	// Check R0-R15
 	if len(s) >= 2 && s[0] == 'R' {
-		for i := 1; i < len(s); i++ {
-			if !unicode.IsDigit(rune(s[i])) {
+		numStr := s[1:]
+		for i := 0; i < len(numStr); i++ {
+			if !unicode.IsDigit(rune(numStr[i])) {
+				return false
+			}
+		}
+		// Parse and validate range 0-15
+		num := 0
+		for i := 0; i < len(numStr); i++ {
+			num = num*10 + int(numStr[i]-'0')
+			if num > 15 {
 				return false
 			}
 		}
