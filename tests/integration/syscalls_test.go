@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/lookbusy1344/arm-emulator/encoder"
+	"github.com/lookbusy1344/arm-emulator/loader"
 	"github.com/lookbusy1344/arm-emulator/parser"
 	"github.com/lookbusy1344/arm-emulator/vm"
 )
@@ -84,7 +84,7 @@ func runAssemblyWithInput(t *testing.T, code string, stdin string) (stdout strin
 	}
 
 	// Load program
-	err = loadProgramIntoVM(machine, program, entryPoint)
+	err = loader.LoadProgramIntoVM(machine, program, entryPoint)
 	if err != nil {
 		return "", "", -1, err
 	}
@@ -113,197 +113,6 @@ func runAssemblyWithInput(t *testing.T, code string, stdin string) (stdout strin
 
 	// Return captured output along with any error
 	return outBuf.String(), errBuf.String(), machine.ExitCode, execErr
-}
-
-// Helper function to load program into VM (matches main.go implementation)
-func loadProgramIntoVM(machine *vm.VM, program *parser.Program, entryPoint uint32) error {
-	// Ensure memory segment exists for the entry point
-	// Check if entry point falls outside standard segments
-	if entryPoint < vm.CodeSegmentStart {
-		// Create a low memory segment for programs using .org 0x0000 or similar
-		segmentSize := uint32(vm.CodeSegmentStart) // Cover 0x0000 to 0x8000
-		machine.Memory.AddSegment("low-memory", 0, segmentSize, vm.PermRead|vm.PermWrite|vm.PermExecute)
-	}
-
-	// Create encoder
-	enc := encoder.NewEncoder(program.SymbolTable)
-
-	// Track the maximum address used for literal pool placement
-	maxAddr := entryPoint
-
-	// Build address map for instructions using parser-calculated addresses
-	// The parser has already correctly calculated addresses accounting for
-	// the interleaved layout of instructions and directives
-	addressMap := make(map[*parser.Instruction]uint32)
-
-	for _, inst := range program.Instructions {
-		addressMap[inst] = inst.Address
-		instEnd := inst.Address + 4
-		if instEnd > maxAddr {
-			maxAddr = instEnd
-		}
-	}
-
-	// Process data directives using parser-calculated addresses
-	for _, directive := range program.Directives {
-		dataAddr := directive.Address
-
-		switch directive.Name {
-		case ".org":
-			// .org directive is handled at parse time, skip it here
-			continue
-
-		case ".align":
-			// Alignment is already handled by parser in directive.Address
-			continue
-
-		case ".balign":
-			// Alignment is already handled by parser in directive.Address
-			continue
-
-		case ".word":
-			// Write 32-bit words
-			for _, arg := range directive.Args {
-				var value uint32
-				// Try to parse as a number first
-				_, err := parseValue(arg, &value)
-				if err != nil {
-					// Not a number, try to look up as a symbol (label)
-					symValue, symErr := program.SymbolTable.Get(arg)
-					if symErr != nil {
-						return symErr
-					}
-					value = symValue
-				}
-				if err := machine.Memory.WriteWordUnsafe(dataAddr, value); err != nil {
-					return err
-				}
-				dataAddr += 4
-			}
-			if dataAddr > maxAddr {
-				maxAddr = dataAddr
-			}
-
-		case ".byte":
-			// Write bytes
-			for _, arg := range directive.Args {
-				var value uint32
-				_, err := parseValue(arg, &value)
-				if err != nil {
-					return err
-				}
-				if err := machine.Memory.WriteByteUnsafe(dataAddr, byte(value)); err != nil {
-					return err
-				}
-				dataAddr++
-			}
-			if dataAddr > maxAddr {
-				maxAddr = dataAddr
-			}
-
-		case ".ascii":
-			// Write string without null terminator
-			if len(directive.Args) > 0 {
-				str := directive.Args[0]
-				// Remove quotes (parser may have already removed them)
-				if len(str) >= 2 && (str[0] == '"' || str[0] == '\'') {
-					str = str[1 : len(str)-1]
-				}
-				// Process escape sequences
-				processedStr := parser.ProcessEscapeSequences(str)
-				// Write string bytes
-				for i := 0; i < len(processedStr); i++ {
-					if err := machine.Memory.WriteByteUnsafe(dataAddr, processedStr[i]); err != nil {
-						return err
-					}
-					dataAddr++
-				}
-			}
-			if dataAddr > maxAddr {
-				maxAddr = dataAddr
-			}
-
-		case ".asciz", ".string":
-			// Write null-terminated string
-			if len(directive.Args) > 0 {
-				str := directive.Args[0]
-				// Remove quotes
-				if len(str) >= 2 && (str[0] == '"' || str[0] == '\'') {
-					str = str[1 : len(str)-1]
-				}
-				// Process escape sequences
-				processedStr := parser.ProcessEscapeSequences(str)
-				// Write string bytes
-				for i := 0; i < len(processedStr); i++ {
-					if err := machine.Memory.WriteByteUnsafe(dataAddr, processedStr[i]); err != nil {
-						return err
-					}
-					dataAddr++
-				}
-				// Write null terminator
-				if err := machine.Memory.WriteByteUnsafe(dataAddr, 0); err != nil {
-					return err
-				}
-				dataAddr++
-			}
-			if dataAddr > maxAddr {
-				maxAddr = dataAddr
-			}
-
-		case ".space", ".skip":
-			// Space is reserved but not written - just track the address
-			if len(directive.Args) > 0 {
-				var size uint32
-				// Try to parse as a number first
-				_, err := parseValue(directive.Args[0], &size)
-				if err != nil {
-					// If not a number, try to resolve as symbol
-					if sym, exists := program.SymbolTable.Lookup(directive.Args[0]); exists && sym.Defined {
-						size = sym.Value
-					} else {
-						return fmt.Errorf("cannot resolve size for .space: %s", directive.Args[0])
-					}
-				}
-				endAddr := dataAddr + size
-				if endAddr > maxAddr {
-					maxAddr = endAddr
-				}
-			}
-		}
-	}
-
-	// Set literal pool start address to after all data
-	// Align to 4-byte boundary
-	literalPoolStart := (maxAddr + 3) & ^uint32(3)
-	enc.LiteralPoolStart = literalPoolStart
-
-	// Second pass: encode and write instructions
-	for _, inst := range program.Instructions {
-		addr := addressMap[inst]
-
-		// Encode instruction
-		opcode, err := enc.EncodeInstruction(inst, addr)
-		if err != nil {
-			return err
-		}
-
-		// Write to memory
-		if err := machine.Memory.WriteWordUnsafe(addr, opcode); err != nil {
-			return err
-		}
-	}
-
-	// Write any literal pool values generated during encoding
-	for addr, value := range enc.LiteralPool {
-		if err := machine.Memory.WriteWordUnsafe(addr, value); err != nil {
-			return err
-		}
-	}
-
-	// Set PC to entry point
-	machine.CPU.PC = entryPoint
-
-	return nil
 }
 
 // Helper to parse immediate values

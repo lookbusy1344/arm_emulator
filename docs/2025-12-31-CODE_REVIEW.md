@@ -211,13 +211,20 @@ if *stackSize > maxStackSize {
 
 ---
 
-### 8. Duplicate loadProgramIntoVM Code
+### ~~8. Duplicate loadProgramIntoVM Code~~ ✅ FIXED
 
-**Location**: `main.go` and `service/debugger_service.go`
+**Location**: `main.go:645-864` (220 lines), `service/debugger_service.go:153-346` (194 lines), `tests/integration/syscalls_test.go:119-307` (189 lines)
 
-~200 lines of `loadProgramIntoVM` logic duplicated between files. Bug fixes or changes need to be made in two places.
+~600 lines total of `loadProgramIntoVM` logic duplicated across three files. The implementations were NOT identical - main.go and service versions had buggy literal pool setup code that tests didn't have.
 
-**Fix**: Extract to `vm/loader.go` as shared function.
+**Fix**:
+1. Created `loader/loader.go` with shared `LoadProgramIntoVM()` function (correct implementation without buggy literal pool setup)
+2. Updated all three files to use `loader.LoadProgramIntoVM()`
+3. Removed ~600 lines of duplicate code
+4. Preserved service-specific logic (stack initialization, state reset) in service/debugger_service.go
+5. Removed unused encoder imports from main.go, service/debugger_service.go, and tests/integration/syscalls_test.go
+
+**Note**: This refactoring exposed the critical literal pool bug (Fix #1) which was fixed separately first.
 
 ---
 
