@@ -215,7 +215,7 @@ The emulator implements traditional ARM2 syscall convention: `SWI #immediate_val
 - Update the status of related tasks
 - Note outstanding work and issues in `TODO.md`
 
-**IMPORTANT:** Always run `go fmt ./...`, `golangci-lint run ./...`, and `go build -o arm-emulator && go clean -testcache && go test ./...` after making changes to ensure code quality and correctness.
+**IMPORTANT:** Always run `go fmt ./...`, `golangci-lint run ./...`, and `go build -o arm-emulator && go clean -testcache && go test ./...` after making changes and **BEFORE committing** to ensure code quality and correctness. Linting must pass with 0 issues before any commit.
 
 **IMPORTANT:** Focus on Test-Driven Development (TDD). Write tests before implementing features. Ensure all new code is covered by tests. Use unit tests for individual components and integration tests for end-to-end functionality.
 

@@ -143,7 +143,7 @@ func main() {
 		fmt.Fprintf(os.Stderr, "Error: stack size %d exceeds maximum allowed %d\n", *stackSize, maxStackSize)
 		os.Exit(1)
 	}
-	stackTop := uint32(vm.StackSegmentStart + *stackSize)
+	stackTop := uint32(vm.StackSegmentStart + *stackSize) // #nosec G115 -- Safe: validated maxStackSize ensures no overflow
 	if err := machine.InitializeStack(stackTop); err != nil {
 		fmt.Fprintf(os.Stderr, "Error initializing stack: %v\n", err)
 		os.Exit(1)

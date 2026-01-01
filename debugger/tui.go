@@ -1118,7 +1118,7 @@ func (t *TUI) Run() error {
 func (t *TUI) Stop() {
 	// Close stdin pipe to prevent goroutine leak
 	if t.stdinPipeWriter != nil {
-		t.stdinPipeWriter.Close()
+		_ = t.stdinPipeWriter.Close()
 	}
 	t.App.Stop()
 }
