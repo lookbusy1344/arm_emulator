@@ -734,8 +734,8 @@ func (s *DebuggerService) GetDisassembly(startAddr uint32, count int) []Disassem
 			break
 		}
 
-		// Get symbol at this address if any
-		symbol := s.GetSymbolForAddress(addr)
+		// Get symbol at this address if any (use unsafe version since we already hold RLock)
+		symbol := s.getSymbolForAddressUnsafe(addr)
 
 		// Get mnemonic from source map if available
 		mnemonic := ""
