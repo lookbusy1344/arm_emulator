@@ -129,11 +129,6 @@ const (
 	PCStoreOffset = 12 // PC+12 when storing PC in STM
 	PCBranchBase  = 8  // PC+8 base for branch calculations
 
-	// Register aliases (from arch_constants.go)
-	PCRegister = ARMRegisterPC // R15 is the PC
-	SPRegister = ARMRegisterSP // R13 is the SP
-	LRRegister = ARMRegisterLR // R14 is the LR
-
 	// Bit shift for word-to-byte offset conversion
 	WordToByteShift = 2 // Shift left by 2 to convert word offset to byte offset
 

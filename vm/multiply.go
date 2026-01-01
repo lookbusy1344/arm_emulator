@@ -27,7 +27,7 @@ func ExecuteMultiply(vm *VM, inst *Instruction) error {
 	}
 
 	// Validate: R15 (PC) cannot be used
-	if rd == PCRegister || rm == PCRegister || rs == PCRegister || (accumulate == 1 && rn == PCRegister) {
+	if rd == ARMRegisterPC || rm == ARMRegisterPC || rs == ARMRegisterPC || (accumulate == 1 && rn == ARMRegisterPC) {
 		return fmt.Errorf("multiply: R15 (PC) cannot be used in multiply instructions")
 	}
 
@@ -123,7 +123,7 @@ func ExecuteMultiplyLong(vm *VM, inst *Instruction) error {
 	}
 
 	// R15 (PC) cannot be used
-	if rdHi == PCRegister || rdLo == PCRegister || rm == PCRegister || rs == PCRegister {
+	if rdHi == ARMRegisterPC || rdLo == ARMRegisterPC || rm == ARMRegisterPC || rs == ARMRegisterPC {
 		return fmt.Errorf("long multiply: R15 (PC) cannot be used")
 	}
 

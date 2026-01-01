@@ -173,13 +173,13 @@ func ExecuteLoadStore(v *VM, inst *Instruction) error {
 	// Write back effective address to base register if requested
 	if (preIndexed == 1 && writeBack == 1) || preIndexed == 0 {
 		// Pre-indexed with writeback or post-indexed always writes back
-		if rn != PCRegister { // Don't write back to PC
+		if rn != ARMRegisterPC { // Don't write back to PC
 			vm.CPU.SetRegister(rn, effectiveAddr)
 		}
 	}
 
 	// Increment PC (unless we loaded into PC)
-	if !(load == 1 && rd == PCRegister) {
+	if !(load == 1 && rd == ARMRegisterPC) {
 		vm.CPU.IncrementPC()
 	}
 

@@ -368,7 +368,7 @@ The `valueHistory` slice grows unbounded with each `EvaluateExpression()` call.
 | ~~19~~ | `tools/lint.go:529` | ~~Custom `min()` function shadows Go 1.21+ builtin~~ ✅ FIXED |
 | ~~20~~ | `tools/lint.go:440-475` | ~~Levenshtein allocates full (n+1)x(m+1) matrix; use 2-row version~~ ✅ FIXED |
 | ~~21~~ | `service/debugger_service.go:597` | ~~`stepsBeforeYield = 1000` should be package-level constant~~ ✅ FIXED |
-| 22 | `vm/constants.go` vs `vm/arch_constants.go` | Duplicate register constants (`SPRegister` = `ARMRegisterSP`) |
+| ~~22~~ | `vm/constants.go` vs `vm/arch_constants.go` | ~~Duplicate register constants (`SPRegister` = `ARMRegisterSP`)~~ ✅ FIXED |
 | 23 | `main.go:440-462` | Exit code not propagated from debugger/TUI modes |
 | 24 | `debugger/expr_lexer.go:22` | Unused `ExprTokenStar` token type defined but never produced |
 | 25 | `config/config.go:185-189` | Config parse errors logged but silently ignored; may confuse users |

@@ -105,7 +105,7 @@ func ExecuteLoadStoreMultiple(vm *VM, inst *Instruction) error {
 				vm.CPU.SetRegister(i, value)
 			}
 
-			if i == PCRegister {
+			if i == ARMRegisterPC {
 				pcLoaded = true
 			}
 		} else {
@@ -113,7 +113,7 @@ func ExecuteLoadStoreMultiple(vm *VM, inst *Instruction) error {
 			value := vm.CPU.GetRegister(i)
 
 			// If storing R15 (PC), store PC+12 (current instruction + 8 + 4)
-			if i == PCRegister {
+			if i == ARMRegisterPC {
 				value = vm.CPU.PC + PCStoreOffset
 			}
 
@@ -136,9 +136,9 @@ func ExecuteLoadStoreMultiple(vm *VM, inst *Instruction) error {
 	}
 
 	// Write back to base register if requested
-	if writeBack == 1 && rn != PCRegister {
+	if writeBack == 1 && rn != ARMRegisterPC {
 		// If modifying SP (R13), use SetSPWithTrace for bounds validation
-		if rn == SPRegister {
+		if rn == ARMRegisterSP {
 			if err := vm.CPU.SetSPWithTrace(vm, newBase, inst.Address); err != nil {
 				vm.State = StateError
 				vm.LastError = err
@@ -150,7 +150,7 @@ func ExecuteLoadStoreMultiple(vm *VM, inst *Instruction) error {
 	}
 
 	// Also check if SP was loaded (but not base register)
-	if load == 1 && (regList&(1<<SPRegister)) != 0 && rn != SPRegister && vm.StackTrace != nil {
+	if load == 1 && (regList&(1<<ARMRegisterSP)) != 0 && rn != ARMRegisterSP && vm.StackTrace != nil {
 		// SP was loaded from memory, record as SP move and check for overflow
 		if vm.StackTrace.RecordSPMove(vm.CPU.Cycles, inst.Address, baseAddr, vm.CPU.GetSP()) {
 			return fmt.Errorf("stack overflow: SP=0x%08X crossed into heap segment (below 0x%08X)", vm.CPU.GetSP(), vm.StackTrace.StackTop)

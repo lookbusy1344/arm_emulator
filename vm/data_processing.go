@@ -218,7 +218,7 @@ func ExecuteDataProcessing(vm *VM, inst *Instruction) error {
 	}
 
 	// Increment PC (CMP/TST/TEQ/CMN never write result so always advance)
-	if rd != PCRegister || opcode == OpCMP || opcode == OpCMN || opcode == OpTST || opcode == OpTEQ {
+	if rd != ARMRegisterPC || opcode == OpCMP || opcode == OpCMN || opcode == OpTST || opcode == OpTEQ {
 		vm.CPU.IncrementPC()
 	}
 

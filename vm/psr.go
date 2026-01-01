@@ -27,7 +27,7 @@ func executeMRS(vm *VM, inst *Instruction) error {
 	rd := int((inst.Opcode >> RdShift) & Mask4Bit) // Destination register
 
 	// R15 (PC) should not be used as destination
-	if rd == PCRegister {
+	if rd == ARMRegisterPC {
 		return fmt.Errorf("MRS: R15 (PC) cannot be used as destination register")
 	}
 
@@ -76,7 +76,7 @@ func executeMSR(vm *VM, inst *Instruction) error {
 		rm := int(inst.Opcode & Mask4Bit)
 
 		// R15 (PC) should not be used as source
-		if rm == PCRegister {
+		if rm == ARMRegisterPC {
 			return fmt.Errorf("MSR: R15 (PC) cannot be used as source register")
 		}
 
