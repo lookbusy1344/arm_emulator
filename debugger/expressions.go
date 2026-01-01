@@ -7,6 +7,11 @@ import (
 	"github.com/lookbusy1344/arm-emulator/vm"
 )
 
+const (
+	// maxHistorySize is the maximum number of expression values to keep in history
+	maxHistorySize = 1000
+)
+
 // ExpressionEvaluator evaluates expressions in debugger commands
 type ExpressionEvaluator struct {
 	valueHistory []uint32 // History of evaluated values
@@ -30,6 +35,14 @@ func (e *ExpressionEvaluator) EvaluateExpression(expr string, machine *vm.VM, sy
 
 	// Store in history
 	e.valueHistory = append(e.valueHistory, result)
+
+	// Trim history if it exceeds the maximum size
+	if len(e.valueHistory) > maxHistorySize {
+		// Keep only the most recent maxHistorySize entries
+		copy(e.valueHistory, e.valueHistory[len(e.valueHistory)-maxHistorySize:])
+		e.valueHistory = e.valueHistory[:maxHistorySize]
+	}
+
 	e.valueNumber = len(e.valueHistory)
 
 	return result, nil
