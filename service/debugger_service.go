@@ -17,6 +17,14 @@ import (
 	"github.com/lookbusy1344/arm-emulator/vm"
 )
 
+const (
+	// Validator limits for API safety
+	maxDisassemblyCount = 1000   // Maximum number of instructions to disassemble
+	maxStackCount       = 1000   // Maximum number of stack entries to return
+	maxStackOffset      = 100000 // Maximum stack offset to prevent wraparound attacks
+	stepsBeforeYield    = 1000   // Yield every N steps during execution
+)
+
 var serviceLog *log.Logger
 
 func init() {
@@ -414,7 +422,6 @@ func (s *DebuggerService) RunUntilHalt() error {
 	s.mu.Unlock()
 
 	stepCount := 0
-	const stepsBeforeYield = 1000 // Yield every 1000 steps
 
 	for {
 		s.mu.Lock()
@@ -522,13 +529,13 @@ func (s *DebuggerService) GetOutput() string {
 //
 // Parameters:
 //   - startAddr: must be 4-byte aligned (ARM requirement)
-//   - count: must be positive and <= 1000
+//   - count: must be positive and <= maxDisassemblyCount
 func (s *DebuggerService) GetDisassembly(startAddr uint32, count int) []DisassemblyLine {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
 	// Validate inputs
-	if count <= 0 || count > 1000 {
+	if count <= 0 || count > maxDisassemblyCount {
 		return []DisassemblyLine{}
 	}
 	if startAddr&0x3 != 0 { // Check 4-byte alignment
@@ -582,8 +589,8 @@ func (s *DebuggerService) GetDisassembly(startAddr uint32, count int) []Disassem
 //
 // Parameters:
 //   - offset: stack offset in words (multiplied by 4 for byte offset).
-//     Must be in range [-100000, 100000] to prevent wraparound attacks.
-//   - count: number of stack entries to read. Must be positive and <= 1000.
+//     Must be in range [-maxStackOffset, maxStackOffset] to prevent wraparound attacks.
+//   - count: number of stack entries to read. Must be positive and <= maxStackCount.
 //
 // The function performs safe arithmetic with overflow detection to prevent
 // integer wraparound vulnerabilities.
@@ -592,12 +599,12 @@ func (s *DebuggerService) GetStack(offset int, count int) []StackEntry {
 	defer s.mu.RUnlock()
 
 	// Validate inputs
-	if count <= 0 || count > 1000 {
+	if count <= 0 || count > maxStackCount {
 		return []StackEntry{}
 	}
 
 	// Validate offset to prevent wraparound attacks
-	if offset < -100000 || offset > 100000 {
+	if offset < -maxStackOffset || offset > maxStackOffset {
 		return []StackEntry{}
 	}
 
