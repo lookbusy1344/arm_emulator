@@ -62,6 +62,9 @@ type TUI struct {
 	SourceLines []string
 	SourceFile  string
 
+	// Symbol lookup optimization
+	reverseSymbolMap map[uint32]string // address -> symbol name for O(1) lookups
+
 	// Register tracking for highlighting changes
 	// NOTE: These fields are accessed from both the background execution goroutine
 	// and the main UI thread. Access must be protected by stateMu.
@@ -113,6 +116,9 @@ func NewTUIWithScreen(debugger *Debugger, screen tcell.Screen) *TUI {
 		ChangedRegs:    make(map[int]bool),
 		RecentWrites:   make(map[uint32]bool),
 	}
+
+	// Build reverse symbol map for O(1) lookups
+	tui.buildReverseSymbolMap()
 
 	tui.initializeViews()
 	tui.buildLayout()
@@ -1073,14 +1079,20 @@ func (t *TUI) UpdateBreakpointsView() {
 	t.RightPanel.ResizeItem(t.BreakpointsView, height, 0)
 }
 
-// findSymbolForAddress finds a symbol name for an address
-func (t *TUI) findSymbolForAddress(addr uint32) string {
-	for sym, symAddr := range t.Debugger.Symbols {
-		if symAddr == addr {
-			return sym
-		}
+// buildReverseSymbolMap builds a reverse lookup map from address to symbol name
+func (t *TUI) buildReverseSymbolMap() {
+	t.reverseSymbolMap = make(map[uint32]string, len(t.Debugger.Symbols))
+	for sym, addr := range t.Debugger.Symbols {
+		t.reverseSymbolMap[addr] = sym
 	}
-	return ""
+}
+
+// findSymbolForAddress finds a symbol name for an address using O(1) lookup
+func (t *TUI) findSymbolForAddress(addr uint32) string {
+	if t.reverseSymbolMap == nil {
+		t.buildReverseSymbolMap()
+	}
+	return t.reverseSymbolMap[addr]
 }
 
 // Run starts the TUI application
