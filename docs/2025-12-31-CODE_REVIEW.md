@@ -363,7 +363,7 @@ The `valueHistory` slice grows unbounded with each `EvaluateExpression()` call.
 | # | Location | Issue |
 |---|----------|-------|
 | ~~16~~ | `parser/lexer.go:512-530` | ~~Register validation incomplete - `R999` accepted as valid~~ ✅ FIXED |
-| 17 | `debugger/interface.go:90` | Magic number `148` for terminal width should be constant |
+| ~~17~~ | `debugger/interface.go:90` | ~~Magic number `148` for terminal width should be constant~~ ✅ FIXED |
 | 18 | `service/debugger_service.go:711,775` | Hardcoded validator limits (1000, 100000) should be named constants |
 | 19 | `tools/lint.go:529` | Custom `min()` function shadows Go 1.21+ builtin |
 | 20 | `tools/lint.go:440-475` | Levenshtein allocates full (n+1)x(m+1) matrix; use 2-row version |

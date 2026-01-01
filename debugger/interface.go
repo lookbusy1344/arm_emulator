@@ -104,7 +104,7 @@ func RunTUI(dbg *Debugger) error {
 			// Ignore - just continue without warning
 			fmt.Println("\nIgnoring width check...")
 		} else if response != "y" {
-			fmt.Println("\nWARNING: Your terminal appears to be less than 148 columns wide.")
+			fmt.Printf("\nWARNING: Your terminal appears to be less than %d columns wide.\n", minWidth)
 			fmt.Println("The TUI may not display correctly. Consider resizing your terminal.")
 			fmt.Print("\nDo you want to continue anyway? (y/n): ")
 
