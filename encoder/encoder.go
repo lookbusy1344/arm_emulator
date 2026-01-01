@@ -311,6 +311,10 @@ func (e *Encoder) parseShift(shift string) (shiftType, shiftAmount uint32, shift
 		if err != nil {
 			return 0, 0, -1, err
 		}
+		// Validate shift amount range (ARM allows 0-31)
+		if amount > 31 {
+			return 0, 0, -1, fmt.Errorf("shift amount out of range: %d (max 31)", amount)
+		}
 		return shiftType, amount, -1, nil
 	} else {
 		// Register shift
