@@ -55,6 +55,15 @@ func (p *Preprocessor) ProcessFile(filename string) (string, error) {
 		return "", err
 	}
 
+	// Validate path stays within base directory
+	absBase, err := filepath.Abs(p.baseDir)
+	if err != nil {
+		return "", err
+	}
+	if !strings.HasPrefix(absPath, absBase+string(filepath.Separator)) && absPath != absBase {
+		return "", fmt.Errorf("include path escapes base directory: %s", filename)
+	}
+
 	// Check for circular includes
 	for _, included := range p.includeStack {
 		if included == absPath {
