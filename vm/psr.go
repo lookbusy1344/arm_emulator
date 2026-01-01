@@ -47,7 +47,7 @@ func executeMRS(vm *VM, inst *Instruction) error {
 
 	// Increment PC
 	vm.CPU.IncrementPC()
-	vm.CPU.IncrementCycles(1)
+	// Note: IncrementCycles is called by Step() in executor.go
 
 	return nil
 }
@@ -94,7 +94,7 @@ func executeMSR(vm *VM, inst *Instruction) error {
 
 	// Increment PC
 	vm.CPU.IncrementPC()
-	vm.CPU.IncrementCycles(1)
+	// Note: IncrementCycles is called by Step() in executor.go
 
 	return nil
 }
