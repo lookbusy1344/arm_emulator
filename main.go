@@ -136,9 +136,13 @@ func main() {
 	}
 
 	// Initialize stack
-	// Safe: StackSegmentStart is 0x30000000 (uint32), stackSize is flag with default 4096
-	// Maximum possible value is 0x30000000 + flag value, fits in uint32
-	stackTop := uint32(vm.StackSegmentStart + *stackSize) // #nosec G115 -- safe stack size addition
+	// Validate stack size to prevent integer overflow
+	const maxStackSize = 0x10000000 // 256MB reasonable maximum
+	if *stackSize > maxStackSize {
+		fmt.Fprintf(os.Stderr, "Error: stack size %d exceeds maximum allowed %d\n", *stackSize, maxStackSize)
+		os.Exit(1)
+	}
+	stackTop := uint32(vm.StackSegmentStart + *stackSize)
 	if err := machine.InitializeStack(stackTop); err != nil {
 		fmt.Fprintf(os.Stderr, "Error initializing stack: %v\n", err)
 		os.Exit(1)
