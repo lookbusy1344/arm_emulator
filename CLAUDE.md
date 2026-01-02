@@ -27,6 +27,12 @@ go clean -testcache
 go test ./...
 ```
 
+**IMPORTANT:** All tests should be centralized in the `./tests` directory structure:
+- `tests/unit/` - Unit tests for individual packages
+- `tests/integration/` - Integration tests for complete workflows
+
+Do NOT create test files in package directories (e.g., `api/api_test.go`). Instead, create them in the appropriate `./tests` subdirectory.
+
 ## Race Detection
 
 Run tests with the race detector to check for data races (especially important for TUI/GUI code):
