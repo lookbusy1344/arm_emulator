@@ -37,6 +37,21 @@ targets:
       - sdk: Combine.framework
       - sdk: Foundation.framework
       - sdk: AppKit.framework
+    postBuildScripts:
+      - name: Copy Backend Binary
+        script: |
+          BACKEND_SOURCE="${PROJECT_DIR}/../arm-emulator"
+          BACKEND_DEST="${BUILT_PRODUCTS_DIR}/${PRODUCT_NAME}.app/Contents/Resources/arm-emulator"
+
+          if [ -f "$BACKEND_SOURCE" ]; then
+            echo "Copying backend binary to app bundle..."
+            cp "$BACKEND_SOURCE" "$BACKEND_DEST"
+            chmod +x "$BACKEND_DEST"
+            echo "Backend binary copied successfully"
+          else
+            echo "Warning: Backend binary not found at $BACKEND_SOURCE"
+            echo "Build the Go backend first: go build -o arm-emulator"
+          fi
     scheme:
       testTargets:
         - ARMEmulatorTests

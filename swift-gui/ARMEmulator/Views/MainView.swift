@@ -1,21 +1,30 @@
 import SwiftUI
 
 struct MainView: View {
+    @EnvironmentObject var backendManager: BackendManager
     @StateObject private var viewModel = EmulatorViewModel()
     @State private var showingError = false
 
     var body: some View {
-        VStack(spacing: 0) {
-            if !viewModel.isConnected {
-                ConnectionView(viewModel: viewModel)
-            } else {
-                contentView
-                    .toolbar {
-                        toolbarContent
+        ZStack {
+            if backendManager.backendStatus == .running {
+                VStack(spacing: 0) {
+                    if !viewModel.isConnected {
+                        ConnectionView(viewModel: viewModel)
+                    } else {
+                        contentView
+                            .toolbar {
+                                toolbarContent
+                            }
                     }
+                }
+                .frame(minWidth: 800, minHeight: 600)
+            } else {
+                BackendStatusView(status: backendManager.backendStatus) {
+                    await backendManager.restartBackend()
+                }
             }
         }
-        .frame(minWidth: 800, minHeight: 600)
         .alert(
             "Error",
             isPresented: $showingError,
@@ -31,6 +40,13 @@ struct MainView: View {
         )
         .onChange(of: viewModel.errorMessage) { newValue in
             showingError = newValue != nil
+        }
+        .onChange(of: backendManager.backendStatus) { newStatus in
+            if newStatus == .running, !viewModel.isConnected {
+                Task {
+                    await viewModel.initialize()
+                }
+            }
         }
         .onDisappear {
             viewModel.cleanup()

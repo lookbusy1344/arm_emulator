@@ -10,6 +10,7 @@
 		06061CD71E18A5583D980B74 /* EmulatorSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA0E75EE06981E48E2DCB67D /* EmulatorSession.swift */; };
 		1B5662954ED9A925886AE719 /* EditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 34CE9DE8F3604FECD12AE1AB /* EditorView.swift */; };
 		2E499DCAC8BD74A7D21C7F1C /* APIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = A3FB010EC14C3AFD8B4E2359 /* APIClient.swift */; };
+		30E6E43DD6E7EE0BBF9CC84C /* BackendStatusView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 65AE3FBF67481D0085647457 /* BackendStatusView.swift */; };
 		356BCA2FAA0A50842DFD2CE0 /* ARMEmulatorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3B50844150083773DFEC19C7 /* ARMEmulatorTests.swift */; };
 		3A4C65E288F2DB022B205C15 /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 1247427E15F123B8C45C03DF /* Foundation.framework */; };
 		6E34CBADCB11323CE22FBF27 /* Combine.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = ADD4C0FCEC409703BF2084D8 /* Combine.framework */; };
@@ -17,6 +18,7 @@
 		8E53A18B7A792D4809F48122 /* MainView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E0E00E78E1A9BCD3DA0AE0D7 /* MainView.swift */; };
 		96CF39846E4C3A7A01650903 /* RegistersView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB565AAB1F1DF487867C1502 /* RegistersView.swift */; };
 		9A54BA657B7C9FA3518FFB45 /* WebSocketClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5960B8591491B9E1EF1DF5AD /* WebSocketClient.swift */; };
+		AD8D0DCE5042D81086FC727D /* BackendManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4FE9C901E652DDC942DCE3EA /* BackendManager.swift */; };
 		B1ACE7953A2909E3F66311FB /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 9E07D4FD66B7FA55C8A90AF9 /* SwiftUI.framework */; };
 		C290C1296B52FA6CDC19F083 /* Register.swift in Sources */ = {isa = PBXBuildFile; fileRef = 981E9381909EF5C95B0188E8 /* Register.swift */; };
 		C4B77547C8F9FA2FFB87D50D /* ProgramState.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC2088698697C4A40C0444A6 /* ProgramState.swift */; };
@@ -41,7 +43,9 @@
 		1247427E15F123B8C45C03DF /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = System/Library/Frameworks/Foundation.framework; sourceTree = SDKROOT; };
 		34CE9DE8F3604FECD12AE1AB /* EditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditorView.swift; sourceTree = "<group>"; };
 		3B50844150083773DFEC19C7 /* ARMEmulatorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ARMEmulatorTests.swift; sourceTree = "<group>"; };
+		4FE9C901E652DDC942DCE3EA /* BackendManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackendManager.swift; sourceTree = "<group>"; };
 		5960B8591491B9E1EF1DF5AD /* WebSocketClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebSocketClient.swift; sourceTree = "<group>"; };
+		65AE3FBF67481D0085647457 /* BackendStatusView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackendStatusView.swift; sourceTree = "<group>"; };
 		8A71E8BD4F7E7EC809B5BDF9 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		8DF710E105C1689A58ED1B74 /* EmulatorViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EmulatorViewModel.swift; sourceTree = "<group>"; };
 		981E9381909EF5C95B0188E8 /* Register.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Register.swift; sourceTree = "<group>"; };
@@ -95,6 +99,7 @@
 			isa = PBXGroup;
 			children = (
 				A3FB010EC14C3AFD8B4E2359 /* APIClient.swift */,
+				4FE9C901E652DDC942DCE3EA /* BackendManager.swift */,
 				5960B8591491B9E1EF1DF5AD /* WebSocketClient.swift */,
 			);
 			path = Services;
@@ -124,6 +129,7 @@
 		9AE41F1C691CB28BFA9DFB53 /* Views */ = {
 			isa = PBXGroup;
 			children = (
+				65AE3FBF67481D0085647457 /* BackendStatusView.swift */,
 				0447F1A034A7151CD707A3F1 /* ConsoleView.swift */,
 				34CE9DE8F3604FECD12AE1AB /* EditorView.swift */,
 				E0E00E78E1A9BCD3DA0AE0D7 /* MainView.swift */,
@@ -196,6 +202,7 @@
 			buildPhases = (
 				7586B6A1757184482EE841AC /* Sources */,
 				8DEE9CF0B501209306B1BCB3 /* Frameworks */,
+				9DA14074754BF8A89321DEC0 /* Copy Backend Binary */,
 			);
 			buildRules = (
 			);
@@ -247,6 +254,27 @@
 		};
 /* End PBXProject section */
 
+/* Begin PBXShellScriptBuildPhase section */
+		9DA14074754BF8A89321DEC0 /* Copy Backend Binary */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			name = "Copy Backend Binary";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "BACKEND_SOURCE=\"${PROJECT_DIR}/../arm-emulator\"\nBACKEND_DEST=\"${BUILT_PRODUCTS_DIR}/${PRODUCT_NAME}.app/Contents/Resources/arm-emulator\"\n\nif [ -f \"$BACKEND_SOURCE\" ]; then\n  echo \"Copying backend binary to app bundle...\"\n  cp \"$BACKEND_SOURCE\" \"$BACKEND_DEST\"\n  chmod +x \"$BACKEND_DEST\"\n  echo \"Backend binary copied successfully\"\nelse\n  echo \"Warning: Backend binary not found at $BACKEND_SOURCE\"\n  echo \"Build the Go backend first: go build -o arm-emulator\"\nfi\n";
+		};
+/* End PBXShellScriptBuildPhase section */
+
 /* Begin PBXSourcesBuildPhase section */
 		6A2CF1F4996F377940982E09 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
@@ -262,6 +290,8 @@
 			files = (
 				2E499DCAC8BD74A7D21C7F1C /* APIClient.swift in Sources */,
 				D0E49B6F8EA5501DBAA9F9BF /* ARMEmulatorApp.swift in Sources */,
+				AD8D0DCE5042D81086FC727D /* BackendManager.swift in Sources */,
+				30E6E43DD6E7EE0BBF9CC84C /* BackendStatusView.swift in Sources */,
 				D15F1442E4B080757663DADA /* ConsoleView.swift in Sources */,
 				1B5662954ED9A925886AE719 /* EditorView.swift in Sources */,
 				06061CD71E18A5583D980B74 /* EmulatorSession.swift in Sources */,
