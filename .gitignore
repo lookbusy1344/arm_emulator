@@ -24,3 +24,10 @@ gui/frontend/.vite/
 gui/frontend/playwright-report/
 gui/frontend/test-results/
 gui/frontend/.playwright/
+
+# Swift/Xcode artifacts (detailed exclusions in swift-gui/.gitignore)
+*.xcuserstate
+xcuserdata/
+.swiftpm/
+DerivedData/
+*.xcodeproj/project.xcworkspace/xcuserdata/

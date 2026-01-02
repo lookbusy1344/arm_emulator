@@ -281,6 +281,10 @@ For complete debugger documentation including conditional breakpoints, watchpoin
 
 ### GUI Mode (Graphical Interface)
 
+**Two GUI options available:**
+
+#### Option 1: Wails Cross-Platform GUI (Web-based)
+
 Run programs in GUI mode with code editor, register view, and memory inspector:
 
 ```bash
@@ -298,7 +302,7 @@ wails build
 
 See [docs/GUI.md](docs/GUI.md) for detailed GUI documentation.
 
-#### GUI E2E Testing
+**E2E Testing:**
 
 End-to-end tests for the GUI require the Wails backend running in a separate terminal:
 
@@ -313,6 +317,54 @@ npm run test:e2e -- --project=chromium
 ```
 
 See [gui/frontend/e2e/README.md](gui/frontend/e2e/README.md) for complete testing documentation.
+
+#### Option 2: Swift Native macOS App
+
+A native macOS app built with SwiftUI that connects to the Go backend API:
+
+**Prerequisites:**
+```bash
+# Install required tools
+brew install xcodegen swiftlint swiftformat xcbeautify
+```
+
+**Generate and open Xcode project:**
+```bash
+cd swift-gui
+xcodegen generate      # Generate Xcode project from project.yml
+open ARMEmulator.xcodeproj
+```
+
+**Run the app:**
+```bash
+# Terminal 1: Start the Go API backend
+./arm-emulator --api-server --port 8080
+# Or if not built yet: go run main.go --api-server --port 8080
+
+# Terminal 2: Run the Swift app from Xcode
+# Open swift-gui/ARMEmulator.xcodeproj and press Cmd+R
+```
+
+**Build from command line:**
+```bash
+cd swift-gui
+xcodebuild -project ARMEmulator.xcodeproj -scheme ARMEmulator build | xcbeautify
+```
+
+**Features:**
+- Native macOS SwiftUI interface
+- Real-time register updates via WebSocket
+- Code editor with syntax awareness
+- Console output view
+- Full MVVM architecture
+
+**Important notes:**
+- The Xcode project is generated from `project.yml` - run `xcodegen generate` after modifying it
+- Requires the Go API backend running on port 8080
+- Full Xcode IDE support (debugging, previews, breakpoints)
+- Code quality enforced with SwiftLint and SwiftFormat (0 violations policy)
+
+See [SWIFT_GUI_PLANNING.md](SWIFT_GUI_PLANNING.md) for architecture details and [docs/SWIFT_CLI_AUTOMATION.md](docs/SWIFT_CLI_AUTOMATION.md) for comprehensive CLI development guide.
 
 ### Symbol Table Dump
 
@@ -552,6 +604,10 @@ Each release includes:
 ├── debugger/            # Debugging utilities with TUI
 ├── config/              # Cross-platform configuration
 ├── tools/               # Development tools (lint, format, xref)
+├── api/                 # HTTP REST API backend for GUIs
+├── service/             # Service layer for API/GUI integration
+├── gui/                 # Wails cross-platform GUI (Go + Web)
+├── swift-gui/           # Swift native macOS app (SwiftUI + MVVM)
 ├── tests/               # Test files (1,024 tests, 100% passing, 75% coverage)
 ├── examples/            # Example ARM assembly programs (49 programs)
 └── docs/                # User and developer documentation

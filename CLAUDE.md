@@ -131,6 +131,128 @@ npm run test:e2e:headed             # Run with visible browser
 
 The Wails backend must be running on http://localhost:34115 before any E2E tests can execute.
 
+## Swift Native macOS App Commands
+
+**IMPORTANT:** The Swift app requires the Go HTTP API backend to be running first (see `api/` directory).
+
+### Prerequisites
+
+Install required tools via Homebrew:
+
+```bash
+brew install xcodegen swiftlint swiftformat xcbeautify
+```
+
+### Generate Xcode Project
+
+The Xcode project is generated from `project.yml` using XcodeGen:
+
+```bash
+cd swift-gui
+xcodegen generate
+```
+
+**IMPORTANT:** You must regenerate the Xcode project whenever you modify `project.yml` (e.g., adding files, changing settings, adding dependencies).
+
+### Open in Xcode
+
+```bash
+# From project root
+open swift-gui/ARMEmulator.xcodeproj
+
+# Or from swift-gui directory
+cd swift-gui
+open ARMEmulator.xcodeproj
+```
+
+The project can be fully developed in Xcode with all standard features (visual debugging, Interface Builder for SwiftUI previews, breakpoints, etc.).
+
+### Build Swift App (CLI)
+
+```bash
+cd swift-gui
+
+# Debug build
+xcodebuild -project ARMEmulator.xcodeproj -scheme ARMEmulator build | xcbeautify
+
+# Release build
+xcodebuild -project ARMEmulator.xcodeproj -scheme ARMEmulator -configuration Release build | xcbeautify
+
+# Clean build
+xcodebuild -project ARMEmulator.xcodeproj -scheme ARMEmulator clean build | xcbeautify
+```
+
+Built app location: `~/Library/Developer/Xcode/DerivedData/ARMEmulator-*/Build/Products/Debug/ARMEmulator.app`
+
+### Run Swift App
+
+```bash
+# Find and open the built app
+find ~/Library/Developer/Xcode/DerivedData -name "ARMEmulator.app" -type d -exec open {} \; -quit
+
+# Or run from Xcode (Cmd+R)
+```
+
+**IMPORTANT:** Before running the Swift app, you must start the Go API backend:
+
+```bash
+# Terminal 1: Start the API backend
+./arm-emulator --api-server --port 8080
+# Or if not built yet:
+go run main.go --api-server --port 8080
+
+# Terminal 2: Run the Swift app
+open swift-gui/ARMEmulator.xcodeproj
+# Then press Cmd+R in Xcode
+```
+
+### Test Swift App
+
+```bash
+cd swift-gui
+
+# Run all tests
+xcodebuild test -project ARMEmulator.xcodeproj -scheme ARMEmulator -destination 'platform=macOS' | xcbeautify
+
+# Run tests with coverage
+xcodebuild test -project ARMEmulator.xcodeproj -scheme ARMEmulator -destination 'platform=macOS' -enableCodeCoverage YES | xcbeautify
+```
+
+### Code Quality (Swift)
+
+```bash
+cd swift-gui
+
+# Format Swift code
+swiftformat .
+
+# Lint Swift code
+swiftlint
+
+# Auto-fix linting issues
+swiftlint --fix
+```
+
+**IMPORTANT:** SwiftLint and SwiftFormat configurations are in `.swiftlint.yml` and `.swiftformat` respectively. Current configuration enforces 0 violations before commit.
+
+### Swift App Architecture
+
+The Swift app follows MVVM architecture and connects to the Go backend via:
+- **HTTP REST API** (`APIClient.swift`) - For commands (run, step, reset, load program)
+- **WebSocket** (`WebSocketClient.swift`) - For real-time updates (registers, console output, execution state)
+
+See `SWIFT_GUI_PLANNING.md` for detailed architecture documentation and `docs/SWIFT_CLI_AUTOMATION.md` for comprehensive CLI development guide.
+
+### Common Pitfalls
+
+1. **"No such module 'SwiftUI'" error**: Ensure Xcode Command Line Tools are installed: `xcode-select --install`
+2. **Xcode project out of sync**: Run `xcodegen generate` after modifying `project.yml`
+3. **App can't connect to backend**: Ensure Go API server is running on `http://localhost:8080`
+4. **SwiftLint/SwiftFormat not found**: Install via Homebrew: `brew install swiftlint swiftformat`
+5. **Code signing errors**: The project uses automatic code signing (ad-hoc for development)
+6. **DerivedData issues**: Clean with `rm -rf ~/Library/Developer/Xcode/DerivedData` if builds behave strangely
+7. **Git tracking Xcode user files**: The `swift-gui/.gitignore` excludes user-specific files like `*.xcuserstate`, `xcuserdata/`, and build artifacts. These should never be committed.
+
 ## Project Structure
 
 - `main.go` - Entry point and CLI interface
@@ -141,6 +263,10 @@ The Wails backend must be running on http://localhost:34115 before any E2E tests
 - `debugger/` - Debugging utilities with TUI (breakpoints, watchpoints, expression evaluation)
 - `config/` - Cross-platform configuration management
 - `tools/` - Development tools (linter, formatter, cross-reference generator)
+- `api/` - HTTP REST API backend for GUI frontends (runs on port 8080)
+- `service/` - Service layer for API/GUI integration and emulator state management
+- `gui/` - Wails cross-platform GUI (Go + Svelte web frontend)
+- `swift-gui/` - Swift native macOS app (SwiftUI + MVVM, connects to API backend)
 - `tests/` - Test files (1,024 tests, 100% pass rate)
   - `tests/unit/` - Unit tests for all packages
   - `tests/integration/` - Integration tests for complete programs
