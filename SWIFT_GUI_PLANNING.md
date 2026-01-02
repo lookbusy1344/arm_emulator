@@ -14,6 +14,8 @@ This document outlines the plan for building a native Swift macOS GUI for the AR
 
 **Estimated Timeline:** 6-8 weeks for full implementation across all platforms
 
+For details of developing Swift apps with CLI tools see `docs/SWIFT_CLI_AUTOMATION.md`
+
 ## Implementation Status
 
 **Current Progress:** Stage 2 Complete (2/7 stages)
