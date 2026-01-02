@@ -18,19 +18,30 @@ For details of developing Swift apps with CLI tools see `docs/SWIFT_CLI_AUTOMATI
 
 ## Implementation Status
 
-**Current Progress:** Stage 3 Complete (3/7 stages)
+**Current Progress:** Stage 4 Complete (4/7 stages)
 
 | Stage | Status | Completion |
 |-------|--------|------------|
 | Stage 1: Backend API Foundation | ✅ Complete | 2026-01-02 |
 | Stage 2: WebSocket Real-Time Updates | ✅ Complete | 2026-01-02 |
 | Stage 3: Swift macOS App Foundation | ✅ Complete | 2026-01-02 |
-| Stage 4: Advanced Swift UI Features | 🔜 Next | - |
-| Stage 5: Backend Enhancements | ⏸️ Pending | - |
+| Stage 4: Advanced Swift UI Features | ✅ Complete | 2026-01-02 |
+| Stage 5: Backend Enhancements | 🔜 Next | - |
 | Stage 6: Polish & Testing | ⏸️ Pending | - |
 | Stage 7: Cross-Platform Foundation | ⏸️ Pending | - |
 
-**Latest Achievement:** Complete Swift macOS app foundation! Native SwiftUI app with full API and WebSocket integration. API client (247 lines), WebSocket client (96 lines), EmulatorViewModel (213 lines), 4 views (MainView, EditorView, RegistersView, ConsoleView), and complete data models. Project generated with XcodeGen from YAML spec. Code quality enforced with SwiftLint and SwiftFormat (0 violations). App successfully builds and connects to Go backend. Toolbar with Run/Stop/Step/Reset controls. Split-pane layout with live register updates via WebSocket. Full CLI automation workflow documented. Ready for advanced UI features.
+**Latest Achievement:** Completed Stage 4 - Advanced Swift UI Features! Implemented 8 of 9 planned features:
+- ✅ File management (open/save dialogs, recent files with security-scoped bookmarks)
+- ✅ Examples browser (modal sheet with search and preview)
+- ✅ Preferences window (general and editor settings)
+- ✅ Memory hex dump view (address navigation, auto-scroll to PC, quick access to PC/SP/R0-R3)
+- ✅ Stack visualization (SP-relative offsets, detects saved registers/code/stack addresses, ASCII view)
+- ✅ Live disassembly view (±32 instructions around PC, breakpoint indicators, auto-scroll)
+- ✅ Breakpoint gutter (line numbers, click-to-toggle breakpoints, red dot indicators)
+- ✅ Tabbed right panel (Registers/Memory/Stack/Disassembly tabs)
+- ⏭️ Syntax highlighting (deferred - breakpoint gutter provides core debugging functionality)
+
+Technical highlights: Custom NSRulerView for line numbers and breakpoints, tabbed interface with 4 panels, native file dialogs, UserDefaults-backed settings, Base64 memory transfer, live disassembly with symbol correlation. All code passes SwiftLint/SwiftFormat with 0 violations (1 intentional TODO). Build succeeds with zero errors. Ready for backend enhancements (Stage 5).
 
 ---
 

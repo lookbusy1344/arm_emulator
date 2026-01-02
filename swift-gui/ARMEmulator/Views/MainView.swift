@@ -76,6 +76,7 @@ struct MainView: View {
         VSplitView {
             HSplitView {
                 EditorView(text: $viewModel.sourceCode)
+                    .environmentObject(viewModel)
                     .frame(minWidth: 300)
 
                 TabView(selection: $settings.selectedTab) {

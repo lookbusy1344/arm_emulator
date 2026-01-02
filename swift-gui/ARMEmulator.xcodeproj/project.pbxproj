@@ -13,6 +13,7 @@
 		2E499DCAC8BD74A7D21C7F1C /* APIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = A3FB010EC14C3AFD8B4E2359 /* APIClient.swift */; };
 		30E6E43DD6E7EE0BBF9CC84C /* BackendStatusView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 65AE3FBF67481D0085647457 /* BackendStatusView.swift */; };
 		356BCA2FAA0A50842DFD2CE0 /* ARMEmulatorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3B50844150083773DFEC19C7 /* ARMEmulatorTests.swift */; };
+		36FF6702D74D18761FCAD753 /* LineNumberGutterView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6C9B2E5806EC477D9F1BB9E5 /* LineNumberGutterView.swift */; };
 		3A4C65E288F2DB022B205C15 /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 1247427E15F123B8C45C03DF /* Foundation.framework */; };
 		3B6A9EF02026A7D0397D42E5 /* MemoryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A4C373BB83C3FE45BC83FBB9 /* MemoryView.swift */; };
 		5B2F17049B1210E686BE1447 /* DisassemblyView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23D98C6491303C5EC281CE6B /* DisassemblyView.swift */; };
@@ -57,6 +58,7 @@
 		4FE9C901E652DDC942DCE3EA /* BackendManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackendManager.swift; sourceTree = "<group>"; };
 		5960B8591491B9E1EF1DF5AD /* WebSocketClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebSocketClient.swift; sourceTree = "<group>"; };
 		65AE3FBF67481D0085647457 /* BackendStatusView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackendStatusView.swift; sourceTree = "<group>"; };
+		6C9B2E5806EC477D9F1BB9E5 /* LineNumberGutterView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LineNumberGutterView.swift; sourceTree = "<group>"; };
 		823F666C30D17DA30721AB29 /* StackView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StackView.swift; sourceTree = "<group>"; };
 		8A71E8BD4F7E7EC809B5BDF9 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		8DF710E105C1689A58ED1B74 /* EmulatorViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EmulatorViewModel.swift; sourceTree = "<group>"; };
@@ -152,6 +154,7 @@
 				34CE9DE8F3604FECD12AE1AB /* EditorView.swift */,
 				261B831EB27F6EA29012C89F /* ExamplesBrowserView.swift */,
 				A762325FE4B7F546BDAA4F76 /* FileCommands.swift */,
+				6C9B2E5806EC477D9F1BB9E5 /* LineNumberGutterView.swift */,
 				E0E00E78E1A9BCD3DA0AE0D7 /* MainView.swift */,
 				A4C373BB83C3FE45BC83FBB9 /* MemoryView.swift */,
 				0AFBD2DEC3DD01A088850D63 /* PreferencesView.swift */,
@@ -325,6 +328,7 @@
 				1987842A23ED33F5B0C262CB /* ExamplesBrowserView.swift in Sources */,
 				BDE6AD5A853B07FE12ED8583 /* FileCommands.swift in Sources */,
 				A68E3687C19A3E6C59B74130 /* FileService.swift in Sources */,
+				36FF6702D74D18761FCAD753 /* LineNumberGutterView.swift in Sources */,
 				8E53A18B7A792D4809F48122 /* MainView.swift in Sources */,
 				3B6A9EF02026A7D0397D42E5 /* MemoryView.swift in Sources */,
 				CC7952A677BACFD5563308BE /* PreferencesView.swift in Sources */,
