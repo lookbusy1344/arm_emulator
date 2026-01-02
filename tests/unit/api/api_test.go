@@ -8,11 +8,13 @@ import (
 	"net/http/httptest"
 	"testing"
 	"time"
+
+	"github.com/lookbusy1344/arm-emulator/api"
 )
 
 // testServer creates a test server for testing
-func testServer() *Server {
-	server := NewServer(8080)
+func testServer() *api.Server {
+	server := api.NewServer(8080)
 	// For testing, we need to wrap mux with CORS middleware manually since Start() isn't called
 	return server
 }
@@ -44,7 +46,7 @@ func TestHealthCheck(t *testing.T) {
 func TestCreateSession(t *testing.T) {
 	server := testServer()
 
-	reqBody := SessionCreateRequest{
+	reqBody := api.SessionCreateRequest{
 		MemorySize: 1024 * 1024,
 	}
 
@@ -59,7 +61,7 @@ func TestCreateSession(t *testing.T) {
 		t.Errorf("Expected status 201, got %d", w.Code)
 	}
 
-	var response SessionCreateResponse
+	var response api.SessionCreateResponse
 	if err := json.NewDecoder(w.Body).Decode(&response); err != nil {
 		t.Fatalf("Failed to decode response: %v", err)
 	}
@@ -120,7 +122,7 @@ main:
 	SWI #0
 	`
 
-	reqBody := LoadProgramRequest{
+	reqBody := api.LoadProgramRequest{
 		Source: program,
 	}
 
@@ -137,7 +139,7 @@ main:
 		t.Errorf("Expected status 200, got %d: %s", w.Code, w.Body.String())
 	}
 
-	var response LoadProgramResponse
+	var response api.LoadProgramResponse
 	if err := json.NewDecoder(w.Body).Decode(&response); err != nil {
 		t.Fatalf("Failed to decode response: %v", err)
 	}
@@ -160,7 +162,7 @@ func TestLoadInvalidProgram(t *testing.T) {
 	server := testServer()
 	sessionID := createTestSession(t, server)
 
-	reqBody := LoadProgramRequest{
+	reqBody := api.LoadProgramRequest{
 		Source: "INVALID_INSTRUCTION R0, R1",
 	}
 
@@ -177,7 +179,7 @@ func TestLoadInvalidProgram(t *testing.T) {
 		t.Errorf("Expected status 400, got %d", w.Code)
 	}
 
-	var response LoadProgramResponse
+	var response api.LoadProgramResponse
 	json.NewDecoder(w.Body).Decode(&response)
 
 	if response.Success {
@@ -214,7 +216,7 @@ func TestStepExecution(t *testing.T) {
 		t.Errorf("Expected status 200, got %d: %s", w.Code, w.Body.String())
 	}
 
-	var response RegistersResponse
+	var response api.RegistersResponse
 	if err := json.NewDecoder(w.Body).Decode(&response); err != nil {
 		t.Fatalf("Failed to decode response: %v", err)
 	}
@@ -252,7 +254,7 @@ func TestGetRegisters(t *testing.T) {
 		t.Errorf("Expected status 200, got %d", w.Code)
 	}
 
-	var response RegistersResponse
+	var response api.RegistersResponse
 	if err := json.NewDecoder(w.Body).Decode(&response); err != nil {
 		t.Fatalf("Failed to decode response: %v", err)
 	}
@@ -279,7 +281,7 @@ func TestGetMemory(t *testing.T) {
 		t.Errorf("Expected status 200, got %d", w.Code)
 	}
 
-	var response MemoryResponse
+	var response api.MemoryResponse
 	if err := json.NewDecoder(w.Body).Decode(&response); err != nil {
 		t.Fatalf("Failed to decode response: %v", err)
 	}
@@ -320,7 +322,7 @@ func TestBreakpoints(t *testing.T) {
 	sessionID := createTestSession(t, server)
 
 	// Add breakpoint
-	reqBody := BreakpointRequest{
+	reqBody := api.BreakpointRequest{
 		Address: 0x8004,
 	}
 
@@ -344,7 +346,7 @@ func TestBreakpoints(t *testing.T) {
 
 	server.Handler().ServeHTTP(w, req)
 
-	var response BreakpointsResponse
+	var response api.BreakpointsResponse
 	json.NewDecoder(w.Body).Decode(&response)
 
 	if len(response.Breakpoints) != 1 {
@@ -401,7 +403,7 @@ func TestReset(t *testing.T) {
 	w = httptest.NewRecorder()
 	server.Handler().ServeHTTP(w, req)
 
-	var regs RegistersResponse
+	var regs api.RegistersResponse
 	json.NewDecoder(w.Body).Decode(&regs)
 
 	if regs.Cycles != 0 {
@@ -471,7 +473,7 @@ func TestCORS(t *testing.T) {
 
 // Helper functions
 
-func createTestSession(t *testing.T, server *Server) string {
+func createTestSession(t *testing.T, server *api.Server) string {
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/session", bytes.NewReader([]byte("{}")))
 	w := httptest.NewRecorder()
 
@@ -481,7 +483,7 @@ func createTestSession(t *testing.T, server *Server) string {
 		t.Fatalf("Failed to create session: %d %s", w.Code, w.Body.String())
 	}
 
-	var response SessionCreateResponse
+	var response api.SessionCreateResponse
 	if err := json.NewDecoder(w.Body).Decode(&response); err != nil {
 		t.Fatalf("Failed to decode session response: %v", err)
 	}
@@ -489,8 +491,8 @@ func createTestSession(t *testing.T, server *Server) string {
 	return response.SessionID
 }
 
-func loadProgram(t *testing.T, server *Server, sessionID string, program string) {
-	reqBody := LoadProgramRequest{Source: program}
+func loadProgram(t *testing.T, server *api.Server, sessionID string, program string) {
+	reqBody := api.LoadProgramRequest{Source: program}
 	body, _ := json.Marshal(reqBody)
 
 	req := httptest.NewRequest(http.MethodPost,

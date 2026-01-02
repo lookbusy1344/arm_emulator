@@ -39,9 +39,9 @@ type WebSocketClient struct {
 
 // SubscriptionRequest represents a client's subscription request
 type SubscriptionRequest struct {
-	Type       string   `json:"type"`       // Should be "subscribe"
-	SessionID  string   `json:"sessionId"`  // Empty string = all sessions
-	EventTypes []string `json:"events"`     // Empty = all event types
+	Type       string   `json:"type"`      // Should be "subscribe"
+	SessionID  string   `json:"sessionId"` // Empty string = all sessions
+	EventTypes []string `json:"events"`    // Empty = all event types
 }
 
 // handleWebSocket handles WebSocket upgrade and client management

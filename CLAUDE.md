@@ -33,6 +33,10 @@ go test ./...
 
 Do NOT create test files in package directories (e.g., `api/api_test.go`). Instead, create them in the appropriate `./tests` subdirectory.
 
+**Exceptions (due to Go language limitations):**
+- `gui/app_test.go` - Tests for `package main` (cannot be imported from other directories)
+- `debugger/tui_internal_test.go` - White-box tests requiring access to unexported methods
+
 ## Race Detection
 
 Run tests with the race detector to check for data races (especially important for TUI/GUI code):
