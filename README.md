@@ -351,6 +351,14 @@ cd swift-gui
 xcodebuild -project ARMEmulator.xcodeproj -scheme ARMEmulator build | xcbeautify
 ```
 
+Built app location: `~/Library/Developer/Xcode/DerivedData/ARMEmulator-*/Build/Products/Debug/ARMEmulator.app`
+
+To run the built app:
+```bash
+# Find and open the built app
+find ~/Library/Developer/Xcode/DerivedData -name "ARMEmulator.app" -type d -exec open {} \; -quit
+```
+
 **Features:**
 - Native macOS SwiftUI interface
 - Real-time register updates via WebSocket
