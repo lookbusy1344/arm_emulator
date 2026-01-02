@@ -22,13 +22,13 @@ type SessionCreateResponse struct {
 
 // SessionStatusResponse represents the current status of a session
 type SessionStatusResponse struct {
-	SessionID string                 `json:"sessionId"`
-	State     string                 `json:"state"`
-	PC        uint32                 `json:"pc"`
-	Cycles    uint64                 `json:"cycles"`
-	Error     string                 `json:"error,omitempty"`
-	HasWrite  bool                   `json:"hasWrite"`
-	WriteAddr uint32                 `json:"writeAddr,omitempty"`
+	SessionID string `json:"sessionId"`
+	State     string `json:"state"`
+	PC        uint32 `json:"pc"`
+	Cycles    uint64 `json:"cycles"`
+	Error     string `json:"error,omitempty"`
+	HasWrite  bool   `json:"hasWrite"`
+	WriteAddr uint32 `json:"writeAddr,omitempty"`
 }
 
 // LoadProgramRequest represents a request to load a program
@@ -143,11 +143,11 @@ type Event struct {
 
 // StateEvent represents a state change event
 type StateEvent struct {
-	State     string        `json:"state"`
-	PC        uint32        `json:"pc"`
-	Registers [16]uint32    `json:"registers"`
-	CPSR      CPSRFlags     `json:"cpsr"`
-	Cycles    uint64        `json:"cycles"`
+	State     string     `json:"state"`
+	PC        uint32     `json:"pc"`
+	Registers [16]uint32 `json:"registers"`
+	CPSR      CPSRFlags  `json:"cpsr"`
+	Cycles    uint64     `json:"cycles"`
 }
 
 // OutputEvent represents console output
@@ -158,7 +158,7 @@ type OutputEvent struct {
 
 // ExecutionEvent represents execution events like breakpoints
 type ExecutionEvent struct {
-	Event   string `json:"event"`            // "breakpoint_hit", "error", "halted"
+	Event   string `json:"event"` // "breakpoint_hit", "error", "halted"
 	Address uint32 `json:"address,omitempty"`
 	Symbol  string `json:"symbol,omitempty"`
 	Message string `json:"message,omitempty"`
@@ -167,22 +167,22 @@ type ExecutionEvent struct {
 // ToRegisterResponse converts service.RegisterState to API response
 func ToRegisterResponse(regs *service.RegisterState) *RegistersResponse {
 	return &RegistersResponse{
-		R0:     regs.Registers[0],
-		R1:     regs.Registers[1],
-		R2:     regs.Registers[2],
-		R3:     regs.Registers[3],
-		R4:     regs.Registers[4],
-		R5:     regs.Registers[5],
-		R6:     regs.Registers[6],
-		R7:     regs.Registers[7],
-		R8:     regs.Registers[8],
-		R9:     regs.Registers[9],
-		R10:    regs.Registers[10],
-		R11:    regs.Registers[11],
-		R12:    regs.Registers[12],
-		SP:     regs.Registers[13],
-		LR:     regs.Registers[14],
-		PC:     regs.PC,
+		R0:  regs.Registers[0],
+		R1:  regs.Registers[1],
+		R2:  regs.Registers[2],
+		R3:  regs.Registers[3],
+		R4:  regs.Registers[4],
+		R5:  regs.Registers[5],
+		R6:  regs.Registers[6],
+		R7:  regs.Registers[7],
+		R8:  regs.Registers[8],
+		R9:  regs.Registers[9],
+		R10: regs.Registers[10],
+		R11: regs.Registers[11],
+		R12: regs.Registers[12],
+		SP:  regs.Registers[13],
+		LR:  regs.Registers[14],
+		PC:  regs.PC,
 		CPSR: CPSRFlags{
 			N: regs.CPSR.N,
 			Z: regs.CPSR.Z,

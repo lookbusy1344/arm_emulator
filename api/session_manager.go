@@ -23,7 +23,6 @@ type Session struct {
 	ID        string
 	Service   *service.DebuggerService
 	CreatedAt time.Time
-	mu        sync.RWMutex
 }
 
 // SessionManager manages multiple emulator sessions
@@ -47,13 +46,8 @@ func (sm *SessionManager) CreateSession(opts SessionCreateRequest) (*Session, er
 		return nil, err
 	}
 
-	// Set default values
-	memSize := opts.MemorySize
-	if memSize == 0 {
-		memSize = 1024 * 1024 // 1MB default
-	}
-
-	// Create VM instance
+	// Create VM instance (note: opts.MemorySize is currently unused, VM uses default size)
+	// TODO: Future enhancement - configure VM memory size based on opts.MemorySize
 	machine := vm.NewVM()
 
 	// Create debugger service

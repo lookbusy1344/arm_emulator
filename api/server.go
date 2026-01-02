@@ -32,6 +32,11 @@ func NewServer(port int) *Server {
 	return s
 }
 
+// Handler returns the HTTP handler with CORS middleware applied
+func (s *Server) Handler() http.Handler {
+	return s.corsMiddleware(s.mux)
+}
+
 // registerRoutes sets up all HTTP routes
 func (s *Server) registerRoutes() {
 	// Health check
@@ -40,16 +45,13 @@ func (s *Server) registerRoutes() {
 	// Session management
 	s.mux.HandleFunc("/api/v1/session", s.handleSession)
 	s.mux.HandleFunc("/api/v1/session/", s.handleSessionRoute)
-
-	// Enable CORS for all routes
-	s.mux.Handle("/", s.corsMiddleware(s.mux))
 }
 
 // Start starts the HTTP server
 func (s *Server) Start() error {
 	s.server = &http.Server{
 		Addr:         fmt.Sprintf("127.0.0.1:%d", s.port),
-		Handler:      s.mux,
+		Handler:      s.Handler(),
 		ReadTimeout:  15 * time.Second,
 		WriteTimeout: 15 * time.Second,
 		IdleTimeout:  60 * time.Second,

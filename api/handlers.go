@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/lookbusy1344/arm-emulator/service"
+	"github.com/lookbusy1344/arm-emulator/parser"
 )
 
 // handleCreateSession handles POST /api/v1/session
@@ -51,7 +51,7 @@ func (s *Server) handleGetSessionStatus(w http.ResponseWriter, r *http.Request, 
 	}
 
 	// Get current state from service
-	regs := session.Service.GetRegisters()
+	regs := session.Service.GetRegisterState()
 	state := session.Service.GetExecutionState()
 	memWrite := session.Service.GetLastMemoryWrite()
 
@@ -100,8 +100,36 @@ func (s *Server) handleLoadProgram(w http.ResponseWriter, r *http.Request, sessi
 		return
 	}
 
+	// Parse assembly source
+	p := parser.NewParser(req.Source, "api")
+	program, parseErr := p.Parse()
+	if parseErr != nil {
+		// Collect all parse errors
+		errorList := p.Errors()
+		errors := make([]string, len(errorList.Errors))
+		for i, e := range errorList.Errors {
+			errors[i] = e.Error()
+		}
+		response := LoadProgramResponse{
+			Success: false,
+			Errors:  errors,
+		}
+		writeJSON(w, http.StatusBadRequest, response)
+		return
+	}
+
+	// Determine entry point (same logic as main.go)
+	var entryAddr uint32
+	if startSym, exists := program.SymbolTable.Lookup("_start"); exists {
+		entryAddr = startSym.Value
+	} else if program.OriginSet {
+		entryAddr = program.Origin
+	} else {
+		entryAddr = 0x8000 // Default ARM entry point
+	}
+
 	// Load program using service
-	loadErr := session.Service.LoadProgram(req.Source, "api")
+	loadErr := session.Service.LoadProgram(program, entryAddr)
 	if loadErr != nil {
 		response := LoadProgramResponse{
 			Success: false,
@@ -137,7 +165,7 @@ func (s *Server) handleRun(w http.ResponseWriter, r *http.Request, sessionID str
 
 	// Run the program asynchronously
 	go func() {
-		_ = session.Service.Run()
+		_ = session.Service.RunUntilHalt()
 	}()
 
 	writeJSON(w, http.StatusOK, SuccessResponse{
@@ -159,7 +187,7 @@ func (s *Server) handleStop(w http.ResponseWriter, r *http.Request, sessionID st
 		return
 	}
 
-	session.Service.Stop()
+	session.Service.Pause()
 
 	writeJSON(w, http.StatusOK, SuccessResponse{
 		Success: true,
@@ -187,8 +215,8 @@ func (s *Server) handleStep(w http.ResponseWriter, r *http.Request, sessionID st
 	}
 
 	// Return updated registers
-	regs := session.Service.GetRegisters()
-	response := ToRegisterResponse(regs)
+	regs := session.Service.GetRegisterState()
+	response := ToRegisterResponse(&regs)
 
 	writeJSON(w, http.StatusOK, response)
 }
@@ -206,7 +234,10 @@ func (s *Server) handleReset(w http.ResponseWriter, r *http.Request, sessionID s
 		return
 	}
 
-	session.Service.Reset()
+	if err := session.Service.Reset(); err != nil {
+		writeError(w, http.StatusInternalServerError, fmt.Sprintf("Reset failed: %v", err))
+		return
+	}
 
 	writeJSON(w, http.StatusOK, SuccessResponse{
 		Success: true,
@@ -227,8 +258,8 @@ func (s *Server) handleGetRegisters(w http.ResponseWriter, r *http.Request, sess
 		return
 	}
 
-	regs := session.Service.GetRegisters()
-	response := ToRegisterResponse(regs)
+	regs := session.Service.GetRegisterState()
+	response := ToRegisterResponse(&regs)
 
 	writeJSON(w, http.StatusOK, response)
 }
@@ -268,10 +299,14 @@ func (s *Server) handleGetMemory(w http.ResponseWriter, r *http.Request, session
 	}
 
 	// Read memory
-	data := session.Service.ReadMemory(uint32(address), uint32(length))
+	data, err := session.Service.GetMemory(uint32(address), uint32(length)) // #nosec G115 -- parseHexOrDec validates input fits in uint32
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, fmt.Sprintf("Failed to read memory: %v", err))
+		return
+	}
 
 	response := MemoryResponse{
-		Address: uint32(address),
+		Address: uint32(address), // #nosec G115 -- parseHexOrDec validates input fits in uint32
 		Data:    data,
 		Length:  uint32(length),
 	}
@@ -313,7 +348,7 @@ func (s *Server) handleGetDisassembly(w http.ResponseWriter, r *http.Request, se
 	}
 
 	// Get disassembly
-	lines := session.Service.Disassemble(uint32(address), uint32(count))
+	lines := session.Service.GetDisassembly(uint32(address), int(count)) // #nosec G115 -- parseHexOrDec validates input fits in uint32
 
 	instructions := make([]InstructionInfo, len(lines))
 	for i, line := range lines {
@@ -344,7 +379,10 @@ func (s *Server) handleBreakpoint(w http.ResponseWriter, r *http.Request, sessio
 			return
 		}
 
-		session.Service.AddBreakpoint(req.Address)
+		if err := session.Service.AddBreakpoint(req.Address); err != nil {
+			writeError(w, http.StatusInternalServerError, fmt.Sprintf("Failed to add breakpoint: %v", err))
+			return
+		}
 
 		writeJSON(w, http.StatusOK, SuccessResponse{
 			Success: true,
@@ -359,7 +397,10 @@ func (s *Server) handleBreakpoint(w http.ResponseWriter, r *http.Request, sessio
 			return
 		}
 
-		session.Service.RemoveBreakpoint(req.Address)
+		if err := session.Service.RemoveBreakpoint(req.Address); err != nil {
+			writeError(w, http.StatusInternalServerError, fmt.Sprintf("Failed to remove breakpoint: %v", err))
+			return
+		}
 
 		writeJSON(w, http.StatusOK, SuccessResponse{
 			Success: true,
@@ -386,8 +427,14 @@ func (s *Server) handleListBreakpoints(w http.ResponseWriter, r *http.Request, s
 
 	breakpoints := session.Service.GetBreakpoints()
 
+	// Extract just the addresses from BreakpointInfo array
+	addresses := make([]uint32, len(breakpoints))
+	for i, bp := range breakpoints {
+		addresses[i] = bp.Address
+	}
+
 	response := BreakpointsResponse{
-		Breakpoints: breakpoints,
+		Breakpoints: addresses,
 	}
 
 	writeJSON(w, http.StatusOK, response)
@@ -412,7 +459,7 @@ func (s *Server) handleSendStdin(w http.ResponseWriter, r *http.Request, session
 		return
 	}
 
-	stdinErr := session.Service.SendStdin(req.Data)
+	stdinErr := session.Service.SendInput(req.Data)
 	if stdinErr != nil {
 		writeError(w, http.StatusInternalServerError, fmt.Sprintf("Failed to send stdin: %v", stdinErr))
 		return
