@@ -5,6 +5,10 @@
 xcuserdata/
 project.xcworkspace/xcuserdata/
 
+# XcodeGen - Ignore generated project files
+# Project is generated from project.yml - run `xcodegen generate` to recreate
+*.xcodeproj
+
 # Xcode Build Products
 build/
 DerivedData/
