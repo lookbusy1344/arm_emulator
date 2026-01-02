@@ -3,7 +3,10 @@ package api
 import (
 	"fmt"
 	"net/http"
+	"os"
+	"path/filepath"
 	"strconv"
+	"strings"
 
 	"github.com/lookbusy1344/arm-emulator/parser"
 	"github.com/lookbusy1344/arm-emulator/service"
@@ -488,6 +491,422 @@ func parseHexOrDec(s string) (uint64, error) {
 	}
 
 	return strconv.ParseUint(s, 10, 32)
+}
+
+// handleWatchpoint handles POST/DELETE /api/v1/session/{id}/watchpoint
+func (s *Server) handleWatchpoint(w http.ResponseWriter, r *http.Request, sessionID string) {
+	session, err := s.sessions.GetSession(sessionID)
+	if err != nil {
+		writeError(w, http.StatusNotFound, "Session not found")
+		return
+	}
+
+	switch r.Method {
+	case http.MethodPost:
+		// Add watchpoint
+		var req WatchpointRequest
+		if err := readJSON(r, &req); err != nil {
+			writeError(w, http.StatusBadRequest, "Invalid request body")
+			return
+		}
+
+		// Validate watchpoint type
+		watchType := req.Type
+		if watchType == "" {
+			watchType = "readwrite" // Default
+		}
+		if watchType != "read" && watchType != "write" && watchType != "readwrite" {
+			writeError(w, http.StatusBadRequest, "Invalid watchpoint type (must be 'read', 'write', or 'readwrite')")
+			return
+		}
+
+		if err := session.Service.AddWatchpoint(req.Address, watchType); err != nil {
+			writeError(w, http.StatusInternalServerError, fmt.Sprintf("Failed to add watchpoint: %v", err))
+			return
+		}
+
+		// Get the watchpoints to find the newly created one
+		watchpoints := session.Service.GetWatchpoints()
+		var newWatchpoint *service.WatchpointInfo
+		for i := range watchpoints {
+			if watchpoints[i].Address == req.Address {
+				newWatchpoint = &watchpoints[i]
+				break
+			}
+		}
+
+		if newWatchpoint == nil {
+			writeError(w, http.StatusInternalServerError, "Failed to retrieve created watchpoint")
+			return
+		}
+
+		response := WatchpointResponse{
+			ID:      newWatchpoint.ID,
+			Address: newWatchpoint.Address,
+			Type:    newWatchpoint.Type,
+		}
+
+		writeJSON(w, http.StatusOK, response)
+
+	default:
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+	}
+}
+
+// handleDeleteWatchpoint handles DELETE /api/v1/session/{id}/watchpoint/{watchpointID}
+func (s *Server) handleDeleteWatchpoint(w http.ResponseWriter, r *http.Request, sessionID string, watchpointID int) {
+	if r.Method != http.MethodDelete {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	session, err := s.sessions.GetSession(sessionID)
+	if err != nil {
+		writeError(w, http.StatusNotFound, "Session not found")
+		return
+	}
+
+	if err := session.Service.RemoveWatchpoint(watchpointID); err != nil {
+		writeError(w, http.StatusNotFound, fmt.Sprintf("Failed to remove watchpoint: %v", err))
+		return
+	}
+
+	writeJSON(w, http.StatusOK, SuccessResponse{
+		Success: true,
+		Message: "Watchpoint removed",
+	})
+}
+
+// handleListWatchpoints handles GET /api/v1/session/{id}/watchpoints
+func (s *Server) handleListWatchpoints(w http.ResponseWriter, r *http.Request, sessionID string) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	session, err := s.sessions.GetSession(sessionID)
+	if err != nil {
+		writeError(w, http.StatusNotFound, "Session not found")
+		return
+	}
+
+	watchpoints := session.Service.GetWatchpoints()
+
+	response := WatchpointsResponse{
+		Watchpoints: watchpoints,
+	}
+
+	writeJSON(w, http.StatusOK, response)
+}
+
+// handleTraceControl handles POST /api/v1/session/{id}/trace/{enable|disable}
+func (s *Server) handleTraceControl(w http.ResponseWriter, r *http.Request, sessionID string, action string) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	session, err := s.sessions.GetSession(sessionID)
+	if err != nil {
+		writeError(w, http.StatusNotFound, "Session not found")
+		return
+	}
+
+	switch action {
+	case "enable":
+		if err := session.Service.EnableExecutionTrace(); err != nil {
+			writeError(w, http.StatusInternalServerError, fmt.Sprintf("Failed to enable trace: %v", err))
+			return
+		}
+		writeJSON(w, http.StatusOK, SuccessResponse{
+			Success: true,
+			Message: "Execution trace enabled",
+		})
+	case "disable":
+		session.Service.DisableExecutionTrace()
+		writeJSON(w, http.StatusOK, SuccessResponse{
+			Success: true,
+			Message: "Execution trace disabled",
+		})
+	default:
+		writeError(w, http.StatusBadRequest, "Invalid action (must be 'enable' or 'disable')")
+	}
+}
+
+// handleTraceData handles GET /api/v1/session/{id}/trace/data
+func (s *Server) handleTraceData(w http.ResponseWriter, r *http.Request, sessionID string) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	session, err := s.sessions.GetSession(sessionID)
+	if err != nil {
+		writeError(w, http.StatusNotFound, "Session not found")
+		return
+	}
+
+	entries, err := session.Service.GetExecutionTraceData()
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, fmt.Sprintf("Failed to get trace data: %v", err))
+		return
+	}
+
+	// Convert vm.TraceEntry to API TraceEntryInfo
+	apiEntries := make([]TraceEntryInfo, len(entries))
+	for i, entry := range entries {
+		apiEntries[i] = TraceEntryInfo{
+			Sequence:        entry.Sequence,
+			Address:         entry.Address,
+			Opcode:          entry.Opcode,
+			Disassembly:     entry.Disassembly,
+			RegisterChanges: entry.RegisterChanges,
+			Flags: CPSRFlags{
+				N: entry.Flags.N,
+				Z: entry.Flags.Z,
+				C: entry.Flags.C,
+				V: entry.Flags.V,
+			},
+			DurationNs: entry.Duration.Nanoseconds(),
+		}
+	}
+
+	response := TraceDataResponse{
+		Entries: apiEntries,
+		Count:   len(apiEntries),
+	}
+
+	writeJSON(w, http.StatusOK, response)
+}
+
+// handleStatsControl handles POST /api/v1/session/{id}/stats/{enable|disable}
+func (s *Server) handleStatsControl(w http.ResponseWriter, r *http.Request, sessionID string, action string) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	session, err := s.sessions.GetSession(sessionID)
+	if err != nil {
+		writeError(w, http.StatusNotFound, "Session not found")
+		return
+	}
+
+	switch action {
+	case "enable":
+		if err := session.Service.EnableStatistics(); err != nil {
+			writeError(w, http.StatusInternalServerError, fmt.Sprintf("Failed to enable statistics: %v", err))
+			return
+		}
+		writeJSON(w, http.StatusOK, SuccessResponse{
+			Success: true,
+			Message: "Statistics collection enabled",
+		})
+	case "disable":
+		session.Service.DisableStatistics()
+		writeJSON(w, http.StatusOK, SuccessResponse{
+			Success: true,
+			Message: "Statistics collection disabled",
+		})
+	default:
+		writeError(w, http.StatusBadRequest, "Invalid action (must be 'enable' or 'disable')")
+	}
+}
+
+// handleStats handles GET /api/v1/session/{id}/stats
+func (s *Server) handleStats(w http.ResponseWriter, r *http.Request, sessionID string) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	session, err := s.sessions.GetSession(sessionID)
+	if err != nil {
+		writeError(w, http.StatusNotFound, "Session not found")
+		return
+	}
+
+	stats, err := session.Service.GetStatistics()
+	if err != nil {
+		writeError(w, http.StatusBadRequest, fmt.Sprintf("Failed to get statistics: %v", err))
+		return
+	}
+
+	response := StatisticsResponse{
+		TotalInstructions:  stats.TotalInstructions,
+		TotalCycles:        stats.TotalCycles,
+		ExecutionTimeMs:    stats.ExecutionTime.Milliseconds(),
+		InstructionsPerSec: stats.InstructionsPerSec,
+		InstructionCounts:  stats.InstructionCounts,
+		BranchCount:        stats.BranchCount,
+		BranchTakenCount:   stats.BranchTakenCount,
+		BranchMissedCount:  stats.BranchMissedCount,
+		MemoryReads:        stats.MemoryReads,
+		MemoryWrites:       stats.MemoryWrites,
+		BytesRead:          stats.BytesRead,
+		BytesWritten:       stats.BytesWritten,
+	}
+
+	writeJSON(w, http.StatusOK, response)
+}
+
+// handleGetConfig handles GET /api/v1/config
+func (s *Server) handleGetConfig(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	// For now, return default configuration
+	// In a full implementation, this would load from a config file or store
+	cfg := s.getDefaultConfig()
+	writeJSON(w, http.StatusOK, cfg)
+}
+
+// handleUpdateConfig handles PUT /api/v1/config
+func (s *Server) handleUpdateConfig(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPut {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	var cfg ConfigResponse
+	if err := readJSON(r, &cfg); err != nil {
+		writeError(w, http.StatusBadRequest, "Invalid request body")
+		return
+	}
+
+	// For now, just acknowledge the update
+	// In a full implementation, this would save to config file/store
+	writeJSON(w, http.StatusOK, SuccessResponse{
+		Success: true,
+		Message: "Configuration updated",
+	})
+}
+
+// handleListExamples handles GET /api/v1/examples
+func (s *Server) handleListExamples(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	// Read examples directory
+	examplesDir := "examples"
+	entries, err := os.ReadDir(examplesDir)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, fmt.Sprintf("Failed to read examples directory: %v", err))
+		return
+	}
+
+	// Build example list
+	examples := make([]ExampleInfo, 0)
+	for _, entry := range entries {
+		if entry.IsDir() {
+			continue
+		}
+
+		// Only include .s files
+		name := entry.Name()
+		if !strings.HasSuffix(name, ".s") {
+			continue
+		}
+
+		info, err := entry.Info()
+		if err != nil {
+			continue
+		}
+
+		examples = append(examples, ExampleInfo{
+			Name: name,
+			Size: info.Size(),
+		})
+	}
+
+	response := ExamplesResponse{
+		Examples: examples,
+		Count:    len(examples),
+	}
+
+	writeJSON(w, http.StatusOK, response)
+}
+
+// handleGetExample handles GET /api/v1/examples/{name}
+func (s *Server) handleGetExample(w http.ResponseWriter, r *http.Request, exampleName string) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	// Security: prevent path traversal
+	if strings.Contains(exampleName, "..") || strings.Contains(exampleName, "/") {
+		writeError(w, http.StatusBadRequest, "Invalid example name")
+		return
+	}
+
+	// Read example file
+	examplePath := filepath.Join("examples", exampleName)
+	content, err := os.ReadFile(examplePath) // #nosec G304 -- path is validated above
+	if err != nil {
+		writeError(w, http.StatusNotFound, fmt.Sprintf("Example not found: %s", exampleName))
+		return
+	}
+
+	// Get file info for size
+	info, err := os.Stat(examplePath)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "Failed to get file info")
+		return
+	}
+
+	response := ExampleContentResponse{
+		Name:    exampleName,
+		Content: string(content),
+		Size:    info.Size(),
+	}
+
+	writeJSON(w, http.StatusOK, response)
+}
+
+// getDefaultConfig returns default configuration as API response
+func (s *Server) getDefaultConfig() ConfigResponse {
+	// In a full implementation, this would load from config package
+	return ConfigResponse{
+		Execution: ExecutionConfig{
+			MaxCycles:      1000000,
+			StackSize:      65536,
+			DefaultEntry:   "0x8000",
+			EnableTrace:    false,
+			EnableMemTrace: false,
+			EnableStats:    false,
+		},
+		Debugger: DebuggerConfig{
+			HistorySize:    1000,
+			AutoSaveBreaks: true,
+			ShowSource:     true,
+			ShowRegisters:  true,
+		},
+		Display: DisplayConfig{
+			ColorOutput:   true,
+			BytesPerLine:  16,
+			DisasmContext: 5,
+			SourceContext: 5,
+			NumberFormat:  "hex",
+		},
+		Trace: TraceConfig{
+			OutputFile:    "trace.log",
+			FilterRegs:    "",
+			IncludeFlags:  true,
+			IncludeTiming: true,
+			MaxEntries:    100000,
+		},
+		Statistics: StatisticsConfig{
+			OutputFile:     "stats.json",
+			Format:         "json",
+			CollectHotPath: true,
+			TrackCalls:     true,
+		},
+	}
 }
 
 // broadcastStateChange broadcasts VM state changes to WebSocket clients

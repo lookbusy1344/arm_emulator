@@ -52,6 +52,13 @@ func (s *Server) registerRoutes() {
 	// Session management
 	s.mux.HandleFunc("/api/v1/session", s.handleSession)
 	s.mux.HandleFunc("/api/v1/session/", s.handleSessionRoute)
+
+	// Configuration
+	s.mux.HandleFunc("/api/v1/config", s.handleConfig)
+
+	// Examples
+	s.mux.HandleFunc("/api/v1/examples", s.handleExamples)
+	s.mux.HandleFunc("/api/v1/examples/", s.handleExamplesRoute)
 }
 
 // Start starts the HTTP server
@@ -210,11 +217,81 @@ func (s *Server) handleSessionRoute(w http.ResponseWriter, r *http.Request) {
 		s.handleBreakpoint(w, r, sessionID)
 	case "breakpoints":
 		s.handleListBreakpoints(w, r, sessionID)
+	case "watchpoint":
+		// Handle DELETE /api/v1/session/{id}/watchpoint/{watchpointID}
+		if len(parts) == 3 && r.Method == http.MethodDelete {
+			// Parse watchpoint ID
+			watchpointID := 0
+			if _, err := fmt.Sscanf(parts[2], "%d", &watchpointID); err != nil {
+				writeError(w, http.StatusBadRequest, "Invalid watchpoint ID")
+				return
+			}
+			s.handleDeleteWatchpoint(w, r, sessionID, watchpointID)
+		} else {
+			// POST /api/v1/session/{id}/watchpoint
+			s.handleWatchpoint(w, r, sessionID)
+		}
+	case "watchpoints":
+		s.handleListWatchpoints(w, r, sessionID)
+	case "trace":
+		// Handle /api/v1/session/{id}/trace/{enable|disable|data}
+		if len(parts) < 3 {
+			writeError(w, http.StatusBadRequest, "Trace action required (enable, disable, or data)")
+			return
+		}
+		traceAction := parts[2]
+		if traceAction == "data" {
+			s.handleTraceData(w, r, sessionID)
+		} else {
+			s.handleTraceControl(w, r, sessionID, traceAction)
+		}
+	case "stats":
+		// Handle /api/v1/session/{id}/stats or /api/v1/session/{id}/stats/{enable|disable}
+		if len(parts) == 2 {
+			// GET /api/v1/session/{id}/stats
+			s.handleStats(w, r, sessionID)
+		} else if len(parts) == 3 {
+			// POST /api/v1/session/{id}/stats/{enable|disable}
+			statsAction := parts[2]
+			s.handleStatsControl(w, r, sessionID, statsAction)
+		} else {
+			writeError(w, http.StatusBadRequest, "Invalid stats endpoint")
+		}
 	case "stdin":
 		s.handleSendStdin(w, r, sessionID)
 	default:
 		writeError(w, http.StatusNotFound, fmt.Sprintf("Unknown action: %s", action))
 	}
+}
+
+// handleConfig handles GET/PUT /api/v1/config
+func (s *Server) handleConfig(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case http.MethodGet:
+		s.handleGetConfig(w, r)
+	case http.MethodPut:
+		s.handleUpdateConfig(w, r)
+	default:
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+	}
+}
+
+// handleExamples handles GET /api/v1/examples
+func (s *Server) handleExamples(w http.ResponseWriter, r *http.Request) {
+	s.handleListExamples(w, r)
+}
+
+// handleExamplesRoute handles GET /api/v1/examples/{name}
+func (s *Server) handleExamplesRoute(w http.ResponseWriter, r *http.Request) {
+	// Extract example name from path: /api/v1/examples/{name}
+	path := strings.TrimPrefix(r.URL.Path, "/api/v1/examples/")
+
+	if path == "" {
+		writeError(w, http.StatusBadRequest, "Example name required")
+		return
+	}
+
+	s.handleGetExample(w, r, path)
 }
 
 // Helper functions

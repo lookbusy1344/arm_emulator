@@ -856,3 +856,96 @@ func (s *DebuggerService) SendInput(input string) error {
 	_, err := s.stdinPipeWriter.Write([]byte(input + "\n"))
 	return err
 }
+
+// EnableExecutionTrace enables execution tracing
+func (s *DebuggerService) EnableExecutionTrace() error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	// Create execution trace if it doesn't exist
+	if s.vm.ExecutionTrace == nil {
+		// Use a bytes buffer for the trace output
+		var buf bytes.Buffer
+		s.vm.ExecutionTrace = vm.NewExecutionTrace(&buf)
+		// Load symbols if available
+		if len(s.symbols) > 0 {
+			s.vm.ExecutionTrace.LoadSymbols(s.symbols)
+		}
+	}
+
+	s.vm.ExecutionTrace.Enabled = true
+	s.vm.ExecutionTrace.Start()
+	return nil
+}
+
+// DisableExecutionTrace disables execution tracing
+func (s *DebuggerService) DisableExecutionTrace() {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	if s.vm.ExecutionTrace != nil {
+		s.vm.ExecutionTrace.Enabled = false
+	}
+}
+
+// GetExecutionTraceData returns execution trace entries
+func (s *DebuggerService) GetExecutionTraceData() ([]vm.TraceEntry, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	if s.vm.ExecutionTrace == nil {
+		return []vm.TraceEntry{}, nil
+	}
+
+	return s.vm.ExecutionTrace.GetEntries(), nil
+}
+
+// ClearExecutionTrace clears execution trace entries
+func (s *DebuggerService) ClearExecutionTrace() {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	if s.vm.ExecutionTrace != nil {
+		s.vm.ExecutionTrace.Clear()
+	}
+}
+
+// EnableStatistics enables performance statistics collection
+func (s *DebuggerService) EnableStatistics() error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	// Create statistics collector if it doesn't exist
+	if s.vm.Statistics == nil {
+		s.vm.Statistics = vm.NewPerformanceStatistics()
+	}
+
+	s.vm.Statistics.Enabled = true
+	s.vm.Statistics.Start()
+	return nil
+}
+
+// DisableStatistics disables performance statistics collection
+func (s *DebuggerService) DisableStatistics() {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	if s.vm.Statistics != nil {
+		s.vm.Statistics.Enabled = false
+	}
+}
+
+// GetStatistics returns performance statistics
+func (s *DebuggerService) GetStatistics() (*vm.PerformanceStatistics, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	if s.vm.Statistics == nil {
+		return nil, fmt.Errorf("statistics not enabled")
+	}
+
+	// Finalize statistics before returning
+	s.vm.Statistics.Finalize()
+
+	return s.vm.Statistics, nil
+}

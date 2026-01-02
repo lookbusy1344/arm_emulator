@@ -120,6 +120,24 @@ type StdinRequest struct {
 	Data string `json:"data"`
 }
 
+// WatchpointRequest represents a request to add a watchpoint
+type WatchpointRequest struct {
+	Address uint32 `json:"address"`
+	Type    string `json:"type"` // "read", "write", "readwrite"
+}
+
+// WatchpointResponse represents a watchpoint creation response
+type WatchpointResponse struct {
+	ID      int    `json:"id"`
+	Address uint32 `json:"address"`
+	Type    string `json:"type"`
+}
+
+// WatchpointsResponse represents a list of watchpoints
+type WatchpointsResponse struct {
+	Watchpoints []service.WatchpointInfo `json:"watchpoints"`
+}
+
 // ErrorResponse represents an error response
 type ErrorResponse struct {
 	Error   string `json:"error"`
@@ -191,6 +209,112 @@ func ToRegisterResponse(regs *service.RegisterState) *RegistersResponse {
 		},
 		Cycles: regs.Cycles,
 	}
+}
+
+// TraceDataResponse represents execution trace data
+type TraceDataResponse struct {
+	Entries []TraceEntryInfo `json:"entries"`
+	Count   int              `json:"count"`
+}
+
+// TraceEntryInfo represents a single trace entry
+type TraceEntryInfo struct {
+	Sequence        uint64            `json:"sequence"`
+	Address         uint32            `json:"address"`
+	Opcode          uint32            `json:"opcode"`
+	Disassembly     string            `json:"disassembly"`
+	RegisterChanges map[string]uint32 `json:"registerChanges"`
+	Flags           CPSRFlags         `json:"flags"`
+	DurationNs      int64             `json:"durationNs"`
+}
+
+// StatisticsResponse represents performance statistics
+type StatisticsResponse struct {
+	TotalInstructions  uint64            `json:"totalInstructions"`
+	TotalCycles        uint64            `json:"totalCycles"`
+	ExecutionTimeMs    int64             `json:"executionTimeMs"`
+	InstructionsPerSec float64           `json:"instructionsPerSec"`
+	InstructionCounts  map[string]uint64 `json:"instructionCounts"`
+	BranchCount        uint64            `json:"branchCount"`
+	BranchTakenCount   uint64            `json:"branchTakenCount"`
+	BranchMissedCount  uint64            `json:"branchMissedCount"`
+	MemoryReads        uint64            `json:"memoryReads"`
+	MemoryWrites       uint64            `json:"memoryWrites"`
+	BytesRead          uint64            `json:"bytesRead"`
+	BytesWritten       uint64            `json:"bytesWritten"`
+}
+
+// ConfigResponse represents the emulator configuration
+type ConfigResponse struct {
+	Execution  ExecutionConfig  `json:"execution"`
+	Debugger   DebuggerConfig   `json:"debugger"`
+	Display    DisplayConfig    `json:"display"`
+	Trace      TraceConfig      `json:"trace"`
+	Statistics StatisticsConfig `json:"statistics"`
+}
+
+// ExecutionConfig represents execution settings
+type ExecutionConfig struct {
+	MaxCycles      uint64 `json:"maxCycles"`
+	StackSize      uint   `json:"stackSize"`
+	DefaultEntry   string `json:"defaultEntry"`
+	EnableTrace    bool   `json:"enableTrace"`
+	EnableMemTrace bool   `json:"enableMemTrace"`
+	EnableStats    bool   `json:"enableStats"`
+}
+
+// DebuggerConfig represents debugger settings
+type DebuggerConfig struct {
+	HistorySize    int  `json:"historySize"`
+	AutoSaveBreaks bool `json:"autoSaveBreakpoints"`
+	ShowSource     bool `json:"showSource"`
+	ShowRegisters  bool `json:"showRegisters"`
+}
+
+// DisplayConfig represents display settings
+type DisplayConfig struct {
+	ColorOutput   bool   `json:"colorOutput"`
+	BytesPerLine  int    `json:"bytesPerLine"`
+	DisasmContext int    `json:"disasmContext"`
+	SourceContext int    `json:"sourceContext"`
+	NumberFormat  string `json:"numberFormat"`
+}
+
+// TraceConfig represents trace settings
+type TraceConfig struct {
+	OutputFile    string `json:"outputFile"`
+	FilterRegs    string `json:"filterRegisters"`
+	IncludeFlags  bool   `json:"includeFlags"`
+	IncludeTiming bool   `json:"includeTiming"`
+	MaxEntries    int    `json:"maxEntries"`
+}
+
+// StatisticsConfig represents statistics settings
+type StatisticsConfig struct {
+	OutputFile     string `json:"outputFile"`
+	Format         string `json:"format"`
+	CollectHotPath bool   `json:"collectHotPath"`
+	TrackCalls     bool   `json:"trackCalls"`
+}
+
+// ExampleInfo represents an example program
+type ExampleInfo struct {
+	Name        string `json:"name"`
+	Description string `json:"description,omitempty"`
+	Size        int64  `json:"size"`
+}
+
+// ExamplesResponse represents a list of example programs
+type ExamplesResponse struct {
+	Examples []ExampleInfo `json:"examples"`
+	Count    int           `json:"count"`
+}
+
+// ExampleContentResponse represents example program content
+type ExampleContentResponse struct {
+	Name    string `json:"name"`
+	Content string `json:"content"`
+	Size    int64  `json:"size"`
 }
 
 // ToInstructionInfo converts service.DisassemblyLine to API response
