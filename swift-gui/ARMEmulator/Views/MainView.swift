@@ -2,8 +2,11 @@ import SwiftUI
 
 struct MainView: View {
     @EnvironmentObject var backendManager: BackendManager
+    @EnvironmentObject var fileService: FileService
+    @EnvironmentObject var settings: AppSettings
     @StateObject private var viewModel = EmulatorViewModel()
     @State private var showingError = false
+    @State private var showingExamplesBrowser = false
 
     var body: some View {
         ZStack {
@@ -50,6 +53,22 @@ struct MainView: View {
         }
         .onDisappear {
             viewModel.cleanup()
+        }
+        .focusedSceneValue(\.viewModel, viewModel)
+        .preferredColorScheme(settings.preferredColorScheme)
+        .onReceive(NotificationCenter.default.publisher(for: .showExamplesBrowser)) { _ in
+            showingExamplesBrowser = true
+        }
+        .sheet(isPresented: $showingExamplesBrowser) {
+            ExamplesBrowserView { example in
+                Task {
+                    if let content = try? String(contentsOf: example.url, encoding: .utf8) {
+                        await viewModel.loadProgram(source: content)
+                        fileService.currentFileURL = example.url
+                    }
+                }
+                showingExamplesBrowser = false
+            }
         }
     }
 
