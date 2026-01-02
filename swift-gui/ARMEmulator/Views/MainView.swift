@@ -139,13 +139,8 @@ struct ConnectionView: View {
     var body: some View {
         VStack(spacing: 20) {
             ProgressView()
-                .scaleEffect(1.5)
 
-            Text("Connecting to emulator backend...")
-                .font(.headline)
-
-            Text("Make sure the Go backend is running on localhost:8080")
-                .font(.caption)
+            Text("Connecting...")
                 .foregroundColor(.secondary)
 
             Button("Retry") {

@@ -7,17 +7,9 @@ struct BackendStatusView: View {
     var body: some View {
         VStack(spacing: 20) {
             switch status {
-            case .unknown:
+            case .unknown, .starting:
                 ProgressView()
-                Text("Checking backend status...")
-                    .foregroundColor(.secondary)
-
-            case .starting:
-                ProgressView()
-                Text("Starting ARM Emulator backend...")
-                    .foregroundColor(.secondary)
-                Text("This may take a few seconds")
-                    .font(.caption)
+                Text("Starting backend...")
                     .foregroundColor(.secondary)
 
             case .running:
