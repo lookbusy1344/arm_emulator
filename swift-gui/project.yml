@@ -70,6 +70,7 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.lookbusy1344.ARMEmulatorTests
         ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES: YES
+        GENERATE_INFOPLIST_FILE: YES
 
 schemes:
   ARMEmulator:
