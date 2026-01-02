@@ -3,7 +3,7 @@ import SwiftUI
 @MainActor
 class AppDelegate: NSObject, NSApplicationDelegate {
     let backendManager = BackendManager()
-    let fileService = FileService()
+    let fileService = FileService.shared
     let settings = AppSettings.shared
 }
 

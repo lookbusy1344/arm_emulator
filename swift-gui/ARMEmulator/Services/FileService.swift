@@ -9,7 +9,9 @@ class FileService: ObservableObject {
     private let recentFilesKey = "recentFiles"
     private let settings = AppSettings.shared
 
-    init() {
+    static let shared = FileService()
+
+    private init() {
         loadRecentFiles()
     }
 

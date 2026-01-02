@@ -41,13 +41,15 @@ targets:
       - name: Copy Backend Binary
         script: |
           BACKEND_SOURCE="${PROJECT_DIR}/../arm-emulator"
-          BACKEND_DEST="${BUILT_PRODUCTS_DIR}/${PRODUCT_NAME}.app/Contents/Resources/arm-emulator"
+          RESOURCES_DIR="${BUILT_PRODUCTS_DIR}/${PRODUCT_NAME}.app/Contents/Resources"
+          BACKEND_DEST="${RESOURCES_DIR}/arm-emulator"
 
           if [ -f "$BACKEND_SOURCE" ]; then
             echo "Copying backend binary to app bundle..."
+            mkdir -p "$RESOURCES_DIR"
             cp "$BACKEND_SOURCE" "$BACKEND_DEST"
             chmod +x "$BACKEND_DEST"
-            echo "Backend binary copied successfully"
+            echo "Backend binary copied successfully to $BACKEND_DEST"
           else
             echo "Warning: Backend binary not found at $BACKEND_SOURCE"
             echo "Build the Go backend first: go build -o arm-emulator"

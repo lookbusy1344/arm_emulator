@@ -298,7 +298,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "BACKEND_SOURCE=\"${PROJECT_DIR}/../arm-emulator\"\nBACKEND_DEST=\"${BUILT_PRODUCTS_DIR}/${PRODUCT_NAME}.app/Contents/Resources/arm-emulator\"\n\nif [ -f \"$BACKEND_SOURCE\" ]; then\n  echo \"Copying backend binary to app bundle...\"\n  cp \"$BACKEND_SOURCE\" \"$BACKEND_DEST\"\n  chmod +x \"$BACKEND_DEST\"\n  echo \"Backend binary copied successfully\"\nelse\n  echo \"Warning: Backend binary not found at $BACKEND_SOURCE\"\n  echo \"Build the Go backend first: go build -o arm-emulator\"\nfi\n";
+			shellScript = "BACKEND_SOURCE=\"${PROJECT_DIR}/../arm-emulator\"\nRESOURCES_DIR=\"${BUILT_PRODUCTS_DIR}/${PRODUCT_NAME}.app/Contents/Resources\"\nBACKEND_DEST=\"${RESOURCES_DIR}/arm-emulator\"\n\nif [ -f \"$BACKEND_SOURCE\" ]; then\n  echo \"Copying backend binary to app bundle...\"\n  mkdir -p \"$RESOURCES_DIR\"\n  cp \"$BACKEND_SOURCE\" \"$BACKEND_DEST\"\n  chmod +x \"$BACKEND_DEST\"\n  echo \"Backend binary copied successfully to $BACKEND_DEST\"\nelse\n  echo \"Warning: Backend binary not found at $BACKEND_SOURCE\"\n  echo \"Build the Go backend first: go build -o arm-emulator\"\nfi\n";
 		};
 /* End PBXShellScriptBuildPhase section */
 

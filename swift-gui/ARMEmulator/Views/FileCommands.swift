@@ -1,8 +1,11 @@
 import SwiftUI
 
 struct FileCommands: Commands {
-    @EnvironmentObject var fileService: FileService
     @FocusedValue(\.viewModel) var viewModel: EmulatorViewModel?
+
+    private var fileService: FileService {
+        FileService.shared
+    }
 
     var body: some Commands {
         CommandGroup(replacing: .newItem) {
