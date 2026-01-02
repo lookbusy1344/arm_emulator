@@ -217,6 +217,64 @@ class APIClient: ObservableObject {
         let _: EmptyResponse = try await performRequest(request: request)
     }
 
+    // MARK: - Memory Operations
+
+    func getMemory(sessionID: String, address: UInt32, length: Int) async throws -> [UInt8] {
+        struct MemoryResponse: Codable {
+            let address: UInt32
+            let length: Int
+            let data: String // Base64 encoded
+        }
+
+        var components = URLComponents(
+            url: baseURL.appendingPathComponent("/api/v1/session/\(sessionID)/memory"),
+            resolvingAgainstBaseURL: false
+        )!
+        components.queryItems = [
+            URLQueryItem(name: "addr", value: String(format: "0x%X", address)),
+            URLQueryItem(name: "length", value: String(length)),
+        ]
+
+        guard let url = components.url else {
+            throw APIError.invalidURL
+        }
+
+        let response: MemoryResponse = try await get(url: url)
+
+        // Decode base64 data
+        guard let data = Data(base64Encoded: response.data) else {
+            throw APIError.decodingError(NSError(
+                domain: "APIClient",
+                code: -1,
+                userInfo: [NSLocalizedDescriptionKey: "Failed to decode base64 memory data"]
+            ))
+        }
+
+        return Array(data)
+    }
+
+    func getDisassembly(sessionID: String, address: UInt32, count: Int) async throws -> [DisassembledInstruction] {
+        struct DisassemblyResponse: Codable {
+            let instructions: [DisassembledInstruction]
+        }
+
+        var components = URLComponents(
+            url: baseURL.appendingPathComponent("/api/v1/session/\(sessionID)/disassembly"),
+            resolvingAgainstBaseURL: false
+        )!
+        components.queryItems = [
+            URLQueryItem(name: "addr", value: String(format: "0x%X", address)),
+            URLQueryItem(name: "count", value: String(count)),
+        ]
+
+        guard let url = components.url else {
+            throw APIError.invalidURL
+        }
+
+        let response: DisassemblyResponse = try await get(url: url)
+        return response.instructions
+    }
+
     private func performRequest<T: Decodable>(request: URLRequest) async throws -> T {
         let (data, response) = try await session.data(for: request)
 
@@ -238,6 +296,25 @@ class APIClient: ObservableObject {
         } catch {
             throw APIError.decodingError(error)
         }
+    }
+}
+
+// MARK: - Models
+
+struct DisassembledInstruction: Codable, Identifiable, Hashable {
+    let address: UInt32
+    let machineCode: UInt32
+    let mnemonic: String
+    let symbol: String?
+
+    var id: UInt32 { address }
+
+    func hash(into hasher: inout Hasher) {
+        hasher.combine(address)
+    }
+
+    static func == (lhs: DisassembledInstruction, rhs: DisassembledInstruction) -> Bool {
+        lhs.address == rhs.address
     }
 }
 

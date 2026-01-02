@@ -78,19 +78,43 @@ struct MainView: View {
                 EditorView(text: $viewModel.sourceCode)
                     .frame(minWidth: 300)
 
-                VStack(spacing: 0) {
-                    RegistersView(registers: viewModel.registers)
-                        .frame(minHeight: 200)
+                TabView(selection: $settings.selectedTab) {
+                    VStack(spacing: 0) {
+                        RegistersView(registers: viewModel.registers)
+                            .frame(minHeight: 200)
 
-                    Divider()
+                        Divider()
 
-                    StatusView(
-                        status: viewModel.status,
-                        pc: viewModel.currentPC
-                    )
-                    .frame(height: 60)
+                        StatusView(
+                            status: viewModel.status,
+                            pc: viewModel.currentPC
+                        )
+                        .frame(height: 60)
+                    }
+                    .tabItem {
+                        Label("Registers", systemImage: "cpu")
+                    }
+                    .tag(0)
+
+                    MemoryView(viewModel: viewModel)
+                        .tabItem {
+                            Label("Memory", systemImage: "memorychip")
+                        }
+                        .tag(1)
+
+                    StackView(viewModel: viewModel)
+                        .tabItem {
+                            Label("Stack", systemImage: "square.stack.3d.down.right")
+                        }
+                        .tag(2)
+
+                    DisassemblyView(viewModel: viewModel)
+                        .tabItem {
+                            Label("Disassembly", systemImage: "hammer")
+                        }
+                        .tag(3)
                 }
-                .frame(minWidth: 250, maxWidth: 400)
+                .frame(minWidth: 250, maxWidth: 500)
             }
             .frame(minHeight: 300)
 

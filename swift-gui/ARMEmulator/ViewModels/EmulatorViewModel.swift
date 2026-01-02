@@ -13,6 +13,13 @@ class EmulatorViewModel: ObservableObject {
     @Published var errorMessage: String?
     @Published var isConnected = false
 
+    // Memory state
+    @Published var memoryData: [UInt8] = []
+    @Published var memoryAddress: UInt32 = 0x8000
+
+    // Disassembly state
+    @Published var disassembly: [DisassembledInstruction] = []
+
     private let apiClient: APIClient
     private let wsClient: WebSocketClient
     private var sessionID: String?
@@ -209,6 +216,29 @@ class EmulatorViewModel: ObservableObject {
             Task {
                 try? await apiClient.destroySession(sessionID: sessionID)
             }
+        }
+    }
+
+    // MARK: - Memory Operations
+
+    func loadMemory(at address: UInt32, length: Int) async {
+        guard let sessionID = sessionID else { return }
+
+        do {
+            memoryData = try await apiClient.getMemory(sessionID: sessionID, address: address, length: length)
+            memoryAddress = address
+        } catch {
+            errorMessage = "Failed to load memory: \(error.localizedDescription)"
+        }
+    }
+
+    func loadDisassembly(around address: UInt32, count: Int) async {
+        guard let sessionID = sessionID else { return }
+
+        do {
+            disassembly = try await apiClient.getDisassembly(sessionID: sessionID, address: address, count: count)
+        } catch {
+            errorMessage = "Failed to load disassembly: \(error.localizedDescription)"
         }
     }
 }
