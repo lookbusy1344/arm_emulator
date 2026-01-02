@@ -6,6 +6,7 @@ import (
 	"strconv"
 
 	"github.com/lookbusy1344/arm-emulator/parser"
+	"github.com/lookbusy1344/arm-emulator/service"
 )
 
 // handleCreateSession handles POST /api/v1/session
@@ -214,10 +215,15 @@ func (s *Server) handleStep(w http.ResponseWriter, r *http.Request, sessionID st
 		return
 	}
 
-	// Return updated registers
+	// Get updated state
 	regs := session.Service.GetRegisterState()
-	response := ToRegisterResponse(&regs)
+	state := session.Service.GetExecutionState()
 
+	// Broadcast state change to WebSocket clients
+	s.broadcastStateChange(sessionID, &regs, state)
+
+	// Return updated registers
+	response := ToRegisterResponse(&regs)
 	writeJSON(w, http.StatusOK, response)
 }
 
@@ -482,4 +488,44 @@ func parseHexOrDec(s string) (uint64, error) {
 	}
 
 	return strconv.ParseUint(s, 10, 32)
+}
+
+// broadcastStateChange broadcasts VM state changes to WebSocket clients
+func (s *Server) broadcastStateChange(sessionID string, regs *service.RegisterState, state service.ExecutionState) {
+	if s.broadcaster == nil {
+		return
+	}
+
+	// Convert register state to map for broadcasting
+	// ARM register mapping: R0-R12, R13=SP, R14=LR, R15=PC
+	data := map[string]interface{}{
+		"status": string(state),
+		"pc":     regs.PC,
+		"sp":     regs.Registers[13],
+		"lr":     regs.Registers[14],
+		"cycles": regs.Cycles,
+		"registers": map[string]uint32{
+			"r0":  regs.Registers[0],
+			"r1":  regs.Registers[1],
+			"r2":  regs.Registers[2],
+			"r3":  regs.Registers[3],
+			"r4":  regs.Registers[4],
+			"r5":  regs.Registers[5],
+			"r6":  regs.Registers[6],
+			"r7":  regs.Registers[7],
+			"r8":  regs.Registers[8],
+			"r9":  regs.Registers[9],
+			"r10": regs.Registers[10],
+			"r11": regs.Registers[11],
+			"r12": regs.Registers[12],
+		},
+		"flags": map[string]bool{
+			"n": regs.CPSR.N,
+			"z": regs.CPSR.Z,
+			"c": regs.CPSR.C,
+			"v": regs.CPSR.V,
+		},
+	}
+
+	s.broadcaster.BroadcastState(sessionID, data)
 }

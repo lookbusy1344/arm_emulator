@@ -27,14 +27,16 @@ type Session struct {
 
 // SessionManager manages multiple emulator sessions
 type SessionManager struct {
-	sessions map[string]*Session
-	mu       sync.RWMutex
+	sessions    map[string]*Session
+	broadcaster *Broadcaster
+	mu          sync.RWMutex
 }
 
 // NewSessionManager creates a new session manager
-func NewSessionManager() *SessionManager {
+func NewSessionManager(broadcaster *Broadcaster) *SessionManager {
 	return &SessionManager{
-		sessions: make(map[string]*Session),
+		sessions:    make(map[string]*Session),
+		broadcaster: broadcaster,
 	}
 }
 
@@ -49,6 +51,12 @@ func (sm *SessionManager) CreateSession(opts SessionCreateRequest) (*Session, er
 	// Create VM instance (note: opts.MemorySize is currently unused, VM uses default size)
 	// TODO: Future enhancement - configure VM memory size based on opts.MemorySize
 	machine := vm.NewVM()
+
+	// Set up output broadcasting if broadcaster is available
+	if sm.broadcaster != nil {
+		outputWriter := NewEventWriter(sm.broadcaster, sessionID, "stdout")
+		machine.OutputWriter = outputWriter
+	}
 
 	// Create debugger service
 	debugService := service.NewDebuggerService(machine)

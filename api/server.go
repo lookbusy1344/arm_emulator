@@ -12,18 +12,22 @@ import (
 
 // Server represents the HTTP API server
 type Server struct {
-	sessions *SessionManager
-	mux      *http.ServeMux
-	server   *http.Server
-	port     int
+	sessions    *SessionManager
+	broadcaster *Broadcaster
+	mux         *http.ServeMux
+	server      *http.Server
+	port        int
 }
 
 // NewServer creates a new API server
 func NewServer(port int) *Server {
+	broadcaster := NewBroadcaster()
+
 	s := &Server{
-		sessions: NewSessionManager(),
-		mux:      http.NewServeMux(),
-		port:     port,
+		sessions:    NewSessionManager(broadcaster),
+		broadcaster: broadcaster,
+		mux:         http.NewServeMux(),
+		port:        port,
 	}
 
 	// Register routes
@@ -41,6 +45,9 @@ func (s *Server) Handler() http.Handler {
 func (s *Server) registerRoutes() {
 	// Health check
 	s.mux.HandleFunc("/health", s.handleHealth)
+
+	// WebSocket endpoint for real-time updates
+	s.mux.HandleFunc("/api/v1/ws", s.handleWebSocket)
 
 	// Session management
 	s.mux.HandleFunc("/api/v1/session", s.handleSession)
@@ -63,10 +70,20 @@ func (s *Server) Start() error {
 
 // Shutdown gracefully shuts down the server
 func (s *Server) Shutdown(ctx context.Context) error {
+	// Close broadcaster to disconnect all WebSocket clients
+	if s.broadcaster != nil {
+		s.broadcaster.Close()
+	}
+
 	if s.server == nil {
 		return nil
 	}
 	return s.server.Shutdown(ctx)
+}
+
+// GetBroadcaster returns the broadcaster (for testing)
+func (s *Server) GetBroadcaster() *Broadcaster {
+	return s.broadcaster
 }
 
 // corsMiddleware adds CORS headers
