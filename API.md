@@ -11,8 +11,8 @@ The API server provides a RESTful HTTP interface with JSON payloads, allowing mu
 - Program loading and execution control
 - Register and memory inspection
 - Breakpoint management
-- Real-time state updates (via WebSocket - coming soon)
-- CORS-enabled for web clients
+- Real-time state updates via WebSocket
+- **Localhost-only CORS** for web clients (security hardened)
 
 ## Starting the API Server
 
@@ -24,7 +24,7 @@ The API server provides a RESTful HTTP interface with JSON payloads, allowing mu
 ./arm-emulator --api-server --port 3000
 ```
 
-The server binds to `127.0.0.1` (localhost only) for security.
+**Security:** The server binds to `127.0.0.1` (localhost only) and enforces strict CORS to reject remote origins.
 
 ## Architecture
 
@@ -46,10 +46,22 @@ All endpoints are prefixed with `/api/v1` for versioning.
 
 Example: `http://localhost:8080/api/v1/session`
 
-## Authentication
+## Security
 
-Currently none - localhost-only binding provides basic security.
-Future: API key or token-based auth for remote access.
+**Network Binding:**
+- Server binds exclusively to `127.0.0.1:PORT` (localhost)
+- Cannot be accessed from external networks
+- No configuration option to bind to `0.0.0.0` (hardcoded security)
+
+**CORS Policy:**
+- Allows origins: `http://localhost:*`, `https://localhost:*`, `http://127.0.0.1:*`, `https://127.0.0.1:*`, `file://`
+- Rejects all remote origins (e.g., `http://evil.com`)
+- Native apps (Swift, etc.) work without Origin headers
+- Web-based GUIs must run on localhost
+
+**Authentication:**
+- Currently none - localhost-only binding + strict CORS provides security
+- Future: API key or token-based auth for optional remote access
 
 ## Endpoints
 

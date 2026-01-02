@@ -86,10 +86,19 @@ func (s *Server) GetBroadcaster() *Broadcaster {
 	return s.broadcaster
 }
 
-// corsMiddleware adds CORS headers
+// corsMiddleware adds CORS headers restricted to localhost origins for security
 func (s *Server) corsMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Access-Control-Allow-Origin", "*")
+		origin := r.Header.Get("Origin")
+
+		// Allow localhost origins only (various forms and ports)
+		// Allowed: http://localhost:*, http://127.0.0.1:*, https://localhost:*, file://
+		// Rejected: any remote origin
+		if isAllowedOrigin(origin) {
+			w.Header().Set("Access-Control-Allow-Origin", origin)
+			w.Header().Set("Access-Control-Allow-Credentials", "true")
+		}
+
 		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
 		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
 
@@ -100,6 +109,28 @@ func (s *Server) corsMiddleware(next http.Handler) http.Handler {
 
 		next.ServeHTTP(w, r)
 	})
+}
+
+// isAllowedOrigin checks if the origin is from localhost
+func isAllowedOrigin(origin string) bool {
+	if origin == "" {
+		return true // No origin header (native apps, curl, etc.)
+	}
+
+	// Allow file:// for local HTML files
+	if strings.HasPrefix(origin, "file://") {
+		return true
+	}
+
+	// Allow localhost and 127.0.0.1 with http/https on any port
+	if strings.HasPrefix(origin, "http://localhost") ||
+		strings.HasPrefix(origin, "https://localhost") ||
+		strings.HasPrefix(origin, "http://127.0.0.1") ||
+		strings.HasPrefix(origin, "https://127.0.0.1") {
+		return true
+	}
+
+	return false
 }
 
 // handleHealth handles health check requests

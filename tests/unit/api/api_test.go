@@ -453,21 +453,112 @@ func TestSessionNotFound(t *testing.T) {
 	}
 }
 
-// TestCORS tests CORS headers
+// TestCORS tests CORS headers with localhost restriction
 func TestCORS(t *testing.T) {
 	server := testServer()
 
-	req := httptest.NewRequest(http.MethodOptions, "/api/v1/session", nil)
+	tests := []struct {
+		name           string
+		origin         string
+		expectedOrigin string
+		shouldAllow    bool
+	}{
+		{
+			name:           "localhost with port",
+			origin:         "http://localhost:3000",
+			expectedOrigin: "http://localhost:3000",
+			shouldAllow:    true,
+		},
+		{
+			name:           "localhost https",
+			origin:         "https://localhost:8443",
+			expectedOrigin: "https://localhost:8443",
+			shouldAllow:    true,
+		},
+		{
+			name:           "127.0.0.1 with port",
+			origin:         "http://127.0.0.1:5173",
+			expectedOrigin: "http://127.0.0.1:5173",
+			shouldAllow:    true,
+		},
+		{
+			name:           "127.0.0.1 https",
+			origin:         "https://127.0.0.1:443",
+			expectedOrigin: "https://127.0.0.1:443",
+			shouldAllow:    true,
+		},
+		{
+			name:           "file protocol",
+			origin:         "file:///path/to/file.html",
+			expectedOrigin: "file:///path/to/file.html",
+			shouldAllow:    true,
+		},
+		{
+			name:        "remote origin rejected",
+			origin:      "http://evil.com",
+			shouldAllow: false,
+		},
+		{
+			name:        "remote https rejected",
+			origin:      "https://attacker.net:8080",
+			shouldAllow: false,
+		},
+		{
+			name:           "no origin header (native apps)",
+			origin:         "",
+			expectedOrigin: "",
+			shouldAllow:    true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			req := httptest.NewRequest(http.MethodOptions, "/api/v1/session", nil)
+			if tt.origin != "" {
+				req.Header.Set("Origin", tt.origin)
+			}
+			w := httptest.NewRecorder()
+
+			server.Handler().ServeHTTP(w, req)
+
+			if w.Code != http.StatusOK {
+				t.Errorf("Expected status 200 for OPTIONS, got %d", w.Code)
+			}
+
+			corsOrigin := w.Header().Get("Access-Control-Allow-Origin")
+			if tt.shouldAllow {
+				if corsOrigin != tt.expectedOrigin {
+					t.Errorf("Expected CORS origin '%s', got '%s'", tt.expectedOrigin, corsOrigin)
+				}
+			} else {
+				if corsOrigin != "" {
+					t.Errorf("Expected no CORS origin for remote host, got '%s'", corsOrigin)
+				}
+			}
+		})
+	}
+}
+
+// TestCORSWithActualRequest tests CORS with a real GET request
+func TestCORSWithActualRequest(t *testing.T) {
+	server := testServer()
+
+	req := httptest.NewRequest(http.MethodGet, "/health", nil)
+	req.Header.Set("Origin", "http://localhost:5173")
 	w := httptest.NewRecorder()
 
 	server.Handler().ServeHTTP(w, req)
 
 	if w.Code != http.StatusOK {
-		t.Errorf("Expected status 200 for OPTIONS, got %d", w.Code)
+		t.Errorf("Expected status 200, got %d", w.Code)
 	}
 
-	if w.Header().Get("Access-Control-Allow-Origin") != "*" {
-		t.Error("Expected CORS headers")
+	if w.Header().Get("Access-Control-Allow-Origin") != "http://localhost:5173" {
+		t.Error("Expected localhost CORS origin to be echoed back")
+	}
+
+	if w.Header().Get("Access-Control-Allow-Credentials") != "true" {
+		t.Error("Expected credentials support for localhost")
 	}
 }
 
