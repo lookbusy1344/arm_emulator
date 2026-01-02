@@ -1,0 +1,1308 @@
+openapi: 3.0.3
+info:
+  title: ARM Emulator API
+  description: |
+    HTTP REST API for the ARM2 emulator, enabling native GUI clients (Swift, .NET, web)
+    to interact with the emulator backend.
+
+    **Key Features:**
+    - Session-based emulator instances
+    - Program loading and execution control
+    - Register and memory inspection
+    - Breakpoint and watchpoint management
+    - Real-time state updates via WebSocket
+    - Execution tracing and performance statistics
+    - Configuration management
+    - Example program library
+
+    **Security:** Server binds to localhost only (127.0.0.1) with strict CORS policy.
+  version: 1.0.0
+  contact:
+    name: ARM Emulator Project
+  license:
+    name: MIT
+
+servers:
+  - url: http://localhost:8080
+    description: Local development server
+
+tags:
+  - name: Health
+    description: Server health checks
+  - name: Sessions
+    description: Emulator session management
+  - name: Execution
+    description: Program execution control
+  - name: State
+    description: VM state inspection
+  - name: Debugging
+    description: Breakpoints and watchpoints
+  - name: Tracing
+    description: Execution tracing and statistics
+  - name: Configuration
+    description: Emulator configuration
+  - name: Examples
+    description: Example program library
+  - name: WebSocket
+    description: Real-time event streaming
+
+paths:
+  /health:
+    get:
+      tags:
+        - Health
+      summary: Health check
+      description: Returns server health status and session count
+      operationId: getHealth
+      responses:
+        '200':
+          description: Server is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: ok
+                  sessions:
+                    type: integer
+                    example: 3
+                  time:
+                    type: string
+                    format: date-time
+
+  /api/v1/session:
+    post:
+      tags:
+        - Sessions
+      summary: Create new session
+      description: Creates a new emulator session with configurable memory and stack sizes
+      operationId: createSession
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SessionCreateRequest'
+      responses:
+        '201':
+          description: Session created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SessionCreateResponse'
+        '500':
+          description: Failed to create session
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    get:
+      tags:
+        - Sessions
+      summary: List all sessions
+      description: Returns list of all active session IDs
+      operationId: listSessions
+      responses:
+        '200':
+          description: List of sessions
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  sessions:
+                    type: array
+                    items:
+                      type: string
+                  count:
+                    type: integer
+
+  /api/v1/session/{sessionId}:
+    get:
+      tags:
+        - Sessions
+      summary: Get session status
+      description: Returns current status and state of the session
+      operationId: getSessionStatus
+      parameters:
+        - $ref: '#/components/parameters/SessionId'
+      responses:
+        '200':
+          description: Session status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SessionStatusResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    delete:
+      tags:
+        - Sessions
+      summary: Destroy session
+      description: Destroys session and frees all resources
+      operationId: destroySession
+      parameters:
+        - $ref: '#/components/parameters/SessionId'
+      responses:
+        '200':
+          description: Session destroyed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/session/{sessionId}/load:
+    post:
+      tags:
+        - Sessions
+      summary: Load assembly program
+      description: Parses and loads an assembly program into the session
+      operationId: loadProgram
+      parameters:
+        - $ref: '#/components/parameters/SessionId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoadProgramRequest'
+      responses:
+        '200':
+          description: Program loaded successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoadProgramResponse'
+        '400':
+          description: Parse error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoadProgramResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/session/{sessionId}/run:
+    post:
+      tags:
+        - Execution
+      summary: Start execution
+      description: Starts program execution asynchronously (non-blocking)
+      operationId: runProgram
+      parameters:
+        - $ref: '#/components/parameters/SessionId'
+      responses:
+        '200':
+          description: Program started
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/session/{sessionId}/stop:
+    post:
+      tags:
+        - Execution
+      summary: Stop execution
+      description: Stops currently running program
+      operationId: stopProgram
+      parameters:
+        - $ref: '#/components/parameters/SessionId'
+      responses:
+        '200':
+          description: Program stopped
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/session/{sessionId}/step:
+    post:
+      tags:
+        - Execution
+      summary: Single step
+      description: Executes a single instruction and returns updated register state
+      operationId: stepProgram
+      parameters:
+        - $ref: '#/components/parameters/SessionId'
+      responses:
+        '200':
+          description: Step completed, returns register state
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RegistersResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/session/{sessionId}/reset:
+    post:
+      tags:
+        - Execution
+      summary: Reset VM
+      description: Resets VM to initial state (preserves loaded program)
+      operationId: resetProgram
+      parameters:
+        - $ref: '#/components/parameters/SessionId'
+      responses:
+        '200':
+          description: VM reset
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/session/{sessionId}/registers:
+    get:
+      tags:
+        - State
+      summary: Get registers
+      description: Returns current values of all registers including CPSR flags
+      operationId: getRegisters
+      parameters:
+        - $ref: '#/components/parameters/SessionId'
+      responses:
+        '200':
+          description: Register state
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RegistersResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/session/{sessionId}/memory:
+    get:
+      tags:
+        - State
+      summary: Read memory
+      description: Reads a region of memory (max 1MB)
+      operationId: getMemory
+      parameters:
+        - $ref: '#/components/parameters/SessionId'
+        - name: address
+          in: query
+          description: Start address (hex or decimal)
+          required: true
+          schema:
+            type: string
+            example: "0x8000"
+        - name: length
+          in: query
+          description: Number of bytes to read (max 1048576)
+          required: true
+          schema:
+            type: integer
+            example: 16
+      responses:
+        '200':
+          description: Memory data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MemoryResponse'
+        '400':
+          description: Invalid parameters or length exceeds 1MB
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/session/{sessionId}/disassembly:
+    get:
+      tags:
+        - State
+      summary: Get disassembly
+      description: Disassembles instructions at specified address
+      operationId: getDisassembly
+      parameters:
+        - $ref: '#/components/parameters/SessionId'
+        - name: address
+          in: query
+          description: Start address (hex or decimal)
+          required: true
+          schema:
+            type: string
+            example: "0x8000"
+        - name: count
+          in: query
+          description: Number of instructions (default 10, max 1000)
+          schema:
+            type: integer
+            default: 10
+            example: 5
+      responses:
+        '200':
+          description: Disassembled instructions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DisassemblyResponse'
+        '400':
+          description: Invalid parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/session/{sessionId}/breakpoint:
+    post:
+      tags:
+        - Debugging
+      summary: Add breakpoint
+      description: Adds a breakpoint at specified address
+      operationId: addBreakpoint
+      parameters:
+        - $ref: '#/components/parameters/SessionId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BreakpointRequest'
+      responses:
+        '200':
+          description: Breakpoint added
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+    delete:
+      tags:
+        - Debugging
+      summary: Remove breakpoint
+      description: Removes a breakpoint at specified address
+      operationId: removeBreakpoint
+      parameters:
+        - $ref: '#/components/parameters/SessionId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BreakpointRequest'
+      responses:
+        '200':
+          description: Breakpoint removed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/session/{sessionId}/breakpoints:
+    get:
+      tags:
+        - Debugging
+      summary: List breakpoints
+      description: Returns list of all breakpoint addresses
+      operationId: listBreakpoints
+      parameters:
+        - $ref: '#/components/parameters/SessionId'
+      responses:
+        '200':
+          description: List of breakpoints
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BreakpointsResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/session/{sessionId}/watchpoint:
+    post:
+      tags:
+        - Debugging
+      summary: Add watchpoint
+      description: Adds a watchpoint at specified address with optional type (read/write/readwrite)
+      operationId: addWatchpoint
+      parameters:
+        - $ref: '#/components/parameters/SessionId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WatchpointRequest'
+      responses:
+        '200':
+          description: Watchpoint added
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WatchpointResponse'
+        '400':
+          description: Invalid watchpoint type
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/session/{sessionId}/watchpoint/{watchpointId}:
+    delete:
+      tags:
+        - Debugging
+      summary: Remove watchpoint
+      description: Removes a watchpoint by ID
+      operationId: removeWatchpoint
+      parameters:
+        - $ref: '#/components/parameters/SessionId'
+        - name: watchpointId
+          in: path
+          required: true
+          description: Watchpoint ID to remove
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Watchpoint removed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '400':
+          description: Invalid watchpoint ID
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/session/{sessionId}/watchpoints:
+    get:
+      tags:
+        - Debugging
+      summary: List watchpoints
+      description: Returns list of all watchpoints with their addresses and types
+      operationId: listWatchpoints
+      parameters:
+        - $ref: '#/components/parameters/SessionId'
+      responses:
+        '200':
+          description: List of watchpoints
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WatchpointsResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/session/{sessionId}/trace/enable:
+    post:
+      tags:
+        - Tracing
+      summary: Enable execution trace
+      description: Enables execution tracing for the session
+      operationId: enableTrace
+      parameters:
+        - $ref: '#/components/parameters/SessionId'
+      responses:
+        '200':
+          description: Trace enabled
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/session/{sessionId}/trace/disable:
+    post:
+      tags:
+        - Tracing
+      summary: Disable execution trace
+      description: Disables execution tracing for the session
+      operationId: disableTrace
+      parameters:
+        - $ref: '#/components/parameters/SessionId'
+      responses:
+        '200':
+          description: Trace disabled
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/session/{sessionId}/trace/data:
+    get:
+      tags:
+        - Tracing
+      summary: Get trace data
+      description: Returns execution trace entries with register changes, flags, and timing
+      operationId: getTraceData
+      parameters:
+        - $ref: '#/components/parameters/SessionId'
+      responses:
+        '200':
+          description: Trace data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TraceDataResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/session/{sessionId}/stats/enable:
+    post:
+      tags:
+        - Tracing
+      summary: Enable statistics
+      description: Enables performance statistics collection
+      operationId: enableStats
+      parameters:
+        - $ref: '#/components/parameters/SessionId'
+      responses:
+        '200':
+          description: Statistics enabled
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/session/{sessionId}/stats/disable:
+    post:
+      tags:
+        - Tracing
+      summary: Disable statistics
+      description: Disables performance statistics collection
+      operationId: disableStats
+      parameters:
+        - $ref: '#/components/parameters/SessionId'
+      responses:
+        '200':
+          description: Statistics disabled
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/session/{sessionId}/stats:
+    get:
+      tags:
+        - Tracing
+      summary: Get statistics
+      description: Returns comprehensive performance statistics (instructions, cycles, branches, memory)
+      operationId: getStats
+      parameters:
+        - $ref: '#/components/parameters/SessionId'
+      responses:
+        '200':
+          description: Performance statistics
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StatisticsResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/session/{sessionId}/stdin:
+    post:
+      tags:
+        - Execution
+      summary: Send stdin
+      description: Sends input data to running program (for interactive programs)
+      operationId: sendStdin
+      parameters:
+        - $ref: '#/components/parameters/SessionId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StdinRequest'
+      responses:
+        '200':
+          description: Stdin sent
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/config:
+    get:
+      tags:
+        - Configuration
+      summary: Get configuration
+      description: Returns current emulator configuration
+      operationId: getConfig
+      responses:
+        '200':
+          description: Configuration
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ConfigResponse'
+
+    put:
+      tags:
+        - Configuration
+      summary: Update configuration
+      description: Updates emulator configuration
+      operationId: updateConfig
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ConfigResponse'
+      responses:
+        '200':
+          description: Configuration updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+
+  /api/v1/examples:
+    get:
+      tags:
+        - Examples
+      summary: List examples
+      description: Returns list of all available example programs
+      operationId: listExamples
+      responses:
+        '200':
+          description: List of examples
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExamplesResponse'
+
+  /api/v1/examples/{name}:
+    get:
+      tags:
+        - Examples
+      summary: Get example program
+      description: Returns source code of an example program (path traversal protected)
+      operationId: getExample
+      parameters:
+        - name: name
+          in: path
+          required: true
+          description: Example program filename
+          schema:
+            type: string
+            example: hello.s
+      responses:
+        '200':
+          description: Example program content
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExampleContentResponse'
+        '400':
+          description: Invalid filename (path traversal attempt)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Example not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/ws:
+    get:
+      tags:
+        - WebSocket
+      summary: WebSocket connection
+      description: |
+        Upgrades HTTP connection to WebSocket for real-time event streaming.
+
+        **Subscribe Message:**
+        ```json
+        {
+          "type": "subscribe",
+          "sessionId": "abc123",
+          "events": ["state", "output", "event"]
+        }
+        ```
+
+        **State Event:**
+        ```json
+        {
+          "type": "state",
+          "sessionId": "abc123",
+          "data": {
+            "status": "running",
+            "pc": 32768,
+            "registers": {...},
+            "flags": {...}
+          }
+        }
+        ```
+
+        **Output Event:**
+        ```json
+        {
+          "type": "output",
+          "sessionId": "abc123",
+          "data": {
+            "stream": "stdout",
+            "content": "Hello, World!\n"
+          }
+        }
+        ```
+
+        **Execution Event:**
+        ```json
+        {
+          "type": "event",
+          "sessionId": "abc123",
+          "data": {
+            "event": "breakpoint_hit",
+            "address": 32780
+          }
+        }
+        ```
+      operationId: websocketConnect
+      responses:
+        '101':
+          description: Switching Protocols (WebSocket upgrade)
+
+components:
+  parameters:
+    SessionId:
+      name: sessionId
+      in: path
+      required: true
+      description: Unique session identifier
+      schema:
+        type: string
+        example: a1b2c3d4e5f6g7h8
+
+  responses:
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            error: Not Found
+            message: Session not found
+            code: 404
+
+  schemas:
+    SessionCreateRequest:
+      type: object
+      properties:
+        memorySize:
+          type: integer
+          description: Total memory size in bytes
+          default: 1048576
+          example: 1048576
+        stackSize:
+          type: integer
+          description: Stack size in bytes
+          default: 65536
+          example: 65536
+        heapSize:
+          type: integer
+          description: Heap size in bytes
+          default: 262144
+          example: 262144
+        fsRoot:
+          type: string
+          description: Filesystem root directory for sandboxing
+          example: /path/to/sandbox
+
+    SessionCreateResponse:
+      type: object
+      required:
+        - sessionId
+        - createdAt
+      properties:
+        sessionId:
+          type: string
+          description: Unique session identifier
+          example: a1b2c3d4e5f6g7h8
+        createdAt:
+          type: string
+          format: date-time
+          description: Session creation timestamp
+
+    SessionStatusResponse:
+      type: object
+      properties:
+        sessionId:
+          type: string
+          example: a1b2c3d4
+        state:
+          type: string
+          enum: [idle, running, paused, halted, error]
+          example: paused
+        pc:
+          type: integer
+          format: uint32
+          description: Program counter
+          example: 32772
+        cycles:
+          type: integer
+          format: uint64
+          description: Cycle count
+          example: 5
+        hasWrite:
+          type: boolean
+          description: Whether VM has write access
+          example: true
+        writeAddr:
+          type: integer
+          format: uint32
+          description: Write address
+          example: 327680
+
+    LoadProgramRequest:
+      type: object
+      required:
+        - source
+      properties:
+        source:
+          type: string
+          description: Assembly source code
+          example: |
+            main:
+              MOVE R0, #42
+              SWI #0
+
+    LoadProgramResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        symbols:
+          type: object
+          additionalProperties:
+            type: integer
+          example:
+            main: 32768
+            loop: 32780
+        errors:
+          type: array
+          items:
+            type: string
+          example:
+            - "Line 5: Unknown instruction: INVALID"
+
+    RegistersResponse:
+      type: object
+      properties:
+        r0:
+          type: integer
+          format: uint32
+        r1:
+          type: integer
+          format: uint32
+        r2:
+          type: integer
+          format: uint32
+        r3:
+          type: integer
+          format: uint32
+        r4:
+          type: integer
+          format: uint32
+        r5:
+          type: integer
+          format: uint32
+        r6:
+          type: integer
+          format: uint32
+        r7:
+          type: integer
+          format: uint32
+        r8:
+          type: integer
+          format: uint32
+        r9:
+          type: integer
+          format: uint32
+        r10:
+          type: integer
+          format: uint32
+        r11:
+          type: integer
+          format: uint32
+        r12:
+          type: integer
+          format: uint32
+        sp:
+          type: integer
+          format: uint32
+          description: Stack pointer (R13)
+        lr:
+          type: integer
+          format: uint32
+          description: Link register (R14)
+        pc:
+          type: integer
+          format: uint32
+          description: Program counter (R15)
+        cpsr:
+          type: object
+          properties:
+            n:
+              type: boolean
+              description: Negative flag
+            z:
+              type: boolean
+              description: Zero flag
+            c:
+              type: boolean
+              description: Carry flag
+            v:
+              type: boolean
+              description: Overflow flag
+        cycles:
+          type: integer
+          format: uint64
+          description: Total instruction cycles executed
+
+    MemoryResponse:
+      type: object
+      properties:
+        address:
+          type: integer
+          format: uint32
+          description: Start address
+          example: 32768
+        data:
+          type: array
+          items:
+            type: integer
+            format: uint8
+          description: Memory bytes
+          example: [227, 160, 0, 42]
+        length:
+          type: integer
+          description: Number of bytes returned
+          example: 16
+
+    DisassemblyResponse:
+      type: object
+      properties:
+        instructions:
+          type: array
+          items:
+            type: object
+            properties:
+              address:
+                type: integer
+                format: uint32
+                example: 32768
+              machineCode:
+                type: integer
+                format: uint32
+                example: 3792517162
+              disassembly:
+                type: string
+                example: MOVE R0, #42
+              symbol:
+                type: string
+                description: Label/function name at this address
+                example: main
+
+    BreakpointRequest:
+      type: object
+      required:
+        - address
+      properties:
+        address:
+          type: integer
+          format: uint32
+          description: Breakpoint address
+          example: 32772
+
+    BreakpointsResponse:
+      type: object
+      properties:
+        breakpoints:
+          type: array
+          items:
+            type: integer
+            format: uint32
+          example: [32772, 32784, 32800]
+
+    WatchpointRequest:
+      type: object
+      required:
+        - address
+      properties:
+        address:
+          type: integer
+          format: uint32
+          description: Watchpoint address
+          example: 32780
+        type:
+          type: string
+          enum: [read, write, readwrite]
+          default: write
+          description: Watchpoint type
+          example: write
+
+    WatchpointResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: Watchpoint added
+        id:
+          type: integer
+          description: Watchpoint ID for future deletion
+          example: 1
+
+    WatchpointsResponse:
+      type: object
+      properties:
+        watchpoints:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: integer
+                example: 1
+              address:
+                type: integer
+                format: uint32
+                example: 32780
+              type:
+                type: string
+                enum: [read, write, readwrite]
+                example: write
+
+    StdinRequest:
+      type: object
+      required:
+        - data
+      properties:
+        data:
+          type: string
+          description: Input data to send to program
+          example: "42\n"
+
+    TraceDataResponse:
+      type: object
+      properties:
+        entries:
+          type: array
+          items:
+            type: object
+            properties:
+              cycle:
+                type: integer
+                format: uint64
+              address:
+                type: integer
+                format: uint32
+              instruction:
+                type: string
+              registerChanges:
+                type: object
+                additionalProperties:
+                  type: integer
+              flagChanges:
+                type: object
+                properties:
+                  n:
+                    type: boolean
+                  z:
+                    type: boolean
+                  c:
+                    type: boolean
+                  v:
+                    type: boolean
+              timing:
+                type: integer
+                description: Execution time in nanoseconds
+
+    StatisticsResponse:
+      type: object
+      properties:
+        instructionsExecuted:
+          type: integer
+          format: uint64
+        cyclesElapsed:
+          type: integer
+          format: uint64
+        branchCount:
+          type: integer
+          format: uint64
+        branchTaken:
+          type: integer
+          format: uint64
+        memoryReads:
+          type: integer
+          format: uint64
+        memoryWrites:
+          type: integer
+          format: uint64
+        cacheHits:
+          type: integer
+          format: uint64
+        cacheMisses:
+          type: integer
+          format: uint64
+        executionTimeMs:
+          type: integer
+          format: uint64
+          description: Total execution time in milliseconds
+
+    ConfigResponse:
+      type: object
+      properties:
+        execution:
+          type: object
+          properties:
+            maxCycles:
+              type: integer
+            stackSize:
+              type: integer
+            defaultEntry:
+              type: string
+            enableTrace:
+              type: boolean
+            enableMemTrace:
+              type: boolean
+            enableStats:
+              type: boolean
+        debugger:
+          type: object
+          properties:
+            historySize:
+              type: integer
+            autoSaveBreaks:
+              type: boolean
+            showSource:
+              type: boolean
+            showRegisters:
+              type: boolean
+        display:
+          type: object
+          properties:
+            colorOutput:
+              type: boolean
+            bytesPerLine:
+              type: integer
+            disasmContext:
+              type: integer
+            sourceContext:
+              type: integer
+            numberFormat:
+              type: string
+              enum: [hex, dec, oct, bin]
+        trace:
+          type: object
+          properties:
+            outputFile:
+              type: string
+            filterRegs:
+              type: string
+            includeFlags:
+              type: boolean
+            includeTiming:
+              type: boolean
+            maxEntries:
+              type: integer
+        statistics:
+          type: object
+          properties:
+            outputFile:
+              type: string
+            format:
+              type: string
+              enum: [json, text, html]
+            collectHotPath:
+              type: boolean
+            trackCalls:
+              type: boolean
+
+    ExamplesResponse:
+      type: object
+      properties:
+        examples:
+          type: array
+          items:
+            type: string
+          example:
+            - hello.s
+            - factorial.s
+            - bubble_sort.s
+        count:
+          type: integer
+          example: 49
+
+    ExampleContentResponse:
+      type: object
+      properties:
+        name:
+          type: string
+          example: hello.s
+        content:
+          type: string
+          example: |
+            ; Hello World program
+            main:
+              MOVE R0, #72
+              SWI #1
+              SWI #0
+
+    SuccessResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        message:
+          type: string
+          example: Operation completed successfully
+
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+          example: Not Found
+        message:
+          type: string
+          example: Session not found
+        code:
+          type: integer
+          example: 404
+
+security: []

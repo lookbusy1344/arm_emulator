@@ -716,9 +716,9 @@ service/
 2. 🔄 Swift UI tests (infrastructure added, comprehensive tests delayed - see below)
 3. ⏸️ Performance benchmarks (not started)
 4. ⏸️ Error scenario testing (not started)
-5. ⏸️ API documentation (OpenAPI/Swagger) (not started)
-6. ⏸️ Swift app documentation (not started)
-7. ⏸️ User guide updates (not started)
+5. ✅ API documentation (OpenAPI/Swagger) - openapi.yaml created
+6. ✅ Swift app documentation - docs/SWIFT_APP.md created
+7. ✅ User guide updates - README.md updated with references
 
 **Testing Focus:**
 - Concurrent sessions
@@ -764,14 +764,17 @@ service/
   - Alternative: Manual testing covers core workflows effectively
   - TODO notes added in test file for future implementation
 
+**Documentation Completed (2026-01-02):**
+- ✅ OpenAPI 3.0 specification (openapi.yaml) - Complete REST/WebSocket API reference
+- ✅ API.md updated with WebSocket implementation details
+- ✅ docs/SWIFT_APP.md created - Comprehensive Swift app guide (architecture, building, development)
+- ✅ README.md updated with Swift app references
+
 **Outstanding Work (Current Stage):**
 - Fix 2 skipped API tests (TestRunExecution, TestStdin)
 - Performance benchmarks
 - Error scenario testing (concurrent sessions, network failures, crash recovery)
 - Memory leak detection (Go race detector + Swift Instruments)
-- API documentation (OpenAPI/Swagger specification)
-- Swift app documentation
-- User guide updates
 
 **Deferred to Future (Post-Stage 6):**
 - Comprehensive Swift UI tests with mocking framework
@@ -791,12 +794,18 @@ service/
 tests/unit/api/api_test.go              # Added 11 new tests (439 lines added)
 swift-gui/project.yml                   # Test target configuration
 swift-gui/ARMEmulatorTests/ARMEmulatorTests.swift  # Test infrastructure + TODO notes
+openapi.yaml                            # NEW: OpenAPI 3.0 specification (1,151 lines)
+API.md                                  # Updated: WebSocket documentation (573 -> 760 lines)
+docs/SWIFT_APP.md                       # NEW: Swift app documentation (683 lines)
+README.md                               # Updated: Swift app and API references
+SWIFT_GUI_PLANNING.md                   # Updated: Stage 6 documentation completion
 ```
 
 **Commits:**
 - 240bab0 - "Add comprehensive integration tests for Stage 5 API endpoints" (2026-01-02)
 - 5147d2e - "Update SWIFT_GUI_PLANNING.md - Document Stage 6 progress and known issues" (2026-01-02)
 - d80fff3 - "Add Swift test infrastructure with TODO for comprehensive tests" (2026-01-02)
+- TBD - "Complete Stage 6 documentation: OpenAPI spec, Swift app guide, API updates" (2026-01-02)
 
 ### Stage 7: Cross-Platform Foundation (Week 7-8)
 

@@ -569,36 +569,187 @@ curl -X DELETE http://localhost:8080/api/v1/session/$SESSION_ID
 
 ---
 
-## WebSocket API (Coming Soon)
+## WebSocket API
 
-Real-time event streaming for state changes, output, and breakpoints.
+Real-time event streaming for state changes, output, and execution events.
 
+**Endpoint:** `ws://localhost:8080/api/v1/ws`
+
+### Connection
+
+Upgrade HTTP connection to WebSocket:
+
+```javascript
+const ws = new WebSocket('ws://localhost:8080/api/v1/ws');
+
+ws.onopen = () => {
+  // Subscribe to events
+  ws.send(JSON.stringify({
+    type: 'subscribe',
+    sessionId: 'a1b2c3...',
+    events: ['state', 'output', 'event']
+  }));
+};
+
+ws.onmessage = (event) => {
+  const message = JSON.parse(event.data);
+  console.log('Event:', message);
+};
 ```
-ws://localhost:8080/api/v1/ws
-```
 
-Subscribe to events:
+### Subscribe Message
+
+After connecting, send a subscription message to start receiving events:
+
 ```json
 {
   "type": "subscribe",
   "sessionId": "a1b2c3...",
-  "events": ["state", "output", "breakpoint"]
+  "events": ["state", "output", "event"]
 }
 ```
 
-Receive events:
+**Event Types:**
+- `state` - VM state changes (registers, PC, flags)
+- `output` - Console output (stdout/stderr)
+- `event` - Execution events (breakpoints, errors, completion)
+
+### Event Messages
+
+#### State Event
+
+Sent when VM state changes (after step, run, or state modification):
+
 ```json
 {
   "type": "state",
   "sessionId": "a1b2c3...",
-  "timestamp": "2026-01-01T12:00:00Z",
   "data": {
-    "state": "paused",
-    "pc": 32772,
-    "registers": [...],
-    "cpsr": {...}
+    "status": "running",
+    "pc": 32768,
+    "sp": 327680,
+    "lr": 0,
+    "cycles": 10,
+    "registers": {
+      "r0": 42,
+      "r1": 100,
+      "r2": 0,
+      ...
+      "r12": 0
+    },
+    "flags": {
+      "n": false,
+      "z": true,
+      "c": false,
+      "v": false
+    }
   }
 }
+```
+
+#### Output Event
+
+Sent when program writes to stdout or stderr:
+
+```json
+{
+  "type": "output",
+  "sessionId": "a1b2c3...",
+  "data": {
+    "stream": "stdout",
+    "content": "Hello, World!\n"
+  }
+}
+```
+
+**Streams:** `stdout`, `stderr`
+
+#### Execution Event
+
+Sent for breakpoints, watchpoints, errors, or program completion:
+
+```json
+{
+  "type": "event",
+  "sessionId": "a1b2c3...",
+  "data": {
+    "event": "breakpoint_hit",
+    "address": 32780,
+    "symbol": "main+12"
+  }
+}
+```
+
+**Event Types:**
+- `breakpoint_hit` - Breakpoint triggered
+- `watchpoint_hit` - Watchpoint triggered
+- `program_halted` - Program exited
+- `error` - Execution error
+
+### Swift Example
+
+```swift
+import Foundation
+
+class WebSocketClient: NSObject, URLSessionWebSocketDelegate {
+    private var webSocketTask: URLSessionWebSocketTask?
+
+    func connect(sessionId: String) {
+        let url = URL(string: "ws://localhost:8080/api/v1/ws")!
+        let session = URLSession(configuration: .default, delegate: self, delegateQueue: nil)
+        webSocketTask = session.webSocketTask(with: url)
+        webSocketTask?.resume()
+
+        // Subscribe to events
+        let subscription = [
+            "type": "subscribe",
+            "sessionId": sessionId,
+            "events": ["state", "output", "event"]
+        ]
+
+        let data = try! JSONSerialization.data(withJSONObject: subscription)
+        let message = URLSessionWebSocketTask.Message.string(String(data: data, encoding: .utf8)!)
+        webSocketTask?.send(message) { error in
+            if let error = error {
+                print("WebSocket send error: \(error)")
+            }
+        }
+
+        receiveMessage()
+    }
+
+    private func receiveMessage() {
+        webSocketTask?.receive { [weak self] result in
+            switch result {
+            case .success(let message):
+                switch message {
+                case .string(let text):
+                    if let data = text.data(using: .utf8),
+                       let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
+                        print("Received:", json)
+                    }
+                default:
+                    break
+                }
+                self?.receiveMessage() // Continue receiving
+            case .failure(let error):
+                print("WebSocket receive error: \(error)")
+            }
+        }
+    }
+}
+```
+
+### Connection Management
+
+**Keep-Alive:** Server sends ping frames automatically. Clients should respond with pong frames.
+
+**Reconnection:** If connection drops, clients should reconnect and re-subscribe.
+
+**Clean Shutdown:** Send close frame before disconnecting:
+
+```javascript
+ws.close(1000, 'Normal closure');
 ```
 
 ---
@@ -676,13 +827,15 @@ All tests use `httptest` for isolated testing without needing a running server.
 
 ## Next Steps
 
-1. **WebSocket Support** - Real-time event streaming
-2. **CLI Flag** - Add `--api-server` flag to main.go
-3. **Swift GUI** - Native macOS client (see SWIFT_GUI_PLANNING.md)
-4. **API Documentation** - OpenAPI/Swagger spec
+1. ✅ ~~**WebSocket Support**~~ - Completed (Stage 2)
+2. ✅ ~~**CLI Flag**~~ - `--api-server` flag implemented
+3. ✅ ~~**Swift GUI**~~ - Native macOS client completed (Stage 3-4)
+4. ✅ ~~**API Documentation**~~ - OpenAPI/Swagger spec created (openapi.yaml)
 5. **Metrics** - Prometheus endpoint for monitoring
 6. **Authentication** - API keys for remote access
+7. **Performance Benchmarks** - Comprehensive API latency testing
+8. **Integration Tests** - Additional error scenario testing
 
 ---
 
-*Last Updated: 2026-01-01*
+*Last Updated: 2026-01-02*

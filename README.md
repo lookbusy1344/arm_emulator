@@ -166,7 +166,9 @@ Exciting times. Perhaps I should think of a second more challenging vibe-coding 
 - [docs/FAQ.md](docs/FAQ.md) - Frequently asked questions and troubleshooting
 
 ### Developer Documentation
-- [docs/API.md](docs/API.md) - API reference for developers
+- [API.md](API.md) - Complete HTTP REST API and WebSocket reference
+- [openapi.yaml](openapi.yaml) - OpenAPI 3.0 specification (machine-readable)
+- [docs/SWIFT_APP.md](docs/SWIFT_APP.md) - Swift native macOS app guide
 - [docs/architecture.md](docs/architecture.md) - System architecture and design
 - [docs/ltorg_implementation.md](docs/ltorg_implementation.md) - Literal pool implementation details
 
@@ -374,7 +376,12 @@ find ~/Library/Developer/Xcode/DerivedData -name "ARMEmulator.app" -type d -exec
 - Full Xcode IDE support (debugging, previews, breakpoints)
 - Code quality enforced with SwiftLint and SwiftFormat (0 violations policy)
 
-See [SWIFT_GUI_PLANNING.md](SWIFT_GUI_PLANNING.md) for architecture details and [docs/SWIFT_CLI_AUTOMATION.md](docs/SWIFT_CLI_AUTOMATION.md) for comprehensive CLI development guide.
+**Documentation:**
+- [docs/SWIFT_APP.md](docs/SWIFT_APP.md) - Complete Swift app guide (architecture, building, development)
+- [SWIFT_GUI_PLANNING.md](SWIFT_GUI_PLANNING.md) - Implementation roadmap and technical planning
+- [docs/SWIFT_CLI_AUTOMATION.md](docs/SWIFT_CLI_AUTOMATION.md) - General Swift CLI development guide
+- [API.md](API.md) - REST API and WebSocket reference
+- [openapi.yaml](openapi.yaml) - OpenAPI 3.0 specification
 
 ### Symbol Table Dump
 
