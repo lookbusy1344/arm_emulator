@@ -1,0 +1,62 @@
+disabled_rules:
+  - trailing_comma
+  - line_length
+  - opening_brace
+
+included:
+  - ARMEmulator
+  - ARMEmulatorTests
+
+excluded:
+  - .build
+  - DerivedData
+  - build
+
+line_length:
+  warning: 120
+  error: 200
+
+identifier_name:
+  min_length: 1
+  excluded:
+    - id
+    - vm
+    - pc
+    - sp
+    - lr
+    - r0
+    - r1
+    - r2
+    - r3
+    - r4
+    - r5
+    - r6
+    - r7
+    - r8
+    - r9
+    - r10
+    - r11
+    - r12
+
+file_length:
+  warning: 500
+  error: 1000
+
+type_body_length:
+  warning: 300
+  error: 500
+
+function_body_length:
+  warning: 50
+  error: 100
+
+cyclomatic_complexity:
+  warning: 10
+  error: 20
+
+opt_in_rules:
+  - empty_count
+  - empty_string
+  - explicit_init
+  - first_where
+  - sorted_first_last

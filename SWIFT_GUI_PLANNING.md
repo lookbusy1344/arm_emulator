@@ -18,19 +18,19 @@ For details of developing Swift apps with CLI tools see `docs/SWIFT_CLI_AUTOMATI
 
 ## Implementation Status
 
-**Current Progress:** Stage 2 Complete (2/7 stages)
+**Current Progress:** Stage 3 Complete (3/7 stages)
 
 | Stage | Status | Completion |
 |-------|--------|------------|
 | Stage 1: Backend API Foundation | ✅ Complete | 2026-01-02 |
 | Stage 2: WebSocket Real-Time Updates | ✅ Complete | 2026-01-02 |
-| Stage 3: Swift macOS App Foundation | 🔜 Next | - |
-| Stage 4: Advanced Swift UI Features | ⏸️ Pending | - |
+| Stage 3: Swift macOS App Foundation | ✅ Complete | 2026-01-02 |
+| Stage 4: Advanced Swift UI Features | 🔜 Next | - |
 | Stage 5: Backend Enhancements | ⏸️ Pending | - |
 | Stage 6: Polish & Testing | ⏸️ Pending | - |
 | Stage 7: Cross-Platform Foundation | ⏸️ Pending | - |
 
-**Latest Achievement:** Full WebSocket real-time updates with gorilla/websocket v1.5.3. Complete pub/sub broadcaster (188 lines), WebSocket handler (194 lines), EventWriter (64 lines), and comprehensive tests (316 lines, 8 tests passing). State broadcasting integrated with VM execution hooks. All 1,024+ tests passing. Zero linting issues. Ready for Swift client development.
+**Latest Achievement:** Complete Swift macOS app foundation! Native SwiftUI app with full API and WebSocket integration. API client (247 lines), WebSocket client (96 lines), EmulatorViewModel (213 lines), 4 views (MainView, EditorView, RegistersView, ConsoleView), and complete data models. Project generated with XcodeGen from YAML spec. Code quality enforced with SwiftLint and SwiftFormat (0 violations). App successfully builds and connects to Go backend. Toolbar with Run/Stop/Step/Reset controls. Split-pane layout with live register updates via WebSocket. Full CLI automation workflow documented. Ready for advanced UI features.
 
 ---
 
@@ -429,7 +429,9 @@ API.md                     # API documentation (608 lines)
 - Output appears immediately as program runs
 - Breakpoint events trigger notifications
 
-### Stage 3: Swift macOS App Foundation (Week 3-4)
+### Stage 3: Swift macOS App Foundation (Week 3-4) ✅ **COMPLETED**
+
+**Status:** ✅ Completed on 2026-01-02
 
 **Goals:**
 - Create SwiftUI project
@@ -437,14 +439,14 @@ API.md                     # API documentation (608 lines)
 - Basic UI structure
 
 **Deliverables:**
-1. Xcode project with SwiftUI
-2. `APIClient.swift` - HTTP REST client
-3. `WebSocketClient.swift` - WebSocket client
-4. `EmulatorSession.swift` - Session model
-5. `MainView.swift` - Main window layout
-6. `EditorView.swift` - Assembly editor
-7. `RegistersView.swift` - Register display
-8. `ConsoleView.swift` - Output console
+1. ✅ Xcode project with SwiftUI - Generated with XcodeGen from `project.yml`
+2. ✅ `APIClient.swift` - HTTP REST client (247 lines)
+3. ✅ `WebSocketClient.swift` - WebSocket client (96 lines)
+4. ✅ `EmulatorSession.swift` + data models - Session, Register, ProgramState models
+5. ✅ `MainView.swift` - Main window layout with toolbar
+6. ✅ `EditorView.swift` - Assembly editor
+7. ✅ `RegistersView.swift` - Register display with CPSR flags
+8. ✅ `ConsoleView.swift` - Output console with stdin support
 
 **UI Structure:**
 ```
@@ -505,12 +507,61 @@ ARMEmulator/
       └── Info.plist
 ```
 
+**Implementation Notes:**
+- Project generated with XcodeGen from YAML specification (`project.yml`)
+- CLI-based workflow using xcodebuild, swiftformat, and swiftlint
+- Zero external dependencies (uses Foundation, SwiftUI, Combine only)
+- MVVM architecture with EmulatorViewModel managing state
+- Reactive UI updates via Combine publishers
+- Split-pane layout with VSplitView and HSplitView
+- Toolbar with keyboard shortcuts (⌘L, ⌘R, ⌘T, ⌘., ⌘⇧R)
+- Connection view with automatic backend health check
+- Error handling with alert presentation
+- WebSocket reconnection handled via URLSessionWebSocketDelegate
+- Code quality: 0 SwiftLint violations, formatted with SwiftFormat
+
+**Files Created (12 Swift files, 3 config files):**
+```
+swift-gui/
+  ├── project.yml                          # XcodeGen configuration
+  ├── .swiftlint.yml                       # SwiftLint rules
+  ├── .swiftformat                         # SwiftFormat rules
+  ├── ARMEmulator/
+  │   ├── ARMEmulatorApp.swift             # App entry point
+  │   ├── Models/
+  │   │   ├── EmulatorSession.swift        # Event models
+  │   │   ├── ProgramState.swift           # VM state models
+  │   │   └── Register.swift               # Register models
+  │   ├── Services/
+  │   │   ├── APIClient.swift              # HTTP REST client (247 lines)
+  │   │   └── WebSocketClient.swift        # WebSocket client (96 lines)
+  │   ├── ViewModels/
+  │   │   └── EmulatorViewModel.swift      # State management (213 lines)
+  │   ├── Views/
+  │   │   ├── MainView.swift               # Main window + toolbar
+  │   │   ├── EditorView.swift             # Assembly editor
+  │   │   ├── RegistersView.swift          # Register display
+  │   │   └── ConsoleView.swift            # Console output
+  │   └── Resources/
+  │       └── Info.plist
+  └── ARMEmulatorTests/
+      └── ARMEmulatorTests.swift           # Placeholder tests
+```
+
 **Success Criteria:**
-- Swift app launches and shows UI
-- Connects to Go backend API
-- Can load assembly program
-- Can execute and see output
-- Registers update in real-time
+- ✅ Swift app launches and shows UI
+- ✅ Connects to Go backend API (with retry on failure)
+- ✅ Can load assembly program via API
+- ✅ Can execute and see output in console
+- ✅ Registers update in real-time via WebSocket
+- ✅ Toolbar controls work (Run, Stop, Step, Reset, Load)
+- ✅ Keyboard shortcuts functional
+- ✅ Build succeeds with zero errors
+- ✅ Zero linting violations
+- ✅ Code formatted consistently
+
+**Commits:**
+- TBD - "Implement Stage 3: Swift macOS app foundation with SwiftUI" (2026-01-02)
 
 ### Stage 4: Advanced Swift UI Features (Week 4-5)
 

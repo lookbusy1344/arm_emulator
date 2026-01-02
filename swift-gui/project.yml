@@ -1,0 +1,70 @@
+name: ARMEmulator
+options:
+  bundleIdPrefix: com.lookbusy1344
+  deploymentTarget:
+    macOS: "13.0"
+  developmentLanguage: en
+  xcodeVersion: "15.0"
+
+settings:
+  base:
+    DEVELOPMENT_TEAM: ""
+    CODE_SIGN_STYLE: Automatic
+    MACOSX_DEPLOYMENT_TARGET: "13.0"
+    SWIFT_VERSION: "5.9"
+    ENABLE_HARDENED_RUNTIME: YES
+    COMBINE_HIDPI_IMAGES: YES
+
+targets:
+  ARMEmulator:
+    type: application
+    platform: macOS
+    deploymentTarget: "13.0"
+    sources:
+      - path: ARMEmulator
+        excludes:
+          - "**/.DS_Store"
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.lookbusy1344.ARMEmulator
+        PRODUCT_NAME: ARMEmulator
+        INFOPLIST_FILE: ARMEmulator/Resources/Info.plist
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        GENERATE_INFOPLIST_FILE: NO
+        ENABLE_PREVIEWS: YES
+    dependencies:
+      - sdk: SwiftUI.framework
+      - sdk: Combine.framework
+      - sdk: Foundation.framework
+      - sdk: AppKit.framework
+    scheme:
+      testTargets:
+        - ARMEmulatorTests
+      gatherCoverageData: true
+
+  ARMEmulatorTests:
+    type: bundle.unit-test
+    platform: macOS
+    sources:
+      - ARMEmulatorTests
+    dependencies:
+      - target: ARMEmulator
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.lookbusy1344.ARMEmulatorTests
+        ALWAYS_EMBED_SWIFT_STANDARD_LIBRARIES: YES
+
+schemes:
+  ARMEmulator:
+    build:
+      targets:
+        ARMEmulator: all
+    run:
+      config: Debug
+    test:
+      config: Debug
+      gatherCoverageData: true
+      targets:
+        - ARMEmulatorTests
+    archive:
+      config: Release

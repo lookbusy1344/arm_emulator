@@ -1,0 +1,14 @@
+--allman false
+--commas always
+--trimwhitespace always
+--indent 4
+--linebreaks lf
+--header strip
+--maxwidth 120
+--wraparguments before-first
+--wrapcollections before-first
+--closingparen balanced
+--stripunusedargs closure-only
+--self remove
+--importgrouping testable-bottom
+--redundanttype inferred

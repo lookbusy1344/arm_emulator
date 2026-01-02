@@ -1,0 +1,203 @@
+import SwiftUI
+
+struct MainView: View {
+    @StateObject private var viewModel = EmulatorViewModel()
+    @State private var showingError = false
+
+    var body: some View {
+        VStack(spacing: 0) {
+            if !viewModel.isConnected {
+                ConnectionView(viewModel: viewModel)
+            } else {
+                contentView
+                    .toolbar {
+                        toolbarContent
+                    }
+            }
+        }
+        .frame(minWidth: 800, minHeight: 600)
+        .alert(
+            "Error",
+            isPresented: $showingError,
+            presenting: viewModel.errorMessage,
+            actions: { _ in
+                Button("OK") {
+                    viewModel.errorMessage = nil
+                }
+            },
+            message: { message in
+                Text(message)
+            }
+        )
+        .onChange(of: viewModel.errorMessage) { newValue in
+            showingError = newValue != nil
+        }
+        .onDisappear {
+            viewModel.cleanup()
+        }
+    }
+
+    private var contentView: some View {
+        VSplitView {
+            HSplitView {
+                EditorView(text: $viewModel.sourceCode)
+                    .frame(minWidth: 300)
+
+                VStack(spacing: 0) {
+                    RegistersView(registers: viewModel.registers)
+                        .frame(minHeight: 200)
+
+                    Divider()
+
+                    StatusView(
+                        status: viewModel.status,
+                        pc: viewModel.currentPC
+                    )
+                    .frame(height: 60)
+                }
+                .frame(minWidth: 250, maxWidth: 400)
+            }
+            .frame(minHeight: 300)
+
+            ConsoleView(
+                output: viewModel.consoleOutput,
+                onSendInput: { input in
+                    Task {
+                        await viewModel.sendInput(input)
+                    }
+                }
+            )
+            .frame(minHeight: 150)
+        }
+    }
+
+    @ToolbarContentBuilder
+    private var toolbarContent: some ToolbarContent {
+        ToolbarItemGroup(placement: .automatic) {
+            Button(
+                action: { Task { await viewModel.loadProgram(source: viewModel.sourceCode) } },
+                label: { Label("Load", systemImage: "doc.text") }
+            )
+            .help("Load program (⌘L)")
+            .keyboardShortcut("l", modifiers: .command)
+
+            Divider()
+
+            Button(
+                action: { Task { await viewModel.run() } },
+                label: { Label("Run", systemImage: "play.fill") }
+            )
+            .help("Run program (⌘R)")
+            .keyboardShortcut("r", modifiers: .command)
+            .disabled(viewModel.status == .running)
+
+            Button(
+                action: { Task { await viewModel.stop() } },
+                label: { Label("Stop", systemImage: "stop.fill") }
+            )
+            .help("Stop execution (⌘.)")
+            .keyboardShortcut(".", modifiers: .command)
+            .disabled(viewModel.status != .running)
+
+            Button(
+                action: { Task { await viewModel.step() } },
+                label: { Label("Step", systemImage: "forward.frame") }
+            )
+            .help("Step one instruction (⌘T)")
+            .keyboardShortcut("t", modifiers: .command)
+            .disabled(viewModel.status == .running)
+
+            Button(
+                action: { Task { await viewModel.reset() } },
+                label: { Label("Reset", systemImage: "arrow.counterclockwise") }
+            )
+            .help("Reset VM (⌘⇧R)")
+            .keyboardShortcut("r", modifiers: [.command, .shift])
+        }
+    }
+}
+
+struct ConnectionView: View {
+    @ObservedObject var viewModel: EmulatorViewModel
+
+    var body: some View {
+        VStack(spacing: 20) {
+            ProgressView()
+                .scaleEffect(1.5)
+
+            Text("Connecting to emulator backend...")
+                .font(.headline)
+
+            Text("Make sure the Go backend is running on localhost:8080")
+                .font(.caption)
+                .foregroundColor(.secondary)
+
+            Button("Retry") {
+                Task {
+                    await viewModel.initialize()
+                }
+            }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .task {
+            await viewModel.initialize()
+        }
+    }
+}
+
+struct StatusView: View {
+    let status: VMState
+    let pc: UInt32
+
+    var body: some View {
+        HStack {
+            HStack(spacing: 6) {
+                Circle()
+                    .fill(statusColor)
+                    .frame(width: 10, height: 10)
+
+                Text(status.rawValue.capitalized)
+                    .font(.system(.body, design: .monospaced))
+                    .fontWeight(.medium)
+            }
+            .padding(.horizontal)
+
+            Divider()
+
+            HStack(spacing: 4) {
+                Text("PC:")
+                    .font(.system(.caption, design: .monospaced))
+                    .foregroundColor(.secondary)
+
+                Text(String(format: "0x%08X", pc))
+                    .font(.system(.body, design: .monospaced))
+            }
+            .padding(.horizontal)
+
+            Spacer()
+        }
+        .padding(.vertical, 8)
+        .background(Color(NSColor.controlBackgroundColor))
+    }
+
+    private var statusColor: Color {
+        switch status {
+        case .idle:
+            return .gray
+        case .running:
+            return .green
+        case .paused:
+            return .orange
+        case .halted:
+            return .blue
+        case .error:
+            return .red
+        }
+    }
+}
+
+struct MainView_Previews: PreviewProvider {
+    static var previews: some View {
+        MainView()
+    }
+}
