@@ -1,3 +1,4 @@
+import AppKit
 import Foundation
 
 enum BackendError: Error, LocalizedError {
@@ -37,11 +38,33 @@ class BackendManager: ObservableObject {
         case error(String)
     }
 
+    init() {
+        NotificationCenter.default.addObserver(
+            forName: NSApplication.willTerminateNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            self?.shutdownSync()
+        }
+    }
+
     deinit {
         processMonitorTask?.cancel()
+        NotificationCenter.default.removeObserver(self)
+    }
+
+    private func shutdownSync() {
+        let semaphore = DispatchSemaphore(value: 0)
+        Task {
+            await shutdown()
+            semaphore.signal()
+        }
+        semaphore.wait()
     }
 
     func ensureBackendRunning() async {
+        await killOrphanedBackends()
+
         if await checkBackendHealth() {
             backendStatus = .running
             didStartBackend = false
@@ -53,6 +76,21 @@ class BackendManager: ObservableObject {
         } catch {
             backendStatus = .error(error.localizedDescription)
         }
+    }
+
+    private func killOrphanedBackends() async {
+        await Task.detached {
+            let task = Process()
+            task.executableURL = URL(fileURLWithPath: "/usr/bin/pkill")
+            task.arguments = ["-f", "arm-emulator --api-server --port 8080"]
+
+            do {
+                try task.run()
+                task.waitUntilExit()
+            } catch {}
+        }.value
+
+        try? await Task.sleep(nanoseconds: 500_000_000)
     }
 
     func checkBackendHealth() async -> Bool {
@@ -151,7 +189,11 @@ class BackendManager: ObservableObject {
         processMonitorTask?.cancel()
         processMonitorTask = nil
 
-        guard didStartBackend, let process = backendProcess else {
+        guard let process = backendProcess else {
+            return
+        }
+
+        guard didStartBackend else {
             return
         }
 
@@ -159,7 +201,9 @@ class BackendManager: ObservableObject {
             process.terminate()
 
             for _ in 0 ..< 15 {
-                if !process.isRunning { break }
+                if !process.isRunning {
+                    break
+                }
                 try? await Task.sleep(nanoseconds: 200_000_000)
             }
 
