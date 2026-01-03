@@ -171,7 +171,8 @@ class LineNumberGutterView: NSRulerView {
             let glyphRange = layoutManager.glyphRange(forCharacterRange: lineRange, actualCharacterRange: nil)
             let lineRect = layoutManager.boundingRect(forGlyphRange: glyphRange, in: textContainer)
 
-            let yPos = lineRect.minY - (scrollView?.documentVisibleRect.origin.y ?? 0)
+            guard let scrollView = self.scrollView else { return }
+            let yPos = lineRect.minY - scrollView.documentVisibleRect.origin.y
 
             // Check if click is within this line
             if location.y >= yPos, location.y < yPos + lineRect.height {

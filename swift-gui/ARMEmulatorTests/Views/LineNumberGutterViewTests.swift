@@ -97,4 +97,47 @@ class LineNumberGutterViewTests: XCTestCase {
         XCTAssertLessThan(yPos, 0,
                           "First line should be above visible area after scroll")
     }
+
+    func testCoordinatesWithHorizontalScroll() {
+        // Configure for horizontal scrolling
+        textView.isHorizontallyResizable = true
+        textView.maxSize = NSSize(width: CGFloat.greatestFiniteMagnitude,
+                                  height: CGFloat.greatestFiniteMagnitude)
+
+        if let textContainer = textView.textContainer {
+            textContainer.containerSize = NSSize(
+                width: CGFloat.greatestFiniteMagnitude,
+                height: CGFloat.greatestFiniteMagnitude
+            )
+            textContainer.widthTracksTextView = false
+        }
+
+        // Get first line position before horizontal scroll
+        guard let layoutManager = textView.layoutManager,
+              let textContainer = textView.textContainer else {
+            XCTFail("Layout manager and text container should exist")
+            return
+        }
+
+        let text = textView.string as NSString
+        let firstLineRange = text.lineRange(for: NSRange(location: 0, length: 0))
+        let glyphRange = layoutManager.glyphRange(forCharacterRange: firstLineRange,
+                                                   actualCharacterRange: nil)
+        let lineRect = layoutManager.boundingRect(forGlyphRange: glyphRange,
+                                                   in: textContainer)
+
+        let visibleRectBefore = scrollView.documentVisibleRect
+        let yPosBefore = lineRect.minY - visibleRectBefore.origin.y
+
+        // Scroll horizontally (not vertically)
+        scrollView.contentView.scroll(to: NSPoint(x: 100, y: 0))
+
+        // Get first line position after horizontal scroll
+        let visibleRectAfter = scrollView.documentVisibleRect
+        let yPosAfter = lineRect.minY - visibleRectAfter.origin.y
+
+        // Y position should remain the same (only X changed)
+        XCTAssertEqual(yPosBefore, yPosAfter, accuracy: 1.0,
+                       "Line Y position should not change with horizontal scroll")
+    }
 }
