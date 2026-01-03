@@ -166,81 +166,229 @@ $ stat .../DerivedData/.../ARMEmulator.app/Contents/MacOS/ARMEmulator
 
 **Problem:** Changes keep being made to source files, but rebuilds don't seem to incorporate them into running app.
 
+### Fix #3: Nuclear DerivedData Clean ✅ PARTIALLY SUCCESSFUL
+
+**Actions Taken:**
+
+1. Deleted all DerivedData:
+```bash
+rm -rf ~/Library/Developer/Xcode/DerivedData/ARMEmulator-*
+```
+
+2. Regenerated Xcode project:
+```bash
+cd swift-gui
+xcodegen generate
+```
+
+3. Opened in Xcode and rebuilt (Product > Run)
+
+**Result:**
+- ✅ LoadProgramResponse fix now working - HTTP 200 response received
+- ✅ No more decode error dialog
+- ✅ sourceCode property being set (550 characters confirmed)
+- ❌ New issue: Text loaded but not visible in editor
+
+**New Error Discovered:**
+```
+🔴 HTTP 200
+🔴 Response body: {"sessionId":"...","state":"halted","pc":32768,"cycles":0,"hasWrite":false}
+```
+Backend doesn't return `instruction` field, but Swift `VMStatus` struct expected it as non-optional.
+
+**Fix Applied:**
+Made `instruction` optional in `ProgramState.swift`:
+```swift
+struct VMStatus: Codable {
+    var instruction: String?  // Optional - backend doesn't always return this
+    ...
+}
+```
+
+### Fix #4: NSTextView Rendering Investigation ❌ IN PROGRESS
+
+**Problem:** Text loads successfully into storage but doesn't render visually.
+
+**Diagnostic Evidence:**
+```
+🟢 Setting sourceCode to 550 characters
+🟢 sourceCode is now: ; hello.s - Classic "Hello World" program...
+🔵 updateNSView called - current: 0 chars, new: 550 chars
+🔵 Updating text view content
+🔵 Text storage length: 550
+🔵 Text storage string: ; hello.s - Classic "Hello World" program...
+```
+
+**Initial Frame Diagnostics (before fix):**
+```
+🔵 TextView frame: (0.0, 0.0, 0.0, 264.5)      ❌ Zero width!
+🔵 TextView bounds: (0.0, 0.0, 0.0, 264.5)
+🔵 ScrollView frame: (0.0, 0.0, 449.5, 264.5)  ✅ Correct
+🔵 Container size: (-10.0, 10000000.0)         ❌ Negative width!
+```
+
+**Root Cause #1:** NSTextView had zero width, preventing rendering.
+
+**Attempted Fix #4A: Add NSTextView Sizing Configuration**
+
+Added proper text view configuration in `EditorView.swift` `makeNSView()`:
+```swift
+// Configure text view sizing for scroll view
+textView.minSize = NSSize(width: 0.0, height: scrollView.contentSize.height)
+textView.maxSize = NSSize(width: CGFloat.greatestFiniteMagnitude, height: CGFloat.greatestFiniteMagnitude)
+textView.isVerticallyResizable = true
+textView.isHorizontallyResizable = false
+textView.autoresizingMask = [.width]
+
+// Configure text container
+if let textContainer = textView.textContainer {
+    textContainer.containerSize = NSSize(width: scrollView.contentSize.width, height: CGFloat.greatestFiniteMagnitude)
+    textContainer.widthTracksTextView = true
+}
+```
+
+**Result:** Frame fixed but text still not visible ❌
+
+**Frame Diagnostics (after Fix #4A):**
+```
+🔵 TextView frame: (0.0, 0.0, 449.5, 247.5)    ✅ Correct width!
+🔵 TextView bounds: (0.0, 0.0, 449.5, 247.5)
+🔵 ScrollView frame: (0.0, 0.0, 449.5, 264.5)
+🔵 Container size: (439.5, 1.7976931348623157e+308)  ✅ Correct!
+🔵 Text storage length: 550                    ✅ Has content
+```
+
+**Visual Evidence:** Screenshot shows:
+- Line numbers 1-14 visible in gutter
+- Main text area completely blank
+- Horizontal scrollbar present but not functional
+- Line numbers don't scroll when scrolling editor pane
+
+**Attempted Fix #4B: Non-Wrapping Text Editor Configuration**
+
+Changed configuration for code editor style (non-wrapping, horizontally scrollable):
+```swift
+// Configure text view sizing for scroll view (non-wrapping, horizontally scrollable)
+textView.isVerticallyResizable = true
+textView.isHorizontallyResizable = true        // Changed from false
+textView.autoresizingMask = []                 // Changed from [.width]
+
+// Configure text container for non-wrapping text
+if let textContainer = textView.textContainer {
+    textContainer.containerSize = NSSize(width: CGFloat.greatestFiniteMagnitude, height: CGFloat.greatestFiniteMagnitude)
+    textContainer.widthTracksTextView = false  // Changed from true
+}
+```
+
+**Result:** Text still not visible ❌
+
+**Hypothesis:** Despite correct frame sizes and text storage containing content, the NSTextView is not rendering glyphs. Possible causes:
+1. Layout manager not generating glyphs
+2. Font configuration issue
+3. Text color transparency
+4. Glyph rendering disabled
+5. View hierarchy z-order issue
+
 ## Current Status
 
 ### What We Know ✅
 1. Backend API works correctly and returns proper JSON
-2. Root cause is type mismatch (EmptyResponse vs LoadProgramResponse)
-3. Correct fix has been implemented in source code
-4. Code compiles successfully with no errors
+2. Type mismatch fix (LoadProgramResponse) is working
+3. VMStatus optional instruction field fix is working
+4. Program loading succeeds (HTTP 200)
+5. sourceCode property is set correctly (550 characters)
+6. Text storage contains correct content
+7. TextView frame/bounds are correct (449.5 x 247.5)
+8. Text container size is correct (439.5 width)
+9. updateNSView is called and updates text
+10. NSLog diagnostics are working
 
 ### What's Not Working ❌
-1. Running app doesn't reflect source code changes
-2. Debug logging produces no output
-3. User continues getting same decode error
-4. Binary timestamps show old builds being executed
+1. NSTextView not rendering text despite having content
+2. Text area appears completely blank
+3. Line numbers don't scroll with content
+4. Horizontal scrollbar non-functional
 
-### Possible Causes
-1. **Xcode caching issue** - DerivedData corruption
-2. **Multiple app instances** - Old version cached somewhere
-3. **Code signing/entitlements** - Sandbox preventing file writes
-4. **Build configuration** - Debug vs Release mismatch
-5. **App location** - User running app from different location than DerivedData
+### Remaining Issues
+1. **Primary:** NSTextView rendering failure (text invisible)
+2. **Secondary:** Memory/Disassembly endpoints return 400 errors (invalid address parameter)
+3. **Minor:** Excessive debug logging needs cleanup after fix
 
 ## Next Steps
 
-### Recommended Actions
+### Immediate Actions for NSTextView Rendering
 
-1. **Clean DerivedData completely:**
-   ```bash
-   rm -rf ~/Library/Developer/Xcode/DerivedData/ARMEmulator-*
-   xcodebuild -project ARMEmulator.xcodeproj -scheme ARMEmulator clean build
+1. **Add layout manager diagnostics:**
+   - Check if layout manager has glyphs generated
+   - Verify glyph range for text
+   - Check if layout is being invalidated
+
+2. **Add font/color diagnostics:**
+   - Log actual font being used (could be nil)
+   - Log actual text color (could be transparent)
+   - Log text view's drawing rect
+
+3. **Test with minimal text view:**
+   - Create standalone NSTextView test without SwiftUI wrapper
+   - Verify text renders in simple AppKit context
+   - If works, issue is SwiftUI integration
+
+4. **Check layout manager generation:**
+   ```swift
+   if let layoutManager = textView.layoutManager {
+       NSLog("🔵 Layout manager: \(layoutManager)")
+       NSLog("🔵 Number of glyphs: \(layoutManager.numberOfGlyphs)")
+       NSLog("🔵 Used rect: \(layoutManager.usedRect(for: textView.textContainer!))")
+   }
    ```
 
-2. **Verify single app instance:**
-   ```bash
-   killall ARMEmulator
-   ps aux | grep ARMEmulator  # Should show nothing
+5. **Try explicit sizeToFit and layout invalidation:**
+   ```swift
+   textView.string = text
+   textView.sizeToFit()
+   textView.layoutManager?.invalidateLayout(forCharacterRange: NSRange(location: 0, length: text.count), actualCharacterRange: nil)
+   textView.layoutManager?.ensureLayout(for: textView.textContainer!)
    ```
-
-3. **Run from Xcode directly:**
-   - Open project in Xcode
-   - Product > Clean Build Folder (Cmd+Shift+K)
-   - Product > Run (Cmd+R)
-   - Try loading file within Xcode-launched app
-
-4. **Check app bundle location:**
-   ```bash
-   # Find all ARMEmulator.app bundles
-   find ~ -name "ARMEmulator.app" -type d 2>/dev/null
-   ```
-
-5. **Verify build settings:**
-   - Check if Debug configuration is being used
-   - Verify code signing settings
-   - Check for any custom build scripts
 
 ### Alternative Approaches
 
-If rebuild issues persist:
+1. **Replace NSViewRepresentable with simpler approach:**
+   - Use UIViewRepresentable/NSViewRepresentable without complex updateNSView logic
+   - Set text only once in makeNSView
+   - Use Coordinator to handle text changes
 
-1. **Direct binary replacement:**
-   - Build fresh binary
-   - Manually copy to known app location
-   - Verify timestamps match
+2. **Use TextEditor instead of custom NSTextView:**
+   - SwiftUI's native TextEditor might work better
+   - Less control but more reliable rendering
 
-2. **Test with minimal reproduction:**
-   - Create simple Swift script that tests LoadProgramResponse decoding
-   - Verify type definitions are correct
-
-3. **Check for framework caching:**
-   - Swift may be caching compiled modules
-   - Try `swift package clean` if using SPM
+3. **Check if LineNumberGutterView is interfering:**
+   - Temporarily remove gutter view
+   - Test if text renders without it
+   - Ruler view might be covering content area
 
 ## Files Modified
 
-- `swift-gui/ARMEmulator/Services/APIClient.swift` - Lines 62-68, 332-336, 285-319
-- `swift-gui/ARMEmulator/ViewModels/EmulatorViewModel.swift` - Lines 66-73
+- `swift-gui/ARMEmulator/Services/APIClient.swift` - Lines 62-68, 285-310, 332-336
+  - Added LoadProgramResponse struct
+  - Updated loadProgram to return LoadProgramResponse
+  - Added extensive NSLog debugging
+
+- `swift-gui/ARMEmulator/ViewModels/EmulatorViewModel.swift` - Lines 66-73, 27, 41-47, 229-237, 244-256
+  - Updated loadProgram to handle LoadProgramResponse
+  - Check success field before setting sourceCode
+  - Added isInitializing flag to prevent concurrent initialization
+  - Fixed cleanup to reset state properly
+  - Made memory/disassembly errors silent (benign failures)
+
+- `swift-gui/ARMEmulator/Models/ProgramState.swift` - Line 14
+  - Made instruction field optional in VMStatus
+
+- `swift-gui/ARMEmulator/Views/EditorView.swift` - Lines 75-76, 83-94, 105-139
+  - Added textColor and backgroundColor settings
+  - Added NSTextView sizing configuration (minSize, maxSize, resizing)
+  - Added text container configuration
+  - Changed to non-wrapping text editor configuration
+  - Added extensive frame/bounds/container diagnostics
 
 ## Related Files
 
@@ -271,6 +419,19 @@ stat -f "%Sm %N" -t "%Y-%m-%d %H:%M:%S" ARMEmulator/Services/APIClient.swift
 
 ## Conclusion
 
-The fix is correct but isn't being executed. The issue appears to be with the build/deploy process rather than the code itself. The app is running an old binary that doesn't include the LoadProgramResponse changes.
+**Progress Made:**
+1. ✅ Fixed Xcode build caching issue (DerivedData clean)
+2. ✅ Fixed type mismatch (LoadProgramResponse)
+3. ✅ Fixed VMStatus optional field
+4. ✅ Program loading now succeeds (HTTP 200)
+5. ✅ Text correctly loaded into storage
+6. ✅ Fixed zero-width NSTextView frame issue
 
-**Priority:** Ensure fresh builds are actually being used before attempting further code changes.
+**Current Blocker:**
+Despite all diagnostics showing correct values (frame, bounds, container size, text storage), the NSTextView is not rendering any glyphs. The text area appears completely blank even though:
+- Frame is 449.5 x 247.5 (correct)
+- Container size is 439.5 (correct)
+- Text storage has 550 characters (correct)
+- updateNSView is being called (confirmed)
+
+**Next Priority:** Investigate layout manager and glyph generation to determine why text with proper frame and storage is not rendering visually.
