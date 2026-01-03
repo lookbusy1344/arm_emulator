@@ -100,13 +100,13 @@ struct EditorWithGutterView: NSViewRepresentable {
         scrollView.documentView = textView
 
         // Create and add gutter view
-        // let gutterView = LineNumberGutterView(scrollView: scrollView, orientation: .verticalRuler)
-        // gutterView.configure(textView: textView, onBreakpointToggle: onBreakpointToggle)
+        let gutterView = LineNumberGutterView(scrollView: scrollView, orientation: .verticalRuler)
+        gutterView.configure(textView: textView, onBreakpointToggle: onBreakpointToggle)
 
         // Add gutter as a ruler view
-        // scrollView.verticalRulerView = gutterView
-        // scrollView.hasVerticalRuler = true
-        // scrollView.rulersVisible = true
+        scrollView.verticalRulerView = gutterView
+        scrollView.hasVerticalRuler = true
+        scrollView.rulersVisible = true
 
         // Notify parent that text view was created
         DispatchQueue.main.async {
