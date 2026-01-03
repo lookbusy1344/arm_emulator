@@ -80,20 +80,21 @@ struct EditorWithGutterView: NSViewRepresentable {
         textView.isAutomaticTextReplacementEnabled = false
         textView.delegate = context.coordinator
 
-        // Configure text view sizing for scroll view (standard wrapping)
-        textView.minSize = NSSize(width: 0.0, height: scrollView.contentSize.height)
-        textView.maxSize = NSSize(width: CGFloat.greatestFiniteMagnitude, height: CGFloat.greatestFiniteMagnitude)
+        // Configure for horizontal scrolling (no wrapping)
         textView.isVerticallyResizable = true
-        textView.isHorizontallyResizable = false
-        textView.autoresizingMask = [.width]
+        textView.isHorizontallyResizable = true
+        textView.autoresizingMask = [] // No autoresizing
+        textView.maxSize = NSSize(width: CGFloat.greatestFiniteMagnitude,
+                                  height: CGFloat.greatestFiniteMagnitude)
+        textView.minSize = NSSize(width: 0, height: scrollView.contentSize.height)
 
-        // Configure text container for wrapping text
+        // Configure text container for unlimited width (no wrapping)
         if let textContainer = textView.textContainer {
             textContainer.containerSize = NSSize(
-                width: scrollView.contentSize.width,
+                width: CGFloat.greatestFiniteMagnitude,
                 height: CGFloat.greatestFiniteMagnitude
             )
-            textContainer.widthTracksTextView = true
+            textContainer.widthTracksTextView = false
         }
 
         scrollView.documentView = textView
