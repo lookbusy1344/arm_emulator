@@ -29,7 +29,8 @@ class LineNumberGutterViewTests: XCTestCase {
 
         // Force layout
         if let layoutManager = textView.layoutManager,
-           let textContainer = textView.textContainer {
+           let textContainer = textView.textContainer
+        {
             layoutManager.ensureLayout(for: textContainer)
         }
     }
@@ -47,7 +48,8 @@ class LineNumberGutterViewTests: XCTestCase {
 
         // Get layout manager and text container
         guard let layoutManager = textView.layoutManager,
-              let textContainer = textView.textContainer else {
+              let textContainer = textView.textContainer
+        else {
             XCTFail("Layout manager and text container should exist")
             return
         }
@@ -55,20 +57,30 @@ class LineNumberGutterViewTests: XCTestCase {
         // Get first line position
         let text = textView.string as NSString
         let firstLineRange = text.lineRange(for: NSRange(location: 0, length: 0))
-        let glyphRange = layoutManager.glyphRange(forCharacterRange: firstLineRange,
-                                                   actualCharacterRange: nil)
-        let lineRect = layoutManager.boundingRect(forGlyphRange: glyphRange,
-                                                   in: textContainer)
+        let glyphRange = layoutManager.glyphRange(
+            forCharacterRange: firstLineRange,
+            actualCharacterRange: nil
+        )
+        let lineRect = layoutManager.boundingRect(
+            forGlyphRange: glyphRange,
+            in: textContainer
+        )
 
         // Calculate yPos using new formula
         let visibleRect = scrollView.documentVisibleRect
         let yPos = lineRect.minY - visibleRect.origin.y
 
         // First line should be at or near y=0 when not scrolled
-        XCTAssertGreaterThanOrEqual(yPos, -5,
-                                    "First line should be near top")
-        XCTAssertLessThanOrEqual(yPos, 5,
-                                 "First line should be near top")
+        XCTAssertGreaterThanOrEqual(
+            yPos,
+            -5,
+            "First line should be near top"
+        )
+        XCTAssertLessThanOrEqual(
+            yPos,
+            5,
+            "First line should be near top"
+        )
     }
 
     func testCoordinatesWithVerticalScroll() {
@@ -76,7 +88,8 @@ class LineNumberGutterViewTests: XCTestCase {
         scrollView.contentView.scroll(to: NSPoint(x: 0, y: 50))
 
         guard let layoutManager = textView.layoutManager,
-              let textContainer = textView.textContainer else {
+              let textContainer = textView.textContainer
+        else {
             XCTFail("Layout manager and text container should exist")
             return
         }
@@ -84,25 +97,34 @@ class LineNumberGutterViewTests: XCTestCase {
         // Get first line position
         let text = textView.string as NSString
         let firstLineRange = text.lineRange(for: NSRange(location: 0, length: 0))
-        let glyphRange = layoutManager.glyphRange(forCharacterRange: firstLineRange,
-                                                   actualCharacterRange: nil)
-        let lineRect = layoutManager.boundingRect(forGlyphRange: glyphRange,
-                                                   in: textContainer)
+        let glyphRange = layoutManager.glyphRange(
+            forCharacterRange: firstLineRange,
+            actualCharacterRange: nil
+        )
+        let lineRect = layoutManager.boundingRect(
+            forGlyphRange: glyphRange,
+            in: textContainer
+        )
 
         // Calculate yPos with scroll offset
         let visibleRect = scrollView.documentVisibleRect
         let yPos = lineRect.minY - visibleRect.origin.y
 
         // After scrolling down 50, first line should be at negative y
-        XCTAssertLessThan(yPos, 0,
-                          "First line should be above visible area after scroll")
+        XCTAssertLessThan(
+            yPos,
+            0,
+            "First line should be above visible area after scroll"
+        )
     }
 
     func testCoordinatesWithHorizontalScroll() {
         // Configure for horizontal scrolling
         textView.isHorizontallyResizable = true
-        textView.maxSize = NSSize(width: CGFloat.greatestFiniteMagnitude,
-                                  height: CGFloat.greatestFiniteMagnitude)
+        textView.maxSize = NSSize(
+            width: CGFloat.greatestFiniteMagnitude,
+            height: CGFloat.greatestFiniteMagnitude
+        )
 
         if let textContainer = textView.textContainer {
             textContainer.containerSize = NSSize(
@@ -114,17 +136,22 @@ class LineNumberGutterViewTests: XCTestCase {
 
         // Get first line position before horizontal scroll
         guard let layoutManager = textView.layoutManager,
-              let textContainer = textView.textContainer else {
+              let textContainer = textView.textContainer
+        else {
             XCTFail("Layout manager and text container should exist")
             return
         }
 
         let text = textView.string as NSString
         let firstLineRange = text.lineRange(for: NSRange(location: 0, length: 0))
-        let glyphRange = layoutManager.glyphRange(forCharacterRange: firstLineRange,
-                                                   actualCharacterRange: nil)
-        let lineRect = layoutManager.boundingRect(forGlyphRange: glyphRange,
-                                                   in: textContainer)
+        let glyphRange = layoutManager.glyphRange(
+            forCharacterRange: firstLineRange,
+            actualCharacterRange: nil
+        )
+        let lineRect = layoutManager.boundingRect(
+            forGlyphRange: glyphRange,
+            in: textContainer
+        )
 
         let visibleRectBefore = scrollView.documentVisibleRect
         let yPosBefore = lineRect.minY - visibleRectBefore.origin.y
@@ -137,8 +164,12 @@ class LineNumberGutterViewTests: XCTestCase {
         let yPosAfter = lineRect.minY - visibleRectAfter.origin.y
 
         // Y position should remain the same (only X changed)
-        XCTAssertEqual(yPosBefore, yPosAfter, accuracy: 1.0,
-                       "Line Y position should not change with horizontal scroll")
+        XCTAssertEqual(
+            yPosBefore,
+            yPosAfter,
+            accuracy: 1.0,
+            "Line Y position should not change with horizontal scroll"
+        )
     }
 
     func testBreakpointToggle() {

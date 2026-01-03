@@ -1,8 +1,11 @@
 import AppKit
 import SwiftUI
 
-class LineNumberGutterView: NSRulerView {
-    private var textView: NSTextView?
+/// Custom gutter view that doesn't use NSRulerView
+/// NSRulerView has a rendering bug that causes NSTextView to not display text
+class CustomGutterView: NSView {
+    private weak var textView: NSTextView?
+    private weak var scrollView: NSScrollView?
     private var breakpoints: Set<Int> = []
     private var onBreakpointToggle: ((Int) -> Void)?
 
@@ -10,25 +13,23 @@ class LineNumberGutterView: NSRulerView {
     private let breakpointMargin: CGFloat = 8
     private let breakpointSize: CGFloat = 10
 
-    override init(scrollView: NSScrollView?, orientation: NSRulerView.Orientation) {
-        super.init(scrollView: scrollView, orientation: orientation)
-        ruleThickness = gutterWidth
-        wantsLayer = true
-        layer?.backgroundColor = NSColor.controlBackgroundColor.cgColor
-    }
-
-    required init(coder: NSCoder) {
-        super.init(coder: coder)
-        ruleThickness = gutterWidth
-        wantsLayer = true
-        layer?.backgroundColor = NSColor.controlBackgroundColor.cgColor
-    }
-
-    func configure(textView: NSTextView, onBreakpointToggle: @escaping (Int) -> Void) {
+    init(textView: NSTextView, scrollView: NSScrollView) {
         self.textView = textView
-        self.onBreakpointToggle = onBreakpointToggle
+        self.scrollView = scrollView
+        super.init(frame: .zero)
 
-        // Register for text change notifications to update line numbers
+        wantsLayer = true
+        layer?.backgroundColor = NSColor.controlBackgroundColor.cgColor
+
+        // Register for scroll notifications
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(scrollViewDidScroll),
+            name: NSView.boundsDidChangeNotification,
+            object: scrollView.contentView
+        )
+
+        // Register for text changes
         NotificationCenter.default.addObserver(
             self,
             selector: #selector(textDidChange),
@@ -37,8 +38,26 @@ class LineNumberGutterView: NSRulerView {
         )
     }
 
+    @available(*, unavailable)
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) not implemented")
+    }
+
+    // Use flipped coordinates (origin at top-left) to match text view
+    override var isFlipped: Bool {
+        return true
+    }
+
+    func configure(onBreakpointToggle: @escaping (Int) -> Void) {
+        self.onBreakpointToggle = onBreakpointToggle
+    }
+
     func setBreakpoints(_ breakpoints: Set<Int>) {
         self.breakpoints = breakpoints
+        needsDisplay = true
+    }
+
+    @objc private func scrollViewDidScroll(_ notification: Notification) {
         needsDisplay = true
     }
 
@@ -46,42 +65,38 @@ class LineNumberGutterView: NSRulerView {
         needsDisplay = true
     }
 
-    override func drawHashMarksAndLabels(in rect: NSRect) {
-        // Use the proper NSRulerView drawing method instead of overriding draw(_:)
-        guard let textView = textView,
-              let layoutManager = textView.layoutManager,
-              let textContainer = textView.textContainer
-        else {
-            return
-        }
+    override func draw(_ dirtyRect: NSRect) {
+        super.draw(dirtyRect)
 
-        drawBackground(rect)
-        drawLineNumbers(textView: textView, layoutManager: layoutManager, textContainer: textContainer)
-    }
-
-    private func drawBackground(_ dirtyRect: NSRect) {
+        // Draw background
         NSColor.controlBackgroundColor.setFill()
-        dirtyRect.fill()
+        bounds.fill()
 
+        // Draw separator line
         NSColor.separatorColor.setStroke()
         let separatorPath = NSBezierPath()
         separatorPath.move(to: NSPoint(x: bounds.width - 0.5, y: bounds.minY))
         separatorPath.line(to: NSPoint(x: bounds.width - 0.5, y: bounds.maxY))
         separatorPath.lineWidth = 1
         separatorPath.stroke()
-    }
 
-    private func drawLineNumbers(textView: NSTextView, layoutManager: NSLayoutManager, textContainer: NSTextContainer) {
+        // Draw line numbers
+        guard let textView = textView,
+              let layoutManager = textView.layoutManager,
+              let textContainer = textView.textContainer,
+              let scrollView = scrollView
+        else {
+            return
+        }
+
         let text = textView.string as NSString
         guard text.length > 0 else { return }
 
-        // Get the visible rect in the ruler's coordinate space
-        guard let scrollView = scrollView else { return }
         let visibleRect = scrollView.documentVisibleRect
-
         let glyphRange = layoutManager.glyphRange(for: textContainer)
         var lineNumber = 1
         var glyphIndex = glyphRange.location
+
         let attributes = lineNumberAttributes()
 
         while glyphIndex < glyphRange.upperBound {
@@ -90,8 +105,10 @@ class LineNumberGutterView: NSRulerView {
             let glyphRange = layoutManager.glyphRange(forCharacterRange: lineRange, actualCharacterRange: nil)
             let lineRect = layoutManager.boundingRect(forGlyphRange: glyphRange, in: textContainer)
 
-            // Convert to scroll view coordinates, then to ruler coordinates
-            let yPos = lineRect.minY - visibleRect.origin.y
+            // Convert from text container coordinates to gutter view coordinates
+            // Account for text view's textContainerInset (5pt top padding)
+            let textInset = textView.textContainerInset.height
+            let yPos = lineRect.minY - visibleRect.origin.y + textInset
 
             // Only draw if visible
             if yPos + lineRect.height >= 0, yPos < bounds.height {
@@ -146,34 +163,30 @@ class LineNumberGutterView: NSRulerView {
 
         guard let textView = textView,
               let layoutManager = textView.layoutManager,
-              let textContainer = textView.textContainer
+              let textContainer = textView.textContainer,
+              let scrollView = scrollView
         else {
             return
         }
 
-        // Determine which line was clicked
         let text = textView.string as NSString
-        let textLength = text.length
+        guard text.length > 0 else { return }
 
-        guard textLength > 0 else { return }
-
+        let visibleRect = scrollView.documentVisibleRect
         let glyphRange = layoutManager.glyphRange(for: textContainer)
         var lineNumber = 1
         var glyphIndex = glyphRange.location
 
         while glyphIndex < glyphRange.upperBound {
             let characterIndex = layoutManager.characterIndexForGlyph(at: glyphIndex)
-            let lineRange = text.lineRange(
-                for: NSRange(location: characterIndex, length: 0)
-            )
-
+            let lineRange = text.lineRange(for: NSRange(location: characterIndex, length: 0))
             let glyphRange = layoutManager.glyphRange(forCharacterRange: lineRange, actualCharacterRange: nil)
             let lineRect = layoutManager.boundingRect(forGlyphRange: glyphRange, in: textContainer)
 
-            guard let scrollView = scrollView else { return }
-            let yPos = lineRect.minY - scrollView.documentVisibleRect.origin.y
+            // Account for text view's textContainerInset
+            let textInset = textView.textContainerInset.height
+            let yPos = lineRect.minY - visibleRect.origin.y + textInset
 
-            // Check if click is within this line
             if location.y >= yPos, location.y < yPos + lineRect.height {
                 onBreakpointToggle?(lineNumber)
                 return
@@ -186,21 +199,5 @@ class LineNumberGutterView: NSRulerView {
 
     deinit {
         NotificationCenter.default.removeObserver(self)
-    }
-}
-
-struct LineNumberGutterViewWrapper: NSViewRepresentable {
-    let textView: NSTextView
-    let breakpoints: Set<Int>
-    let onBreakpointToggle: (Int) -> Void
-
-    func makeNSView(context: Context) -> LineNumberGutterView {
-        let gutterView = LineNumberGutterView(frame: .zero)
-        gutterView.configure(textView: textView, onBreakpointToggle: onBreakpointToggle)
-        return gutterView
-    }
-
-    func updateNSView(_ nsView: LineNumberGutterView, context: Context) {
-        nsView.setBreakpoints(breakpoints)
     }
 }
