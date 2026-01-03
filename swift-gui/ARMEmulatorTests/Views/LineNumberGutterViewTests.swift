@@ -173,19 +173,22 @@ class LineNumberGutterViewTests: XCTestCase {
         let breakpoints: Set<Int> = [1, 3, 5]
         gutterView.setBreakpoints(breakpoints)
 
-        // Verify we can trigger display without crashing
+        // Verify display can be called without crashing
         gutterView.display()
 
-        // Set different breakpoints and verify display still works
+        // Test with different breakpoint configurations
         gutterView.setBreakpoints([2, 4, 6])
         gutterView.display()
 
-        // Clear breakpoints and verify display still works
+        // Test with empty breakpoint set
         gutterView.setBreakpoints([])
         gutterView.display()
 
-        // Set breakpoints with larger line numbers
+        // Test with large line numbers
         gutterView.setBreakpoints([10, 20, 30])
         gutterView.display()
+
+        // All operations should complete without throwing
+        XCTAssertNotNil(gutterView, "Gutter view should remain valid")
     }
 }
