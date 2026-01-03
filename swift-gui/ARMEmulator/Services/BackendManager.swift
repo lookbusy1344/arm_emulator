@@ -63,34 +63,21 @@ class BackendManager: ObservableObject {
     }
 
     func ensureBackendRunning() async {
-        await killOrphanedBackends()
-
+        // Check if backend is already running
         if await checkBackendHealth() {
             backendStatus = .running
             didStartBackend = false
             return
         }
 
+        // Backend not running, start it
+        // Note: No need to kill orphaned backends anymore - the Go backend
+        // uses parent process monitoring to auto-terminate when the Swift app dies
         do {
             try await startBackend()
         } catch {
             backendStatus = .error(error.localizedDescription)
         }
-    }
-
-    private func killOrphanedBackends() async {
-        await Task.detached {
-            let task = Process()
-            task.executableURL = URL(fileURLWithPath: "/usr/bin/pkill")
-            task.arguments = ["-f", "arm-emulator --api-server --port 8080"]
-
-            do {
-                try task.run()
-                task.waitUntilExit()
-            } catch {}
-        }.value
-
-        try? await Task.sleep(nanoseconds: 500_000_000)
     }
 
     func checkBackendHealth() async -> Bool {

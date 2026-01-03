@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
+	"sync"
 	"syscall"
 	"time"
 
@@ -102,6 +103,32 @@ func main() {
 		sigChan := make(chan os.Signal, 1)
 		signal.Notify(sigChan, os.Interrupt, syscall.SIGTERM)
 
+		// Create shutdown function with sync.Once to ensure it runs only once
+		// This prevents race conditions between signal handler and process monitor
+		var shutdownOnce sync.Once
+		performShutdown := func() {
+			shutdownOnce.Do(func() {
+				fmt.Println("\nShutting down API server...")
+
+				// Graceful shutdown with timeout
+				ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+				defer cancel()
+
+				if err := server.Shutdown(ctx); err != nil {
+					fmt.Fprintf(os.Stderr, "Error during shutdown: %v\n", err)
+					os.Exit(1)
+				}
+
+				fmt.Println("API server stopped")
+				os.Exit(0)
+			})
+		}
+
+		// Start process monitor to detect parent death (Swift app crash/force-quit)
+		// This prevents orphaned backend processes when the GUI terminates unexpectedly
+		monitor := api.NewProcessMonitor(performShutdown)
+		monitor.Start()
+
 		// Start server in goroutine
 		go func() {
 			if err := server.Start(); err != nil && err != http.ErrServerClosed {
@@ -110,21 +137,9 @@ func main() {
 			}
 		}()
 
-		// Wait for shutdown signal
+		// Wait for shutdown signal (Ctrl+C or SIGTERM)
 		<-sigChan
-		fmt.Println("\nShutting down API server...")
-
-		// Graceful shutdown with timeout
-		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-		defer cancel()
-
-		if err := server.Shutdown(ctx); err != nil {
-			fmt.Fprintf(os.Stderr, "Error during shutdown: %v\n", err)
-			os.Exit(1)
-		}
-
-		fmt.Println("API server stopped")
-		os.Exit(0)
+		performShutdown()
 	}
 
 	// Require assembly file for emulator mode
