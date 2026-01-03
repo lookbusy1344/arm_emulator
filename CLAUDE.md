@@ -244,6 +244,7 @@ See `SWIFT_GUI_PLANNING.md` for detailed architecture documentation and `docs/SW
 5. **Code signing errors**: The project uses automatic code signing (ad-hoc for development)
 6. **DerivedData issues**: Clean with `rm -rf ~/Library/Developer/Xcode/DerivedData` if builds behave strangely
 7. **Git tracking Xcode user files**: The `swift-gui/.gitignore` excludes user-specific files like `*.xcuserstate`, `xcuserdata/`, and build artifacts. These should never be committed.
+8. **SwiftUI/AppKit rendering issues**: When NSViewRepresentable views don't render content (blank view despite data being present), use divide-and-conquer debugging: comment out complex custom components (ruler views, overlays, custom drawing) to isolate the issue. Get the basic AppKit view working first, then add complexity back incrementally. Example: NSTextView not displaying text may be caused by NSRulerView interference.
 
 ## Project Structure
 
