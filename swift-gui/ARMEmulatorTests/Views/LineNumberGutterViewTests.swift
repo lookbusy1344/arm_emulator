@@ -155,21 +155,37 @@ class LineNumberGutterViewTests: XCTestCase {
 
         XCTAssertNil(toggledLine, "No toggle should have occurred yet")
 
-        // Note: Simulating mouse clicks in unit tests is complex
-        // This test verifies the breakpoint data is set correctly
-        XCTAssertTrue(true, "Breakpoint data structure works")
+        // Verify the gutter was configured without crashing
+        XCTAssertNotNil(gutterView, "Gutter view should be created")
+
+        // Verify that setting different breakpoints works without crashing
+        gutterView.setBreakpoints([1, 3, 5])
+
+        // Verify that clearing breakpoints works
+        gutterView.setBreakpoints([])
+
+        // Verify that setting breakpoints again works
+        gutterView.setBreakpoints([2, 4, 6])
     }
 
     func testBreakpointDrawing() {
-        // Set breakpoints
+        // Set initial breakpoints
         let breakpoints: Set<Int> = [1, 3, 5]
         gutterView.setBreakpoints(breakpoints)
 
-        // Trigger display (this will call draw)
-        gutterView.needsDisplay = true
+        // Verify we can trigger display without crashing
+        gutterView.display()
 
-        // Note: We can't easily verify the actual drawing without image comparison
-        // This test verifies the breakpoint data is stored correctly
-        XCTAssertTrue(true, "Breakpoint data is set")
+        // Set different breakpoints and verify display still works
+        gutterView.setBreakpoints([2, 4, 6])
+        gutterView.display()
+
+        // Clear breakpoints and verify display still works
+        gutterView.setBreakpoints([])
+        gutterView.display()
+
+        // Set breakpoints with larger line numbers
+        gutterView.setBreakpoints([10, 20, 30])
+        gutterView.display()
     }
 }
