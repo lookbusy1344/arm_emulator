@@ -56,7 +56,18 @@ struct StackView: View {
 
     private func loadStack() async {
         let sp = viewModel.registers.sp
-        let startAddress = sp - UInt32(wordsToShow / 2 * 4)
+
+        // Don't try to load stack if no program is loaded (SP is 0 or invalid)
+        // Valid stack pointers are typically in high memory (0x00040000+)
+        guard sp >= 0x1000 else {
+            stackData = []
+            return
+        }
+
+        let offset = UInt32(wordsToShow / 2 * 4)
+
+        // Prevent arithmetic underflow when sp is too small
+        let startAddress = sp >= offset ? sp - offset : 0
 
         await viewModel.loadMemory(at: startAddress, length: wordsToShow * 4)
 

@@ -24,6 +24,7 @@ class EmulatorViewModel: ObservableObject {
     private let wsClient: WebSocketClient
     private var sessionID: String?
     private var cancellables = Set<AnyCancellable>()
+    private var isInitializing = false
 
     init(apiClient: APIClient = APIClient(), wsClient: WebSocketClient = WebSocketClient()) {
         self.apiClient = apiClient
@@ -38,6 +39,12 @@ class EmulatorViewModel: ObservableObject {
     }
 
     func initialize() async {
+        // Prevent concurrent initialization
+        guard !isInitializing, !isConnected else { return }
+
+        isInitializing = true
+        defer { isInitializing = false }
+
         do {
             sessionID = try await apiClient.createSession()
             wsClient.connect(sessionID: sessionID!)
@@ -217,6 +224,10 @@ class EmulatorViewModel: ObservableObject {
                 try? await apiClient.destroySession(sessionID: sessionID)
             }
         }
+
+        isConnected = false
+        isInitializing = false
+        sessionID = nil
     }
 
     // MARK: - Memory Operations
@@ -228,7 +239,9 @@ class EmulatorViewModel: ObservableObject {
             memoryData = try await apiClient.getMemory(sessionID: sessionID, address: address, length: length)
             memoryAddress = address
         } catch {
-            errorMessage = "Failed to load memory: \(error.localizedDescription)"
+            // Silently fail - memory loading errors are benign (e.g., no program loaded)
+            // Views will just show empty data
+            memoryData = []
         }
     }
 
@@ -238,7 +251,9 @@ class EmulatorViewModel: ObservableObject {
         do {
             disassembly = try await apiClient.getDisassembly(sessionID: sessionID, address: address, count: count)
         } catch {
-            errorMessage = "Failed to load disassembly: \(error.localizedDescription)"
+            // Silently fail - disassembly errors are benign (e.g., no program loaded)
+            // View will just show empty data
+            disassembly = []
         }
     }
 }
