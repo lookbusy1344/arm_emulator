@@ -40,4 +40,61 @@ class LineNumberGutterViewTests: XCTestCase {
         gutterView = nil
         super.tearDown()
     }
+
+    func testLineNumberCoordinateCalculation() {
+        // Verify text view has content
+        XCTAssertGreaterThan(textView.string.count, 0, "Text view should have content")
+
+        // Get layout manager and text container
+        guard let layoutManager = textView.layoutManager,
+              let textContainer = textView.textContainer else {
+            XCTFail("Layout manager and text container should exist")
+            return
+        }
+
+        // Get first line position
+        let text = textView.string as NSString
+        let firstLineRange = text.lineRange(for: NSRange(location: 0, length: 0))
+        let glyphRange = layoutManager.glyphRange(forCharacterRange: firstLineRange,
+                                                   actualCharacterRange: nil)
+        let lineRect = layoutManager.boundingRect(forGlyphRange: glyphRange,
+                                                   in: textContainer)
+
+        // Calculate yPos using new formula
+        let visibleRect = scrollView.documentVisibleRect
+        let yPos = lineRect.minY - visibleRect.origin.y
+
+        // First line should be at or near y=0 when not scrolled
+        XCTAssertGreaterThanOrEqual(yPos, -5,
+                                    "First line should be near top")
+        XCTAssertLessThanOrEqual(yPos, 5,
+                                 "First line should be near top")
+    }
+
+    func testCoordinatesWithVerticalScroll() {
+        // Scroll down by 50 points
+        scrollView.contentView.scroll(to: NSPoint(x: 0, y: 50))
+
+        guard let layoutManager = textView.layoutManager,
+              let textContainer = textView.textContainer else {
+            XCTFail("Layout manager and text container should exist")
+            return
+        }
+
+        // Get first line position
+        let text = textView.string as NSString
+        let firstLineRange = text.lineRange(for: NSRange(location: 0, length: 0))
+        let glyphRange = layoutManager.glyphRange(forCharacterRange: firstLineRange,
+                                                   actualCharacterRange: nil)
+        let lineRect = layoutManager.boundingRect(forGlyphRange: glyphRange,
+                                                   in: textContainer)
+
+        // Calculate yPos with scroll offset
+        let visibleRect = scrollView.documentVisibleRect
+        let yPos = lineRect.minY - visibleRect.origin.y
+
+        // After scrolling down 50, first line should be at negative y
+        XCTAssertLessThan(yPos, 0,
+                          "First line should be above visible area after scroll")
+    }
 }
