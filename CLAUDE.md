@@ -133,7 +133,7 @@ The Wails backend must be running on http://localhost:34115 before any E2E tests
 
 ## Swift Native macOS App Commands
 
-**IMPORTANT:** The Swift app requires the Go HTTP API backend to be running first (see `api/` directory).
+**Note:** The Swift app automatically manages the Go HTTP API backend lifecycle - it finds, starts, and monitors the backend process. No manual backend startup required.
 
 ### Prerequisites
 
@@ -187,24 +187,16 @@ Built app location: `~/Library/Developer/Xcode/DerivedData/ARMEmulator-*/Build/P
 ### Run Swift App
 
 ```bash
-# Find and open the built app
+# Find and open the built app (backend starts automatically)
 find ~/Library/Developer/Xcode/DerivedData -name "ARMEmulator.app" -type d -exec open {} \; -quit
 
 # Or run from Xcode (Cmd+R)
-```
-
-**IMPORTANT:** Before running the Swift app, you must start the Go API backend:
-
-```bash
-# Terminal 1: Start the API backend
-./arm-emulator --api-server --port 8080
-# Or if not built yet:
-go run main.go --api-server --port 8080
-
-# Terminal 2: Run the Swift app
-open swift-gui/ARMEmulator.xcodeproj
+cd swift-gui
+open ARMEmulator.xcodeproj
 # Then press Cmd+R in Xcode
 ```
+
+The app automatically finds and starts the Go backend binary from the project root. The backend lifecycle is fully managed by the Swift app - it starts on launch and shuts down when the app quits.
 
 ### Test Swift App
 
@@ -247,7 +239,7 @@ See `SWIFT_GUI_PLANNING.md` for detailed architecture documentation and `docs/SW
 
 1. **"No such module 'SwiftUI'" error**: Ensure Xcode Command Line Tools are installed: `xcode-select --install`
 2. **Xcode project out of sync**: Run `xcodegen generate` after modifying `project.yml`
-3. **App can't connect to backend**: Ensure Go API server is running on `http://localhost:8080`
+3. **App can't find backend binary**: Ensure `arm-emulator` is built in the project root: `go build -o arm-emulator`
 4. **SwiftLint/SwiftFormat not found**: Install via Homebrew: `brew install swiftlint swiftformat`
 5. **Code signing errors**: The project uses automatic code signing (ad-hoc for development)
 6. **DerivedData issues**: Clean with `rm -rf ~/Library/Developer/Xcode/DerivedData` if builds behave strangely

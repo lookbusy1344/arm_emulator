@@ -341,13 +341,13 @@ open ARMEmulator.xcodeproj
 
 **Run the app:**
 ```bash
-# Terminal 1: Start the Go API backend
-./arm-emulator --api-server --port 8080
-# Or if not built yet: go run main.go --api-server --port 8080
-
-# Terminal 2: Run the Swift app from Xcode
-# Open swift-gui/ARMEmulator.xcodeproj and press Cmd+R
+# Open and run from Xcode (backend starts automatically)
+cd swift-gui
+open ARMEmulator.xcodeproj
+# Press Cmd+R to build and run
 ```
+
+The Swift app automatically manages the Go backend lifecycle - it will find, start, and monitor the backend process. No manual backend startup required.
 
 **Build from command line:**
 ```bash

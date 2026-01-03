@@ -28,7 +28,7 @@ The Swift app provides a native macOS experience for the ARM2 emulator with:
 - **Zero External Dependencies** - Uses only Foundation, SwiftUI, and Combine
 - **CLI-First Development** - XcodeGen-based project with swiftlint/swiftformat integration
 
-**Important:** The Swift app is a client that connects to the Go API backend. You must start the backend before running the app.
+**Important:** The Swift app automatically manages the Go API backend lifecycle. It finds, starts, and monitors the backend process - no manual startup required.
 
 ## Architecture
 
@@ -114,19 +114,16 @@ xcodegen generate
 
 **Important:** You must regenerate the project whenever you modify `project.yml` (e.g., adding files, changing settings).
 
-### 2. Start the API Backend
+### 2. Build the API Backend Binary
 
-The Swift app requires the Go API backend running on `http://localhost:8080`:
+The Swift app needs the backend binary to be available:
 
 ```bash
 # From project root
-./arm-emulator --api-server --port 8080
-
-# Or if not built yet
-go run main.go --api-server --port 8080
+go build -o arm-emulator
 ```
 
-The backend must be running before you launch the Swift app.
+The Swift app will automatically find and start this binary when launched. The backend lifecycle is fully managed - it starts on app launch and shuts down when the app quits.
 
 ### 3. Open in Xcode
 
@@ -181,9 +178,9 @@ DerivedData/ARMEmulator-*/Build/Products/
 
 ### Run from Xcode
 
-1. Start API backend: `./arm-emulator --api-server --port 8080`
+1. Ensure backend binary is built: `go build -o arm-emulator`
 2. Open Xcode: `cd swift-gui && open ARMEmulator.xcodeproj`
-3. Press `⌘R` to run
+3. Press `⌘R` to run (backend starts automatically)
 
 ### Run from CLI
 
@@ -208,10 +205,10 @@ Note: This feature is currently only available in the Wails GUI. Swift app file 
 ### Typical Development Cycle
 
 ```bash
-# 1. Start backend (Terminal 1)
-./arm-emulator --api-server --port 8080
+# 1. Ensure backend binary is built
+go build -o arm-emulator
 
-# 2. Open Xcode (Terminal 2)
+# 2. Open Xcode (backend will start automatically when app runs)
 cd swift-gui
 open ARMEmulator.xcodeproj
 
@@ -463,20 +460,26 @@ xcode-select --install
 sudo xcode-select -s /Applications/Xcode.app/Contents/Developer
 ```
 
-### "Failed to connect to backend"
+### "Failed to connect to backend" or "Backend binary not found"
 
-**Cause:** Go API server not running.
+**Cause:** Backend binary not built or not in expected location.
 
 **Fix:**
 ```bash
-# Start the backend
-./arm-emulator --api-server --port 8080
+# Build the backend binary
+cd /path/to/arm_emulator
+go build -o arm-emulator
 ```
 
-Verify backend is running:
+The app searches for `arm-emulator` in:
+1. App bundle resources (production builds)
+2. Current directory
+3. Parent directory (for development from `swift-gui/` folder)
+
+Verify the binary exists and is executable:
 ```bash
-curl http://localhost:8080/health
-# Should return: {"status":"ok","sessions":0,"time":"..."}
+ls -la arm-emulator
+# Should show executable permissions
 ```
 
 ### "Xcode project out of sync"

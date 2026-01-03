@@ -16,6 +16,8 @@ The API server provides a RESTful HTTP interface with JSON payloads, allowing mu
 
 ## Starting the API Server
 
+### Manual Start (for development/testing)
+
 ```bash
 # Start API server on port 8080
 ./arm-emulator --api-server --port 8080
@@ -23,6 +25,16 @@ The API server provides a RESTful HTTP interface with JSON payloads, allowing mu
 # Custom port
 ./arm-emulator --api-server --port 3000
 ```
+
+### Automatic Start (Swift macOS app)
+
+The Swift native macOS app automatically manages the backend lifecycle via `BackendManager`:
+- Finds the `arm-emulator` binary in the project root
+- Starts the backend on port 8080 when the app launches
+- Monitors the process health
+- Shuts down the backend when the app quits
+
+No manual backend startup required when using the Swift app.
 
 **Security:** The server binds to `127.0.0.1` (localhost only) and enforces strict CORS to reject remote origins.
 
