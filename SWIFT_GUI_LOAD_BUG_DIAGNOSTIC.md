@@ -434,4 +434,30 @@ Despite all diagnostics showing correct values (frame, bounds, container size, t
 - Text storage has 550 characters (correct)
 - updateNSView is being called (confirmed)
 
-**Next Priority:** Investigate layout manager and glyph generation to determine why text with proper frame and storage is not rendering visually.
+### Fix #7: Disable LineNumberGutterView ✅ SUCCESSFUL
+
+**Changes Made:**
+1.  Commented out the `LineNumberGutterView` initialization and assignment in `EditorView.swift`.
+
+**Rationale:**
+The debug output shows that the `NSTextView` has the correct frame, bounds, text storage, and layout manager state. The text is "there" but invisible. A common cause for this in `NSScrollView` configurations is an issue with the ruler view (gutter) interfering with the clip view or document view layout, or simply covering the content. By disabling the gutter, we can determine if it is the source of the rendering problem.
+
+**Result:**
+The code now displays correctly! This confirms that the `LineNumberGutterView` implementation was the root cause of the rendering issue.
+
+## Final Conclusion
+
+**Root Cause:**
+The `LineNumberGutterView` attached to the `NSScrollView`'s vertical ruler was preventing the `NSTextView` from rendering its content. This could be due to:
+1.  The ruler view incorrectly calculating its bounds or drawing area.
+2.  The ruler view interfering with the `NSClipView` layout.
+3.  The ruler view's drawing code covering the text view (though less likely given the frame diagnostics).
+
+**Resolution:**
+The immediate fix for the "code not displaying" bug was to disable the `LineNumberGutterView`. The text now loads and renders correctly.
+
+**Recommendations for Future Work:**
+To restore line number functionality, the `LineNumberGutterView` needs to be debugged specifically. Potential fixes include:
+-   Verifying the `ruleThickness` and `requiredThickness` properties.
+-   Ensuring `drawHashMarksAndLabels(in:)` is implemented correctly if subclassing `NSRulerView`.
+-   Checking if the custom `draw(_:)` method is calling `super.draw(_:)` appropriately or if it's drawing over the wrong context.
