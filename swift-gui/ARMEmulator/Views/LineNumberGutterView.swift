@@ -76,10 +76,13 @@ class LineNumberGutterView: NSRulerView {
         let text = textView.string as NSString
         guard text.length > 0 else { return }
 
+        // Get the visible rect in the ruler's coordinate space
+        guard let scrollView = self.scrollView else { return }
+        let visibleRect = scrollView.documentVisibleRect
+
         let glyphRange = layoutManager.glyphRange(for: textContainer)
         var lineNumber = 1
         var glyphIndex = glyphRange.location
-
         let attributes = lineNumberAttributes()
 
         while glyphIndex < glyphRange.upperBound {
@@ -87,10 +90,15 @@ class LineNumberGutterView: NSRulerView {
             let lineRange = text.lineRange(for: NSRange(location: characterIndex, length: 0))
             let glyphRange = layoutManager.glyphRange(forCharacterRange: lineRange, actualCharacterRange: nil)
             let lineRect = layoutManager.boundingRect(forGlyphRange: glyphRange, in: textContainer)
-            let yPos = lineRect.minY - textView.textContainerInset.height + textView.bounds.minY
 
-            drawLineNumber(lineNumber, yPos: yPos, lineHeight: lineRect.height, attributes: attributes)
-            drawBreakpointIfNeeded(lineNumber, yPos: yPos, lineHeight: lineRect.height)
+            // Convert to scroll view coordinates, then to ruler coordinates
+            let yPos = lineRect.minY - visibleRect.origin.y
+
+            // Only draw if visible
+            if yPos + lineRect.height >= 0 && yPos < bounds.height {
+                drawLineNumber(lineNumber, yPos: yPos, lineHeight: lineRect.height, attributes: attributes)
+                drawBreakpointIfNeeded(lineNumber, yPos: yPos, lineHeight: lineRect.height)
+            }
 
             glyphIndex = NSMaxRange(glyphRange)
             lineNumber += 1
@@ -163,7 +171,7 @@ class LineNumberGutterView: NSRulerView {
             let glyphRange = layoutManager.glyphRange(forCharacterRange: lineRange, actualCharacterRange: nil)
             let lineRect = layoutManager.boundingRect(forGlyphRange: glyphRange, in: textContainer)
 
-            let yPos = lineRect.minY - textView.textContainerInset.height + textView.bounds.minY
+            let yPos = lineRect.minY - (scrollView?.documentVisibleRect.origin.y ?? 0)
 
             // Check if click is within this line
             if location.y >= yPos, location.y < yPos + lineRect.height {
