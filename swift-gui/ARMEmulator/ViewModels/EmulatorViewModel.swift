@@ -63,7 +63,15 @@ class EmulatorViewModel: ObservableObject {
         }
 
         do {
-            try await apiClient.loadProgram(sessionID: sessionID, source: source)
+            let response = try await apiClient.loadProgram(sessionID: sessionID, source: source)
+
+            // Check if load was successful
+            if !response.success {
+                let errors = response.errors?.joined(separator: "\n") ?? "Unknown error"
+                errorMessage = "Failed to load program:\n\(errors)"
+                return
+            }
+
             sourceCode = source
             errorMessage = nil
 

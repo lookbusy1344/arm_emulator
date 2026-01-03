@@ -59,13 +59,13 @@ class APIClient: ObservableObject {
 
     // MARK: - Program Management
 
-    func loadProgram(sessionID: String, source: String) async throws {
+    func loadProgram(sessionID: String, source: String) async throws -> LoadProgramResponse {
         struct LoadProgramRequest: Codable {
             let source: String
         }
 
         let url = baseURL.appendingPathComponent("/api/v1/session/\(sessionID)/load")
-        try await post(url: url, body: LoadProgramRequest(source: source))
+        return try await post(url: url, body: LoadProgramRequest(source: source))
     }
 
     // MARK: - Execution Control
@@ -231,7 +231,7 @@ class APIClient: ObservableObject {
             resolvingAgainstBaseURL: false
         )!
         components.queryItems = [
-            URLQueryItem(name: "addr", value: String(format: "0x%X", address)),
+            URLQueryItem(name: "address", value: String(format: "0x%X", address)),
             URLQueryItem(name: "length", value: String(length)),
         ]
 
@@ -322,3 +322,9 @@ struct DisassembledInstruction: Codable, Identifiable, Hashable {
 
 private struct EmptyBody: Codable {}
 private struct EmptyResponse: Codable {}
+
+struct LoadProgramResponse: Codable {
+    let success: Bool
+    let errors: [String]?
+    let symbols: [String: UInt32]?
+}

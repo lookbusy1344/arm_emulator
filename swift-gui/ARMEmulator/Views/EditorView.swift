@@ -72,22 +72,40 @@ struct EditorWithGutterView: NSViewRepresentable {
         textView.isEditable = true
         textView.isSelectable = true
         textView.font = NSFont.monospacedSystemFont(ofSize: 13, weight: .regular)
+        textView.textColor = NSColor.labelColor // Ensure text is visible
+        textView.backgroundColor = NSColor.textBackgroundColor
         textView.textContainerInset = NSSize(width: 5, height: 5)
         textView.isAutomaticQuoteSubstitutionEnabled = false
         textView.isAutomaticDashSubstitutionEnabled = false
         textView.isAutomaticTextReplacementEnabled = false
         textView.delegate = context.coordinator
 
+        // Configure text view sizing for scroll view (standard wrapping)
+        textView.minSize = NSSize(width: 0.0, height: scrollView.contentSize.height)
+        textView.maxSize = NSSize(width: CGFloat.greatestFiniteMagnitude, height: CGFloat.greatestFiniteMagnitude)
+        textView.isVerticallyResizable = true
+        textView.isHorizontallyResizable = false
+        textView.autoresizingMask = [.width]
+
+        // Configure text container for wrapping text
+        if let textContainer = textView.textContainer {
+            textContainer.containerSize = NSSize(
+                width: scrollView.contentSize.width,
+                height: CGFloat.greatestFiniteMagnitude
+            )
+            textContainer.widthTracksTextView = true
+        }
+
         scrollView.documentView = textView
 
         // Create and add gutter view
-        let gutterView = LineNumberGutterView(scrollView: scrollView, orientation: .verticalRuler)
-        gutterView.configure(textView: textView, onBreakpointToggle: onBreakpointToggle)
+        // let gutterView = LineNumberGutterView(scrollView: scrollView, orientation: .verticalRuler)
+        // gutterView.configure(textView: textView, onBreakpointToggle: onBreakpointToggle)
 
         // Add gutter as a ruler view
-        scrollView.verticalRulerView = gutterView
-        scrollView.hasVerticalRuler = true
-        scrollView.rulersVisible = true
+        // scrollView.verticalRulerView = gutterView
+        // scrollView.hasVerticalRuler = true
+        // scrollView.rulersVisible = true
 
         // Notify parent that text view was created
         DispatchQueue.main.async {
@@ -102,6 +120,19 @@ struct EditorWithGutterView: NSViewRepresentable {
 
         if textView.string != text {
             textView.string = text
+
+            // Force layout and redraw
+            if let layoutManager = textView.layoutManager, let textContainer = textView.textContainer {
+                layoutManager.invalidateLayout(
+                    forCharacterRange: NSRange(location: 0, length: text.count),
+                    actualCharacterRange: nil
+                )
+                layoutManager.ensureLayout(for: textContainer)
+            }
+
+            textView.sizeToFit()
+            textView.needsDisplay = true
+            scrollView.needsDisplay = true
         }
 
         // Update gutter breakpoints

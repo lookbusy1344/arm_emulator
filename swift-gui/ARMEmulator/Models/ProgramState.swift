@@ -11,7 +11,7 @@ enum VMState: String, Codable {
 struct VMStatus: Codable {
     var state: String
     var pc: UInt32
-    var instruction: String
+    var instruction: String? // Optional - backend doesn't always return this
     var cycleCount: UInt64?
     var error: String?
 

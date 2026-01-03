@@ -108,7 +108,12 @@ class LineNumberGutterView: NSRulerView {
         ]
     }
 
-    private func drawLineNumber(_ lineNumber: Int, yPos: CGFloat, lineHeight: CGFloat, attributes: [NSAttributedString.Key: Any]) {
+    private func drawLineNumber(
+        _ lineNumber: Int,
+        yPos: CGFloat,
+        lineHeight: CGFloat,
+        attributes: [NSAttributedString.Key: Any]
+    ) {
         let lineNumberString = "\(lineNumber)" as NSString
         let rect = NSRect(x: 5, y: yPos, width: gutterWidth - 20, height: lineHeight)
         lineNumberString.draw(in: rect, withAttributes: attributes)
