@@ -811,7 +811,7 @@ SWIFT_GUI_PLANNING.md                   # Updated: Stage 6 documentation complet
 - 5147d2e - "Update SWIFT_GUI_PLANNING.md - Document Stage 6 progress and known issues" (2026-01-02)
 - d80fff3 - "Add Swift test infrastructure with TODO for comprehensive tests" (2026-01-02)
 - 5de69ae - "Complete Stage 6 documentation: OpenAPI spec, Swift app guide, API updates" (2026-01-02)
-- TBD - "Remove redundant API tests, achieve 26/26 pass rate (100%)" (2026-01-02)
+- 1866cd1 - "Remove redundant API tests, achieve 22/22 pass rate (100%)" (2026-01-02)
 
 ### Stage 7: Cross-Platform Foundation (Week 7-8)
 
