@@ -65,14 +65,19 @@ class APIClient: ObservableObject {
         }
 
         let url = baseURL.appendingPathComponent("/api/v1/session/\(sessionID)/load")
-        return try await post(url: url, body: LoadProgramRequest(source: source))
+        DebugLog.network("POST \(url.absoluteString) - \(source.count) chars")
+        let response: LoadProgramResponse = try await post(url: url, body: LoadProgramRequest(source: source))
+        DebugLog.success("Load response - success: \(response.success)", category: "Network")
+        return response
     }
 
     // MARK: - Execution Control
 
     func run(sessionID: String) async throws {
         let url = baseURL.appendingPathComponent("/api/v1/session/\(sessionID)/run")
+        DebugLog.network("POST \(url.absoluteString)")
         try await post(url: url, body: EmptyBody())
+        DebugLog.success("POST \(url.absoluteString) - success", category: "Network")
     }
 
     func stop(sessionID: String) async throws {

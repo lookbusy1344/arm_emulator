@@ -632,6 +632,57 @@ func TestStopExecution(t *testing.T) {
 	}
 }
 
+// TestRunExecution tests that /run actually executes the program
+func TestRunExecution(t *testing.T) {
+	server := testServer()
+	sessionID := createTestSession(t, server)
+
+	// Load a simple program that sets R0=42 and exits
+	program := ".org 0x8000\nMOV R0, #42\nSWI #0"
+	loadProgram(t, server, sessionID, program)
+
+	// Get initial registers to verify R0 is 0
+	req := httptest.NewRequest(http.MethodGet,
+		fmt.Sprintf("/api/v1/session/%s/registers", sessionID), nil)
+	w := httptest.NewRecorder()
+	server.Handler().ServeHTTP(w, req)
+
+	var initialRegs api.RegistersResponse
+	json.NewDecoder(w.Body).Decode(&initialRegs)
+
+	if initialRegs.R0 != 0 {
+		t.Errorf("Expected initial R0 = 0, got %d", initialRegs.R0)
+	}
+
+	// Start execution
+	req = httptest.NewRequest(http.MethodPost,
+		fmt.Sprintf("/api/v1/session/%s/run", sessionID), nil)
+	w = httptest.NewRecorder()
+	server.Handler().ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("Expected status 200, got %d: %s", w.Code, w.Body.String())
+	}
+
+	// Wait for program to complete
+	time.Sleep(100 * time.Millisecond)
+
+	// Get final registers - R0 should be 42 if program actually ran
+	req = httptest.NewRequest(http.MethodGet,
+		fmt.Sprintf("/api/v1/session/%s/registers", sessionID), nil)
+	w = httptest.NewRecorder()
+	server.Handler().ServeHTTP(w, req)
+
+	var finalRegs api.RegistersResponse
+	if err := json.NewDecoder(w.Body).Decode(&finalRegs); err != nil {
+		t.Fatalf("Failed to decode registers: %v", err)
+	}
+
+	if finalRegs.R0 != 42 {
+		t.Errorf("Program did not execute! Expected R0 = 42, got %d", finalRegs.R0)
+	}
+}
+
 // TestDisassembly tests disassembly endpoint
 func TestDisassembly(t *testing.T) {
 	server := testServer()

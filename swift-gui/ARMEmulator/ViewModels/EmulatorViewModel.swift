@@ -57,42 +57,74 @@ class EmulatorViewModel: ObservableObject {
     }
 
     func loadProgram(source: String) async {
+        DebugLog.log("loadProgram() called", category: "ViewModel")
+        DebugLog.log("Source length: \(source.count) chars", category: "ViewModel")
+
         guard let sessionID = sessionID else {
+            DebugLog.error("No active session for loadProgram", category: "ViewModel")
             errorMessage = "No active session"
             return
         }
 
+        DebugLog.log("SessionID: \(sessionID)", category: "ViewModel")
+
         do {
+            DebugLog.log("Calling apiClient.loadProgram()...", category: "ViewModel")
             let response = try await apiClient.loadProgram(sessionID: sessionID, source: source)
+
+            DebugLog.log("Load response - success: \(response.success)", category: "ViewModel")
 
             // Check if load was successful
             if !response.success {
                 let errors = response.errors?.joined(separator: "\n") ?? "Unknown error"
+                DebugLog.error("Load failed with errors: \(errors)", category: "ViewModel")
                 errorMessage = "Failed to load program:\n\(errors)"
                 return
+            }
+
+            if let symbols = response.symbols {
+                DebugLog.log("Loaded \(symbols.count) symbols", category: "ViewModel")
+                for (name, addr) in symbols.prefix(5) {
+                    DebugLog.log("  Symbol: \(name) -> 0x\(String(format: "%08X", addr))", category: "ViewModel")
+                }
             }
 
             sourceCode = source
             errorMessage = nil
 
+            DebugLog.log("Refreshing state...", category: "ViewModel")
             try await refreshState()
+            DebugLog.success("Program loaded successfully, PC: 0x\(String(format: "%08X", currentPC))", category: "ViewModel")
         } catch {
+            DebugLog.error("loadProgram() failed: \(error.localizedDescription)", category: "ViewModel")
             errorMessage = "Failed to load program: \(error.localizedDescription)"
         }
     }
 
     func run() async {
+        DebugLog.log("run() called", category: "ViewModel")
+
         guard let sessionID = sessionID else {
+            DebugLog.error("No active session", category: "ViewModel")
             errorMessage = "No active session"
             return
         }
 
+        DebugLog.log("SessionID: \(sessionID)", category: "ViewModel")
+        DebugLog.log("Current status: \(status)", category: "ViewModel")
+        DebugLog.log("Current PC: 0x\(String(format: "%08X", currentPC))", category: "ViewModel")
+
         do {
+            DebugLog.log("Calling apiClient.run()...", category: "ViewModel")
             try await apiClient.run(sessionID: sessionID)
+            DebugLog.success("apiClient.run() succeeded", category: "ViewModel")
             errorMessage = nil
         } catch {
+            DebugLog.error("apiClient.run() failed: \(error.localizedDescription)", category: "ViewModel")
             errorMessage = "Failed to run: \(error.localizedDescription)"
         }
+
+        DebugLog.log("run() completed", category: "ViewModel")
     }
 
     func stop() async {
@@ -185,24 +217,33 @@ class EmulatorViewModel: ObservableObject {
     }
 
     private func handleEvent(_ event: EmulatorEvent) {
-        guard event.sessionId == sessionID else { return }
+        guard event.sessionId == sessionID else {
+            DebugLog.warning("Ignoring event for different session", category: "ViewModel")
+            return
+        }
+
+        DebugLog.log("WebSocket event received: \(event.type)", category: "ViewModel")
 
         switch event.type {
         case "state":
             if let data = event.data, case let .state(stateUpdate) = data {
+                DebugLog.log("State update - PC: 0x\(String(format: "%08X", stateUpdate.pc)), status: \(stateUpdate.status)", category: "ViewModel")
                 registers = stateUpdate.registers
                 currentPC = stateUpdate.pc
                 status = VMState(rawValue: stateUpdate.status) ?? .idle
             }
         case "output":
             if let data = event.data, case let .output(outputUpdate) = data {
+                DebugLog.log("Console output: \(outputUpdate.content.prefix(50))...", category: "ViewModel")
                 consoleOutput += outputUpdate.content
             }
         case "event":
             if let data = event.data, case let .event(execEvent) = data {
+                DebugLog.log("Execution event: \(execEvent.event)", category: "ViewModel")
                 handleExecutionEvent(execEvent)
             }
         default:
+            DebugLog.warning("Unknown event type: \(event.type)", category: "ViewModel")
             break
         }
     }

@@ -144,7 +144,10 @@ struct MainView: View {
             Divider()
 
             Button(
-                action: { Task { await viewModel.run() } },
+                action: {
+                    DebugLog.ui("Run button clicked")
+                    Task { await viewModel.run() }
+                },
                 label: { Label("Run", systemImage: "play.fill") }
             )
             .help("Run program (⌘R)")

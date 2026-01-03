@@ -235,6 +235,29 @@ The Swift app follows MVVM architecture and connects to the Go backend via:
 
 See `SWIFT_GUI_PLANNING.md` for detailed architecture documentation and `docs/SWIFT_CLI_AUTOMATION.md` for comprehensive CLI development guide.
 
+#### Debug Logging Best Practice
+
+**IMPORTANT:** Use the `DebugLog` utility (in `swift-gui/ARMEmulator/Utilities/DebugLog.swift`) for all diagnostic logging. This provides:
+
+- **Conditional compilation**: Logs are completely removed in RELEASE builds (no runtime overhead)
+- **Runtime toggle**: Set `DebugLog.enabled = false` to silence logs without rebuilding
+- **Categorized output**: Different log levels (log, success, error, warning, network, ui) with emoji icons
+
+Example usage:
+```swift
+DebugLog.log("Loading program", category: "ViewModel")
+DebugLog.network("POST /api/v1/session/\(sessionID)/run")
+DebugLog.success("Program loaded successfully", category: "ViewModel")
+DebugLog.error("Failed to connect: \(error)", category: "ViewModel")
+DebugLog.ui("Run button clicked")
+```
+
+**Benefits:**
+- Debug logs appear in Xcode console during development
+- Zero overhead in production builds (code is stripped out)
+- Easy to toggle on/off for specific debugging sessions
+- Consistent formatting across the codebase
+
 ### Common Pitfalls
 
 1. **"No such module 'SwiftUI'" error**: Ensure Xcode Command Line Tools are installed: `xcode-select --install`

@@ -167,6 +167,11 @@ func (s *Server) handleRun(w http.ResponseWriter, r *http.Request, sessionID str
 		return
 	}
 
+	// Set running state synchronously BEFORE launching goroutine
+	// This ensures the frontend can immediately observe the state change
+	// and RunUntilHalt() will proceed with execution
+	session.Service.SetRunning(true)
+
 	// Run the program asynchronously
 	go func() {
 		_ = session.Service.RunUntilHalt()
