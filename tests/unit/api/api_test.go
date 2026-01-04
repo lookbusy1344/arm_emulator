@@ -1030,3 +1030,101 @@ func TestExamplesPathTraversal(t *testing.T) {
 		t.Errorf("Expected status 400, 404, or 301 for path traversal, got %d", w.Code)
 	}
 }
+
+// TestConsoleOutput tests retrieving console output via API
+func TestConsoleOutput(t *testing.T) {
+	server := testServer()
+	sessionID := createTestSession(t, server)
+
+	// Load a program that writes to console
+	program := `
+	.org 0x8000
+main:
+	; Write "Hello, World!\n" to console
+	LDR R0, =message
+	SWI #0x02    ; WRITE_STRING syscall
+	SWI #0x07    ; WRITE_NEWLINE syscall
+	SWI #0       ; EXIT syscall
+
+message:
+	.asciz "Hello, World!"
+	`
+
+	loadProgram(t, server, sessionID, program)
+
+	// Run the program
+	req := httptest.NewRequest(http.MethodPost,
+		fmt.Sprintf("/api/v1/session/%s/run", sessionID), nil)
+	w := httptest.NewRecorder()
+	server.Handler().ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("Expected status 200 for run, got %d: %s", w.Code, w.Body.String())
+	}
+
+	// Wait for program to complete
+	time.Sleep(100 * time.Millisecond)
+
+	// Get console output
+	req = httptest.NewRequest(http.MethodGet,
+		fmt.Sprintf("/api/v1/session/%s/console", sessionID), nil)
+	w = httptest.NewRecorder()
+
+	server.Handler().ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Errorf("Expected status 200, got %d: %s", w.Code, w.Body.String())
+	}
+
+	var response api.ConsoleOutputResponse
+	if err := json.NewDecoder(w.Body).Decode(&response); err != nil {
+		t.Fatalf("Failed to decode response: %v", err)
+	}
+
+	expectedOutput := "Hello, World!\n"
+	if response.Output != expectedOutput {
+		t.Errorf("Expected output %q, got %q", expectedOutput, response.Output)
+	}
+}
+
+// TestConsoleOutputEmpty tests console output with no program output
+func TestConsoleOutputEmpty(t *testing.T) {
+	server := testServer()
+	sessionID := createTestSession(t, server)
+
+	// Load a program that doesn't write anything
+	program := `
+	.org 0x8000
+	MOV R0, #42
+	SWI #0
+	`
+	loadProgram(t, server, sessionID, program)
+
+	// Run the program
+	req := httptest.NewRequest(http.MethodPost,
+		fmt.Sprintf("/api/v1/session/%s/run", sessionID), nil)
+	w := httptest.NewRecorder()
+	server.Handler().ServeHTTP(w, req)
+
+	time.Sleep(50 * time.Millisecond)
+
+	// Get console output (should be empty)
+	req = httptest.NewRequest(http.MethodGet,
+		fmt.Sprintf("/api/v1/session/%s/console", sessionID), nil)
+	w = httptest.NewRecorder()
+
+	server.Handler().ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Errorf("Expected status 200, got %d", w.Code)
+	}
+
+	var response api.ConsoleOutputResponse
+	if err := json.NewDecoder(w.Body).Decode(&response); err != nil {
+		t.Fatalf("Failed to decode response: %v", err)
+	}
+
+	if response.Output != "" {
+		t.Errorf("Expected empty output, got %q", response.Output)
+	}
+}

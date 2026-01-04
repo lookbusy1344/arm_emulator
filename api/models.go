@@ -174,6 +174,11 @@ type OutputEvent struct {
 	Content string `json:"content"` // Output content
 }
 
+// ConsoleOutputResponse represents console output buffer contents
+type ConsoleOutputResponse struct {
+	Output string `json:"output"` // Accumulated console output
+}
+
 // ExecutionEvent represents execution events like breakpoints
 type ExecutionEvent struct {
 	Event   string `json:"event"` // "breakpoint_hit", "error", "halted"

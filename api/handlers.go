@@ -338,6 +338,38 @@ func (s *Server) handleGetMemory(w http.ResponseWriter, r *http.Request, session
 	writeJSON(w, http.StatusOK, response)
 }
 
+// handleGetConsoleOutput handles GET /api/v1/session/{id}/console
+func (s *Server) handleGetConsoleOutput(w http.ResponseWriter, r *http.Request, sessionID string) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	session, err := s.sessions.GetSession(sessionID)
+	if err != nil {
+		writeError(w, http.StatusNotFound, "Session not found")
+		return
+	}
+
+	// Get the VM's output writer
+	vm := session.Service.GetVM()
+	if vm.OutputWriter == nil {
+		writeJSON(w, http.StatusOK, ConsoleOutputResponse{Output: ""})
+		return
+	}
+
+	// Type assert to EventWriter to access GetBuffer method
+	eventWriter, ok := vm.OutputWriter.(*EventWriter)
+	if !ok {
+		// Fallback: OutputWriter is not an EventWriter (shouldn't happen in normal API usage)
+		writeJSON(w, http.StatusOK, ConsoleOutputResponse{Output: ""})
+		return
+	}
+
+	output := eventWriter.GetBuffer()
+	writeJSON(w, http.StatusOK, ConsoleOutputResponse{Output: output})
+}
+
 // handleGetDisassembly handles GET /api/v1/session/{id}/disassembly
 func (s *Server) handleGetDisassembly(w http.ResponseWriter, r *http.Request, sessionID string) {
 	if r.Method != http.MethodGet {

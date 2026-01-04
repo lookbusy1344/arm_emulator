@@ -213,6 +213,8 @@ func (s *Server) handleSessionRoute(w http.ResponseWriter, r *http.Request) {
 		s.handleGetMemory(w, r, sessionID)
 	case "disassembly":
 		s.handleGetDisassembly(w, r, sessionID)
+	case "console":
+		s.handleGetConsoleOutput(w, r, sessionID)
 	case "breakpoint":
 		s.handleBreakpoint(w, r, sessionID)
 	case "breakpoints":
