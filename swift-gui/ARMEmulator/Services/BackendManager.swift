@@ -108,9 +108,27 @@ class BackendManager: ObservableObject {
         process.executableURL = binaryPath
         process.arguments = ["--api-server", "--port", "8080"]
 
+        // Enable backend debug logging in DEBUG builds
+        #if DEBUG
+            var environment = ProcessInfo.processInfo.environment
+            environment["ARM_EMULATOR_DEBUG"] = "1"
+            process.environment = environment
+            DebugLog.log("Starting backend with debug logging enabled", category: "BackendManager")
+        #endif
+
         let outputPipe = Pipe()
         process.standardOutput = outputPipe
         process.standardError = outputPipe
+
+        // In DEBUG builds, log backend output to Xcode console
+        #if DEBUG
+            outputPipe.fileHandleForReading.readabilityHandler = { fileHandle in
+                let data = fileHandle.availableData
+                if let output = String(data: data, encoding: .utf8), !output.isEmpty {
+                    DebugLog.log("Backend: \(output.trimmingCharacters(in: .whitespacesAndNewlines))", category: "Backend")
+                }
+            }
+        #endif
 
         process.terminationHandler = { [weak self] process in
             Task { @MainActor [weak self] in

@@ -172,9 +172,19 @@ func (s *Server) handleRun(w http.ResponseWriter, r *http.Request, sessionID str
 	// and RunUntilHalt() will proceed with execution
 	session.Service.SetRunning(true)
 
+	// Broadcast initial state change (status: running)
+	regs := session.Service.GetRegisterState()
+	state := session.Service.GetExecutionState()
+	s.broadcastStateChange(sessionID, &regs, state)
+
 	// Run the program asynchronously
 	go func() {
 		_ = session.Service.RunUntilHalt()
+
+		// Broadcast final state after execution completes
+		finalRegs := session.Service.GetRegisterState()
+		finalState := session.Service.GetExecutionState()
+		s.broadcastStateChange(sessionID, &finalRegs, finalState)
 	}()
 
 	writeJSON(w, http.StatusOK, SuccessResponse{
@@ -920,15 +930,12 @@ func (s *Server) broadcastStateChange(sessionID string, regs *service.RegisterSt
 		return
 	}
 
-	// Convert register state to map for broadcasting
-	// ARM register mapping: R0-R12, R13=SP, R14=LR, R15=PC
+	// Convert register state to match Swift GUI's StateUpdate structure
+	// Swift expects: {status, pc, registers: {r0-r12, sp, lr, pc, cpsr}, flags}
 	data := map[string]interface{}{
 		"status": string(state),
 		"pc":     regs.PC,
-		"sp":     regs.Registers[13],
-		"lr":     regs.Registers[14],
-		"cycles": regs.Cycles,
-		"registers": map[string]uint32{
+		"registers": map[string]interface{}{
 			"r0":  regs.Registers[0],
 			"r1":  regs.Registers[1],
 			"r2":  regs.Registers[2],
@@ -942,6 +949,15 @@ func (s *Server) broadcastStateChange(sessionID string, regs *service.RegisterSt
 			"r10": regs.Registers[10],
 			"r11": regs.Registers[11],
 			"r12": regs.Registers[12],
+			"sp":  regs.Registers[13],
+			"lr":  regs.Registers[14],
+			"pc":  regs.PC,
+			"cpsr": map[string]bool{
+				"n": regs.CPSR.N,
+				"z": regs.CPSR.Z,
+				"c": regs.CPSR.C,
+				"v": regs.CPSR.V,
+			},
 		},
 		"flags": map[string]bool{
 			"n": regs.CPSR.N,
