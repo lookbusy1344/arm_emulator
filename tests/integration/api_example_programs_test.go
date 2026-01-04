@@ -305,6 +305,50 @@ func sendStdinBatch(t *testing.T, server *api.Server, sessionID, stdin string) {
 	}
 }
 
+// sendStdinInteractive sends stdin incrementally based on WebSocket state
+func sendStdinInteractive(t *testing.T, server *api.Server, sessionID, stdin string,
+	wsClient *WebSocketTestClient) error {
+	t.Helper()
+
+	// Split stdin into lines
+	inputs := strings.Split(stdin, "\n")
+	// Remove empty trailing line if present
+	if len(inputs) > 0 && inputs[len(inputs)-1] == "" {
+		inputs = inputs[:len(inputs)-1]
+	}
+
+	inputIndex := 0
+
+	// Monitor WebSocket for stdin requests
+	for {
+		// Wait for state update
+		update, err := wsClient.WaitForStateUpdate(5 * time.Second)
+		if err != nil {
+			return fmt.Errorf("waiting for state update: %w", err)
+		}
+
+		// Check if VM is waiting for input
+		if update.State == "waiting_for_input" || update.Type == "stdin_request" {
+			if inputIndex >= len(inputs) {
+				return fmt.Errorf("program requested more input than provided")
+			}
+
+			// Send next input line
+			sendStdinBatch(t, server, sessionID, inputs[inputIndex]+"\n")
+			inputIndex++
+		} else if update.State == "halted" || update.State == "error" {
+			// Program finished
+			if inputIndex < len(inputs) {
+				return fmt.Errorf("program halted with %d unused inputs", len(inputs)-inputIndex)
+			}
+			break
+		}
+		// Continue monitoring
+	}
+
+	return nil
+}
+
 func TestCreateAPISession(t *testing.T) {
 	server := createTestServer()
 	sessionID := createAPISession(t, server)
