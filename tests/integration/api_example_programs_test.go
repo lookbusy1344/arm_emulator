@@ -96,6 +96,59 @@ func loadProgramViaAPI(t *testing.T, server *api.Server, sessionID, source strin
 	}
 }
 
+// startExecution starts program execution via REST API
+func startExecution(t *testing.T, server *api.Server, sessionID string) {
+	t.Helper()
+
+	req := httptest.NewRequest(http.MethodPost,
+		fmt.Sprintf("/api/v1/session/%s/run", sessionID), nil)
+	w := httptest.NewRecorder()
+
+	server.Handler().ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("Failed to start execution: %d %s", w.Code, w.Body.String())
+	}
+}
+
+// getConsoleOutput retrieves console output via REST API
+func getConsoleOutput(t *testing.T, server *api.Server, sessionID string) string {
+	t.Helper()
+
+	req := httptest.NewRequest(http.MethodGet,
+		fmt.Sprintf("/api/v1/session/%s/console", sessionID), nil)
+	w := httptest.NewRecorder()
+
+	server.Handler().ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("Failed to get console output: %d %s", w.Code, w.Body.String())
+	}
+
+	var resp api.ConsoleOutputResponse
+	if err := json.NewDecoder(w.Body).Decode(&resp); err != nil {
+		t.Fatalf("Failed to decode console response: %v", err)
+	}
+
+	return resp.Output
+}
+
+// destroySession destroys a session via REST API
+func destroySession(t *testing.T, server *api.Server, sessionID string) {
+	t.Helper()
+
+	req := httptest.NewRequest(http.MethodDelete,
+		fmt.Sprintf("/api/v1/session/%s", sessionID), nil)
+	w := httptest.NewRecorder()
+
+	server.Handler().ServeHTTP(w, req)
+
+	// Don't fail test if session already gone
+	if w.Code != http.StatusOK && w.Code != http.StatusNotFound {
+		t.Logf("Warning: Failed to destroy session: %d", w.Code)
+	}
+}
+
 func TestCreateAPISession(t *testing.T) {
 	server := createTestServer()
 	sessionID := createAPISession(t, server)
@@ -116,4 +169,28 @@ main:
 `
 	loadProgramViaAPI(t, server, sessionID, program)
 	// If we get here without panic, load succeeded
+}
+
+func TestExecutionFlow(t *testing.T) {
+	server := createTestServer()
+	sessionID := createAPISession(t, server)
+	defer destroySession(t, server, sessionID)
+
+	program := `.org 0x8000
+	LDR R0, =msg
+	SWI #0x02
+	SWI #0
+msg:
+	.asciz "Hello"
+`
+	loadProgramViaAPI(t, server, sessionID, program)
+	startExecution(t, server, sessionID)
+
+	// Wait for execution to complete
+	time.Sleep(100 * time.Millisecond)
+
+	output := getConsoleOutput(t, server, sessionID)
+	if output != "Hello" {
+		t.Errorf("Expected 'Hello', got %q", output)
+	}
 }
