@@ -69,7 +69,10 @@ func loadProgramViaAPI(t *testing.T, server *api.Server, sessionID, source strin
 	t.Helper()
 
 	reqBody := api.LoadProgramRequest{Source: source}
-	body, _ := json.Marshal(reqBody)
+	body, err := json.Marshal(reqBody)
+	if err != nil {
+		t.Fatalf("Failed to marshal request: %v", err)
+	}
 
 	req := httptest.NewRequest(http.MethodPost,
 		fmt.Sprintf("/api/v1/session/%s/load", sessionID),
