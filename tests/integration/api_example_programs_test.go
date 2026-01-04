@@ -9,11 +9,32 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
+	"github.com/gorilla/websocket"
 	"github.com/lookbusy1344/arm-emulator/api"
 )
+
+// WebSocketTestClient manages WebSocket connection for tests
+type WebSocketTestClient struct {
+	conn    *websocket.Conn
+	updates chan StateUpdate
+	errors  chan error
+	done    chan struct{}
+	mu      sync.Mutex
+}
+
+// StateUpdate represents a state update from WebSocket
+type StateUpdate struct {
+	Type      string                 `json:"type"`
+	SessionID string                 `json:"session_id"`
+	State     string                 `json:"state"`
+	Registers map[string]interface{} `json:"registers,omitempty"`
+	PC        uint32                 `json:"pc,omitempty"`
+	Cycles    int64                  `json:"cycles,omitempty"`
+}
 
 // TestAPIExamplePrograms runs integration tests for example programs via REST API
 func TestAPIExamplePrograms(t *testing.T) {
@@ -27,7 +48,9 @@ func TestAPIExamplePrograms(t *testing.T) {
 	_ = os.Open
 	_ = filepath.Join
 	_ = strings.Join
+	_ = sync.Mutex{}
 	_ = time.Now
+	_ = (*websocket.Conn)(nil)
 	_ = api.NewServer
 
 	// Placeholder - will add test cases in later tasks
