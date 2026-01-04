@@ -149,6 +149,29 @@ func destroySession(t *testing.T, server *api.Server, sessionID string) {
 	}
 }
 
+// sendStdinBatch sends all stdin upfront via REST API
+func sendStdinBatch(t *testing.T, server *api.Server, sessionID, stdin string) {
+	t.Helper()
+
+	reqBody := api.StdinRequest{Data: stdin}
+	body, err := json.Marshal(reqBody)
+	if err != nil {
+		t.Fatalf("Failed to marshal stdin request: %v", err)
+	}
+
+	req := httptest.NewRequest(http.MethodPost,
+		fmt.Sprintf("/api/v1/session/%s/stdin", sessionID),
+		bytes.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+
+	server.Handler().ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("Failed to send stdin: %d %s", w.Code, w.Body.String())
+	}
+}
+
 func TestCreateAPISession(t *testing.T) {
 	server := createTestServer()
 	sessionID := createAPISession(t, server)
@@ -192,5 +215,30 @@ msg:
 	output := getConsoleOutput(t, server, sessionID)
 	if output != "Hello" {
 		t.Errorf("Expected 'Hello', got %q", output)
+	}
+}
+
+func TestBatchStdin(t *testing.T) {
+	server := createTestServer()
+	sessionID := createAPISession(t, server)
+	defer destroySession(t, server, sessionID)
+
+	// Load fibonacci.s from examples
+	programPath := filepath.Join("..", "..", "examples", "fibonacci.s")
+	programBytes, err := os.ReadFile(programPath)
+	if err != nil {
+		t.Skipf("fibonacci.s not found: %v", err)
+	}
+
+	loadProgramViaAPI(t, server, sessionID, string(programBytes))
+	sendStdinBatch(t, server, sessionID, "10\n")
+	startExecution(t, server, sessionID)
+
+	// Wait for execution
+	time.Sleep(200 * time.Millisecond)
+
+	output := getConsoleOutput(t, server, sessionID)
+	if !strings.Contains(output, "Fibonacci sequence") {
+		t.Errorf("Expected Fibonacci output, got: %q", output)
 	}
 }

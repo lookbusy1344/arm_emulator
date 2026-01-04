@@ -8,6 +8,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 	"time"
 
@@ -77,6 +78,7 @@ type DebuggerService struct {
 	// stdin redirection for guest programs (GUI)
 	stdinPipeReader *io.PipeReader
 	stdinPipeWriter *io.PipeWriter
+	stdinBuffer     strings.Builder // Buffer for stdin sent before execution starts
 }
 
 // NewDebuggerService creates a new debugger service
@@ -425,6 +427,24 @@ func (s *DebuggerService) RunUntilHalt() error {
 		s.mu.Unlock()
 		return nil
 	}
+
+	// Flush any buffered stdin to the pipe in a background goroutine
+	// This supports the batch stdin pattern where input is sent before calling run
+	// We use a goroutine because pipe writes block until there's a reader,
+	// but the reader only starts when the VM execution loop begins
+	if s.stdinBuffer.Len() > 0 {
+		buffered := s.stdinBuffer.String()
+		s.stdinBuffer.Reset()
+		serviceLog.Printf("Flushing %d bytes of buffered stdin in background", len(buffered))
+
+		// Launch goroutine to write to pipe (won't block RunUntilHalt)
+		go func() {
+			if _, err := s.stdinPipeWriter.Write([]byte(buffered)); err != nil {
+				serviceLog.Printf("Error writing buffered stdin to pipe: %v", err)
+			}
+		}()
+	}
+
 	s.vm.State = vm.StateRunning
 	s.mu.Unlock()
 
@@ -842,12 +862,24 @@ func (s *DebuggerService) EvaluateExpression(expr string) (uint32, error) {
 // SendInput sends user input to the guest program's stdin
 // This is called from the GUI frontend when the user provides input
 func (s *DebuggerService) SendInput(input string) error {
-	// NOTE: No mutex lock here! io.Pipe is already thread-safe for concurrent reads/writes.
-	// Taking a lock here causes deadlock when RunUntilHalt holds the lock while blocked on stdin read.
-
 	if s.stdinPipeWriter == nil {
 		return fmt.Errorf("stdin pipe not initialized")
 	}
+
+	// Check if VM is running
+	// If not running, buffer the input for later (batch stdin pattern)
+	if !s.IsRunning() {
+		s.mu.Lock()
+		// Note: input should already include newline from API layer
+		s.stdinBuffer.WriteString(input)
+		s.mu.Unlock()
+		serviceLog.Printf("SendInput: Buffered %d bytes for later", len(input))
+		return nil
+	}
+
+	// VM is running - echo to output and write to pipe
+	// NOTE: No mutex lock for pipe write! io.Pipe is already thread-safe.
+	// Taking a lock here causes deadlock when RunUntilHalt holds the lock while blocked on stdin read.
 
 	// Echo the input to the output window so the user can see what they typed
 	// Use RLock to safely access OutputWriter
