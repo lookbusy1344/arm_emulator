@@ -89,6 +89,39 @@ func (c *WebSocketTestClient) Close() error {
 	return nil
 }
 
+// WaitForStateUpdate waits for next state update with timeout
+func (c *WebSocketTestClient) WaitForStateUpdate(timeout time.Duration) (StateUpdate, error) {
+	select {
+	case update := <-c.updates:
+		return update, nil
+	case err := <-c.errors:
+		return StateUpdate{}, fmt.Errorf("WebSocket error: %w", err)
+	case <-time.After(timeout):
+		return StateUpdate{}, fmt.Errorf("timeout waiting for state update")
+	}
+}
+
+// WaitForState waits for specific state value with timeout
+func (c *WebSocketTestClient) WaitForState(targetState string, timeout time.Duration) (StateUpdate, error) {
+	deadline := time.Now().Add(timeout)
+	for {
+		remaining := time.Until(deadline)
+		if remaining <= 0 {
+			return StateUpdate{}, fmt.Errorf("timeout waiting for state %q", targetState)
+		}
+
+		update, err := c.WaitForStateUpdate(remaining)
+		if err != nil {
+			return StateUpdate{}, err
+		}
+
+		if update.State == targetState {
+			return update, nil
+		}
+		// Continue looping to wait for the target state
+	}
+}
+
 // TestAPIExamplePrograms runs integration tests for example programs via REST API
 func TestAPIExamplePrograms(t *testing.T) {
 	// Temporary usage to satisfy Go's unused import check
