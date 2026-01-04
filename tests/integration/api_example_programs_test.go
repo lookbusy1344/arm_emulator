@@ -64,6 +64,35 @@ func createAPISession(t *testing.T, server *api.Server) string {
 	return resp.SessionID
 }
 
+// loadProgramViaAPI loads a program via REST API
+func loadProgramViaAPI(t *testing.T, server *api.Server, sessionID, source string) {
+	t.Helper()
+
+	reqBody := api.LoadProgramRequest{Source: source}
+	body, _ := json.Marshal(reqBody)
+
+	req := httptest.NewRequest(http.MethodPost,
+		fmt.Sprintf("/api/v1/session/%s/load", sessionID),
+		bytes.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+
+	server.Handler().ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("Failed to load program: %d %s", w.Code, w.Body.String())
+	}
+
+	var resp api.LoadProgramResponse
+	if err := json.NewDecoder(w.Body).Decode(&resp); err != nil {
+		t.Fatalf("Failed to decode load response: %v", err)
+	}
+
+	if !resp.Success {
+		t.Fatalf("Program load errors: %v", resp.Errors)
+	}
+}
+
 func TestCreateAPISession(t *testing.T) {
 	server := createTestServer()
 	sessionID := createAPISession(t, server)
@@ -71,4 +100,17 @@ func TestCreateAPISession(t *testing.T) {
 	if sessionID == "" {
 		t.Fatal("Expected non-empty session ID")
 	}
+}
+
+func TestLoadProgramViaAPI(t *testing.T) {
+	server := createTestServer()
+	sessionID := createAPISession(t, server)
+
+	program := `.org 0x8000
+main:
+	MOV R0, #42
+	SWI #0
+`
+	loadProgramViaAPI(t, server, sessionID, program)
+	// If we get here without panic, load succeeded
 }
