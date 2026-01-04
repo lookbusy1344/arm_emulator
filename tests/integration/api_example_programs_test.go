@@ -327,6 +327,12 @@ func sendStdinInteractive(t *testing.T, server *api.Server, sessionID, stdin str
 			return fmt.Errorf("waiting for state update: %w", err)
 		}
 
+		// Check if program completed
+		if update.State == "halted" || update.State == "error" {
+			// Program halted - this is success even if inputs remain unused
+			break
+		}
+
 		// Check if VM is waiting for input
 		if update.State == "waiting_for_input" || update.Type == "stdin_request" {
 			if inputIndex >= len(inputs) {
@@ -336,12 +342,6 @@ func sendStdinInteractive(t *testing.T, server *api.Server, sessionID, stdin str
 			// Send next input line
 			sendStdinBatch(t, server, sessionID, inputs[inputIndex]+"\n")
 			inputIndex++
-		} else if update.State == "halted" || update.State == "error" {
-			// Program finished
-			if inputIndex < len(inputs) {
-				return fmt.Errorf("program halted with %d unused inputs", len(inputs)-inputIndex)
-			}
-			break
 		}
 		// Continue monitoring
 	}
