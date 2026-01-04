@@ -34,7 +34,9 @@ func TestAPIExamplePrograms(t *testing.T) {
 	t.Skip("Test framework not yet implemented")
 }
 
-// createTestServer creates a new API server for testing
+// createTestServer creates a new API server for simple REST tests.
+// Note: Does not take *testing.T parameter since it cannot call t.Fatal.
+// For WebSocket tests, use createTestServerWithWebSocket (Task 9) instead.
 func createTestServer() *api.Server {
 	server := api.NewServer(8080)
 	return server
