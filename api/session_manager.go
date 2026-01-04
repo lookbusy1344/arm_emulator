@@ -56,6 +56,9 @@ func (sm *SessionManager) CreateSession(opts SessionCreateRequest) (*Session, er
 	if sm.broadcaster != nil {
 		outputWriter := NewEventWriter(sm.broadcaster, sessionID, "stdout")
 		machine.OutputWriter = outputWriter
+		debugLog("Session %s: EventWriter set up for stdout broadcasting", sessionID)
+	} else {
+		debugLog("Session %s: WARNING - no broadcaster available for output", sessionID)
 	}
 
 	// Create debugger service

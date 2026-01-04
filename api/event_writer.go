@@ -34,8 +34,10 @@ func (w *EventWriter) Write(p []byte) (n int, err error) {
 
 	n, err = w.buffer.Write(p)
 	if err == nil && n > 0 && w.broadcaster != nil {
+		content := string(p)
+		debugLog("EventWriter.Write: broadcasting %d bytes to session %s: %q", n, w.sessionID, content)
 		// Broadcast the output event
-		w.broadcaster.BroadcastOutput(w.sessionID, w.stream, string(p))
+		w.broadcaster.BroadcastOutput(w.sessionID, w.stream, content)
 	}
 	return n, err
 }

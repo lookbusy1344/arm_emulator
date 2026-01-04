@@ -145,9 +145,16 @@ func (s *DebuggerService) LoadProgram(program *parser.Program, entryPoint uint32
 	}
 
 	// Create output buffer with event emission
-	outputBuffer := &bytes.Buffer{}
-	s.outputWriter = NewEventEmittingWriter(outputBuffer, s.ctx)
-	s.vm.OutputWriter = s.outputWriter
+	// IMPORTANT: Only set OutputWriter if it hasn't been configured already.
+	// The API server sets up EventWriter for WebSocket broadcasting before calling LoadProgram.
+	// The GUI (Wails) doesn't pre-configure OutputWriter, so we set up EventEmittingWriter for it.
+	if s.vm.OutputWriter == os.Stdout {
+		// OutputWriter is still the default (os.Stdout), so set up event emission
+		outputBuffer := &bytes.Buffer{}
+		s.outputWriter = NewEventEmittingWriter(outputBuffer, s.ctx)
+		s.vm.OutputWriter = s.outputWriter
+	}
+	// else: OutputWriter was already configured (e.g., by API layer), leave it alone
 
 	// Load into debugger
 	s.debugger.LoadSymbols(s.symbols)

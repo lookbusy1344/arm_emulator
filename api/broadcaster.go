@@ -152,6 +152,7 @@ func (b *Broadcaster) BroadcastState(sessionID string, data map[string]interface
 
 // BroadcastOutput sends a console output event
 func (b *Broadcaster) BroadcastOutput(sessionID string, stream string, content string) {
+	debugLog("BroadcastOutput: session=%s stream=%s content=%q (subscribers=%d)", sessionID, stream, content, b.SubscriptionCount())
 	b.Broadcast(BroadcastEvent{
 		Type:      EventTypeOutput,
 		SessionID: sessionID,

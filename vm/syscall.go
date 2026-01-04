@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log"
 	"math/rand"
 	"os"
 	"path/filepath"
@@ -12,6 +13,8 @@ import (
 	"strings"
 	"time"
 )
+
+var vmDebugEnabled = os.Getenv("ARM_EMULATOR_DEBUG") != ""
 
 // Error Handling Philosophy:
 //
@@ -379,6 +382,9 @@ func handleWriteString(vm *VM) error {
 		}
 	}
 
+	if vmDebugEnabled {
+		log.Printf("VM: handleWriteString writing %d bytes: %q to OutputWriter %T", len(str), string(str), vm.OutputWriter)
+	}
 	_, _ = fmt.Fprint(vm.OutputWriter, string(str)) // Ignore write errors
 	// Sync if it's a regular file (not a character device like stdout)
 	if f, ok := vm.OutputWriter.(*os.File); ok && shouldSyncFile(f) {
