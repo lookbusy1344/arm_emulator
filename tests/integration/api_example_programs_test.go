@@ -36,6 +36,59 @@ type StateUpdate struct {
 	Cycles    int64                  `json:"cycles,omitempty"`
 }
 
+// NewWebSocketTestClient creates a WebSocket test client
+func NewWebSocketTestClient(t *testing.T, wsURL string) *WebSocketTestClient {
+	t.Helper()
+
+	// Connect to WebSocket
+	conn, _, err := websocket.DefaultDialer.Dial(wsURL, nil)
+	if err != nil {
+		t.Fatalf("Failed to connect WebSocket: %v", err)
+	}
+
+	client := &WebSocketTestClient{
+		conn:    conn,
+		updates: make(chan StateUpdate, 10),
+		errors:  make(chan error, 10),
+		done:    make(chan struct{}),
+	}
+
+	// Start receiving messages
+	go client.receiveLoop()
+
+	return client
+}
+
+// receiveLoop receives WebSocket messages in background
+func (c *WebSocketTestClient) receiveLoop() {
+	defer close(c.done)
+	for {
+		var update StateUpdate
+		if err := c.conn.ReadJSON(&update); err != nil {
+			if websocket.IsCloseError(err, websocket.CloseNormalClosure) {
+				return
+			}
+			c.errors <- err
+			return
+		}
+		c.updates <- update
+	}
+}
+
+// Close closes the WebSocket connection
+func (c *WebSocketTestClient) Close() error {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+
+	if c.conn != nil {
+		c.conn.WriteMessage(websocket.CloseMessage,
+			websocket.FormatCloseMessage(websocket.CloseNormalClosure, ""))
+		c.conn.Close()
+		<-c.done // Wait for receive loop to finish
+	}
+	return nil
+}
+
 // TestAPIExamplePrograms runs integration tests for example programs via REST API
 func TestAPIExamplePrograms(t *testing.T) {
 	// Temporary usage to satisfy Go's unused import check
