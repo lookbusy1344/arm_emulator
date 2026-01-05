@@ -161,6 +161,7 @@ func TestAPIExamplePrograms(t *testing.T) {
 		expectedOutput string
 		stdin          string
 		stdinMode      string // "batch", "interactive", or ""
+		skip           bool   // skip test if true
 	}{
 		{
 			name:           "Hello_API",
@@ -175,12 +176,24 @@ func TestAPIExamplePrograms(t *testing.T) {
 			stdin:          "10\n",
 			stdinMode:      "batch",
 		},
+		{
+			name:           "Calculator_API",
+			programFile:    "calculator.s",
+			expectedOutput: "calculator.txt",
+			stdin:          "15\n+\n7\nq\n",
+			stdinMode:      "interactive",
+			skip:           true, // CAVEAT: Interactive stdin requires stdin_request events (not implemented)
+		},
 	}
 
 	server, baseURL := createTestServerWithWebSocket(t)
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			if tt.skip {
+				t.Skip("Test skipped - see caveats documentation")
+			}
+			
 			output, err := runProgramViaAPI(t, server, baseURL,
 				tt.programFile, tt.stdin, tt.stdinMode)
 			if err != nil {
