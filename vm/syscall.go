@@ -434,16 +434,21 @@ func handleWriteInt(vm *VM) error {
 }
 
 func handleReadChar(vm *VM) error {
+	// Signal that VM is waiting for input before blocking on read
+	vm.SetState(StateWaitingForInput)
+
 	// Skip any leading whitespace (newlines, spaces, tabs)
 	for {
 		char, err := vm.stdinReader.ReadByte()
 		if err != nil {
+			vm.SetState(StateRunning)                  // Restore running state
 			vm.CPU.SetRegister(0, SyscallErrorGeneral) // Return -1 on error
 			vm.CPU.IncrementPC()
 			return nil
 		}
 		// If it's not whitespace, we found our character
 		if char != '\n' && char != '\r' && char != ' ' && char != '\t' {
+			vm.SetState(StateRunning) // Restore running state
 			vm.CPU.SetRegister(0, uint32(char))
 			vm.CPU.IncrementPC()
 			return nil
@@ -459,14 +464,20 @@ func handleReadString(vm *VM) error {
 		maxLen = DefaultStringBuffer // Default max length
 	}
 
+	// Signal that VM is waiting for input before blocking on read
+	vm.SetState(StateWaitingForInput)
+
 	// Read string from stdin with size limit (DoS protection)
 	// Use a limited reader to prevent unbounded memory allocation
 	input, err := readLineWithLimit(vm.stdinReader, MaxStdinInputSize)
 	if err != nil {
+		vm.SetState(StateRunning)                  // Restore running state
 		vm.CPU.SetRegister(0, SyscallErrorGeneral) // Return -1 on error
 		vm.CPU.IncrementPC()
 		return nil
 	}
+
+	vm.SetState(StateRunning) // Restore running state
 
 	// Remove trailing newline
 	input = strings.TrimSuffix(input, "\n")
@@ -500,11 +511,15 @@ func handleReadString(vm *VM) error {
 }
 
 func handleReadInt(vm *VM) error {
+	// Signal that VM is waiting for input before blocking on read
+	vm.SetState(StateWaitingForInput)
+
 	// Read lines until we get a non-empty one or hit EOF
 	for {
 		// Use limited read to prevent DoS from unbounded input
 		line, err := readLineWithLimit(vm.stdinReader, MaxStdinInputSize)
 		if err != nil {
+			vm.SetState(StateRunning) // Restore running state
 			vm.CPU.SetRegister(0, 0)
 			vm.CPU.IncrementPC()
 			return nil
@@ -516,6 +531,8 @@ func handleReadInt(vm *VM) error {
 			// Skip empty lines
 			continue
 		}
+
+		vm.SetState(StateRunning) // Restore running state
 
 		value, err := strconv.ParseInt(line, 10, 32)
 		if err != nil {
@@ -860,6 +877,12 @@ func handleRead(vm *VM) error {
 		vm.CPU.IncrementPC()
 		return nil
 	}
+
+	// Signal waiting for input if reading from stdin (fd 0)
+	if fd == 0 {
+		vm.SetState(StateWaitingForInput)
+	}
+
 	// Buffer allocation: We allocate before the read operation rather than after validating
 	// the read will succeed. This is a trade-off for code clarity:
 	// - The file descriptor, size, and buffer range have been validated above
@@ -870,6 +893,12 @@ func handleRead(vm *VM) error {
 	// - Maximum allocation is capped at 1MB, limiting potential waste
 	data := make([]byte, length)
 	n, err := f.Read(data)
+
+	// Restore running state if we were reading from stdin
+	if fd == 0 {
+		vm.SetState(StateRunning)
+	}
+
 	if err != nil && n == 0 {
 		vm.CPU.SetRegister(0, SyscallErrorGeneral)
 		vm.CPU.IncrementPC()

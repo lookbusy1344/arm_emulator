@@ -44,10 +44,11 @@ type MemoryRegion struct {
 type ExecutionState string
 
 const (
-	StateRunning    ExecutionState = "running"
-	StateHalted     ExecutionState = "halted"
-	StateBreakpoint ExecutionState = "breakpoint"
-	StateError      ExecutionState = "error"
+	StateRunning         ExecutionState = "running"
+	StateHalted          ExecutionState = "halted"
+	StateBreakpoint      ExecutionState = "breakpoint"
+	StateError           ExecutionState = "error"
+	StateWaitingForInput ExecutionState = "waiting_for_input"
 )
 
 // VMStateToExecution converts vm.ExecutionState to service.ExecutionState
@@ -61,6 +62,8 @@ func VMStateToExecution(state vm.ExecutionState) ExecutionState {
 		return StateBreakpoint
 	case vm.StateError:
 		return StateError
+	case vm.StateWaitingForInput:
+		return StateWaitingForInput
 	default:
 		return StateHalted
 	}

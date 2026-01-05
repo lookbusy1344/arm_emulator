@@ -1,7 +1,7 @@
 # API Integration Tests - Implementation Caveats
 
-**Status:** In Progress (9/18 tasks complete)
-**Date:** 2026-01-04
+**Status:** In Progress (9/18 tasks complete) - Task 14 interactive stdin now resolved
+**Date:** 2026-01-04 (Updated: 2026-01-05)
 
 This document tracks architectural issues and technical debt discovered during implementation that must be addressed before the integration tests are fully functional.
 
@@ -169,63 +169,69 @@ go test ./tests/integration -run TestAPIExamplePrograms/Hello_API -v
 
 ---
 
-## Task 14: Calculator Test Case (Interactive Stdin) - Missing stdin_request Events
+## Task 14: Calculator Test Case (Interactive Stdin) - ✅ RESOLVED
 
-**Status:** Implemented with batch mode workaround due to API limitations
+**Status:** Fully implemented with true interactive stdin mode
 
-### Issue 1: No stdin_request or waiting_for_input Events Broadcast
-- **Severity:** Blocking (prevents interactive stdin tests)
-- **Problem:** Interactive stdin mode requires the API server to broadcast WebSocket events when the VM is waiting for input
-  - The plan expects `stdin_request` events or `waiting_for_input` status updates
-  - Current API server only broadcasts these ExecutionState values: "running", "halted", "breakpoint", "error" (see `service/types.go:44-50`)
-  - No mechanism exists to detect when VM is blocked on stdin syscall (SWI #0x06)
-  - WebSocket receives only "state" events with status="running" and "output" events
-- **Impact:** 
-  - Calculator.s and other interactive stdin programs cannot use true interactive mode via API
-  - Interactive stdin mode (`stdinMode: "interactive"`) is non-functional
-  - However, batch stdin mode does work for programs that consume all input
-- **Observed behavior (interactive mode):**
-  - Test sends stdin incrementally based on WebSocket updates
-  - Starts execution
-  - Receives WebSocket updates: `type=state, status=running` followed by multiple `type=output` messages
-  - Program blocks waiting for first input, but no stdin_request event is broadcast
-  - WebSocket closes or times out
-- **Root cause:** VM layer doesn't expose stdin-waiting state to service layer; service layer doesn't broadcast it
-- **Required fixes for true interactive mode:**
-  1. **VM Layer:** Add new execution state for stdin blocking (e.g., `StateWaitingForInput`)
-  2. **Service Layer:** Expose this state via `ExecutionState` enum and broadcast it
-  3. **API Layer:** Broadcast stdin_request events when VM enters waiting state
-  4. **Test Layer:** sendStdinInteractive already handles this event type
-- **When to fix:** Requires coordinated changes across VM/service/API layers - beyond scope of test implementation
+### Original Issue: No stdin_request or waiting_for_input Events Broadcast
+- **Severity:** Was Blocking (now resolved)
+- **Original Problem:** Interactive stdin mode required the API server to broadcast WebSocket events when the VM is waiting for input
 
-### Decision
-Calculator test case added to test suite using **batch mode** instead of interactive mode. While not the ideal solution specified in the plan, batch mode provides functional test coverage for the calculator program via API.
+### Resolution (2026-01-05)
+The issue was resolved by implementing coordinated changes across VM/service/API layers:
+
+1. **VM Layer (`vm/executor.go`):**
+   - Added `StateWaitingForInput` to `ExecutionState` enum
+   - Added `OnStateChange` callback to VM struct
+   - Modified `SetState()` to invoke callback when state changes
+
+2. **VM Syscall Layer (`vm/syscall.go`):**
+   - Modified `handleReadInt()`, `handleReadChar()`, `handleReadString()`, and `handleRead()` to:
+     - Call `vm.SetState(StateWaitingForInput)` before blocking on stdin read
+     - Call `vm.SetState(StateRunning)` after read completes
+
+3. **Service Layer (`service/types.go`):**
+   - Added `StateWaitingForInput ExecutionState = "waiting_for_input"` 
+   - Updated `VMStateToExecution()` to map the new state
+
+4. **Service Layer (`service/debugger_service.go`):**
+   - Modified `RunUntilHalt()` to release mutex before `vm.Step()` and reacquire after
+   - This prevents deadlock when stdin syscalls block while holding the lock
+
+5. **API Layer (`api/session_manager.go`):**
+   - Set up VM's `OnStateChange` callback to broadcast state changes via WebSocket
+   - Uses existing `Broadcaster.BroadcastState()` infrastructure
+
+### Test Configuration
+Calculator test now uses true interactive mode:
 
 ```go
 {
     name:           "Calculator_API",
     programFile:    "calculator.s",
-    expectedOutput: "calculator.txt",
-    stdin:          "15\n+\n7\nq\n",
-    stdinMode:      "batch",  // Plan called for "interactive" but that requires stdin_request events
+    expectedOutput: "calculator_interactive.txt", // Interactive mode echoes input
+    stdin:          "15\n+\n7\n0\nq\n", // Need 5 inputs: num1, op, num2, (dummy)num1, quit-op
+    stdinMode:      "interactive",
 },
 ```
 
-**Note:** The test infrastructure for interactive stdin (sendStdinInteractive function) has been implemented and is ready to use once the API server broadcasts the necessary events.
+**Notes:**
+- Interactive mode echoes user input to output (for GUI feedback), requiring a separate expected output file
+- The input sequence differs from batch mode because interactive mode sends input line-by-line
 
 ---
 
 ## Summary
 
 **Total caveats:** 8 issues across 4 tasks
-- **Blocking:** 2 (Task 9 port exposure - resolved; Task 14 interactive stdin - requires API modifications)
-- **Important:** 6 (concurrency, race conditions, timeouts)
-- **When to address:** Task 12 race condition requires API server fix; Task 14 requires VM/service/API changes
+- **Resolved:** 3 (Task 9 port exposure, Task 14 interactive stdin)
+- **Important:** 5 (concurrency, race conditions, timeouts)
+- **When to address:** Task 12 race condition requires API server fix
 
 **Status Update (Task 14):**
-- Test case added to test suite ✅
-- Interactive stdin infrastructure implemented ✅
-- Limitation documented in caveat ⚠️
-- Test marked as skip due to missing API server events ⏭️
+- True interactive stdin fully implemented ✅
+- Calculator test running with interactive mode ✅
+- WebSocket broadcasts `waiting_for_input` state ✅
+- Test passes with correct output ✅
 
-**Recommendation:** Task 14 cannot be completed without API server modifications to broadcast stdin-waiting events. Skip calculator test for now; implement API changes in separate task.
+**Recommendation:** Task 14 is now complete. Interactive stdin works correctly for all programs that use stdin syscalls.

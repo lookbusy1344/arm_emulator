@@ -467,9 +467,18 @@ func (s *DebuggerService) RunUntilHalt() error {
 			break
 		}
 
-		// Execute step (while holding lock)
+		// Capture values needed for step
 		pc := s.vm.CPU.PC
+
+		// Release lock BEFORE Step() because Step() may block on stdin read.
+		// This allows SendInput() to acquire RLock and write to the stdin pipe.
+		s.mu.Unlock()
+
+		// Execute step (without holding lock - Step may block on stdin)
 		err := s.vm.Step()
+
+		// Reacquire lock to check state
+		s.mu.Lock()
 		halted := s.vm.State == vm.StateHalted
 		s.mu.Unlock()
 

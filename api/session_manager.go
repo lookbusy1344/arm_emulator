@@ -57,6 +57,17 @@ func (sm *SessionManager) CreateSession(opts SessionCreateRequest) (*Session, er
 		outputWriter := NewEventWriter(sm.broadcaster, sessionID, "stdout")
 		machine.OutputWriter = outputWriter
 		debugLog("Session %s: EventWriter set up for stdout broadcasting", sessionID)
+
+		// Set up VM state change callback to broadcast state changes (e.g., waiting_for_input)
+		broadcaster := sm.broadcaster
+		sid := sessionID
+		machine.OnStateChange = func(state vm.ExecutionState) {
+			serviceState := service.VMStateToExecution(state)
+			data := map[string]interface{}{
+				"status": string(serviceState),
+			}
+			broadcaster.BroadcastState(sid, data)
+		}
 	} else {
 		debugLog("Session %s: WARNING - no broadcaster available for output", sessionID)
 	}

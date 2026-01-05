@@ -179,10 +179,9 @@ func TestAPIExamplePrograms(t *testing.T) {
 		{
 			name:           "Calculator_API",
 			programFile:    "calculator.s",
-			expectedOutput: "calculator.txt",
-			stdin:          "15\n+\n7\nq\n",
+			expectedOutput: "calculator_interactive.txt", // Interactive mode echoes input
+			stdin:          "15\n+\n7\n0\nq\n",           // Need 5 inputs: num1, op, num2, (dummy)num1, quit-op
 			stdinMode:      "interactive",
-			skip:           true, // CAVEAT: Interactive stdin requires stdin_request events (not implemented)
 		},
 	}
 
@@ -193,7 +192,7 @@ func TestAPIExamplePrograms(t *testing.T) {
 			if tt.skip {
 				t.Skip("Test skipped - see caveats documentation")
 			}
-			
+
 			output, err := runProgramViaAPI(t, server, baseURL,
 				tt.programFile, tt.stdin, tt.stdinMode)
 			if err != nil {
