@@ -922,12 +922,7 @@ func handleWrite(vm *VM) error {
 	fd := vm.CPU.GetRegister(0)
 	bufferAddr := vm.CPU.GetRegister(1)
 	length := vm.CPU.GetRegister(2)
-	f, err := vm.getFile(fd)
-	if err != nil {
-		vm.CPU.SetRegister(0, SyscallErrorGeneral)
-		vm.CPU.IncrementPC()
-		return nil
-	}
+
 	// Security: limit write size to prevent memory exhaustion attacks
 	// Maximum allowed: 1MB
 	if length > MaxWriteSize {
@@ -951,6 +946,28 @@ func handleWrite(vm *VM) error {
 			return nil
 		}
 		data[i] = b
+	}
+
+	// Special handling for stdout/stderr when OutputWriter is configured
+	// This ensures consistency with SWI #0x10, #0x11, #0x12 which write to OutputWriter
+	if (fd == StdOut || fd == StdErr) && vm.OutputWriter != nil && vm.OutputWriter != os.Stdout {
+		n, err := vm.OutputWriter.Write(data)
+		if err != nil {
+			vm.CPU.SetRegister(0, SyscallErrorGeneral)
+		} else {
+			//nolint:gosec // G115: n is bounded by reasonable write size
+			vm.CPU.SetRegister(0, uint32(n))
+		}
+		vm.CPU.IncrementPC()
+		return nil
+	}
+
+	// For all other file descriptors, use the standard file descriptor table
+	f, err := vm.getFile(fd)
+	if err != nil {
+		vm.CPU.SetRegister(0, SyscallErrorGeneral)
+		vm.CPU.IncrementPC()
+		return nil
 	}
 	n, err := f.Write(data)
 	if err != nil {

@@ -4,6 +4,7 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"errors"
+	"os"
 	"sync"
 	"time"
 
@@ -23,6 +24,7 @@ type Session struct {
 	ID        string
 	Service   *service.DebuggerService
 	CreatedAt time.Time
+	TempDir   string // Temporary directory for filesystem operations (cleaned up on destroy)
 }
 
 // SessionManager manages multiple emulator sessions
@@ -52,6 +54,21 @@ func (sm *SessionManager) CreateSession(opts SessionCreateRequest) (*Session, er
 	// TODO: Future enhancement - configure VM memory size based on opts.MemorySize
 	machine := vm.NewVM()
 
+	// Configure filesystem root for security and file operations
+	// If FSRoot is provided, use it; otherwise create a temporary directory for this session
+	var tempDir string
+	if opts.FSRoot != "" {
+		machine.FilesystemRoot = opts.FSRoot
+	} else {
+		// Create a temporary directory for this session's file operations
+		var err error
+		tempDir, err = os.MkdirTemp("", "arm-emulator-session-*")
+		if err != nil {
+			return nil, err
+		}
+		machine.FilesystemRoot = tempDir
+	}
+
 	// Set up output broadcasting if broadcaster is available
 	if sm.broadcaster != nil {
 		outputWriter := NewEventWriter(sm.broadcaster, sessionID, "stdout")
@@ -79,6 +96,7 @@ func (sm *SessionManager) CreateSession(opts SessionCreateRequest) (*Session, er
 		ID:        sessionID,
 		Service:   debugService,
 		CreatedAt: time.Now(),
+		TempDir:   tempDir,
 	}
 
 	sm.mu.Lock()
@@ -119,6 +137,11 @@ func (sm *SessionManager) DestroySession(sessionID string) error {
 	if session.Service != nil {
 		// The service will clean up its own resources
 		session.Service = nil
+	}
+
+	// Clean up temporary directory if it was created
+	if session.TempDir != "" {
+		os.RemoveAll(session.TempDir)
 	}
 
 	delete(sm.sessions, sessionID)

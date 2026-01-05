@@ -240,14 +240,14 @@ Calculator test now uses true interactive mode:
 
 ## Task 15: All 49 Test Cases - Test Results
 
-**Status:** Complete - All test cases implemented and executed
-**Date:** 2026-01-05
+**Status:** ✅ COMPLETE - All tests passing!
+**Date:** 2026-01-05 (Updated: Fixed all issues)
 
 ### Test Execution Summary
 - **Total test cases:** 47 (all example programs from examples/ directory)
-- **Passing:** 45 (96% success rate)
-- **Failing:** 2 (4% failure rate)
-- **Execution time:** 8.02 seconds
+- **Passing:** 47 (100% success rate) ✅
+- **Failing:** 0 ✅
+- **Execution time:** ~8 seconds
 
 **Note:** The task description mentioned 49 cases, but the actual count of example programs is 47. All programs have been included.
 
@@ -298,76 +298,47 @@ Calculator test now uses true interactive mode:
 44. TestExpr_API ✅
 45. TestGetArguments_API ✅
 
-### Failing Tests (2)
+### All Tests Fixed! ✅
 
-#### Test 1: SieveOfEratosthenes_API ❌
+#### Fix 1: SieveOfEratosthenes_API - Output Capture Issue ✅ RESOLVED
 
-**Failure Type:** Output mismatch
+**Problem:** Programs using `SWI #0x13` (write syscall) to write to file descriptor 1 (stdout) bypassed the EventWriter buffer. Output went directly to `os.Stdout` instead of being captured.
 
-**Expected output (98 bytes):**
-```
-Prime numbers up to 100:
-2 3 5 7 11 13 17 19 23 29 31 37 41 43 47 53 
-59 61 67 71 73 79 83 89 97 
-```
+**Root Cause:** The VM had dual output paths:
+- SWI #0x10-0x12 (writeChar/String/Int) → wrote to `vm.OutputWriter` ✅
+- SWI #0x13 (write syscall) → called `getFile(1)` which returned `os.Stdout`, bypassing OutputWriter ❌
 
-**Actual output (73 bytes):**
-```
-2 3 5 7 11 13 17 19 23 29 31 37 41 43 47 53 
-59 61 67 71 73 79 83 89 97 
-```
+**Solution Implemented:**
+Modified `vm/syscall.go` `handleWrite()` function to check if fd is stdout/stderr (1/2) AND OutputWriter is configured. If so, write to OutputWriter instead of using the file descriptor. This ensures consistent output routing for API sessions.
 
-**Analysis:**
-- Program is missing the first line "Prime numbers up to 100:\n"
-- The prime numbers themselves are correctly computed
-- This is a program output issue, not an API server issue
-- The program may have been modified or the expected output file is incorrect
+**Changes:**
+- `vm/syscall.go`: Modified `handleWrite()` (~20 lines)
+- Backward compatible: CLI mode still works with `os.Stdout`
 
-**Severity:** Minor - program logic works, just missing header text
-
-**Recommended fix:** Either:
-1. Update expected output file to match actual program output (if program is correct)
-2. Fix the sieve_of_eratosthenes.s program to include the header (if expected output is correct)
+**Test Result:** ✅ PASS
 
 ---
 
-#### Test 2: FileIO_API ❌
+#### Fix 2: FileIO_API - Filesystem Access ✅ RESOLVED
 
-**Failure Type:** Filesystem access denied
+**Problem:** API sessions didn't have filesystem access configured, causing file I/O operations to fail with "filesystem root not configured".
 
-**Expected output (65 bytes):**
-```
-[file_io] File I/O round-trip test starting
-64
-64
-[file_io] PASS
-```
+**Solution Implemented:**
+Modified `api/session_manager.go` to configure filesystem access:
+1. Added `TempDir` field to `Session` struct
+2. `CreateSession()` now creates a temporary directory (`os.MkdirTemp`) and sets `vm.FilesystemRoot`
+3. `DestroySession()` cleans up temp directories with `os.RemoveAll()`
 
-**Actual output (86 bytes):**
-```
-[file_io] File I/O round-trip test starting
-[file_io] FAIL during write[file_io] FAIL
-```
+**Benefits:**
+- Each API session has isolated filesystem access in its own temp directory
+- Automatic cleanup when sessions are destroyed
+- Security maintained: no unrestricted filesystem access
+- Optional explicit filesystem root via `fsRoot` parameter in session creation
 
-**Console warning:**
-```
-Security Warning: filesystem access denied: filesystem root not configured - cannot access files
-```
+**Changes:**
+- `api/session_manager.go`: Modified session creation/destruction (~30 lines)
 
-**Analysis:**
-- The VM's filesystem security feature is preventing file I/O operations
-- This is by design - the API server VM does not have filesystem access configured
-- The file_io.s program requires filesystem access to create/read/write files
-- This is a configuration limitation, not a bug
-
-**Severity:** Expected behavior - filesystem access requires explicit configuration
-
-**Recommended fix:** Either:
-1. Configure filesystem root for API sessions (if this feature is intended)
-2. Mark test as skipped with comment explaining filesystem security limitation
-3. Document that file I/O tests cannot run in API mode due to security restrictions
-
-**Note:** This is likely intentional security behavior to prevent arbitrary file access through the API.
+**Test Result:** ✅ PASS
 
 ---
 
@@ -386,10 +357,12 @@ Security Warning: filesystem access denied: filesystem root not configured - can
 
 ---
 
-### Recommendations
+### Final Status
 
-1. **SieveOfEratosthenes_API:** Investigate expected output file vs actual program output and align them
-2. **FileIO_API:** Either enable filesystem access for tests or mark as skipped with security justification
-3. **Overall:** 96% pass rate demonstrates API integration test framework is working correctly
-4. **Performance:** 8 seconds for 49 tests is excellent (average 163ms per test)
-5. **Stability:** No timeouts, no crashes, consistent results
+**All 47 tests passing! 🎉**
+
+1. **✅ SieveOfEratosthenes_API:** Fixed by routing all stdout writes through OutputWriter
+2. **✅ FileIO_API:** Fixed by configuring isolated temp directories for API sessions  
+3. **✅ 100% pass rate:** Complete API integration test coverage
+4. **✅ Performance:** ~8 seconds for 47 tests (average 170ms per test)
+5. **✅ Stability:** No timeouts, no crashes, consistent results across runs
