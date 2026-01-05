@@ -349,6 +349,63 @@ func sendStdinInteractive(t *testing.T, server *api.Server, sessionID, stdin str
 	return nil
 }
 
+// runProgramViaAPI runs a program via REST API with optional stdin
+func runProgramViaAPI(t *testing.T, server *api.Server, baseURL, programFile, stdin, stdinMode string) (string, error) {
+	t.Helper()
+
+	// Create session
+	sessionID := createAPISession(t, server)
+	defer destroySession(t, server, sessionID)
+
+	// Establish WebSocket if interactive mode or if we need to wait for halt
+	var wsClient *WebSocketTestClient
+	if stdinMode == "interactive" || stdinMode == "batch" {
+		wsURL := fmt.Sprintf("ws://%s/api/v1/ws?session=%s",
+			strings.TrimPrefix(baseURL, "http://"), sessionID)
+		wsClient = NewWebSocketTestClient(t, wsURL)
+		defer wsClient.Close()
+	}
+
+	// Load program
+	programPath := filepath.Join("..", "..", "examples", programFile)
+	programBytes, err := os.ReadFile(programPath)
+	if err != nil {
+		return "", fmt.Errorf("reading program: %w", err)
+	}
+	loadProgramViaAPI(t, server, sessionID, string(programBytes))
+
+	// Handle stdin based on mode
+	if stdinMode == "batch" {
+		// Send all stdin upfront
+		if stdin != "" {
+			sendStdinBatch(t, server, sessionID, stdin)
+		}
+		// Start execution
+		startExecution(t, server, sessionID)
+		// Wait for halt via WebSocket
+		_, err := wsClient.WaitForState("halted", 10*time.Second)
+		if err != nil {
+			return "", fmt.Errorf("waiting for halt: %w", err)
+		}
+	} else if stdinMode == "interactive" {
+		// Start execution first
+		startExecution(t, server, sessionID)
+		// Send stdin incrementally
+		if err := sendStdinInteractive(t, server, sessionID, stdin, wsClient); err != nil {
+			return "", fmt.Errorf("interactive stdin: %w", err)
+		}
+	} else {
+		// No stdin, just run
+		startExecution(t, server, sessionID)
+		// Wait a bit for execution to complete
+		time.Sleep(200 * time.Millisecond)
+	}
+
+	// Get console output
+	output := getConsoleOutput(t, server, sessionID)
+	return output, nil
+}
+
 func TestCreateAPISession(t *testing.T) {
 	server := createTestServer()
 	sessionID := createAPISession(t, server)
