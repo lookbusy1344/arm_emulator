@@ -517,6 +517,22 @@ func createTestServerWithWebSocket(t *testing.T) (*api.Server, string) {
 		testServer.Close()
 	})
 
+	// Health check polling to ensure server is ready
+	client := &http.Client{Timeout: 100 * time.Millisecond}
+	for i := 0; i < 50; i++ {
+		resp, err := client.Get(testServer.URL + "/health")
+		if err == nil {
+			resp.Body.Close()
+			if resp.StatusCode == http.StatusOK {
+				break
+			}
+		}
+		if i == 49 {
+			t.Fatal("server failed to become ready after 5 seconds")
+		}
+		time.Sleep(100 * time.Millisecond)
+	}
+
 	return server, testServer.URL
 }
 
