@@ -141,7 +141,7 @@ func (sm *SessionManager) DestroySession(sessionID string) error {
 
 	// Clean up temporary directory if it was created
 	if session.TempDir != "" {
-		os.RemoveAll(session.TempDir)
+		_ = os.RemoveAll(session.TempDir)
 	}
 
 	delete(sm.sessions, sessionID)

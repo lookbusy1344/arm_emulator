@@ -690,13 +690,10 @@ func runProgramViaAPI(t *testing.T, server *api.Server, baseURL, programFile, st
 	sessionID := createAPISession(t, server)
 	defer destroySession(t, server, sessionID)
 
-	// Establish WebSocket if interactive mode or if we need to wait for halt
-	var wsClient *WebSocketTestClient
-	if stdinMode == "interactive" || stdinMode == "batch" {
-		wsURL := "ws" + strings.TrimPrefix(baseURL, "http") + fmt.Sprintf("/api/v1/ws?session=%s", sessionID)
-		wsClient = NewWebSocketTestClient(t, wsURL)
-		defer wsClient.Close()
-	}
+	// Establish WebSocket for all modes to properly wait for completion
+	wsURL := "ws" + strings.TrimPrefix(baseURL, "http") + fmt.Sprintf("/api/v1/ws?session=%s", sessionID)
+	wsClient := NewWebSocketTestClient(t, wsURL)
+	defer wsClient.Close()
 
 	// Load program
 	programPath := filepath.Join("..", "..", "examples", programFile)
@@ -729,8 +726,11 @@ func runProgramViaAPI(t *testing.T, server *api.Server, baseURL, programFile, st
 	} else {
 		// No stdin, just run
 		startExecution(t, server, sessionID)
-		// Wait a bit for execution to complete
-		time.Sleep(200 * time.Millisecond)
+		// Wait for halt via WebSocket
+		_, err := wsClient.WaitForState("halted", 10*time.Second)
+		if err != nil {
+			return "", fmt.Errorf("waiting for halt: %w", err)
+		}
 	}
 
 	// Get console output
