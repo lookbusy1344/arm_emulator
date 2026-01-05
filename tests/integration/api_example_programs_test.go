@@ -124,23 +124,49 @@ func (c *WebSocketTestClient) WaitForState(targetState string, timeout time.Dura
 
 // TestAPIExamplePrograms runs integration tests for example programs via REST API
 func TestAPIExamplePrograms(t *testing.T) {
-	// Temporary usage to satisfy Go's unused import check
-	// These will be used in subsequent tasks
-	_ = bytes.Buffer{}
-	_ = json.Marshal
-	_ = fmt.Sprint
-	_ = http.StatusOK
-	_ = httptest.NewServer
-	_ = os.Open
-	_ = filepath.Join
-	_ = strings.Join
-	_ = sync.Mutex{}
-	_ = time.Now
-	_ = (*websocket.Conn)(nil)
-	_ = api.NewServer
+	// Note: These tests require a real HTTP server for WebSocket support
+	// They cannot use httptest.ResponseRecorder
 
-	// Placeholder - will add test cases in later tasks
-	t.Skip("Test framework not yet implemented")
+	tests := []struct {
+		name           string
+		programFile    string
+		expectedOutput string
+		stdin          string
+		stdinMode      string // "batch", "interactive", or ""
+	}{
+		{
+			name:           "Hello_API",
+			programFile:    "hello.s",
+			expectedOutput: "hello.txt",
+			stdinMode:      "",
+		},
+	}
+
+	server, baseURL := createTestServerWithWebSocket(t)
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			output, err := runProgramViaAPI(t, server, baseURL,
+				tt.programFile, tt.stdin, tt.stdinMode)
+			if err != nil {
+				t.Fatalf("execution failed: %v", err)
+			}
+
+			// Load expected output
+			expectedPath := filepath.Join("expected_outputs", tt.expectedOutput)
+			expectedBytes, err := os.ReadFile(expectedPath)
+			if err != nil {
+				t.Fatalf("failed to read expected output: %v", err)
+			}
+			expected := string(expectedBytes)
+
+			// Compare output
+			if output != expected {
+				t.Errorf("output mismatch\nExpected (%d bytes):\n%q\nGot (%d bytes):\n%q",
+					len(expected), expected, len(output), output)
+			}
+		})
+	}
 }
 
 // createTestServerWithWebSocket creates and starts a real HTTP server for WebSocket testing
