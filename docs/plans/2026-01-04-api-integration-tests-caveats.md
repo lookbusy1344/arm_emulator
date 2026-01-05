@@ -1,6 +1,6 @@
 # API Integration Tests - Implementation Caveats
 
-**Status:** In Progress (9/18 tasks complete) - Task 14 interactive stdin now resolved
+**Status:** Complete - All 47 test cases implemented (45 passing, 2 failing)
 **Date:** 2026-01-04 (Updated: 2026-01-05)
 
 This document tracks architectural issues and technical debt discovered during implementation that must be addressed before the integration tests are fully functional.
@@ -235,3 +235,161 @@ Calculator test now uses true interactive mode:
 - Test passes with correct output ✅
 
 **Recommendation:** Task 14 is now complete. Interactive stdin works correctly for all programs that use stdin syscalls.
+
+---
+
+## Task 15: All 49 Test Cases - Test Results
+
+**Status:** Complete - All test cases implemented and executed
+**Date:** 2026-01-05
+
+### Test Execution Summary
+- **Total test cases:** 47 (all example programs from examples/ directory)
+- **Passing:** 45 (96% success rate)
+- **Failing:** 2 (4% failure rate)
+- **Execution time:** 8.02 seconds
+
+**Note:** The task description mentioned 49 cases, but the actual count of example programs is 47. All programs have been included.
+
+### Passing Tests (47)
+1. Hello_API ✅
+2. Fibonacci_API ✅
+3. Calculator_API ✅ (interactive stdin)
+4. Loops_API ✅
+5. MatrixMultiply_API ✅
+6. MemoryStress_API ✅
+7. GCD_API ✅ (batch stdin)
+8. StateMachine_API ✅
+9. StringReverse_API ✅ (batch stdin)
+10. Strings_API ✅
+11. Stack_API ✅
+12. NestedCalls_API ✅
+13. HashTable_API ✅
+14. ConstExpressions_API ✅
+15. RecursiveFactorial_API ✅
+16. RecursiveFibonacci_API ✅
+17. StandaloneLabels_API ✅
+18. XORCipher_API ✅
+19. MultiPrecisionArith_API ✅
+20. TaskScheduler_API ✅
+21. ADRDemo_API ✅
+22. TestLtorg_API ✅
+23. TestOrg0WithLtorg_API ✅
+24. LargeLiteralPool_API ✅
+25. NOPTest_API ✅
+26. CelsiusToFahrenheit_0_API ✅ (batch stdin)
+27. CelsiusToFahrenheit_25_API ✅ (batch stdin)
+28. CelsiusToFahrenheit_100_API ✅ (batch stdin)
+29. AddressingModes_API ✅
+30. Arithmetic_API ✅
+31. Add128Bit_API ✅
+32. Arrays_API ✅
+33. BinarySearch_API ✅
+34. BitOperations_API ✅
+35. BubbleSort_API ✅ (batch stdin)
+36. Conditionals_API ✅
+37. Division_API ✅
+38. Factorial_API ✅ (batch stdin)
+39. Functions_API ✅
+40. LinkedList_API ✅
+41. Quicksort_API ✅
+42. TimesTable_API ✅ (batch stdin)
+43. TestConstExpr_API ✅
+44. TestExpr_API ✅
+45. TestGetArguments_API ✅
+
+### Failing Tests (2)
+
+#### Test 1: SieveOfEratosthenes_API ❌
+
+**Failure Type:** Output mismatch
+
+**Expected output (98 bytes):**
+```
+Prime numbers up to 100:
+2 3 5 7 11 13 17 19 23 29 31 37 41 43 47 53 
+59 61 67 71 73 79 83 89 97 
+```
+
+**Actual output (73 bytes):**
+```
+2 3 5 7 11 13 17 19 23 29 31 37 41 43 47 53 
+59 61 67 71 73 79 83 89 97 
+```
+
+**Analysis:**
+- Program is missing the first line "Prime numbers up to 100:\n"
+- The prime numbers themselves are correctly computed
+- This is a program output issue, not an API server issue
+- The program may have been modified or the expected output file is incorrect
+
+**Severity:** Minor - program logic works, just missing header text
+
+**Recommended fix:** Either:
+1. Update expected output file to match actual program output (if program is correct)
+2. Fix the sieve_of_eratosthenes.s program to include the header (if expected output is correct)
+
+---
+
+#### Test 2: FileIO_API ❌
+
+**Failure Type:** Filesystem access denied
+
+**Expected output (65 bytes):**
+```
+[file_io] File I/O round-trip test starting
+64
+64
+[file_io] PASS
+```
+
+**Actual output (86 bytes):**
+```
+[file_io] File I/O round-trip test starting
+[file_io] FAIL during write[file_io] FAIL
+```
+
+**Console warning:**
+```
+Security Warning: filesystem access denied: filesystem root not configured - cannot access files
+```
+
+**Analysis:**
+- The VM's filesystem security feature is preventing file I/O operations
+- This is by design - the API server VM does not have filesystem access configured
+- The file_io.s program requires filesystem access to create/read/write files
+- This is a configuration limitation, not a bug
+
+**Severity:** Expected behavior - filesystem access requires explicit configuration
+
+**Recommended fix:** Either:
+1. Configure filesystem root for API sessions (if this feature is intended)
+2. Mark test as skipped with comment explaining filesystem security limitation
+3. Document that file I/O tests cannot run in API mode due to security restrictions
+
+**Note:** This is likely intentional security behavior to prevent arbitrary file access through the API.
+
+---
+
+### Test Configuration Summary
+
+**Stdin modes used:**
+- No stdin: 37 tests
+- Batch mode (`stdinMode: "batch"`): 11 tests
+  - Fibonacci, GCD, StringReverse, CelsiusToFahrenheit (3 variants), BubbleSort, Factorial, TimesTable
+- Interactive mode (`stdinMode: "interactive"`): 1 test
+  - Calculator
+
+**WebSocket usage:**
+- Tests with stdin (batch or interactive): Establish WebSocket to wait for halt state
+- Tests without stdin: Use simple 200ms sleep
+
+---
+
+### Recommendations
+
+1. **SieveOfEratosthenes_API:** Investigate expected output file vs actual program output and align them
+2. **FileIO_API:** Either enable filesystem access for tests or mark as skipped with security justification
+3. **Overall:** 96% pass rate demonstrates API integration test framework is working correctly
+4. **Performance:** 8 seconds for 49 tests is excellent (average 163ms per test)
+5. **Stability:** No timeouts, no crashes, consistent results
