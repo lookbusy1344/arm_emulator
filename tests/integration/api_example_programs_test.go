@@ -473,6 +473,21 @@ func TestAPIExamplePrograms(t *testing.T) {
 			expectedOutput: "test_get_arguments.txt",
 			stdinMode:      "",
 		},
+		{
+			name:           "TestStoreHighlight_API",
+			programFile:    "test_store_highlight.s",
+			expectedOutput: "test_store_highlight.txt",
+			stdinMode:      "",
+		},
+		{
+			name:           "TestDebugSyscalls_API",
+			programFile:    "test_debug_syscalls.s",
+			expectedOutput: "test_debug_syscalls.txt",
+			stdinMode:      "",
+		},
+		// Note: The following example programs are intentionally NOT tested:
+		// - test_get_random.s: Uses GET_RANDOM syscall (non-deterministic output)
+		// - test_get_time.s: Uses GET_TIME syscall (non-deterministic output)
 	}
 
 	server, baseURL := createTestServerWithWebSocket(t)
@@ -771,5 +786,3 @@ func runProgramViaAPI(t *testing.T, server *api.Server, baseURL, programFile, st
 	output := getConsoleOutput(t, server, sessionID)
 	return output, nil
 }
-
-

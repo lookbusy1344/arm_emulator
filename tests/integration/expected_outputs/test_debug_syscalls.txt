@@ -1,0 +1,31 @@
+=== Debug Syscalls Test (0xF0-0xF4) ===Test 1: DEBUG_PRINT... DONE
+Test 2: DUMP_REGISTERS...
+=== Register Dump ===
+R0  = 0x0000002A (42)
+R1  = 0x00000064 (100)
+R2  = 0x000000FF (255)
+R3  = 0x000000DE (222)
+R4  = 0x0000006F (111)
+R5  = 0x00000000 (0)
+R6  = 0x00000000 (0)
+R7  = 0x00000000 (0)
+R8  = 0x00000000 (0)
+R9  = 0x00000000 (0)
+R10 = 0x00000000 (0)
+R11 = 0x00000000 (0)
+R12 = 0x00000000 (0)
+R13 = 0x00050000 (327680)
+R14 = 0x00000000 (0)
+PC  = 0x0000803C
+CPSR = [----]
+====================
+DONE
+Test 3: DUMP_MEMORY...
+=== Memory Dump at 0x000082C0 (length=16) ===
+000082C0: 00 11 22 33 44 55 66 77 88 99 AA BB CC DD EE FF  |.."3DUfw........|
+=======================================
+DONE
+Test 4: ASSERT (pass)... PASSED
+Test 5: Multiple DEBUG_PRINT... DONE
+
+All debug syscalls working - Test PASSED

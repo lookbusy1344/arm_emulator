@@ -68,6 +68,10 @@ go test -race ./tests/integration -run TestAPIExamplePrograms
 - Hybrid stdin strategy (batch + interactive)
 - Reuses existing `expected_outputs/*.txt` files
 
+**Excluded Tests (non-deterministic output):**
+- `test_get_random.s` - Uses GET_RANDOM syscall
+- `test_get_time.s` - Uses GET_TIME syscall
+
 **Note:** API tests start a real HTTP server for WebSocket support (cannot use httptest.ResponseRecorder).
 
 ## Update dependencies
