@@ -136,11 +136,49 @@ Remove the skip when Issues 1-3 are addressed.
 
 ---
 
+---
+
+## Task 12: First Test Case (Hello World) - Race Condition in API Server
+
+**Status:** Test implemented and passing, but race detector identifies issue in underlying API server
+
+### Issue 1: Data Race in Session Manager During Concurrent Execution/Cleanup
+- **Severity:** Important (detected by race detector)
+- **Location:** `api/session_manager.go:110` and `api/handlers.go:186`
+- **Problem:** Race condition between session destruction and session execution
+  - Write occurs in `SessionManager.DestroySession()` when test cleanup calls `destroySession()`
+  - Concurrent read occurs in `Server.handleRun.func1()` goroutine still running from program execution
+  - Session state is accessed without proper synchronization between execution goroutine and cleanup
+- **Impact:** While test passes functionally, `go test -race` fails; undefined behavior if cleanup races with execution
+- **Root cause:** API server's session management doesn't properly synchronize access to session state between execution goroutines and session lifecycle operations
+- **Test behavior:** Test passes without race detector (3/3 runs successful); fails with race detector
+- **Proposed fix:** 
+  - Add proper synchronization in `api/session_manager.go` between execution and destruction
+  - Wait for execution goroutines to complete before allowing session destruction
+  - Add RWMutex to protect session state access
+- **Note:** This is an **API server implementation issue**, not a test implementation issue
+- **When to fix:** Should be fixed in API server before production use; test is correct
+
+### Workaround
+Test is functionally correct and can be used without race detector. Race detector should be disabled for this test until API server synchronization is fixed:
+
+```bash
+# Run without race detector
+go test ./tests/integration -run TestAPIExamplePrograms/Hello_API -v
+```
+
+---
+
 ## Summary
 
-**Total caveats:** 6 issues across 2 tasks
-- **Blocking:** 1 (Task 9 port exposure - must fix before Task 11)
-- **Important:** 5 (concurrency, race conditions, timeouts)
-- **When to address:** Before implementing actual WebSocket tests (Tasks 11+)
+**Total caveats:** 7 issues across 3 tasks
+- **Blocking:** 1 (Task 9 port exposure - resolved by using fixed port 8080)
+- **Important:** 6 (concurrency, race conditions, timeouts)
+- **When to address:** Task 12 race condition requires API server fix; other issues addressed as needed
 
-**Recommendation:** Address Task 9 issues (port exposure, startup race, shutdown timeout) in Task 10 or Task 11 before writing first WebSocket test. Task 7 concurrency issues can be addressed when they cause actual test failures or race detector warnings.
+**Status Update (Task 12):**
+- Test successfully implemented and committed ✅
+- Test passes functionally (without race detector) ✅  
+- Race condition identified in API server (documented above) ⚠️
+
+**Recommendation:** Task 12 race condition is in API server implementation, not test code. Tests can proceed; fix API server synchronization separately.
