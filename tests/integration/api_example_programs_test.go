@@ -29,11 +29,18 @@ type WebSocketTestClient struct {
 // StateUpdate represents a state update from WebSocket
 type StateUpdate struct {
 	Type      string                 `json:"type"`
-	SessionID string                 `json:"session_id"`
-	State     string                 `json:"state"`
-	Registers map[string]interface{} `json:"registers,omitempty"`
-	PC        uint32                 `json:"pc,omitempty"`
-	Cycles    int64                  `json:"cycles,omitempty"`
+	SessionID string                 `json:"sessionId"`
+	Data      map[string]interface{} `json:"data,omitempty"`
+}
+
+// GetStatus extracts the status from the nested data structure
+func (s *StateUpdate) GetStatus() string {
+	if s.Data != nil {
+		if status, ok := s.Data["status"].(string); ok {
+			return status
+		}
+	}
+	return ""
 }
 
 // NewWebSocketTestClient creates a WebSocket test client
@@ -55,6 +62,27 @@ func NewWebSocketTestClient(t *testing.T, wsURL string) *WebSocketTestClient {
 
 	// Start receiving messages
 	go client.receiveLoop()
+
+	// Extract session ID from URL query parameter
+	// wsURL format: ws://host/api/v1/ws?session=SESSION_ID
+	sessionID := ""
+	if idx := strings.Index(wsURL, "session="); idx != -1 {
+		sessionID = wsURL[idx+8:]
+	}
+
+	// Send subscription request to receive all events for this session
+	if sessionID != "" {
+		subReq := map[string]interface{}{
+			"type":      "subscribe",
+			"sessionId": sessionID,
+			"events":    []string{}, // Empty = all events
+		}
+		if err := conn.WriteJSON(subReq); err != nil {
+			t.Fatalf("Failed to send subscription: %v", err)
+		}
+		// Give subscription time to register
+		time.Sleep(50 * time.Millisecond)
+	}
 
 	return client
 }
@@ -115,7 +143,7 @@ func (c *WebSocketTestClient) WaitForState(targetState string, timeout time.Dura
 			return StateUpdate{}, err
 		}
 
-		if update.State == targetState {
+		if update.GetStatus() == targetState {
 			return update, nil
 		}
 		// Continue looping to wait for the target state
@@ -139,6 +167,13 @@ func TestAPIExamplePrograms(t *testing.T) {
 			programFile:    "hello.s",
 			expectedOutput: "hello.txt",
 			stdinMode:      "",
+		},
+		{
+			name:           "Fibonacci_API",
+			programFile:    "fibonacci.s",
+			expectedOutput: "fibonacci.txt",
+			stdin:          "10\n",
+			stdinMode:      "batch",
 		},
 	}
 
@@ -173,27 +208,14 @@ func TestAPIExamplePrograms(t *testing.T) {
 func createTestServerWithWebSocket(t *testing.T) (*api.Server, string) {
 	t.Helper()
 
-	server := api.NewServer(0) // Port 0 = random available port
-
-	// Start server in background
-	go func() {
-		if err := server.Start(); err != nil && err != http.ErrServerClosed {
-			t.Logf("Server error: %v", err)
-		}
-	}()
-
-	// Give server time to start
-	time.Sleep(50 * time.Millisecond)
-
-	// Get actual port (TODO: need to expose port from server)
-	// For now, use fixed test port
-	baseURL := "http://localhost:8080"
+	server := api.NewServer(8080)
+	testServer := httptest.NewServer(server.Handler())
 
 	t.Cleanup(func() {
-		server.Shutdown(nil)
+		testServer.Close()
 	})
 
-	return server, baseURL
+	return server, testServer.URL
 }
 
 // createTestServer creates test server without WebSocket (for simple REST tests)
@@ -354,13 +376,14 @@ func sendStdinInteractive(t *testing.T, server *api.Server, sessionID, stdin str
 		}
 
 		// Check if program completed
-		if update.State == "halted" || update.State == "error" {
+		status := update.GetStatus()
+		if status == "halted" || status == "error" {
 			// Program halted - this is success even if inputs remain unused
 			break
 		}
 
 		// Check if VM is waiting for input
-		if update.State == "waiting_for_input" || update.Type == "stdin_request" {
+		if status == "waiting_for_input" || update.Type == "stdin_request" {
 			if inputIndex >= len(inputs) {
 				return fmt.Errorf("program requested more input than provided")
 			}
@@ -386,8 +409,7 @@ func runProgramViaAPI(t *testing.T, server *api.Server, baseURL, programFile, st
 	// Establish WebSocket if interactive mode or if we need to wait for halt
 	var wsClient *WebSocketTestClient
 	if stdinMode == "interactive" || stdinMode == "batch" {
-		wsURL := fmt.Sprintf("ws://%s/api/v1/ws?session=%s",
-			strings.TrimPrefix(baseURL, "http://"), sessionID)
+		wsURL := "ws" + strings.TrimPrefix(baseURL, "http") + fmt.Sprintf("/api/v1/ws?session=%s", sessionID)
 		wsClient = NewWebSocketTestClient(t, wsURL)
 		defer wsClient.Close()
 	}
