@@ -167,23 +167,26 @@ func (s *Server) handleRun(w http.ResponseWriter, r *http.Request, sessionID str
 		return
 	}
 
+	// Capture service pointer to avoid race with DestroySession
+	svc := session.Service
+
 	// Set running state synchronously BEFORE launching goroutine
 	// This ensures the frontend can immediately observe the state change
 	// and RunUntilHalt() will proceed with execution
-	session.Service.SetRunning(true)
+	svc.SetRunning(true)
 
 	// Broadcast initial state change (status: running)
-	regs := session.Service.GetRegisterState()
-	state := session.Service.GetExecutionState()
+	regs := svc.GetRegisterState()
+	state := svc.GetExecutionState()
 	s.broadcastStateChange(sessionID, &regs, state)
 
 	// Run the program asynchronously
 	go func() {
-		_ = session.Service.RunUntilHalt()
+		_ = svc.RunUntilHalt()
 
 		// Broadcast final state after execution completes
-		finalRegs := session.Service.GetRegisterState()
-		finalState := session.Service.GetExecutionState()
+		finalRegs := svc.GetRegisterState()
+		finalState := svc.GetExecutionState()
 		s.broadcastStateChange(sessionID, &finalRegs, finalState)
 	}()
 

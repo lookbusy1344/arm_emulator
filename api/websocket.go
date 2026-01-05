@@ -165,17 +165,20 @@ func (c *WebSocketClient) handleSubscription(req SubscriptionRequest) {
 	// Create new subscription
 	c.subscription = c.broadcaster.Subscribe(req.SessionID, eventTypes)
 
+	// Capture subscription for the goroutine to avoid race with cleanup
+	sub := c.subscription
+
 	// Start forwarding events from subscription to client
-	go c.forwardEvents()
+	go c.forwardEventsFromSubscription(sub)
 }
 
-// forwardEvents forwards events from the broadcaster to the WebSocket client
-func (c *WebSocketClient) forwardEvents() {
-	if c.subscription == nil {
+// forwardEventsFromSubscription forwards events from the given subscription to the WebSocket client
+func (c *WebSocketClient) forwardEventsFromSubscription(sub *Subscription) {
+	if sub == nil {
 		return
 	}
 
-	for event := range c.subscription.Channel {
+	for event := range sub.Channel {
 		select {
 		case c.send <- event:
 		default:
