@@ -47,6 +47,29 @@ go test -race ./...
 
 Run periodically, especially after modifying concurrent code (TUI, service layer, goroutines).
 
+## API Integration Tests
+
+API-level integration tests validate the complete HTTP REST API + WebSocket stack:
+
+```bash
+# Run all API integration tests
+go test ./tests/integration -run TestAPIExamplePrograms -v
+
+# Run specific API test
+go test ./tests/integration -run TestAPIExamplePrograms/Fibonacci_API -v
+
+# Run with race detector
+go test -race ./tests/integration -run TestAPIExamplePrograms
+```
+
+**Test Coverage:**
+- All 49 example programs tested via REST API
+- WebSocket state monitoring for execution tracking
+- Hybrid stdin strategy (batch + interactive)
+- Reuses existing `expected_outputs/*.txt` files
+
+**Note:** API tests start a real HTTP server for WebSocket support (cannot use httptest.ResponseRecorder).
+
 ## Update dependencies
 
 ```bash
