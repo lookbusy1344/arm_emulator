@@ -19,11 +19,13 @@ import (
 
 // WebSocketTestClient manages WebSocket connection for tests
 type WebSocketTestClient struct {
-	conn    *websocket.Conn
-	updates chan StateUpdate
-	errors  chan error
-	done    chan struct{}
-	mu      sync.Mutex
+	conn      *websocket.Conn
+	updates   chan StateUpdate
+	errors    chan error
+	done      chan struct{}
+	mu        sync.Mutex
+	closed    bool
+	closeOnce sync.Once
 }
 
 // StateUpdate represents a state update from WebSocket
@@ -91,29 +93,45 @@ func NewWebSocketTestClient(t *testing.T, wsURL string) *WebSocketTestClient {
 func (c *WebSocketTestClient) receiveLoop() {
 	defer close(c.done)
 	for {
+		c.mu.Lock()
+		if c.closed {
+			c.mu.Unlock()
+			return
+		}
+		c.mu.Unlock()
+
 		var update StateUpdate
 		if err := c.conn.ReadJSON(&update); err != nil {
 			if websocket.IsCloseError(err, websocket.CloseNormalClosure) {
 				return
 			}
-			c.errors <- err
+			select {
+			case c.errors <- err:
+			default:
+			}
 			return
 		}
-		c.updates <- update
+		select {
+		case c.updates <- update:
+		case <-time.After(100 * time.Millisecond):
+		}
 	}
 }
 
 // Close closes the WebSocket connection
 func (c *WebSocketTestClient) Close() error {
-	c.mu.Lock()
-	defer c.mu.Unlock()
+	c.closeOnce.Do(func() {
+		c.mu.Lock()
+		c.closed = true
+		c.mu.Unlock()
 
-	if c.conn != nil {
-		c.conn.WriteMessage(websocket.CloseMessage,
-			websocket.FormatCloseMessage(websocket.CloseNormalClosure, ""))
-		c.conn.Close()
-		<-c.done // Wait for receive loop to finish
-	}
+		if c.conn != nil {
+			c.conn.WriteMessage(websocket.CloseMessage,
+				websocket.FormatCloseMessage(websocket.CloseNormalClosure, ""))
+			c.conn.Close()
+			<-c.done // Wait for receive loop to finish
+		}
+	})
 	return nil
 }
 
