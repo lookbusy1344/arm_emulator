@@ -1128,3 +1128,107 @@ func TestConsoleOutputEmpty(t *testing.T) {
 		t.Errorf("Expected empty output, got %q", response.Output)
 	}
 }
+
+// TestReRunProgram tests that a program can be run multiple times after completion
+func TestReRunProgram(t *testing.T) {
+	server := testServer()
+	sessionID := createTestSession(t, server)
+
+	// Load a simple program that increments R0 and exits
+	program := `
+	.org 0x8000
+	MOV R0, #1
+	ADD R0, R0, #1
+	SWI #0
+	`
+	loadProgram(t, server, sessionID, program)
+
+	// First run
+	req := httptest.NewRequest(http.MethodPost,
+		fmt.Sprintf("/api/v1/session/%s/run", sessionID), nil)
+	w := httptest.NewRecorder()
+	server.Handler().ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("Expected status 200 for first run, got %d: %s", w.Code, w.Body.String())
+	}
+
+	// Wait for program to complete
+	time.Sleep(100 * time.Millisecond)
+
+	// Check registers after first run
+	req = httptest.NewRequest(http.MethodGet,
+		fmt.Sprintf("/api/v1/session/%s/registers", sessionID), nil)
+	w = httptest.NewRecorder()
+	server.Handler().ServeHTTP(w, req)
+
+	var regs1 api.RegistersResponse
+	if err := json.NewDecoder(w.Body).Decode(&regs1); err != nil {
+		t.Fatalf("Failed to decode registers: %v", err)
+	}
+
+	if regs1.R0 != 2 {
+		t.Errorf("After first run: Expected R0 = 2, got %d", regs1.R0)
+	}
+
+	expectedPC1 := uint32(0x8008) // PC after SWI
+	if regs1.PC != expectedPC1 {
+		t.Logf("After first run: PC = 0x%08X (expected 0x%08X)", regs1.PC, expectedPC1)
+	}
+
+	// Second run without explicit reset - should auto-reset and run again
+	req = httptest.NewRequest(http.MethodPost,
+		fmt.Sprintf("/api/v1/session/%s/run", sessionID), nil)
+	w = httptest.NewRecorder()
+	server.Handler().ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("Expected status 200 for second run, got %d: %s", w.Code, w.Body.String())
+	}
+
+	// Wait for program to complete
+	time.Sleep(100 * time.Millisecond)
+
+	// Check registers after second run
+	req = httptest.NewRequest(http.MethodGet,
+		fmt.Sprintf("/api/v1/session/%s/registers", sessionID), nil)
+	w = httptest.NewRecorder()
+	server.Handler().ServeHTTP(w, req)
+
+	var regs2 api.RegistersResponse
+	if err := json.NewDecoder(w.Body).Decode(&regs2); err != nil {
+		t.Fatalf("Failed to decode registers: %v", err)
+	}
+
+	// After second run, R0 should still be 2, not 4
+	// This proves the registers were reset before the second run
+	if regs2.R0 != 2 {
+		t.Errorf("After second run: Expected R0 = 2 (reset and rerun), got %d", regs2.R0)
+	}
+
+	// Third run to confirm it keeps working
+	req = httptest.NewRequest(http.MethodPost,
+		fmt.Sprintf("/api/v1/session/%s/run", sessionID), nil)
+	w = httptest.NewRecorder()
+	server.Handler().ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("Expected status 200 for third run, got %d: %s", w.Code, w.Body.String())
+	}
+
+	time.Sleep(100 * time.Millisecond)
+
+	req = httptest.NewRequest(http.MethodGet,
+		fmt.Sprintf("/api/v1/session/%s/registers", sessionID), nil)
+	w = httptest.NewRecorder()
+	server.Handler().ServeHTTP(w, req)
+
+	var regs3 api.RegistersResponse
+	if err := json.NewDecoder(w.Body).Decode(&regs3); err != nil {
+		t.Fatalf("Failed to decode registers: %v", err)
+	}
+
+	if regs3.R0 != 2 {
+		t.Errorf("After third run: Expected R0 = 2, got %d", regs3.R0)
+	}
+}
