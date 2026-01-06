@@ -81,7 +81,7 @@ struct MainView: View {
 
                 TabView(selection: $settings.selectedTab) {
                     VStack(spacing: 0) {
-                        RegistersView(registers: viewModel.registers)
+                        RegistersView(registers: viewModel.registers, changedRegisters: viewModel.changedRegisters)
                             .frame(minHeight: 200)
 
                         Divider()

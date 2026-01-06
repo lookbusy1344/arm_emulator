@@ -5,6 +5,8 @@ import SwiftUI
 @MainActor
 class EmulatorViewModel: ObservableObject {
     @Published var registers: RegisterState = .empty
+    @Published var previousRegisters: RegisterState?
+    @Published var changedRegisters: Set<String> = []
     @Published var consoleOutput = ""
     @Published var status: VMState = .idle
     @Published var breakpoints: Set<UInt32> = []
@@ -280,11 +282,41 @@ class EmulatorViewModel: ObservableObject {
     private func refreshState() async throws {
         guard let sessionID = sessionID else { return }
 
-        registers = try await apiClient.getRegisters(sessionID: sessionID)
-        currentPC = registers.pc
+        let newRegisters = try await apiClient.getRegisters(sessionID: sessionID)
+        updateRegisters(newRegisters)
 
         let vmStatus = try await apiClient.getStatus(sessionID: sessionID)
         status = vmStatus.vmState
+    }
+
+    private func updateRegisters(_ newRegisters: RegisterState) {
+        // Track changes
+        var changed = Set<String>()
+
+        if let prev = previousRegisters {
+            if prev.r0 != newRegisters.r0 { changed.insert("R0") }
+            if prev.r1 != newRegisters.r1 { changed.insert("R1") }
+            if prev.r2 != newRegisters.r2 { changed.insert("R2") }
+            if prev.r3 != newRegisters.r3 { changed.insert("R3") }
+            if prev.r4 != newRegisters.r4 { changed.insert("R4") }
+            if prev.r5 != newRegisters.r5 { changed.insert("R5") }
+            if prev.r6 != newRegisters.r6 { changed.insert("R6") }
+            if prev.r7 != newRegisters.r7 { changed.insert("R7") }
+            if prev.r8 != newRegisters.r8 { changed.insert("R8") }
+            if prev.r9 != newRegisters.r9 { changed.insert("R9") }
+            if prev.r10 != newRegisters.r10 { changed.insert("R10") }
+            if prev.r11 != newRegisters.r11 { changed.insert("R11") }
+            if prev.r12 != newRegisters.r12 { changed.insert("R12") }
+            if prev.sp != newRegisters.sp { changed.insert("SP") }
+            if prev.lr != newRegisters.lr { changed.insert("LR") }
+            if prev.pc != newRegisters.pc { changed.insert("PC") }
+            if prev.cpsr != newRegisters.cpsr { changed.insert("CPSR") }
+        }
+
+        previousRegisters = registers
+        changedRegisters = changed
+        registers = newRegisters
+        currentPC = newRegisters.pc
     }
 
     private func handleEvent(_ event: EmulatorEvent) {
@@ -299,8 +331,7 @@ class EmulatorViewModel: ObservableObject {
         case "state":
             if let data = event.data, case let .state(stateUpdate) = data {
                 DebugLog.log("State update - PC: 0x\(String(format: "%08X", stateUpdate.pc)), status: \(stateUpdate.status)", category: "ViewModel")
-                registers = stateUpdate.registers
-                currentPC = stateUpdate.pc
+                updateRegisters(stateUpdate.registers)
                 status = VMState(rawValue: stateUpdate.status) ?? .idle
             }
         case "output":
