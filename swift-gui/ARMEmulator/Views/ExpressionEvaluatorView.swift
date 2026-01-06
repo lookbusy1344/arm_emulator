@@ -98,7 +98,10 @@ struct ExpressionEvaluatorView: View {
             HStack(spacing: 16) {
                 resultValue(label: "Hex", value: String(format: "0x%08X", result.result))
                 resultValue(label: "Dec", value: String(result.result))
-                resultValue(label: "Bin", value: String(result.result, radix: 2).padding(toLength: 32, withPad: "0", startingAt: 0))
+                resultValue(
+                    label: "Bin",
+                    value: String(result.result, radix: 2).padding(toLength: 32, withPad: "0", startingAt: 0)
+                )
             }
         }
         .padding()

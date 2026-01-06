@@ -125,7 +125,10 @@ class BackendManager: ObservableObject {
             outputPipe.fileHandleForReading.readabilityHandler = { fileHandle in
                 let data = fileHandle.availableData
                 if let output = String(data: data, encoding: .utf8), !output.isEmpty {
-                    DebugLog.log("Backend: \(output.trimmingCharacters(in: .whitespacesAndNewlines))", category: "Backend")
+                    DebugLog.log(
+                        "Backend: \(output.trimmingCharacters(in: .whitespacesAndNewlines))",
+                        category: "Backend"
+                    )
                 }
             }
         #endif

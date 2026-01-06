@@ -126,7 +126,7 @@ struct MainView: View {
                             Label("Watchpoints", systemImage: "eye")
                         }
                         .tag(5)
-                    
+
                     BreakpointsListView(viewModel: viewModel)
                         .tabItem {
                             Label("Breakpoints", systemImage: "circle.hexagongrid")

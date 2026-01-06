@@ -98,7 +98,10 @@ class EmulatorViewModel: ObservableObject {
 
             DebugLog.log("Refreshing state...", category: "ViewModel")
             try await refreshState()
-            DebugLog.success("Program loaded successfully, PC: 0x\(String(format: "%08X", currentPC))", category: "ViewModel")
+            DebugLog.success(
+                "Program loaded successfully, PC: 0x\(String(format: "%08X", currentPC))",
+                category: "ViewModel"
+            )
         } catch {
             DebugLog.error("loadProgram() failed: \(error.localizedDescription)", category: "ViewModel")
             errorMessage = "Failed to load program: \(error.localizedDescription)"
@@ -336,7 +339,10 @@ class EmulatorViewModel: ObservableObject {
         switch event.type {
         case "state":
             if let data = event.data, case let .state(stateUpdate) = data {
-                DebugLog.log("State update - PC: 0x\(String(format: "%08X", stateUpdate.pc)), status: \(stateUpdate.status)", category: "ViewModel")
+                DebugLog.log(
+                    "State update - PC: 0x\(String(format: "%08X", stateUpdate.pc)), status: \(stateUpdate.status)",
+                    category: "ViewModel"
+                )
                 updateRegisters(stateUpdate.registers)
                 status = VMState(rawValue: stateUpdate.status) ?? .idle
             }
@@ -352,7 +358,6 @@ class EmulatorViewModel: ObservableObject {
             }
         default:
             DebugLog.warning("Unknown event type: \(event.type)", category: "ViewModel")
-            break
         }
     }
 
