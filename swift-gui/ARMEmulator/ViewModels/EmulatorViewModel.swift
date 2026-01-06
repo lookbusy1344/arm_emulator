@@ -156,6 +156,36 @@ class EmulatorViewModel: ObservableObject {
         }
     }
 
+    func stepOver() async {
+        guard let sessionID = sessionID else {
+            errorMessage = "No active session"
+            return
+        }
+
+        do {
+            try await apiClient.stepOver(sessionID: sessionID)
+            try await refreshState()
+            errorMessage = nil
+        } catch {
+            errorMessage = "Failed to step over: \(error.localizedDescription)"
+        }
+    }
+
+    func stepOut() async {
+        guard let sessionID = sessionID else {
+            errorMessage = "No active session"
+            return
+        }
+
+        do {
+            try await apiClient.stepOut(sessionID: sessionID)
+            try await refreshState()
+            errorMessage = nil
+        } catch {
+            errorMessage = "Failed to step out: \(error.localizedDescription)"
+        }
+    }
+
     func reset() async {
         guard let sessionID = sessionID else {
             errorMessage = "No active session"

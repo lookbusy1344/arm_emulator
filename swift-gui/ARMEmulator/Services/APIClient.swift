@@ -90,6 +90,16 @@ class APIClient: ObservableObject {
         try await post(url: url, body: EmptyBody())
     }
 
+    func stepOver(sessionID: String) async throws {
+        let url = baseURL.appendingPathComponent("/api/v1/session/\(sessionID)/step-over")
+        try await post(url: url, body: EmptyBody())
+    }
+
+    func stepOut(sessionID: String) async throws {
+        let url = baseURL.appendingPathComponent("/api/v1/session/\(sessionID)/step-out")
+        try await post(url: url, body: EmptyBody())
+    }
+
     func reset(sessionID: String) async throws {
         let url = baseURL.appendingPathComponent("/api/v1/session/\(sessionID)/reset")
         try await post(url: url, body: EmptyBody())

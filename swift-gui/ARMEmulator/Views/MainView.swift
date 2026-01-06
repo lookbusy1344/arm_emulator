@@ -171,6 +171,22 @@ struct MainView: View {
             .disabled(viewModel.status == .running)
 
             Button(
+                action: { Task { await viewModel.stepOver() } },
+                label: { Label("Step Over", systemImage: "arrow.right.to.line") }
+            )
+            .help("Step over function calls (⌘⇧T)")
+            .keyboardShortcut("t", modifiers: [.command, .shift])
+            .disabled(viewModel.status == .running)
+
+            Button(
+                action: { Task { await viewModel.stepOut() } },
+                label: { Label("Step Out", systemImage: "arrow.up.left") }
+            )
+            .help("Step out of current function (⌘⌥T)")
+            .keyboardShortcut("t", modifiers: [.command, .option])
+            .disabled(viewModel.status == .running)
+
+            Button(
                 action: { Task { await viewModel.reset() } },
                 label: { Label("Reset", systemImage: "arrow.counterclockwise") }
             )

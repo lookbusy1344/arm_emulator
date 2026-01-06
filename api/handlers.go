@@ -248,6 +248,68 @@ func (s *Server) handleStep(w http.ResponseWriter, r *http.Request, sessionID st
 	writeJSON(w, http.StatusOK, response)
 }
 
+// handleStepOver handles POST /api/v1/session/{id}/step-over
+func (s *Server) handleStepOver(w http.ResponseWriter, r *http.Request, sessionID string) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	session, err := s.sessions.GetSession(sessionID)
+	if err != nil {
+		writeError(w, http.StatusNotFound, "Session not found")
+		return
+	}
+
+	stepErr := session.Service.StepOver()
+	if stepErr != nil {
+		writeError(w, http.StatusInternalServerError, fmt.Sprintf("Step over failed: %v", stepErr))
+		return
+	}
+
+	// Get updated state
+	regs := session.Service.GetRegisterState()
+	state := session.Service.GetExecutionState()
+
+	// Broadcast state change to WebSocket clients
+	s.broadcastStateChange(sessionID, &regs, state)
+
+	// Return updated registers
+	response := ToRegisterResponse(&regs)
+	writeJSON(w, http.StatusOK, response)
+}
+
+// handleStepOut handles POST /api/v1/session/{id}/step-out
+func (s *Server) handleStepOut(w http.ResponseWriter, r *http.Request, sessionID string) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	session, err := s.sessions.GetSession(sessionID)
+	if err != nil {
+		writeError(w, http.StatusNotFound, "Session not found")
+		return
+	}
+
+	stepErr := session.Service.StepOut()
+	if stepErr != nil {
+		writeError(w, http.StatusInternalServerError, fmt.Sprintf("Step out failed: %v", stepErr))
+		return
+	}
+
+	// Get updated state
+	regs := session.Service.GetRegisterState()
+	state := session.Service.GetExecutionState()
+
+	// Broadcast state change to WebSocket clients
+	s.broadcastStateChange(sessionID, &regs, state)
+
+	// Return updated registers
+	response := ToRegisterResponse(&regs)
+	writeJSON(w, http.StatusOK, response)
+}
+
 // handleReset handles POST /api/v1/session/{id}/reset
 func (s *Server) handleReset(w http.ResponseWriter, r *http.Request, sessionID string) {
 	if r.Method != http.MethodPost {

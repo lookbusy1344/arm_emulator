@@ -205,6 +205,10 @@ func (s *Server) handleSessionRoute(w http.ResponseWriter, r *http.Request) {
 		s.handleStop(w, r, sessionID)
 	case "step":
 		s.handleStep(w, r, sessionID)
+	case "step-over":
+		s.handleStepOver(w, r, sessionID)
+	case "step-out":
+		s.handleStepOut(w, r, sessionID)
 	case "reset":
 		s.handleReset(w, r, sessionID)
 	case "registers":
