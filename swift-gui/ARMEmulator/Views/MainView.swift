@@ -126,6 +126,12 @@ struct MainView: View {
                             Label("Watchpoints", systemImage: "eye")
                         }
                         .tag(5)
+                    
+                    BreakpointsListView(viewModel: viewModel)
+                        .tabItem {
+                            Label("Breakpoints", systemImage: "circle.hexagongrid")
+                        }
+                        .tag(6)
                 }
                 .frame(minWidth: 250, maxWidth: 500)
             }

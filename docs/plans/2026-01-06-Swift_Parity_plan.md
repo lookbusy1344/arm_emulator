@@ -28,8 +28,8 @@ This document identifies features missing from the Swift GUI compared to the Wai
 | Source/Editor view | ✅ | ✅ | ✅ | - |
 | Console/Output view | ✅ | ✅ | ✅ | - |
 | Status view | ✅ | ✅ | ✅ | - |
-| Breakpoints list view | ✅ | ✅ | ❌ | Medium |
-| Watchpoints list view | ✅ | ✅ | ❌ | Medium |
+| Breakpoints list view | ✅ | ✅ | ✅ | - |
+| Watchpoints list view | ✅ | ✅ | ✅ | - |
 | **Visual Feedback** |
 | Register change highlighting | ✅ | ✅ | ❌ | Medium |
 | Memory write highlighting | ✅ | ✅ | ❌ | Medium |
@@ -141,24 +141,20 @@ This document identifies features missing from the Swift GUI compared to the Wai
 
 ### Phase 2: Enhanced Debugging Views (Medium Priority)
 
-#### 2.1 Breakpoints/Watchpoints List View
-**Gap:** No dedicated view showing all breakpoints and watchpoints.
+#### 2.1 Breakpoints/Watchpoints List View ✅
+**Status:** COMPLETE - Dedicated view showing all breakpoints and watchpoints.
 
 **Implementation:**
-1. Create `BreakpointsListView.swift`:
-   ```swift
-   struct BreakpointsListView: View {
-       @ObservedObject var viewModel: EmulatorViewModel
-       // List breakpoints with remove buttons
-       // List watchpoints with remove buttons
-       // Show conditions, hit counts
-   }
-   ```
+1. ✅ Created `BreakpointsListView.swift` with:
+   - List of all breakpoints with addresses
+   - List of all watchpoints with addresses and types
+   - Remove buttons for each item
+   - Empty state view with instructions
+2. ✅ Added as new tab in `MainView.swift`
 
-2. Add tab in `MainView.swift`
-
-**Files to create:**
-- `swift-gui/ARMEmulator/Views/BreakpointsListView.swift`
+**Files created/modified:**
+- `swift-gui/ARMEmulator/Views/BreakpointsListView.swift` (new)
+- `swift-gui/ARMEmulator/Views/MainView.swift`
 
 #### 2.2 Debugger Command Input
 **Gap:** No raw debugger command interface.
