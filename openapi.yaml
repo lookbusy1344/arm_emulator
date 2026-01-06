@@ -365,7 +365,10 @@ paths:
       tags:
         - Debugging
       summary: Add breakpoint
-      description: Adds a breakpoint at specified address
+      description: |
+        Adds a breakpoint at specified address. The address must correspond to
+        executable code (i.e., exist in the source map). Addresses for blank lines,
+        comments, or directives will be rejected.
       operationId: addBreakpoint
       parameters:
         - $ref: '#/components/parameters/SessionId'
@@ -382,8 +385,20 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/SuccessResponse'
+        '400':
+          description: Invalid request body
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
         '404':
           $ref: '#/components/responses/NotFound'
+        '500':
+          description: Invalid breakpoint address (not executable code)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 
     delete:
       tags:
@@ -406,6 +421,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/SuccessResponse'
+        '400':
+          description: Invalid request body
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
         '404':
           $ref: '#/components/responses/NotFound'
 
@@ -425,6 +446,46 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/BreakpointsResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/session/{sessionId}/sourcemap:
+    get:
+      tags:
+        - Debugging
+      summary: Get source map
+      description: |
+        Returns the source map mapping memory addresses to source code lines.
+        Only addresses with executable code are included. Use this to validate
+        which addresses are valid for breakpoints.
+      operationId: getSourceMap
+      parameters:
+        - $ref: '#/components/parameters/SessionId'
+      responses:
+        '200':
+          description: Source map data
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  sourceMap:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        address:
+                          type: integer
+                          format: uint32
+                          description: Memory address
+                          example: 32768
+                        line:
+                          type: string
+                          description: Source code line at this address
+                          example: "MOV R0, #1"
+                      required:
+                        - address
+                        - line
         '404':
           $ref: '#/components/responses/NotFound'
 

@@ -321,7 +321,16 @@ func TestBreakpoints(t *testing.T) {
 	server := testServer()
 	sessionID := createTestSession(t, server)
 
-	// Add breakpoint
+	// Load a program first so we have valid addresses
+	program := `
+		.org 0x8000
+		MOV R0, #1
+		MOV R1, #2
+		ADD R2, R0, R1
+	`
+	loadProgram(t, server, sessionID, program)
+
+	// Add breakpoint at valid address (0x8004 = second instruction)
 	reqBody := api.BreakpointRequest{
 		Address: 0x8004,
 	}
@@ -368,6 +377,108 @@ func TestBreakpoints(t *testing.T) {
 
 	if w.Code != http.StatusOK {
 		t.Errorf("Expected status 200, got %d", w.Code)
+	}
+}
+
+// TestBreakpointValidation tests that invalid breakpoints are rejected
+func TestBreakpointValidation(t *testing.T) {
+	server := testServer()
+	sessionID := createTestSession(t, server)
+
+	// Load a program with some actual code
+	program := `
+		.org 0x8000
+		; Comment line
+		
+		MOV R0, #1
+		MOV R1, #2
+		ADD R2, R0, R1
+		SWI #0
+	`
+	loadProgram(t, server, sessionID, program)
+
+	// Try to set breakpoint at invalid address (not in source map)
+	reqBody := api.BreakpointRequest{
+		Address: 0x9000, // Invalid address outside program
+	}
+
+	body, _ := json.Marshal(reqBody)
+	req := httptest.NewRequest(http.MethodPost,
+		fmt.Sprintf("/api/v1/session/%s/breakpoint", sessionID),
+		bytes.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+
+	server.Handler().ServeHTTP(w, req)
+
+	// Should return error
+	if w.Code != http.StatusInternalServerError {
+		t.Errorf("Expected status 500, got %d", w.Code)
+	}
+
+	// Verify no breakpoint was added
+	req = httptest.NewRequest(http.MethodGet,
+		fmt.Sprintf("/api/v1/session/%s/breakpoints", sessionID), nil)
+	w = httptest.NewRecorder()
+	server.Handler().ServeHTTP(w, req)
+
+	var response api.BreakpointsResponse
+	json.NewDecoder(w.Body).Decode(&response)
+
+	if len(response.Breakpoints) != 0 {
+		t.Errorf("Expected 0 breakpoints, got %d", len(response.Breakpoints))
+	}
+}
+
+// TestSourceMap tests the source map endpoint
+func TestSourceMap(t *testing.T) {
+	server := testServer()
+	sessionID := createTestSession(t, server)
+
+	// Load a simple program
+	program := `
+		.org 0x8000
+		MOV R0, #1
+		MOV R1, #2
+		ADD R2, R0, R1
+	`
+	loadProgram(t, server, sessionID, program)
+
+	// Get source map
+	req := httptest.NewRequest(http.MethodGet,
+		fmt.Sprintf("/api/v1/session/%s/sourcemap", sessionID), nil)
+	w := httptest.NewRecorder()
+
+	server.Handler().ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Errorf("Expected status 200, got %d", w.Code)
+	}
+
+	var response map[string]interface{}
+	if err := json.NewDecoder(w.Body).Decode(&response); err != nil {
+		t.Fatalf("Failed to decode response: %v", err)
+	}
+
+	sourceMap, ok := response["sourceMap"].([]interface{})
+	if !ok {
+		t.Fatal("Expected sourceMap array in response")
+	}
+
+	// Should have 3 entries (one for each instruction)
+	if len(sourceMap) != 3 {
+		t.Errorf("Expected 3 source map entries, got %d", len(sourceMap))
+	}
+
+	// Verify first entry has address and line
+	if len(sourceMap) > 0 {
+		entry := sourceMap[0].(map[string]interface{})
+		if _, hasAddress := entry["address"]; !hasAddress {
+			t.Error("Source map entry missing 'address' field")
+		}
+		if _, hasLine := entry["line"]; !hasLine {
+			t.Error("Source map entry missing 'line' field")
+		}
 	}
 }
 
