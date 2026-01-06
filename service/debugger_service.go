@@ -298,6 +298,12 @@ func (s *DebuggerService) GetExecutionState() ExecutionState {
 func (s *DebuggerService) AddBreakpoint(address uint32) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	
+	// Validate that the address corresponds to actual code
+	if _, exists := s.sourceMap[address]; !exists {
+		return fmt.Errorf("invalid breakpoint address: 0x%X does not correspond to executable code", address)
+	}
+	
 	s.debugger.Breakpoints.AddBreakpoint(address, false, "")
 	return nil
 }

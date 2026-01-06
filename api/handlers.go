@@ -570,6 +570,42 @@ func (s *Server) handleListBreakpoints(w http.ResponseWriter, r *http.Request, s
 	writeJSON(w, http.StatusOK, response)
 }
 
+// handleGetSourceMap handles GET /api/v1/session/{id}/sourcemap
+func (s *Server) handleGetSourceMap(w http.ResponseWriter, r *http.Request, sessionID string) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	session, err := s.sessions.GetSession(sessionID)
+	if err != nil {
+		writeError(w, http.StatusNotFound, "Session not found")
+		return
+	}
+
+	sourceMap := session.Service.GetSourceMap()
+	
+	// Convert map to array of entries for JSON
+	type SourceMapEntry struct {
+		Address uint32 `json:"address"`
+		Line    string `json:"line"`
+	}
+	
+	entries := make([]SourceMapEntry, 0, len(sourceMap))
+	for addr, line := range sourceMap {
+		entries = append(entries, SourceMapEntry{
+			Address: addr,
+			Line:    line,
+		})
+	}
+
+	response := map[string]interface{}{
+		"sourceMap": entries,
+	}
+
+	writeJSON(w, http.StatusOK, response)
+}
+
 // handleSendStdin handles POST /api/v1/session/{id}/stdin
 func (s *Server) handleSendStdin(w http.ResponseWriter, r *http.Request, sessionID string) {
 	if r.Method != http.MethodPost {

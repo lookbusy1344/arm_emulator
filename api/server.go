@@ -223,6 +223,8 @@ func (s *Server) handleSessionRoute(w http.ResponseWriter, r *http.Request) {
 		s.handleBreakpoint(w, r, sessionID)
 	case "breakpoints":
 		s.handleListBreakpoints(w, r, sessionID)
+	case "sourcemap":
+		s.handleGetSourceMap(w, r, sessionID)
 	case "watchpoint":
 		// Handle DELETE /api/v1/session/{id}/watchpoint/{watchpointID}
 		if len(parts) == 3 && r.Method == http.MethodDelete {
