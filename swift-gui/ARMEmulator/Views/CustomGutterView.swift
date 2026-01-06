@@ -147,7 +147,7 @@ class CustomGutterView: NSView {
         guard breakpoints.contains(lineNumber) else { return }
 
         let rect = NSRect(
-            x: gutterWidth - breakpointMargin - breakpointSize,
+            x: gutterWidth - breakpointMargin - breakpointSize + 5,
             y: yPos + (lineHeight - breakpointSize) / 2,
             width: breakpointSize,
             height: breakpointSize
