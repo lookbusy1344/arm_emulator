@@ -23,6 +23,7 @@ struct ARMEmulatorApp: App {
         }
         .commands {
             FileCommands()
+            DebugCommands()
         }
         .windowStyle(.titleBar)
         .windowToolbarStyle(.unified)

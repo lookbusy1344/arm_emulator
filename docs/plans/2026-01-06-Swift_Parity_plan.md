@@ -41,10 +41,10 @@ This document identifies features missing from the Swift GUI compared to the Wai
 | Recent files | ✅ | N/A | ✅ | - |
 | Examples browser | ✅ | N/A | ✅ | - |
 | **Keyboard Shortcuts** |
-| F5 (Run/Continue) | ✅ | ✅ | Partial | Medium |
-| F9 (Toggle breakpoint) | ✅ | ✅ | ❌ | Medium |
-| F10 (Step Over) | ✅ | ✅ | ❌ | Medium |
-| F11 (Step) | ✅ | ✅ | ❌ | Medium |
+| F5 (Run/Continue) | ✅ | ✅ | ✅ | - |
+| F9 (Toggle breakpoint) | ✅ | ✅ | ✅ | - |
+| F10 (Step Over) | ✅ | ✅ | ✅ | - |
+| F11 (Step) | ✅ | ✅ | ✅ | - |
 
 ## Missing Features - Detailed Implementation Plan
 
@@ -231,19 +231,21 @@ This document identifies features missing from the Swift GUI compared to the Wai
 - `swift-gui/ARMEmulator/ViewModels/EmulatorViewModel.swift` (already has reset)
 - `swift-gui/ARMEmulator/Views/MainView.swift` (already has button)
 
-#### 2.6 Keyboard Shortcuts (Function Keys)
-**Gap:** Missing F5/F9/F10/F11 keyboard shortcuts.
+#### 2.6 Keyboard Shortcuts (Function Keys) ✅
+**Status:** COMPLETE - Function key shortcuts added via Debug menu.
 
 **Implementation:**
-1. Add keyboard shortcuts in `MainView.swift` or app delegate:
+1. ✅ Created `DebugCommands.swift` with Debug menu
+2. ✅ Added function key shortcuts:
    - F5 → Run/Continue
    - F9 → Toggle breakpoint at current PC
    - F10 → Step Over
    - F11 → Step
+3. ✅ Integrated into app commands
 
-**Files to modify:**
-- `swift-gui/ARMEmulator/Views/MainView.swift`
-- Possibly `ARMEmulatorApp.swift` for global shortcuts
+**Files created/modified:**
+- `swift-gui/ARMEmulator/Views/DebugCommands.swift` (new)
+- `swift-gui/ARMEmulator/ARMEmulatorApp.swift`
 
 ### Phase 3: Polish and Parity (Low Priority)
 
