@@ -13,7 +13,7 @@ This document identifies features missing from the Swift GUI compared to the Wai
 | Run/Continue | ✅ | ✅ | ✅ | - |
 | Pause/Stop | ✅ | ✅ | ✅ | - |
 | Reset | ✅ | ✅ | ✅ | - |
-| Restart (preserve program) | ✅ | ✅ | ❌ | Medium |
+| Restart (preserve program) | ✅ | ✅ | ✅ | - |
 | **Debugging** |
 | Breakpoints (add/remove/toggle) | ✅ | ✅ | ✅ | - |
 | Breakpoint conditions | ✅ | ✅ | ❌ | Low |
@@ -218,21 +218,18 @@ This document identifies features missing from the Swift GUI compared to the Wai
 - `swift-gui/ARMEmulator/ViewModels/EmulatorViewModel.swift`
 - `swift-gui/ARMEmulator/Views/MemoryView.swift`
 
-#### 2.5 Restart Command
-**Gap:** Can only reset (clears program), not restart from entry point.
+#### 2.5 Restart Command ✅
+**Status:** COMPLETE - The `/reset` API endpoint preserves the loaded program and resets VM to initial state, which is the restart functionality. Already fully implemented with UI button and keyboard shortcut (⌘⇧R).
 
 **Implementation:**
-1. Add API call:
-   ```swift
-   func restart(sessionID: String) async throws
-   ```
+1. ✅ API call exists: `apiClient.reset(sessionID:)` 
+2. ✅ ViewModel method: `viewModel.reset()`
+3. ✅ UI button in toolbar with icon and keyboard shortcut
 
-2. Add button in toolbar
-
-**Files to modify:**
-- `swift-gui/ARMEmulator/Services/APIClient.swift`
-- `swift-gui/ARMEmulator/ViewModels/EmulatorViewModel.swift`
-- `swift-gui/ARMEmulator/Views/MainView.swift`
+**Files modified:**
+- `swift-gui/ARMEmulator/Services/APIClient.swift` (already has reset)
+- `swift-gui/ARMEmulator/ViewModels/EmulatorViewModel.swift` (already has reset)
+- `swift-gui/ARMEmulator/Views/MainView.swift` (already has button)
 
 #### 2.6 Keyboard Shortcuts (Function Keys)
 **Gap:** Missing F5/F9/F10/F11 keyboard shortcuts.
