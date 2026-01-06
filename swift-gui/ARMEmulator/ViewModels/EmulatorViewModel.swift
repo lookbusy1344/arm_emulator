@@ -19,6 +19,7 @@ class EmulatorViewModel: ObservableObject {
     // Memory state
     @Published var memoryData: [UInt8] = []
     @Published var memoryAddress: UInt32 = 0x8000
+    @Published var lastMemoryWrite: UInt32?
 
     // Disassembly state
     @Published var disassembly: [DisassembledInstruction] = []
@@ -287,6 +288,11 @@ class EmulatorViewModel: ObservableObject {
 
         let vmStatus = try await apiClient.getStatus(sessionID: sessionID)
         status = vmStatus.vmState
+
+        // Track last memory write
+        if let hasWrite = vmStatus.hasWrite, hasWrite, let writeAddr = vmStatus.writeAddr {
+            lastMemoryWrite = writeAddr
+        }
     }
 
     private func updateRegisters(_ newRegisters: RegisterState) {

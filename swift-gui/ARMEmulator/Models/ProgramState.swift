@@ -14,6 +14,8 @@ struct VMStatus: Codable {
     var instruction: String? // Optional - backend doesn't always return this
     var cycleCount: UInt64?
     var error: String?
+    var hasWrite: Bool?
+    var writeAddr: UInt32?
 
     var vmState: VMState {
         VMState(rawValue: state) ?? .idle

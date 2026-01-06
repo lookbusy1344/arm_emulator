@@ -81,7 +81,8 @@ struct MemoryView: View {
                                 (row + 1) * bytesPerRow,
                                 memoryData.count
                             )]),
-                            highlightAddress: autoScrollEnabled ? viewModel.currentPC : nil
+                            highlightAddress: autoScrollEnabled ? viewModel.currentPC : nil,
+                            lastWriteAddress: viewModel.lastMemoryWrite
                         )
                     }
                 }
@@ -130,10 +131,18 @@ struct MemoryRowView: View {
     let address: UInt32
     let bytes: [UInt8]
     let highlightAddress: UInt32?
+    let lastWriteAddress: UInt32?
 
     private var isHighlighted: Bool {
         guard let highlight = highlightAddress else { return false }
         return address <= highlight && highlight < address + UInt32(bytes.count)
+    }
+
+    private func isRecentWrite(byteIndex: Int) -> Bool {
+        guard let writeAddr = lastWriteAddress else { return false }
+        let byteAddr = address + UInt32(byteIndex)
+        // Highlight the written byte and the next 3 bytes (for 32-bit writes)
+        return writeAddr <= byteAddr && byteAddr < writeAddr + 4
     }
 
     var body: some View {
@@ -152,6 +161,7 @@ struct MemoryRowView: View {
                     if i < bytes.count {
                         Text(String(format: "%02X", bytes[i]))
                             .frame(width: 20)
+                            .foregroundColor(isRecentWrite(byteIndex: i) ? .green : .primary)
                     } else {
                         Text("  ")
                             .frame(width: 20)
