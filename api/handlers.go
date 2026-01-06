@@ -170,6 +170,15 @@ func (s *Server) handleRun(w http.ResponseWriter, r *http.Request, sessionID str
 	// Capture service pointer to avoid race with DestroySession
 	svc := session.Service
 
+	// If program is halted or in error state, reset to entry point for re-run
+	state := svc.GetExecutionState()
+	if state == service.StateHalted || state == service.StateError {
+		if err := svc.ResetToEntryPoint(); err != nil {
+			writeError(w, http.StatusInternalServerError, fmt.Sprintf("Failed to reset: %v", err))
+			return
+		}
+	}
+
 	// Set running state synchronously BEFORE launching goroutine
 	// This ensures the frontend can immediately observe the state change
 	// and RunUntilHalt() will proceed with execution
@@ -177,8 +186,8 @@ func (s *Server) handleRun(w http.ResponseWriter, r *http.Request, sessionID str
 
 	// Broadcast initial state change (status: running)
 	regs := svc.GetRegisterState()
-	state := svc.GetExecutionState()
-	s.broadcastStateChange(sessionID, &regs, state)
+	broadcastState := svc.GetExecutionState()
+	s.broadcastStateChange(sessionID, &regs, broadcastState)
 
 	// Run the program asynchronously
 	go func() {
