@@ -31,18 +31,16 @@ struct EditorView: View {
         }
         .onChange(of: viewModel.breakpoints) { newBreakpoints in
             // Sync breakpoints from ViewModel (address-based) to line-based
-            // For now, we'll keep them separate until we have proper address mapping
-            self.breakpoints = Set(newBreakpoints.map { Int($0) })
+            // Convert addresses back to line numbers using same heuristic
+            self.breakpoints = Set(newBreakpoints.map { address in
+                let offset = Int(address) - 0x8000
+                let lineNumber = (offset / 4) + 1
+                return lineNumber
+            })
         }
     }
 
     private func toggleBreakpoint(at lineNumber: Int) {
-        if breakpoints.contains(lineNumber) {
-            breakpoints.remove(lineNumber)
-        } else {
-            breakpoints.insert(lineNumber)
-        }
-
         // Convert line number to address
         // For now, use a simple heuristic: assume code starts at 0x8000
         // and each instruction is 4 bytes

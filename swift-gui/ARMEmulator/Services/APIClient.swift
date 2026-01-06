@@ -168,12 +168,34 @@ class APIClient: ObservableObject {
         }
 
         let url = baseURL.appendingPathComponent("/api/v1/session/\(sessionID)/breakpoint")
-        try await post(url: url, body: BreakpointRequest(address: address))
+        let request = BreakpointRequest(address: address)
+        
+        // Debug logging
+        if let data = try? JSONEncoder().encode(request),
+           let jsonString = String(data: data, encoding: .utf8) {
+            print("Adding breakpoint - URL: \(url)")
+            print("Adding breakpoint - Body: \(jsonString)")
+        }
+        
+        try await post(url: url, body: request)
     }
 
     func removeBreakpoint(sessionID: String, address: UInt32) async throws {
-        let url = baseURL.appendingPathComponent("/api/v1/session/\(sessionID)/breakpoint/\(address)")
-        try await delete(url: url)
+        struct BreakpointRequest: Codable {
+            let address: UInt32
+        }
+
+        let url = baseURL.appendingPathComponent("/api/v1/session/\(sessionID)/breakpoint")
+        let request = BreakpointRequest(address: address)
+        
+        // Debug logging
+        if let data = try? JSONEncoder().encode(request),
+           let jsonString = String(data: data, encoding: .utf8) {
+            print("Removing breakpoint - URL: \(url)")
+            print("Removing breakpoint - Body: \(jsonString)")
+        }
+        
+        try await delete(url: url, body: request)
     }
 
     func getBreakpoints(sessionID: String) async throws -> [UInt32] {
@@ -270,6 +292,20 @@ class APIClient: ObservableObject {
     private func delete(url: URL) async throws {
         var request = URLRequest(url: url)
         request.httpMethod = "DELETE"
+
+        let _: EmptyResponse = try await performRequest(request: request)
+    }
+    
+    private func delete<T: Encodable>(url: URL, body: T) async throws {
+        var request = URLRequest(url: url)
+        request.httpMethod = "DELETE"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+
+        do {
+            request.httpBody = try JSONEncoder().encode(body)
+        } catch {
+            throw APIError.encodingError(error)
+        }
 
         let _: EmptyResponse = try await performRequest(request: request)
     }

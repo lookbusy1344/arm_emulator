@@ -226,8 +226,11 @@ class EmulatorViewModel: ObservableObject {
     func toggleBreakpoint(at address: UInt32) async {
         guard let sessionID = sessionID else {
             errorMessage = "No active session"
+            print("toggleBreakpoint: No active session")
             return
         }
+
+        print("toggleBreakpoint: sessionID=\(sessionID), address=0x\(String(format: "%X", address)), current breakpoints=\(breakpoints)")
 
         do {
             if breakpoints.contains(address) {
@@ -239,6 +242,7 @@ class EmulatorViewModel: ObservableObject {
             }
             errorMessage = nil
         } catch {
+            print("toggleBreakpoint error: \(error)")
             errorMessage = "Failed to toggle breakpoint: \(error.localizedDescription)"
         }
     }
