@@ -23,6 +23,9 @@ class EmulatorViewModel: ObservableObject {
 
     // Disassembly state
     @Published var disassembly: [DisassembledInstruction] = []
+    
+    // Source map: address -> source line
+    @Published var sourceMap: [UInt32: String] = [:]
 
     let apiClient: APIClient
     private let wsClient: WebSocketClient
@@ -98,6 +101,13 @@ class EmulatorViewModel: ObservableObject {
 
             DebugLog.log("Refreshing state...", category: "ViewModel")
             try await refreshState()
+            
+            // Fetch source map after loading program
+            DebugLog.log("Fetching source map...", category: "ViewModel")
+            let sourceMapEntries = try await apiClient.getSourceMap(sessionID: sessionID)
+            sourceMap = Dictionary(uniqueKeysWithValues: sourceMapEntries.map { ($0.address, $0.line) })
+            DebugLog.log("Loaded source map with \(sourceMap.count) entries", category: "ViewModel")
+            
             DebugLog.success(
                 "Program loaded successfully, PC: 0x\(String(format: "%08X", currentPC))",
                 category: "ViewModel"

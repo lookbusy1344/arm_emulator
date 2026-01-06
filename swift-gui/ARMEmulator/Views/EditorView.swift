@@ -46,6 +46,13 @@ struct EditorView: View {
         // and each instruction is 4 bytes
         // TODO: Get actual line-to-address mapping from backend
         let address = UInt32(0x8000 + (lineNumber - 1) * 4)
+        
+        // Validate address exists in source map before attempting to set breakpoint
+        guard viewModel.sourceMap[address] != nil || breakpoints.contains(lineNumber) else {
+            // Address not in source map - invalid location for breakpoint
+            print("Cannot set breakpoint on line \(lineNumber) - address 0x\(String(format: "%X", address)) is not executable code")
+            return
+        }
 
         Task {
             await viewModel.toggleBreakpoint(at: address)
