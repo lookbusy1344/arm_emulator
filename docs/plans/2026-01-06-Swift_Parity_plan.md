@@ -2,14 +2,37 @@
 
 This document identifies features missing from the Swift GUI compared to the Wails GUI and TUI interfaces, and provides an implementation plan to achieve feature equality.
 
+## Status Summary
+
+**Implementation Progress:** ✅ **COMPLETE** - All high and medium priority features have been implemented!
+
+### Completed in this session (2026-01-06):
+- ✅ Restart Command verification (already implemented)
+- ✅ Keyboard Shortcuts (F5/F9/F10/F11)
+- ✅ Breakpoints List View
+
+### Previously completed:
+- ✅ Step Over / Step Out
+- ✅ Watchpoints (add/remove/list)
+- ✅ Expression Evaluator
+- ✅ Register Change Highlighting
+- ✅ Memory Write Highlighting
+
+### Phase 3 (Low Priority) remaining:
+- ⚠️ Breakpoint conditions (requires backend API support)
+- ⚠️ Symbol resolution polish (partial implementation)
+
+### Not Applicable:
+- N/A Debugger command input (no backend API, Expression Evaluator covers use cases)
+
 ## Feature Comparison Matrix
 
 | Feature | Wails GUI | TUI | Swift GUI | Priority |
 |---------|-----------|-----|-----------|----------|
 | **Execution Control** |
 | Step (single instruction) | ✅ | ✅ | ✅ | - |
-| Step Over (skip function calls) | ✅ | ✅ | ❌ | High |
-| Step Out (run until return) | ✅ | ✅ | ❌ | High |
+| Step Over (skip function calls) | ✅ | ✅ | ✅ | - |
+| Step Out (run until return) | ✅ | ✅ | ✅ | - |
 | Run/Continue | ✅ | ✅ | ✅ | - |
 | Pause/Stop | ✅ | ✅ | ✅ | - |
 | Reset | ✅ | ✅ | ✅ | - |
@@ -17,9 +40,9 @@ This document identifies features missing from the Swift GUI compared to the Wai
 | **Debugging** |
 | Breakpoints (add/remove/toggle) | ✅ | ✅ | ✅ | - |
 | Breakpoint conditions | ✅ | ✅ | ❌ | Low |
-| Watchpoints (memory watch) | ✅ | ✅ | ❌ | High |
-| Expression evaluator | ✅ | ✅ | ❌ | High |
-| Debugger command input | ✅ | ✅ | ❌ | Medium |
+| Watchpoints (memory watch) | ✅ | ✅ | ✅ | - |
+| Expression evaluator | ✅ | ✅ | ✅ | - |
+| Debugger command input | ✅ | ✅ | N/A | - |
 | **Views** |
 | Registers view | ✅ | ✅ | ✅ | - |
 | Memory view | ✅ | ✅ | ✅ | - |
@@ -31,8 +54,8 @@ This document identifies features missing from the Swift GUI compared to the Wai
 | Breakpoints list view | ✅ | ✅ | ✅ | - |
 | Watchpoints list view | ✅ | ✅ | ✅ | - |
 | **Visual Feedback** |
-| Register change highlighting | ✅ | ✅ | ❌ | Medium |
-| Memory write highlighting | ✅ | ✅ | ❌ | Medium |
+| Register change highlighting | ✅ | ✅ | ✅ | - |
+| Memory write highlighting | ✅ | ✅ | ✅ | - |
 | Symbol resolution in views | ✅ | ✅ | Partial | Low |
 | Current line indicator | ✅ | ✅ | Partial | Low |
 | **File Operations** |
@@ -48,91 +71,33 @@ This document identifies features missing from the Swift GUI compared to the Wai
 
 ## Missing Features - Detailed Implementation Plan
 
-### Phase 1: Core Debugging Features (High Priority)
+### Phase 1: Core Debugging Features (High Priority) ✅
 
-#### 1.1 Step Over / Step Out
-**Gap:** Swift GUI only has basic step, missing step-over and step-out functionality.
-
-**Implementation:**
-1. Add API endpoints (if not existing):
-   - `POST /api/v1/session/{id}/step-over`
-   - `POST /api/v1/session/{id}/step-out`
-   
-2. Update `APIClient.swift`:
-   ```swift
-   func stepOver(sessionID: String) async throws
-   func stepOut(sessionID: String) async throws
-   ```
-
-3. Update `EmulatorViewModel.swift`:
-   ```swift
-   func stepOver() async
-   func stepOut() async
-   ```
-
-4. Update `MainView.swift` toolbar:
-   - Add "Step Over" and "Step Out" buttons
-   - Add keyboard shortcuts (⌘⇧T for step over, ⌘⌥T for step out)
-
-**Files to modify:**
-- `swift-gui/ARMEmulator/Services/APIClient.swift`
-- `swift-gui/ARMEmulator/ViewModels/EmulatorViewModel.swift`
-- `swift-gui/ARMEmulator/Views/MainView.swift`
-
-#### 1.2 Watchpoints
-**Gap:** No watchpoint support in Swift GUI.
+#### 1.1 Step Over / Step Out ✅
+**Status:** COMPLETE - Already implemented prior to this session.
 
 **Implementation:**
-1. Add API calls in `APIClient.swift`:
-   ```swift
-   func addWatchpoint(sessionID: String, address: UInt32, type: String) async throws -> Int
-   func removeWatchpoint(sessionID: String, watchpointId: Int) async throws
-   func getWatchpoints(sessionID: String) async throws -> [Watchpoint]
-   ```
+1. ✅ API endpoints exist
+2. ✅ `APIClient.swift` has methods
+3. ✅ `EmulatorViewModel.swift` has methods
+4. ✅ `MainView.swift` toolbar has buttons and shortcuts (⌘⇧T, ⌘⌥T)
 
-2. Add `Watchpoint` model in `Models/`:
-   ```swift
-   struct Watchpoint: Codable, Identifiable {
-       let id: Int
-       let address: UInt32
-       let type: String // "read", "write", "readwrite"
-   }
-   ```
-
-3. Update `EmulatorViewModel.swift`:
-   ```swift
-   @Published var watchpoints: [Watchpoint] = []
-   func addWatchpoint(at address: UInt32, type: String) async
-   func removeWatchpoint(id: Int) async
-   ```
-
-4. Create `WatchpointsView.swift` or integrate into existing `BreakpointsListView`
-
-**Files to create/modify:**
-- `swift-gui/ARMEmulator/Models/Watchpoint.swift` (new)
-- `swift-gui/ARMEmulator/Services/APIClient.swift`
-- `swift-gui/ARMEmulator/ViewModels/EmulatorViewModel.swift`
-- `swift-gui/ARMEmulator/Views/WatchpointsView.swift` (new)
-
-#### 1.3 Expression Evaluator
-**Gap:** Cannot evaluate expressions (register values, memory, arithmetic).
+#### 1.2 Watchpoints ✅
+**Status:** COMPLETE - Already implemented prior to this session.
 
 **Implementation:**
-1. Add API call:
-   ```swift
-   func evaluateExpression(sessionID: String, expression: String) async throws -> UInt32
-   ```
+1. ✅ API calls in `APIClient.swift`
+2. ✅ `Watchpoint` model exists
+3. ✅ `EmulatorViewModel.swift` has watchpoint methods
+4. ✅ `WatchpointsView.swift` with add/remove UI
 
-2. Create `ExpressionEvaluatorView.swift`:
-   ```swift
-   struct ExpressionEvaluatorView: View {
-       @State private var expression = ""
-       @State private var results: [EvaluationResult] = []
-       // Input field + history of evaluations
-   }
-   ```
+#### 1.3 Expression Evaluator ✅
+**Status:** COMPLETE - Already implemented prior to this session.
 
-3. Add to tab view in `MainView.swift`
+**Implementation:**
+1. ✅ API call exists in `APIClient.swift`
+2. ✅ `ExpressionEvaluatorView.swift` with full UI
+3. ✅ Added as tab in `MainView.swift`
 
 **Files to create/modify:**
 - `swift-gui/ARMEmulator/Services/APIClient.swift`
@@ -156,61 +121,37 @@ This document identifies features missing from the Swift GUI compared to the Wai
 - `swift-gui/ARMEmulator/Views/BreakpointsListView.swift` (new)
 - `swift-gui/ARMEmulator/Views/MainView.swift`
 
-#### 2.2 Debugger Command Input
-**Gap:** No raw debugger command interface.
+#### 2.2 Debugger Command Input ⚠️
+**Status:** NOT APPLICABLE - No API endpoint exists for generic command execution.
+
+**Note:** The Expression Evaluator (Phase 1.3) provides similar functionality for evaluating expressions and inspecting values. A generic command input would require backend API support that doesn't currently exist.
+
+#### 2.3 Register Change Highlighting ✅
+**Status:** COMPLETE - Already implemented prior to this session.
 
 **Implementation:**
-1. Add API call for command execution:
-   ```swift
-   func executeCommand(sessionID: String, command: String) async throws -> String
-   ```
+1. ✅ State tracking in `EmulatorViewModel` with `previousRegisters` and `changedRegisters`
+2. ✅ `RegistersView` uses `isChanged` parameter to highlight changed registers in green
 
-2. Create `CommandInputView.swift`:
-   ```swift
-   struct CommandInputView: View {
-       @State private var command = ""
-       @State private var history: [String] = []
-       @State private var output = ""
-       // Text field with up/down for history navigation
-   }
-   ```
-
-3. Add to bottom of main view or as separate tab
-
-**Files to create/modify:**
-- `swift-gui/ARMEmulator/Services/APIClient.swift`
-- `swift-gui/ARMEmulator/Views/CommandInputView.swift` (new)
-- `swift-gui/ARMEmulator/Views/MainView.swift`
-
-#### 2.3 Register Change Highlighting
-**Gap:** Changed registers not highlighted after step.
+#### 2.4 Memory Write Highlighting ✅
+**Status:** COMPLETE - Already implemented prior to this session.
 
 **Implementation:**
-1. Add state tracking in `EmulatorViewModel`:
-   ```swift
-   @Published var previousRegisters: RegisterState?
-   @Published var changedRegisters: Set<String> = []
-   ```
+1. ✅ State tracking in `EmulatorViewModel` with `previousRegisters` and `changedRegisters`
+2. ✅ `RegistersView` uses `isChanged` parameter to highlight changed registers in green
 
-2. Update `RegistersView.swift` to highlight changed registers:
-   ```swift
-   func registerColor(for name: String) -> Color {
-       changedRegisters.contains(name) ? .green : .primary
-   }
-   ```
-
-**Files to modify:**
+**Files modified:**
 - `swift-gui/ARMEmulator/ViewModels/EmulatorViewModel.swift`
 - `swift-gui/ARMEmulator/Views/RegistersView.swift`
 
-#### 2.4 Memory Write Highlighting
-**Gap:** Recently written memory addresses not highlighted.
+#### 2.4 Memory Write Highlighting ✅
+**Status:** COMPLETE - Already implemented prior to this session.
 
 **Implementation:**
-1. Track recent writes via WebSocket events or last write info
-2. Update `MemoryView.swift` to highlight recent writes in green
+1. ✅ Tracks recent writes via `lastMemoryWrite` in `EmulatorViewModel`
+2. ✅ `MemoryView` highlights recent write addresses
 
-**Files to modify:**
+**Files modified:**
 - `swift-gui/ARMEmulator/ViewModels/EmulatorViewModel.swift`
 - `swift-gui/ARMEmulator/Views/MemoryView.swift`
 
@@ -261,14 +202,17 @@ This document identifies features missing from the Swift GUI compared to the Wai
 
 ## API Endpoint Status
 
-The following API endpoints exist in `openapi.yaml` and need Swift client implementation:
+All required API endpoints for Phase 1 and Phase 2 features are implemented:
 
 | Endpoint | Swift Client | Status |
 |----------|--------------|--------|
 | `/api/v1/session/{id}/step` | ✅ | Done |
-| `/api/v1/session/{id}/watchpoint` (POST) | ❌ | Needed |
-| `/api/v1/session/{id}/watchpoint/{id}` (DELETE) | ❌ | Needed |
-| `/api/v1/session/{id}/watchpoints` (GET) | ❌ | Needed |
+| `/api/v1/session/{id}/step-over` | ✅ | Done |
+| `/api/v1/session/{id}/step-out` | ✅ | Done |
+| `/api/v1/session/{id}/watchpoint` (POST) | ✅ | Done |
+| `/api/v1/session/{id}/watchpoint/{id}` (DELETE) | ✅ | Done |
+| `/api/v1/session/{id}/watchpoints` (GET) | ✅ | Done |
+| `/api/v1/session/{id}/evaluate` (POST) | ✅ | Done |
 | `/api/v1/session/{id}/trace/*` | ❌ | Nice to have |
 | `/api/v1/session/{id}/stats/*` | ❌ | Nice to have |
 
