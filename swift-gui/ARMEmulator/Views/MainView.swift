@@ -120,6 +120,12 @@ struct MainView: View {
                             Label("Evaluator", systemImage: "function")
                         }
                         .tag(4)
+
+                    WatchpointsView(viewModel: viewModel)
+                        .tabItem {
+                            Label("Watchpoints", systemImage: "eye")
+                        }
+                        .tag(5)
                 }
                 .frame(minWidth: 250, maxWidth: 500)
             }

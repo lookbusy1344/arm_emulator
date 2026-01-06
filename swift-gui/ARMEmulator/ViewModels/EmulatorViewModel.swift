@@ -8,6 +8,7 @@ class EmulatorViewModel: ObservableObject {
     @Published var consoleOutput = ""
     @Published var status: VMState = .idle
     @Published var breakpoints: Set<UInt32> = []
+    @Published var watchpoints: [Watchpoint] = []
     @Published var sourceCode = ""
     @Published var currentPC: UInt32 = 0
     @Published var errorMessage: String?
@@ -233,6 +234,46 @@ class EmulatorViewModel: ObservableObject {
             errorMessage = nil
         } catch {
             errorMessage = "Failed to toggle breakpoint: \(error.localizedDescription)"
+        }
+    }
+
+    func addWatchpoint(at address: UInt32, type: String) async {
+        guard let sessionID = sessionID else {
+            errorMessage = "No active session"
+            return
+        }
+
+        do {
+            let watchpoint = try await apiClient.addWatchpoint(sessionID: sessionID, address: address, type: type)
+            watchpoints.append(watchpoint)
+            errorMessage = nil
+        } catch {
+            errorMessage = "Failed to add watchpoint: \(error.localizedDescription)"
+        }
+    }
+
+    func removeWatchpoint(id: Int) async {
+        guard let sessionID = sessionID else {
+            errorMessage = "No active session"
+            return
+        }
+
+        do {
+            try await apiClient.removeWatchpoint(sessionID: sessionID, watchpointID: id)
+            watchpoints.removeAll { $0.id == id }
+            errorMessage = nil
+        } catch {
+            errorMessage = "Failed to remove watchpoint: \(error.localizedDescription)"
+        }
+    }
+
+    func refreshWatchpoints() async {
+        guard let sessionID = sessionID else { return }
+
+        do {
+            watchpoints = try await apiClient.getWatchpoints(sessionID: sessionID)
+        } catch {
+            errorMessage = "Failed to refresh watchpoints: \(error.localizedDescription)"
         }
     }
 

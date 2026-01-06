@@ -200,6 +200,34 @@ class APIClient: ObservableObject {
         return response.result
     }
 
+    // MARK: - Watchpoints
+
+    func addWatchpoint(sessionID: String, address: UInt32, type: String) async throws -> Watchpoint {
+        struct WatchpointRequest: Codable {
+            let address: UInt32
+            let type: String
+        }
+
+        let url = baseURL.appendingPathComponent("/api/v1/session/\(sessionID)/watchpoint")
+        let watchpoint: Watchpoint = try await post(url: url, body: WatchpointRequest(address: address, type: type))
+        return watchpoint
+    }
+
+    func removeWatchpoint(sessionID: String, watchpointID: Int) async throws {
+        let url = baseURL.appendingPathComponent("/api/v1/session/\(sessionID)/watchpoint/\(watchpointID)")
+        try await delete(url: url)
+    }
+
+    func getWatchpoints(sessionID: String) async throws -> [Watchpoint] {
+        struct WatchpointsResponse: Codable {
+            let watchpoints: [Watchpoint]
+        }
+
+        let url = baseURL.appendingPathComponent("/api/v1/session/\(sessionID)/watchpoints")
+        let response: WatchpointsResponse = try await get(url: url)
+        return response.watchpoints
+    }
+
     // MARK: - Generic HTTP Methods
 
     private func get<T: Decodable>(url: URL) async throws -> T {
