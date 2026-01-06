@@ -114,6 +114,12 @@ struct MainView: View {
                             Label("Disassembly", systemImage: "hammer")
                         }
                         .tag(3)
+
+                    ExpressionEvaluatorView(viewModel: viewModel)
+                        .tabItem {
+                            Label("Evaluator", systemImage: "function")
+                        }
+                        .tag(4)
                 }
                 .frame(minWidth: 250, maxWidth: 500)
             }

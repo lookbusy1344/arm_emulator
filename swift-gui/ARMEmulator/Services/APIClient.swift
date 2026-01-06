@@ -186,6 +186,20 @@ class APIClient: ObservableObject {
         return response.breakpoints
     }
 
+    func evaluateExpression(sessionID: String, expression: String) async throws -> UInt32 {
+        struct EvaluateRequest: Codable {
+            let expression: String
+        }
+
+        struct EvaluateResponse: Codable {
+            let result: UInt32
+        }
+
+        let url = baseURL.appendingPathComponent("/api/v1/session/\(sessionID)/evaluate")
+        let response: EvaluateResponse = try await post(url: url, body: EvaluateRequest(expression: expression))
+        return response.result
+    }
+
     // MARK: - Generic HTTP Methods
 
     private func get<T: Decodable>(url: URL) async throws -> T {

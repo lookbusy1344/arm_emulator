@@ -20,9 +20,9 @@ class EmulatorViewModel: ObservableObject {
     // Disassembly state
     @Published var disassembly: [DisassembledInstruction] = []
 
-    private let apiClient: APIClient
+    let apiClient: APIClient
     private let wsClient: WebSocketClient
-    private var sessionID: String?
+    var sessionID: String?
     private var cancellables = Set<AnyCancellable>()
     private var isInitializing = false
 

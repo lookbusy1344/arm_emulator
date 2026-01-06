@@ -239,6 +239,8 @@ func (s *Server) handleSessionRoute(w http.ResponseWriter, r *http.Request) {
 		}
 	case "watchpoints":
 		s.handleListWatchpoints(w, r, sessionID)
+	case "evaluate":
+		s.handleEvaluateExpression(w, r, sessionID)
 	case "trace":
 		// Handle /api/v1/session/{id}/trace/{enable|disable|data}
 		if len(parts) < 3 {

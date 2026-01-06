@@ -711,6 +711,42 @@ func (s *Server) handleListWatchpoints(w http.ResponseWriter, r *http.Request, s
 	writeJSON(w, http.StatusOK, response)
 }
 
+// handleEvaluateExpression handles POST /api/v1/session/{id}/evaluate
+func (s *Server) handleEvaluateExpression(w http.ResponseWriter, r *http.Request, sessionID string) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	session, err := s.sessions.GetSession(sessionID)
+	if err != nil {
+		writeError(w, http.StatusNotFound, "Session not found")
+		return
+	}
+
+	var req struct {
+		Expression string `json:"expression"`
+	}
+	if err := readJSON(r, &req); err != nil {
+		writeError(w, http.StatusBadRequest, "Invalid request body")
+		return
+	}
+
+	result, evalErr := session.Service.EvaluateExpression(req.Expression)
+	if evalErr != nil {
+		writeError(w, http.StatusBadRequest, fmt.Sprintf("Evaluation failed: %v", evalErr))
+		return
+	}
+
+	response := struct {
+		Result uint32 `json:"result"`
+	}{
+		Result: result,
+	}
+
+	writeJSON(w, http.StatusOK, response)
+}
+
 // handleTraceControl handles POST /api/v1/session/{id}/trace/{enable|disable}
 func (s *Server) handleTraceControl(w http.ResponseWriter, r *http.Request, sessionID string, action string) {
 	if r.Method != http.MethodPost {
