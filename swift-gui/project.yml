@@ -52,7 +52,12 @@ targets:
             echo "Backend binary copied successfully to $BACKEND_DEST"
           else
             echo "Warning: Backend binary not found at $BACKEND_SOURCE"
-            echo "Build the Go backend first: go build -o arm-emulator"
+            echo "The backend must be built separately with version info:"
+            echo "  cd ${PROJECT_DIR}/.."
+            echo "  VERSION=\"1.0.0\""
+            echo "  COMMIT=\$(git log -1 --format=%H)"
+            echo "  DATE=\$(date -u +\"%Y-%m-%d %H:%M:%S UTC\")"
+            echo "  go build -ldflags \"-X 'main.Version=\$VERSION' -X 'main.Commit=\$COMMIT' -X 'main.Date=\$DATE'\" -o arm-emulator"
           fi
     scheme:
       testTargets:

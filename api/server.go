@@ -17,10 +17,18 @@ type Server struct {
 	mux         *http.ServeMux
 	server      *http.Server
 	port        int
+	version     string
+	commit      string
+	date        string
 }
 
 // NewServer creates a new API server
 func NewServer(port int) *Server {
+	return NewServerWithVersion(port, "dev", "unknown", "unknown")
+}
+
+// NewServerWithVersion creates a new API server with version information
+func NewServerWithVersion(port int, version, commit, date string) *Server {
 	broadcaster := NewBroadcaster()
 
 	s := &Server{
@@ -28,6 +36,9 @@ func NewServer(port int) *Server {
 		broadcaster: broadcaster,
 		mux:         http.NewServeMux(),
 		port:        port,
+		version:     version,
+		commit:      commit,
+		date:        date,
 	}
 
 	// Register routes
@@ -45,6 +56,9 @@ func (s *Server) Handler() http.Handler {
 func (s *Server) registerRoutes() {
 	// Health check
 	s.mux.HandleFunc("/health", s.handleHealth)
+
+	// Version information
+	s.mux.HandleFunc("/api/v1/version", s.handleGetVersion)
 
 	// WebSocket endpoint for real-time updates
 	s.mux.HandleFunc("/api/v1/ws", s.handleWebSocket)

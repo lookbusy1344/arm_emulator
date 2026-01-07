@@ -322,6 +322,13 @@ type ExampleContentResponse struct {
 	Size    int64  `json:"size"`
 }
 
+// VersionResponse represents backend version information
+type VersionResponse struct {
+	Version string `json:"version"` // Version number
+	Commit  string `json:"commit"`  // Git commit hash
+	Date    string `json:"date"`    // Build date
+}
+
 // ToInstructionInfo converts service.DisassemblyLine to API response
 func ToInstructionInfo(line *service.DisassemblyLine) InstructionInfo {
 	return InstructionInfo{

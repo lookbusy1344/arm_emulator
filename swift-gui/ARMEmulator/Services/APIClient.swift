@@ -169,14 +169,15 @@ class APIClient: ObservableObject {
 
         let url = baseURL.appendingPathComponent("/api/v1/session/\(sessionID)/breakpoint")
         let request = BreakpointRequest(address: address)
-        
+
         // Debug logging
         if let data = try? JSONEncoder().encode(request),
-           let jsonString = String(data: data, encoding: .utf8) {
+           let jsonString = String(data: data, encoding: .utf8)
+        {
             print("Adding breakpoint - URL: \(url)")
             print("Adding breakpoint - Body: \(jsonString)")
         }
-        
+
         try await post(url: url, body: request)
     }
 
@@ -187,14 +188,15 @@ class APIClient: ObservableObject {
 
         let url = baseURL.appendingPathComponent("/api/v1/session/\(sessionID)/breakpoint")
         let request = BreakpointRequest(address: address)
-        
+
         // Debug logging
         if let data = try? JSONEncoder().encode(request),
-           let jsonString = String(data: data, encoding: .utf8) {
+           let jsonString = String(data: data, encoding: .utf8)
+        {
             print("Removing breakpoint - URL: \(url)")
             print("Removing breakpoint - Body: \(jsonString)")
         }
-        
+
         try await delete(url: url, body: request)
     }
 
@@ -203,7 +205,7 @@ class APIClient: ObservableObject {
             let address: UInt32
             let line: String
         }
-        
+
         struct SourceMapResponse: Codable {
             let sourceMap: [SourceMapEntry]
         }
@@ -310,7 +312,7 @@ class APIClient: ObservableObject {
 
         let _: EmptyResponse = try await performRequest(request: request)
     }
-    
+
     private func delete<T: Encodable>(url: URL, body: T) async throws {
         var request = URLRequest(url: url)
         request.httpMethod = "DELETE"
@@ -407,6 +409,15 @@ class APIClient: ObservableObject {
     }
 }
 
+// MARK: - Version
+
+extension APIClient {
+    func getVersion() async throws -> BackendVersion {
+        let url = baseURL.appendingPathComponent("/api/v1/version")
+        return try await get(url: url)
+    }
+}
+
 // MARK: - Models
 
 struct DisassembledInstruction: Codable, Identifiable, Hashable {
@@ -435,4 +446,10 @@ struct LoadProgramResponse: Codable {
     let success: Bool
     let errors: [String]?
     let symbols: [String: UInt32]?
+}
+
+struct BackendVersion: Codable {
+    let version: String
+    let commit: String
+    let date: String
 }

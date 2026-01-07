@@ -5,8 +5,20 @@ This is an ARM emulator written in Go that implements a subset of the ARM2 instr
 ## Build Command
 
 ```bash
+# Build with version information (recommended)
+make build
+
+# Or use the build script
+./build_with_version.sh
+
+# Build and run tests with version info
+./build_test.sh
+
+# Manual build (basic, no version info)
 go build -o arm-emulator
 ```
+
+The Makefile, build script, and test script automatically inject version information from git (tag, commit hash, and build date) into the binary.
 
 ## Format Command
 
@@ -195,6 +207,13 @@ open ARMEmulator.xcodeproj
 The project can be fully developed in Xcode with all standard features (visual debugging, Interface Builder for SwiftUI previews, breakpoints, etc.).
 
 ### Build Swift App (CLI)
+
+**IMPORTANT:** Before building the Swift app, ensure the Go backend is built with version information:
+
+```bash
+cd ..
+make build  # or ./build_with_version.sh
+cd swift-gui
 
 ```bash
 cd swift-gui

@@ -97,7 +97,7 @@ func main() {
 
 	// Start API server mode if requested
 	if *apiServer {
-		server := api.NewServer(*apiPort)
+		server := api.NewServerWithVersion(*apiPort, Version, Commit, Date)
 
 		// Setup graceful shutdown
 		sigChan := make(chan os.Signal, 1)

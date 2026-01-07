@@ -10,6 +10,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 @main
 struct ARMEmulatorApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
+    @State private var showingAbout = false
 
     var body: some Scene {
         WindowGroup {
@@ -20,8 +21,16 @@ struct ARMEmulatorApp: App {
                 .task {
                     await appDelegate.backendManager.ensureBackendRunning()
                 }
+                .sheet(isPresented: $showingAbout) {
+                    AboutView()
+                }
         }
         .commands {
+            CommandGroup(replacing: .appInfo) {
+                Button("About ARM Emulator") {
+                    showingAbout = true
+                }
+            }
             FileCommands()
             DebugCommands()
         }

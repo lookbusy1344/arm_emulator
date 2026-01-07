@@ -1061,6 +1061,22 @@ func (s *Server) handleGetExample(w http.ResponseWriter, r *http.Request, exampl
 	writeJSON(w, http.StatusOK, response)
 }
 
+// handleGetVersion handles GET /api/v1/version
+func (s *Server) handleGetVersion(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	response := VersionResponse{
+		Version: s.version,
+		Commit:  s.commit,
+		Date:    s.date,
+	}
+
+	writeJSON(w, http.StatusOK, response)
+}
+
 // getDefaultConfig returns default configuration as API response
 func (s *Server) getDefaultConfig() ConfigResponse {
 	// In a full implementation, this would load from config package
