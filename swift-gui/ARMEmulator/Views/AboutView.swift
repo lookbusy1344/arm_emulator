@@ -61,20 +61,26 @@ struct AboutView: View {
         }
         .padding(30)
         .frame(width: 400)
-        .task {
-            await loadVersion()
+        .onAppear {
+            loadVersionSync()
         }
     }
 
-    private func loadVersion() async {
-        // Check cache first
+    private func loadVersionSync() {
+        // Check cache first - instant display
         if let cached = Self.cachedVersion {
             backendVersion = cached
             DebugLog.log("Using cached version info", category: "AboutView")
             return
         }
 
-        isLoading = true
+        // Not cached - fetch asynchronously
+        Task {
+            await loadVersionAsync()
+        }
+    }
+
+    private func loadVersionAsync() async { isLoading = true
         errorMessage = nil
 
         do {
