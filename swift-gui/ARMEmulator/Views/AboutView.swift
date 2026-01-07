@@ -7,6 +7,9 @@ struct AboutView: View {
     @State private var errorMessage: String?
     private let apiClient = APIClient()
 
+    // Cache version info to avoid repeated API calls
+    private static var cachedVersion: BackendVersion?
+
     var body: some View {
         VStack(spacing: 20) {
             Image(systemName: "cpu")
@@ -64,11 +67,21 @@ struct AboutView: View {
     }
 
     private func loadVersion() async {
+        // Check cache first
+        if let cached = Self.cachedVersion {
+            backendVersion = cached
+            DebugLog.log("Using cached version info", category: "AboutView")
+            return
+        }
+
         isLoading = true
         errorMessage = nil
 
         do {
-            backendVersion = try await apiClient.getVersion()
+            let version = try await apiClient.getVersion()
+            backendVersion = version
+            Self.cachedVersion = version // Cache for future use
+            DebugLog.log("Fetched and cached version info", category: "AboutView")
         } catch {
             errorMessage = "Failed to load backend version"
             DebugLog.error("Failed to load version: \(error)", category: "AboutView")
