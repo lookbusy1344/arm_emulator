@@ -211,6 +211,10 @@ waitLoop:
 
 		update, err := c.WaitForStateUpdate(remaining)
 		if err != nil {
+			// On timeout, loop back to check remaining time which will trigger API fallback
+			if strings.Contains(err.Error(), "timeout") {
+				continue
+			}
 			return StateUpdate{}, err
 		}
 
