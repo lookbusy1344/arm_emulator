@@ -19,7 +19,7 @@ struct MemoryView: View {
                 TextField("Address", text: $addressInput)
                     .textFieldStyle(.roundedBorder)
                     .frame(width: 100)
-                    .font(.system(.body, design: .monospaced))
+                    .font(.system(size: 10, design: .monospaced))
 
                 Button("Go") {
                     loadMemoryFromInput()
@@ -86,7 +86,7 @@ struct MemoryView: View {
                         )
                     }
                 }
-                .font(.system(.body, design: .monospaced))
+                .font(.system(size: 10, design: .monospaced))
                 .padding(8)
             }
         }

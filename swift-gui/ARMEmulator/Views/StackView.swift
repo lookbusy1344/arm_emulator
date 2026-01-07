@@ -19,7 +19,7 @@ struct StackView: View {
             // Header
             HStack {
                 Text("Stack (SP = \(String(format: "0x%08X", viewModel.registers.sp)))")
-                    .font(.headline)
+                    .font(.system(size: 11, weight: .semibold))
                     .padding(8)
                 Spacer()
             }
@@ -40,7 +40,7 @@ struct StackView: View {
                         )
                     }
                 }
-                .font(.system(.body, design: .monospaced))
+                .font(.system(size: 10, design: .monospaced))
                 .padding(8)
             }
         }

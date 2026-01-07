@@ -63,7 +63,7 @@ struct ExamplesBrowserView: View {
                 // Bottom info
                 HStack {
                     Text("\(filteredExamples.count) example(s)")
-                        .font(.caption)
+                        .font(.system(size: 11))
                         .foregroundColor(.secondary)
                     Spacer()
                 }
@@ -76,28 +76,27 @@ struct ExamplesBrowserView: View {
             VStack(alignment: .leading, spacing: 8) {
                 if let example = selectedExample {
                     Text(example.name)
-                        .font(.title2)
-                        .fontWeight(.semibold)
+                        .font(.system(size: 14, weight: .semibold))
 
                     Text(example.description)
-                        .font(.body)
+                        .font(.system(size: 11))
                         .foregroundColor(.secondary)
 
                     HStack {
                         Label(example.formattedSize, systemImage: "doc.text")
                         Spacer()
                     }
-                    .font(.caption)
+                    .font(.system(size: 11))
                     .foregroundColor(.secondary)
 
                     Divider()
 
                     Text("Preview:")
-                        .font(.headline)
+                        .font(.system(size: 11, weight: .semibold))
 
                     ScrollView {
                         Text(previewContent)
-                            .font(.system(.body, design: .monospaced))
+                            .font(.system(size: 10, design: .monospaced))
                             .frame(maxWidth: .infinity, alignment: .leading)
                             .padding(8)
                             .background(Color(NSColor.textBackgroundColor))
@@ -165,11 +164,11 @@ struct ExampleRow: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
             Text(example.name)
-                .font(.body)
+                .font(.system(size: 11))
                 .fontWeight(.medium)
 
             Text(example.description)
-                .font(.caption)
+                .font(.system(size: 11))
                 .foregroundColor(.secondary)
                 .lineLimit(2)
         }

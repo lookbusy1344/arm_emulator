@@ -11,7 +11,7 @@ struct DisassemblyView: View {
             // Header
             HStack {
                 Text("Disassembly (PC = \(String(format: "0x%08X", viewModel.currentPC)))")
-                    .font(.headline)
+                    .font(.system(size: 11, weight: .semibold))
                     .padding(8)
                 Spacer()
                 Button("Refresh") {
@@ -34,7 +34,7 @@ struct DisassemblyView: View {
                         )
                     }
                 }
-                .font(.system(.body, design: .monospaced))
+                .font(.system(size: 10, design: .monospaced))
                 .padding(8)
             }
         }

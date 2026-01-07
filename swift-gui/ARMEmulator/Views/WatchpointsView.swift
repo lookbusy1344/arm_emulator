@@ -18,7 +18,7 @@ struct WatchpointsView: View {
                 HStack {
                     TextField("Address (e.g., 0x8000)", text: $addressInput)
                         .textFieldStyle(.roundedBorder)
-                        .font(.system(.body, design: .monospaced))
+                        .font(.system(size: 10, design: .monospaced))
 
                     Picker("Type", selection: $selectedType) {
                         ForEach(watchpointTypes, id: \.0) { type in
@@ -47,7 +47,7 @@ struct WatchpointsView: View {
                     Text("No watchpoints set")
                         .foregroundColor(.secondary)
                     Text("Watchpoints trigger when memory is accessed")
-                        .font(.caption)
+                        .font(.system(size: 11))
                         .foregroundColor(.secondary)
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -77,11 +77,11 @@ struct WatchpointsView: View {
 
             VStack(alignment: .leading, spacing: 2) {
                 Text(String(format: "0x%08X", watchpoint.address))
-                    .font(.system(.body, design: .monospaced))
+                    .font(.system(size: 10, design: .monospaced))
                     .fontWeight(.medium)
 
                 Text(watchpointTypeLabel(watchpoint.type))
-                    .font(.caption)
+                    .font(.system(size: 11))
                     .foregroundColor(.secondary)
             }
 

@@ -12,7 +12,7 @@ struct RegistersView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             Text("Registers")
-                .font(.headline)
+                .font(.system(size: 11, weight: .semibold))
                 .padding(.horizontal)
                 .padding(.vertical, 8)
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -46,12 +46,12 @@ struct RegistersView: View {
 
                     HStack {
                         Text("CPSR:")
-                            .font(.system(.body, design: .monospaced))
+                            .font(.system(size: 10, design: .monospaced))
                             .fontWeight(.bold)
                             .frame(width: 60, alignment: .leading)
 
                         Text(registers.cpsr.displayString)
-                            .font(.system(.body, design: .monospaced))
+                            .font(.system(size: 10, design: .monospaced))
                             .foregroundColor(changedRegisters.contains("CPSR") ? .green : .primary)
                     }
                     .padding(.horizontal)
@@ -78,19 +78,19 @@ struct RegisterRow: View {
     var body: some View {
         HStack {
             Text("\(name):")
-                .font(.system(.body, design: .monospaced))
+                .font(.system(size: 10, design: .monospaced))
                 .fontWeight(.bold)
                 .frame(width: 60, alignment: .leading)
                 .foregroundColor(isChanged ? .green : .primary)
 
             Text(String(format: "0x%08X", value))
-                .font(.system(.body, design: .monospaced))
+                .font(.system(size: 10, design: .monospaced))
                 .foregroundColor(isChanged ? .green : .primary)
 
             Spacer()
 
             Text(String(value))
-                .font(.system(.caption, design: .monospaced))
+                .font(.system(size: 10, design: .monospaced))
                 .foregroundColor(isChanged ? .green : .secondary)
         }
         .padding(.horizontal)

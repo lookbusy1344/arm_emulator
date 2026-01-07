@@ -28,7 +28,7 @@ struct GeneralPreferences: View {
                 TextField("Backend URL", text: $settings.backendURL)
                     .textFieldStyle(.roundedBorder)
                 Text("Default: http://localhost:8080")
-                    .font(.caption)
+                    .font(.system(size: 11))
                     .foregroundColor(.secondary)
             }
 
@@ -65,7 +65,7 @@ struct EditorPreferences: View {
                     in: 10 ... 24
                 )
                 Text("Current size: \(settings.editorFontSize) pt")
-                    .font(.caption)
+                    .font(.system(size: 11))
                     .foregroundColor(.secondary)
             }
 

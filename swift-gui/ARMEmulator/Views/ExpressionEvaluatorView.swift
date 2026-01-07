@@ -20,7 +20,7 @@ struct ExpressionEvaluatorView: View {
             HStack {
                 TextField("Enter expression (e.g., r0, r0+r1, [r0], 0x8000)", text: $expression)
                     .textFieldStyle(.roundedBorder)
-                    .font(.system(.body, design: .monospaced))
+                    .font(.system(size: 10, design: .monospaced))
                     .onSubmit {
                         Task { await evaluateExpression() }
                     }
@@ -41,14 +41,14 @@ struct ExpressionEvaluatorView: View {
                     Image(systemName: "exclamationmark.triangle.fill")
                         .foregroundColor(.orange)
                     Text(error)
-                        .font(.system(.caption, design: .monospaced))
+                        .font(.system(size: 10, design: .monospaced))
                         .foregroundColor(.secondary)
                     Spacer()
                     Button("Dismiss") {
                         errorMessage = nil
                     }
                     .buttonStyle(.plain)
-                    .font(.caption)
+                    .font(.system(size: 11))
                 }
                 .padding(.horizontal)
                 .padding(.vertical, 8)
@@ -64,7 +64,7 @@ struct ExpressionEvaluatorView: View {
                     Text("No expressions evaluated yet")
                         .foregroundColor(.secondary)
                     Text("Try: r0, r0+r1, [r0], 0x8000")
-                        .font(.caption)
+                        .font(.system(size: 11))
                         .foregroundColor(.secondary)
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -87,11 +87,11 @@ struct ExpressionEvaluatorView: View {
         VStack(alignment: .leading, spacing: 4) {
             HStack {
                 Text(result.expression)
-                    .font(.system(.body, design: .monospaced))
+                    .font(.system(size: 10, design: .monospaced))
                     .fontWeight(.medium)
                 Spacer()
                 Text(result.timestamp, style: .time)
-                    .font(.caption)
+                    .font(.system(size: 11))
                     .foregroundColor(.secondary)
             }
 
@@ -113,10 +113,10 @@ struct ExpressionEvaluatorView: View {
     private func resultValue(label: String, value: String) -> some View {
         VStack(alignment: .leading, spacing: 2) {
             Text(label)
-                .font(.caption2)
+                .font(.system(size: 11))
                 .foregroundColor(.secondary)
             Text(value)
-                .font(.system(.caption, design: .monospaced))
+                .font(.system(size: 10, design: .monospaced))
                 .textSelection(.enabled)
         }
     }

@@ -20,7 +20,7 @@ struct BackendStatusView: View {
                     .font(.system(size: 48))
                     .foregroundColor(.orange)
                 Text("Backend Stopped")
-                    .font(.headline)
+                    .font(.system(size: 11, weight: .semibold))
                 Text("The ARM Emulator backend is not running")
                     .foregroundColor(.secondary)
                 Button("Start Backend") {
@@ -35,7 +35,7 @@ struct BackendStatusView: View {
                     .font(.system(size: 48))
                     .foregroundColor(.red)
                 Text("Backend Error")
-                    .font(.headline)
+                    .font(.system(size: 11, weight: .semibold))
                 Text(message)
                     .foregroundColor(.secondary)
                     .multilineTextAlignment(.center)

@@ -156,9 +156,9 @@ struct MainView: View {
             HStack(spacing: 4) {
                 Image(systemName: statusIcon)
                     .foregroundColor(statusColor)
-                    .font(.system(size: 14, weight: .semibold))
+                    .font(.system(size: 11, weight: .semibold))
                 Text(statusText)
-                    .font(.caption)
+                    .font(.system(size: 11))
                     .foregroundColor(.secondary)
             }
             .padding(.horizontal, 4)
@@ -303,7 +303,7 @@ struct StatusView: View {
                     .frame(width: 10, height: 10)
 
                 Text(status.rawValue.capitalized)
-                    .font(.system(.body, design: .monospaced))
+                    .font(.system(size: 10, design: .monospaced))
                     .fontWeight(.medium)
             }
             .padding(.horizontal)
@@ -312,11 +312,11 @@ struct StatusView: View {
 
             HStack(spacing: 4) {
                 Text("PC:")
-                    .font(.system(.caption, design: .monospaced))
+                    .font(.system(size: 10, design: .monospaced))
                     .foregroundColor(.secondary)
 
                 Text(String(format: "0x%08X", pc))
-                    .font(.system(.body, design: .monospaced))
+                    .font(.system(size: 10, design: .monospaced))
             }
             .padding(.horizontal)
 

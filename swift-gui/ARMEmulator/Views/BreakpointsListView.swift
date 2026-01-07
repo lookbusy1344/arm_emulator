@@ -10,7 +10,7 @@ struct BreakpointsListView: View {
             } else {
                 List {
                     if !viewModel.breakpoints.isEmpty {
-                        Section(header: Text("Breakpoints").font(.headline)) {
+                        Section(header: Text("Breakpoints").font(.system(size: 11, weight: .semibold))) {
                             ForEach(Array(viewModel.breakpoints).sorted(), id: \.self) { address in
                                 breakpointRow(address: address)
                             }
@@ -18,7 +18,7 @@ struct BreakpointsListView: View {
                     }
 
                     if !viewModel.watchpoints.isEmpty {
-                        Section(header: Text("Watchpoints").font(.headline)) {
+                        Section(header: Text("Watchpoints").font(.system(size: 11, weight: .semibold))) {
                             ForEach(viewModel.watchpoints) { watchpoint in
                                 watchpointRow(watchpoint: watchpoint)
                             }
@@ -37,7 +37,7 @@ struct BreakpointsListView: View {
                 .foregroundColor(.secondary)
 
             Text("No Breakpoints or Watchpoints")
-                .font(.headline)
+                .font(.system(size: 11, weight: .semibold))
                 .foregroundColor(.secondary)
 
             Text("Set breakpoints in the editor or toggle them in the disassembly view")
@@ -53,10 +53,10 @@ struct BreakpointsListView: View {
         HStack {
             Image(systemName: "circle.fill")
                 .foregroundColor(.red)
-                .font(.caption)
+                .font(.system(size: 11))
 
             Text(String(format: "0x%08X", address))
-                .font(.system(.body, design: .monospaced))
+                .font(.system(size: 10, design: .monospaced))
 
             Spacer()
 
@@ -78,14 +78,14 @@ struct BreakpointsListView: View {
         HStack {
             Image(systemName: "eye.fill")
                 .foregroundColor(.blue)
-                .font(.caption)
+                .font(.system(size: 11))
 
             VStack(alignment: .leading, spacing: 2) {
                 Text(String(format: "0x%08X", watchpoint.address))
-                    .font(.system(.body, design: .monospaced))
+                    .font(.system(size: 10, design: .monospaced))
 
                 Text(watchpoint.type.capitalized)
-                    .font(.caption)
+                    .font(.system(size: 11))
                     .foregroundColor(.secondary)
             }
 

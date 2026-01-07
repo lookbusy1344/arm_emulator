@@ -8,7 +8,7 @@ struct ConsoleView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             Text("Console Output")
-                .font(.headline)
+                .font(.system(size: 11, weight: .semibold))
                 .padding(.horizontal)
                 .padding(.vertical, 8)
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -17,7 +17,7 @@ struct ConsoleView: View {
             ScrollView {
                 ScrollViewReader { proxy in
                     Text(output.isEmpty ? "Program output will appear here..." : output)
-                        .font(.system(.body, design: .monospaced))
+                        .font(.system(size: 10, design: .monospaced))
                         .padding(8)
                         .frame(maxWidth: .infinity, alignment: .topLeading)
                         .id("bottom")
@@ -34,7 +34,7 @@ struct ConsoleView: View {
                 HStack {
                     TextField("Input...", text: $inputText)
                         .textFieldStyle(.roundedBorder)
-                        .font(.system(.body, design: .monospaced))
+                        .font(.system(size: 10, design: .monospaced))
                         .onSubmit {
                             sendInput()
                         }

@@ -11,7 +11,7 @@ struct EditorView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             Text("Assembly Editor")
-                .font(.headline)
+                .font(.system(size: 11, weight: .semibold))
                 .padding(.horizontal)
                 .padding(.vertical, 8)
                 .frame(maxWidth: .infinity, alignment: .leading)
