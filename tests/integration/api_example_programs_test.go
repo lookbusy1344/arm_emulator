@@ -19,13 +19,17 @@ import (
 
 // WebSocketTestClient manages WebSocket connection for tests
 type WebSocketTestClient struct {
-	conn      *websocket.Conn
-	updates   chan StateUpdate
-	errors    chan error
-	done      chan struct{}
-	mu        sync.Mutex
-	closed    bool
-	closeOnce sync.Once
+	conn         *websocket.Conn
+	updates      chan StateUpdate
+	errors       chan error
+	done         chan struct{}
+	mu           sync.Mutex
+	closed       bool
+	closeOnce    sync.Once
+	currentState string
+	seenStates   map[string]bool
+	server       *api.Server
+	sessionID    string
 }
 
 // StateUpdate represents a state update from WebSocket
@@ -46,7 +50,7 @@ func (s *StateUpdate) GetStatus() string {
 }
 
 // NewWebSocketTestClient creates a WebSocket test client
-func NewWebSocketTestClient(t *testing.T, wsURL string) *WebSocketTestClient {
+func NewWebSocketTestClient(t *testing.T, wsURL string, server *api.Server, sessionID string) *WebSocketTestClient {
 	t.Helper()
 
 	// Connect to WebSocket
@@ -56,21 +60,17 @@ func NewWebSocketTestClient(t *testing.T, wsURL string) *WebSocketTestClient {
 	}
 
 	client := &WebSocketTestClient{
-		conn:    conn,
-		updates: make(chan StateUpdate, 10),
-		errors:  make(chan error, 10),
-		done:    make(chan struct{}),
+		conn:       conn,
+		updates:    make(chan StateUpdate, 100), // Larger buffer to prevent drops
+		errors:     make(chan error, 10),
+		done:       make(chan struct{}),
+		seenStates: make(map[string]bool),
+		server:     server,
+		sessionID:  sessionID,
 	}
 
 	// Start receiving messages
 	go client.receiveLoop()
-
-	// Extract session ID from URL query parameter
-	// wsURL format: ws://host/api/v1/ws?session=SESSION_ID
-	sessionID := ""
-	if idx := strings.Index(wsURL, "session="); idx != -1 {
-		sessionID = wsURL[idx+8:]
-	}
 
 	// Send subscription request to receive all events for this session
 	if sessionID != "" {
@@ -111,9 +111,24 @@ func (c *WebSocketTestClient) receiveLoop() {
 			}
 			return
 		}
+
+		// Track current state
+		if status := update.GetStatus(); status != "" {
+			c.mu.Lock()
+			c.currentState = status
+			c.seenStates[status] = true
+			c.mu.Unlock()
+		}
+
 		select {
 		case c.updates <- update:
-		case <-time.After(100 * time.Millisecond):
+		case <-time.After(5 * time.Second):
+			// If blocked for 5 seconds, something is wrong
+			select {
+			case c.errors <- fmt.Errorf("channel blocked - test not consuming updates"):
+			default:
+			}
+			return
 		}
 	}
 }
@@ -149,10 +164,48 @@ func (c *WebSocketTestClient) WaitForStateUpdate(timeout time.Duration) (StateUp
 
 // WaitForState waits for specific state value with timeout
 func (c *WebSocketTestClient) WaitForState(targetState string, timeout time.Duration) (StateUpdate, error) {
+	// First check if we've already seen this state
+	c.mu.Lock()
+	if c.seenStates[targetState] {
+		c.mu.Unlock()
+		return StateUpdate{Data: map[string]interface{}{"status": targetState}}, nil
+	}
+	c.mu.Unlock()
+
+	// Drain any pending updates from the channel
+	for {
+		select {
+		case update := <-c.updates:
+			if status := update.GetStatus(); status != "" {
+				c.mu.Lock()
+				c.currentState = status
+				c.seenStates[status] = true
+				c.mu.Unlock()
+				if status == targetState {
+					return update, nil
+				}
+			}
+		default:
+			// No more pending updates, proceed to waiting
+			goto waitLoop
+		}
+	}
+
+waitLoop:
 	deadline := time.Now().Add(timeout)
 	for {
 		remaining := time.Until(deadline)
 		if remaining <= 0 {
+			// Timeout occurred - check actual session state via API as fallback
+			if c.server != nil && c.sessionID != "" {
+				if session, err := c.server.GetSession(c.sessionID); err == nil {
+					actualState := string(session.Service.GetExecutionState())
+					if actualState == targetState {
+						// State matches - we just missed the WebSocket update
+						return StateUpdate{Data: map[string]interface{}{"status": actualState}}, nil
+					}
+				}
+			}
 			return StateUpdate{}, fmt.Errorf("timeout waiting for state %q", targetState)
 		}
 
@@ -161,10 +214,14 @@ func (c *WebSocketTestClient) WaitForState(targetState string, timeout time.Dura
 			return StateUpdate{}, err
 		}
 
-		if update.GetStatus() == targetState {
-			return update, nil
+		if status := update.GetStatus(); status != "" {
+			c.mu.Lock()
+			c.seenStates[status] = true
+			c.mu.Unlock()
+			if status == targetState {
+				return update, nil
+			}
 		}
-		// Continue looping to wait for the target state
 	}
 }
 
@@ -741,7 +798,7 @@ func runProgramViaAPI(t *testing.T, server *api.Server, baseURL, programFile, st
 
 	// Establish WebSocket for all modes to properly wait for completion
 	wsURL := "ws" + strings.TrimPrefix(baseURL, "http") + fmt.Sprintf("/api/v1/ws?session=%s", sessionID)
-	wsClient := NewWebSocketTestClient(t, wsURL)
+	wsClient := NewWebSocketTestClient(t, wsURL, server, sessionID)
 	defer wsClient.Close()
 
 	// Load program

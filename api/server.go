@@ -47,6 +47,11 @@ func NewServerWithVersion(port int, version, commit, date string) *Server {
 	return s
 }
 
+// GetSession returns a session by ID (for testing)
+func (s *Server) GetSession(sessionID string) (*Session, error) {
+	return s.sessions.GetSession(sessionID)
+}
+
 // Handler returns the HTTP handler with CORS middleware applied
 func (s *Server) Handler() http.Handler {
 	return s.corsMiddleware(s.mux)
