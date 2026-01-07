@@ -7,6 +7,7 @@ class CustomGutterView: NSView {
     private weak var textView: NSTextView?
     private weak var scrollView: NSScrollView?
     private var breakpoints: Set<Int> = []
+    private var currentLine: Int?
     private var onBreakpointToggle: ((Int) -> Void)?
 
     private let gutterWidth: CGFloat = 50
@@ -54,6 +55,18 @@ class CustomGutterView: NSView {
 
     func setBreakpoints(_ breakpoints: Set<Int>) {
         self.breakpoints = breakpoints
+        needsDisplay = true
+    }
+
+    func setCurrentLine(_ currentLine: Int?) {
+        self.currentLine = currentLine
+        #if DEBUG
+            if let line = currentLine {
+                DebugLog.log("CustomGutterView: Setting current line to \(line)", category: "CustomGutterView")
+            } else {
+                DebugLog.log("CustomGutterView: Clearing current line", category: "CustomGutterView")
+            }
+        #endif
         needsDisplay = true
     }
 
@@ -112,6 +125,7 @@ class CustomGutterView: NSView {
 
             // Only draw if visible
             if yPos + lineRect.height >= 0, yPos < bounds.height {
+                drawCurrentLineIndicatorIfNeeded(lineNumber, yPos: yPos, lineHeight: lineRect.height)
                 drawLineNumber(lineNumber, yPos: yPos, lineHeight: lineRect.height, attributes: attributes)
                 drawBreakpointIfNeeded(lineNumber, yPos: yPos, lineHeight: lineRect.height)
             }
@@ -141,6 +155,31 @@ class CustomGutterView: NSView {
         let lineNumberString = "\(lineNumber)" as NSString
         let rect = NSRect(x: 5, y: yPos, width: gutterWidth - 20, height: lineHeight)
         lineNumberString.draw(in: rect, withAttributes: attributes)
+    }
+
+    private func drawCurrentLineIndicatorIfNeeded(_ lineNumber: Int, yPos: CGFloat, lineHeight: CGFloat) {
+        guard let currentLine = currentLine, currentLine == lineNumber else { return }
+
+        #if DEBUG
+            DebugLog.log(
+                "Drawing PC indicator at line \(lineNumber), yPos: \(yPos), lineHeight: \(lineHeight)",
+                category: "CustomGutterView"
+            )
+        #endif
+
+        // Draw arrow pointing to current line
+        let arrowSize: CGFloat = 8
+        let arrowX = gutterWidth - breakpointMargin - breakpointSize - arrowSize - 2
+        let arrowY = yPos + (lineHeight - arrowSize) / 2
+
+        let arrow = NSBezierPath()
+        arrow.move(to: NSPoint(x: arrowX, y: arrowY))
+        arrow.line(to: NSPoint(x: arrowX + arrowSize, y: arrowY + arrowSize / 2))
+        arrow.line(to: NSPoint(x: arrowX, y: arrowY + arrowSize))
+        arrow.close()
+
+        NSColor.systemBlue.setFill()
+        arrow.fill()
     }
 
     private func drawBreakpointIfNeeded(_ lineNumber: Int, yPos: CGFloat, lineHeight: CGFloat) {

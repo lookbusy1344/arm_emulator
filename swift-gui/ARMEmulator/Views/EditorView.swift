@@ -4,6 +4,7 @@ import SwiftUI
 struct EditorView: View {
     @Binding var text: String
     @State private var breakpoints: Set<Int> = []
+    @State private var currentLine: Int?
     @State private var textView: NSTextView?
     @EnvironmentObject var viewModel: EmulatorViewModel
 
@@ -19,6 +20,7 @@ struct EditorView: View {
             EditorWithGutterView(
                 text: $text,
                 breakpoints: $breakpoints,
+                currentLine: $currentLine,
                 onBreakpointToggle: { lineNumber in
                     toggleBreakpoint(at: lineNumber)
                 },
@@ -35,6 +37,21 @@ struct EditorView: View {
             self.breakpoints = Set(newBreakpoints.compactMap { address in
                 viewModel.addressToLine[address]
             })
+        }
+        .onChange(of: viewModel.currentPC) { newPC in
+            // Update current line from PC address
+            self.currentLine = viewModel.addressToLine[newPC]
+            #if DEBUG
+                DebugLog.log(
+                    "PC changed to 0x\(String(format: "%08X", newPC)), mapped to line \(self.currentLine?.description ?? "nil")",
+                    category: "EditorView"
+                )
+                DebugLog.log("addressToLine has \(viewModel.addressToLine.count) entries", category: "EditorView")
+                if !viewModel.addressToLine.isEmpty {
+                    let samples = Array(viewModel.addressToLine.prefix(3))
+                    DebugLog.log("Sample mappings: \(samples)", category: "EditorView")
+                }
+            #endif
         }
     }
 
@@ -72,6 +89,7 @@ struct EditorView: View {
 struct EditorWithGutterView: NSViewRepresentable {
     @Binding var text: String
     @Binding var breakpoints: Set<Int>
+    @Binding var currentLine: Int?
     let onBreakpointToggle: (Int) -> Void
     let onTextViewCreated: (NSTextView) -> Void
 
@@ -180,8 +198,9 @@ struct EditorWithGutterView: NSViewRepresentable {
             scrollView.needsDisplay = true
         }
 
-        // Update gutter breakpoints
+        // Update gutter breakpoints and current line
         context.coordinator.gutterView?.setBreakpoints(breakpoints)
+        context.coordinator.gutterView?.setCurrentLine(currentLine)
     }
 
     func makeCoordinator() -> Coordinator {
@@ -210,6 +229,7 @@ struct EditorView_Previews: PreviewProvider {
         MOV R0, #42
         SWI #0
         """))
+        .environmentObject(EmulatorViewModel())
         .frame(width: 400, height: 300)
     }
 }
