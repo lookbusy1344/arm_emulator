@@ -200,19 +200,14 @@ class APIClient: ObservableObject {
         try await delete(url: url, body: request)
     }
 
-    func getSourceMap(sessionID: String) async throws -> [(address: UInt32, line: String)] {
-        struct SourceMapEntry: Codable {
-            let address: UInt32
-            let line: String
-        }
-
+    func getSourceMap(sessionID: String) async throws -> [SourceMapEntry] {
         struct SourceMapResponse: Codable {
             let sourceMap: [SourceMapEntry]
         }
 
         let url = baseURL.appendingPathComponent("/api/v1/session/\(sessionID)/sourcemap")
         let response: SourceMapResponse = try await get(url: url)
-        return response.sourceMap.map { (address: $0.address, line: $0.line) }
+        return response.sourceMap
     }
 
     func getBreakpoints(sessionID: String) async throws -> [UInt32] {
@@ -452,4 +447,10 @@ struct BackendVersion: Codable {
     let version: String
     let commit: String
     let date: String
+}
+
+struct SourceMapEntry: Codable {
+    let address: UInt32
+    let lineNumber: Int
+    let line: String
 }

@@ -89,3 +89,10 @@ type MemoryWriteInfo struct {
 	Address  uint32 `json:"address"`
 	HasWrite bool   `json:"hasWrite"`
 }
+
+// SourceMapEntry represents a mapping from address to source code
+type SourceMapEntry struct {
+	Address    uint32 `json:"address"`
+	LineNumber int    `json:"lineNumber"` // 1-based source file line number
+	Line       string `json:"line"`       // Source code text
+}

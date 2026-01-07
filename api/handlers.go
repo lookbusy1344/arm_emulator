@@ -585,18 +585,20 @@ func (s *Server) handleGetSourceMap(w http.ResponseWriter, r *http.Request, sess
 
 	sourceMap := session.Service.GetSourceMap()
 
-	// Convert map to array of entries for JSON
+	// Convert to JSON response format
 	type SourceMapEntry struct {
-		Address uint32 `json:"address"`
-		Line    string `json:"line"`
+		Address    uint32 `json:"address"`
+		LineNumber int    `json:"lineNumber"`
+		Line       string `json:"line"`
 	}
 
-	entries := make([]SourceMapEntry, 0, len(sourceMap))
-	for addr, line := range sourceMap {
-		entries = append(entries, SourceMapEntry{
-			Address: addr,
-			Line:    line,
-		})
+	entries := make([]SourceMapEntry, len(sourceMap))
+	for i, entry := range sourceMap {
+		entries[i] = SourceMapEntry{
+			Address:    entry.Address,
+			LineNumber: entry.LineNumber,
+			Line:       entry.Line,
+		}
 	}
 
 	response := map[string]interface{}{

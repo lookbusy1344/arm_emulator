@@ -31,26 +31,34 @@ struct EditorView: View {
         }
         .onChange(of: viewModel.breakpoints) { newBreakpoints in
             // Sync breakpoints from ViewModel (address-based) to line-based
-            // Convert addresses back to line numbers using same heuristic
-            self.breakpoints = Set(newBreakpoints.map { address in
-                let offset = Int(address) - 0x8000
-                let lineNumber = (offset / 4) + 1
-                return lineNumber
+            // Use addressToLine mapping from source map
+            self.breakpoints = Set(newBreakpoints.compactMap { address in
+                viewModel.addressToLine[address]
             })
         }
     }
 
     private func toggleBreakpoint(at lineNumber: Int) {
-        // Convert line number to address
-        // For now, use a simple heuristic: assume code starts at 0x8000
-        // and each instruction is 4 bytes
-        // TODO: Get actual line-to-address mapping from backend
-        let address = UInt32(0x8000 + (lineNumber - 1) * 4)
-        
-        // Validate address exists in source map before attempting to set breakpoint
-        guard viewModel.sourceMap[address] != nil || breakpoints.contains(lineNumber) else {
-            // Address not in source map - invalid location for breakpoint
-            print("Cannot set breakpoint on line \(lineNumber) - address 0x\(String(format: "%X", address)) is not executable code")
+        // Check if this line already has a breakpoint (allow removal)
+        if breakpoints.contains(lineNumber) {
+            // Get address for this line to remove breakpoint
+            if let address = viewModel.lineToAddress[lineNumber] {
+                Task {
+                    await viewModel.toggleBreakpoint(at: address)
+                }
+            }
+            return
+        }
+
+        // Validate line can have a breakpoint (must be executable code)
+        guard viewModel.validBreakpointLines.contains(lineNumber) else {
+            print("Cannot set breakpoint on line \(lineNumber) - not executable code")
+            return
+        }
+
+        // Get actual address for this line from the backend-provided mapping
+        guard let address = viewModel.lineToAddress[lineNumber] else {
+            print("Cannot set breakpoint on line \(lineNumber) - no address mapping found")
             return
         }
 

@@ -431,8 +431,8 @@ func (a *App) ClearAllBreakpoints() {
 	a.emitEvent("vm:state-changed")
 }
 
-// GetSourceMap returns the complete source map
-func (a *App) GetSourceMap() map[uint32]string {
+// GetSourceMap returns the complete source map with line numbers
+func (a *App) GetSourceMap() []service.SourceMapEntry {
 	return a.service.GetSourceMap()
 }
 

@@ -470,7 +470,7 @@ func TestSourceMap(t *testing.T) {
 		t.Errorf("Expected 3 source map entries, got %d", len(sourceMap))
 	}
 
-	// Verify first entry has address and line
+	// Verify first entry has address, line, and lineNumber
 	if len(sourceMap) > 0 {
 		entry := sourceMap[0].(map[string]interface{})
 		if _, hasAddress := entry["address"]; !hasAddress {
@@ -478,6 +478,9 @@ func TestSourceMap(t *testing.T) {
 		}
 		if _, hasLine := entry["line"]; !hasLine {
 			t.Error("Source map entry missing 'line' field")
+		}
+		if _, hasLineNumber := entry["lineNumber"]; !hasLineNumber {
+			t.Error("Source map entry missing 'lineNumber' field")
 		}
 	}
 }

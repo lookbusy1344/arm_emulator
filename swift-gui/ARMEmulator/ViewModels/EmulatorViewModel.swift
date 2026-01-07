@@ -23,9 +23,15 @@ class EmulatorViewModel: ObservableObject {
 
     // Disassembly state
     @Published var disassembly: [DisassembledInstruction] = []
-    
-    // Source map: address -> source line
+
+    // Source map: address -> source line (for display)
     @Published var sourceMap: [UInt32: String] = [:]
+    // Valid breakpoint lines (1-based line numbers that can have breakpoints)
+    @Published var validBreakpointLines: Set<Int> = []
+    // Line number to address mapping for breakpoint setting
+    @Published var lineToAddress: [Int: UInt32] = [:]
+    // Address to line number mapping for breakpoint display
+    @Published var addressToLine: [UInt32: Int] = [:]
 
     let apiClient: APIClient
     private let wsClient: WebSocketClient
@@ -101,13 +107,24 @@ class EmulatorViewModel: ObservableObject {
 
             DebugLog.log("Refreshing state...", category: "ViewModel")
             try await refreshState()
-            
+
             // Fetch source map after loading program
             DebugLog.log("Fetching source map...", category: "ViewModel")
             let sourceMapEntries = try await apiClient.getSourceMap(sessionID: sessionID)
+
+            // Build address->line map for display
             sourceMap = Dictionary(uniqueKeysWithValues: sourceMapEntries.map { ($0.address, $0.line) })
-            DebugLog.log("Loaded source map with \(sourceMap.count) entries", category: "ViewModel")
-            
+
+            // Build valid breakpoint lines and bidirectional line<->address mappings
+            validBreakpointLines = Set(sourceMapEntries.map { $0.lineNumber })
+            lineToAddress = Dictionary(uniqueKeysWithValues: sourceMapEntries.map { ($0.lineNumber, $0.address) })
+            addressToLine = Dictionary(uniqueKeysWithValues: sourceMapEntries.map { ($0.address, $0.lineNumber) })
+
+            DebugLog.log(
+                "Loaded source map with \(sourceMap.count) entries, \(validBreakpointLines.count) valid breakpoint lines",
+                category: "ViewModel"
+            )
+
             DebugLog.success(
                 "Program loaded successfully, PC: 0x\(String(format: "%08X", currentPC))",
                 category: "ViewModel"
@@ -240,7 +257,9 @@ class EmulatorViewModel: ObservableObject {
             return
         }
 
-        print("toggleBreakpoint: sessionID=\(sessionID), address=0x\(String(format: "%X", address)), current breakpoints=\(breakpoints)")
+        print(
+            "toggleBreakpoint: sessionID=\(sessionID), address=0x\(String(format: "%X", address)), current breakpoints=\(breakpoints)"
+        )
 
         do {
             if breakpoints.contains(address) {

@@ -77,12 +77,22 @@ main:
 		t.Error("Expected non-empty source map")
 	}
 
-	// Check that main label exists at 0x8000
-	if source, ok := sourceMap[0x00008000]; ok {
-		if source != "    MOV R0, #42" {
-			t.Errorf("Expected '    MOV R0, #42', got '%s'", source)
+	// Check that main label exists at 0x8000 with correct line number
+	var found bool
+	for _, entry := range sourceMap {
+		if entry.Address == 0x00008000 {
+			found = true
+			if entry.Line != "    MOV R0, #42" {
+				t.Errorf("Expected '    MOV R0, #42', got '%s'", entry.Line)
+			}
+			// Line number should be 4 (1-based, after .org and main: label)
+			if entry.LineNumber < 1 {
+				t.Errorf("Expected positive line number, got %d", entry.LineNumber)
+			}
+			break
 		}
-	} else {
+	}
+	if !found {
 		t.Error("Expected source line at address 0x00008000")
 	}
 }
@@ -111,22 +121,26 @@ main:
 		t.Fatalf("Failed to load program: %v", err)
 	}
 
-	// Get source map and store original value
+	// Get source map and store original values
 	sourceMap := svc.GetSourceMap()
-	originalLine := sourceMap[0x00008000]
+	if len(sourceMap) == 0 {
+		t.Fatal("Expected non-empty source map")
+	}
+	originalLine := sourceMap[0].Line
+	originalLen := len(sourceMap)
 
-	// Modify the returned map
-	sourceMap[0x00008000] = "MODIFIED LINE"
-	sourceMap[0x00009999] = "NEW ENTRY"
+	// Modify the returned slice
+	sourceMap[0].Line = "MODIFIED LINE"
+	sourceMap = append(sourceMap, service.SourceMapEntry{Address: 0x9999, LineNumber: 999, Line: "NEW ENTRY"})
 
 	// Get source map again and verify it's unchanged
 	sourceMap2 := svc.GetSourceMap()
-	if sourceMap2[0x00008000] != originalLine {
+	if sourceMap2[0].Line != originalLine {
 		t.Errorf("Source map was modified externally - defensive copy failed. Expected '%s', got '%s'",
-			originalLine, sourceMap2[0x00008000])
+			originalLine, sourceMap2[0].Line)
 	}
-	if _, exists := sourceMap2[0x00009999]; exists {
-		t.Error("New entry added to external map affected internal state - defensive copy failed")
+	if len(sourceMap2) != originalLen {
+		t.Error("New entry added to external slice affected internal state - defensive copy failed")
 	}
 }
 

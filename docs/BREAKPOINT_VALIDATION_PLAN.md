@@ -235,3 +235,73 @@ Frontend sends line number, backend does the line→address mapping and validate
 ### Tests
 - `tests/unit/api/api_test.go` - update source map test
 - `swift-gui/ARMEmulatorTests/` - add breakpoint validation tests
+
+---
+
+## Implementation Complete (January 7, 2026)
+
+### Summary
+
+Implemented **Option A: Backend Provides Line-to-Address Mapping**.
+
+The key insight was that the parser already tracks line numbers via `Instruction.Pos.Line` (from `parser.Position`). No parser changes were needed - we just needed to expose this existing data through the API.
+
+### Changes Made
+
+#### Backend (Go)
+
+1. **`service/types.go`** - Added `SourceMapEntry` struct:
+   ```go
+   type SourceMapEntry struct {
+       Address    uint32 `json:"address"`
+       LineNumber int    `json:"lineNumber"`
+       Line       string `json:"line"`
+   }
+   ```
+
+2. **`service/debugger_service.go`**:
+   - Changed `sourceMap` from `map[uint32]string` to `[]SourceMapEntry`
+   - Added `sourceMapByAddr map[uint32]string` for debugger display lookups
+   - Updated `LoadProgram()` to build both structures from `inst.Pos.Line`
+   - Updated `GetSourceMap()` to return `[]SourceMapEntry`
+   - Added `GetSourceMapByAddr()` for internal debugger use
+   - Updated `AddBreakpoint()` to use `sourceMapByAddr` for validation
+   - Data directives (`.word`, `.byte`, etc.) excluded from valid breakpoint locations
+
+3. **`api/handlers.go`** - Updated `/sourcemap` endpoint to return `lineNumber` field
+
+4. **`gui/app.go`** - Updated `GetSourceMap()` return type for Wails GUI
+
+5. **`tests/unit/service/debugger_service_test.go`** - Updated tests for new slice-based API
+
+6. **`tests/unit/api/api_test.go`** - Added check for `lineNumber` field in response
+
+#### Frontend (Swift GUI)
+
+1. **`APIClient.swift`**:
+   - Added top-level `SourceMapEntry` struct with `address`, `lineNumber`, `line`
+   - Changed `getSourceMap()` to return `[SourceMapEntry]`
+
+2. **`EmulatorViewModel.swift`**:
+   - Added `validBreakpointLines: Set<Int>` - lines that can have breakpoints
+   - Added `lineToAddress: [Int: UInt32]` - line number to address mapping
+   - Updated `loadProgram()` to populate these from source map entries
+
+3. **`EditorView.swift`** - Rewrote `toggleBreakpoint()`:
+   - Uses `validBreakpointLines` to check if line is valid
+   - Uses `lineToAddress` to get correct address for API call
+   - Allows removal of existing breakpoints regardless of validation
+
+### Test Results
+
+- **Go**: All tests pass, 0 lint issues
+- **Swift**: All 12 tests pass, builds successfully
+
+### Behavior
+
+- Clicking on a comment line: "Cannot set breakpoint on line X - not executable code"
+- Clicking on a blank line: Same rejection
+- Clicking on `.org`, `.equ`, labels-only: Same rejection  
+- Clicking on data directives (`.word`, `.byte`): Rejected (by design)
+- Clicking on instructions: Breakpoint set correctly at actual address
+- Clicking on existing breakpoint: Removed correctly

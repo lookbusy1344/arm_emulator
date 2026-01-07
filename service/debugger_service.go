@@ -68,7 +68,8 @@ type DebuggerService struct {
 	vm                   *vm.VM
 	debugger             *debugger.Debugger
 	symbols              map[string]uint32
-	sourceMap            map[uint32]string
+	sourceMap            []SourceMapEntry  // Address to source line mapping with line numbers
+	sourceMapByAddr      map[uint32]string // Quick lookup by address (for debugger)
 	program              *parser.Program
 	entryPoint           uint32
 	outputWriter         *EventEmittingWriter
@@ -91,7 +92,8 @@ func NewDebuggerService(machine *vm.VM) *DebuggerService {
 		vm:              machine,
 		debugger:        debugger.NewDebugger(machine),
 		symbols:         make(map[string]uint32),
-		sourceMap:       make(map[uint32]string),
+		sourceMap:       nil,
+		sourceMapByAddr: make(map[uint32]string),
 		stdinPipeReader: stdinReader,
 		stdinPipeWriter: stdinWriter,
 	}
@@ -134,15 +136,24 @@ func (s *DebuggerService) LoadProgram(program *parser.Program, entryPoint uint32
 		}
 	}
 
-	// Build source map
-	s.sourceMap = make(map[uint32]string)
+	// Build source map with line numbers
+	s.sourceMap = nil
+	s.sourceMapByAddr = make(map[uint32]string)
 	for _, inst := range program.Instructions {
-		s.sourceMap[inst.Address] = inst.RawLine
+		entry := SourceMapEntry{
+			Address:    inst.Address,
+			LineNumber: inst.Pos.Line,
+			Line:       inst.RawLine,
+		}
+		s.sourceMap = append(s.sourceMap, entry)
+		s.sourceMapByAddr[inst.Address] = inst.RawLine
 	}
+	// Note: Data directives are excluded from breakpoint-valid locations
+	// but kept in sourceMapByAddr for debugger display
 	for _, dir := range program.Directives {
 		if dir.Name == ".word" || dir.Name == ".byte" || dir.Name == ".ascii" ||
 			dir.Name == ".asciz" || dir.Name == ".space" {
-			s.sourceMap[dir.Address] = "[DATA]" + dir.RawLine
+			s.sourceMapByAddr[dir.Address] = "[DATA]" + dir.RawLine
 		}
 	}
 
@@ -160,7 +171,7 @@ func (s *DebuggerService) LoadProgram(program *parser.Program, entryPoint uint32
 
 	// Load into debugger
 	s.debugger.LoadSymbols(s.symbols)
-	s.debugger.LoadSourceMap(s.sourceMap)
+	s.debugger.LoadSourceMap(s.sourceMapByAddr)
 
 	// Load into VM memory
 	if err := loader.LoadProgramIntoVM(s.vm, program, entryPoint); err != nil {
@@ -251,7 +262,8 @@ func (s *DebuggerService) Reset() error {
 	s.vm.EntryPoint = 0
 	s.vm.StackTop = 0
 	s.symbols = make(map[string]uint32)
-	s.sourceMap = make(map[uint32]string)
+	s.sourceMap = nil
+	s.sourceMapByAddr = make(map[uint32]string)
 
 	// Clear all breakpoints and watchpoints
 	s.debugger.Breakpoints.Clear()
@@ -299,9 +311,15 @@ func (s *DebuggerService) AddBreakpoint(address uint32) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	// Validate that the address corresponds to actual code
-	if _, exists := s.sourceMap[address]; !exists {
+	// Validate that the address corresponds to actual code (not data)
+	// Use sourceMapByAddr which contains both code and data entries
+	line, exists := s.sourceMapByAddr[address]
+	if !exists {
 		return fmt.Errorf("invalid breakpoint address: 0x%X does not correspond to executable code", address)
+	}
+	// Reject data locations (prefixed with [DATA])
+	if len(line) >= 6 && line[:6] == "[DATA]" {
+		return fmt.Errorf("invalid breakpoint address: 0x%X is a data location, not executable code", address)
 	}
 
 	s.debugger.Breakpoints.AddBreakpoint(address, false, "")
@@ -375,21 +393,31 @@ func (s *DebuggerService) GetLastMemoryWrite() MemoryWriteInfo {
 func (s *DebuggerService) GetSourceLine(address uint32) string {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
-	return s.sourceMap[address]
+	return s.sourceMapByAddr[address]
 }
 
-// GetSourceMap returns the complete source map (address -> source line)
-func (s *DebuggerService) GetSourceMap() map[uint32]string {
+// GetSourceMap returns the source map entries with line numbers
+func (s *DebuggerService) GetSourceMap() []SourceMapEntry {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
 	// Return copy of source map to prevent external modification
-	sourceMap := make(map[uint32]string, len(s.sourceMap))
-	for addr, line := range s.sourceMap {
-		sourceMap[addr] = line
-	}
+	result := make([]SourceMapEntry, len(s.sourceMap))
+	copy(result, s.sourceMap)
+	return result
+}
 
-	return sourceMap
+// GetSourceMapByAddr returns address-to-line lookup (for debugger display)
+func (s *DebuggerService) GetSourceMapByAddr() map[uint32]string {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	// Return copy to prevent external modification
+	result := make(map[uint32]string, len(s.sourceMapByAddr))
+	for addr, line := range s.sourceMapByAddr {
+		result[addr] = line
+	}
+	return result
 }
 
 // GetSymbols returns all symbols
@@ -608,7 +636,7 @@ func (s *DebuggerService) GetDisassembly(startAddr uint32, count int) []Disassem
 
 		// Get mnemonic from source map if available
 		mnemonic := ""
-		if sourceLine, ok := s.sourceMap[addr]; ok {
+		if sourceLine, ok := s.sourceMapByAddr[addr]; ok {
 			mnemonic = sourceLine
 		}
 
