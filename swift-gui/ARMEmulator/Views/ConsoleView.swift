@@ -2,6 +2,7 @@ import SwiftUI
 
 struct ConsoleView: View {
     let output: String
+    let isWaitingForInput: Bool
     @State private var inputText = ""
     var onSendInput: ((String) -> Void)?
 
@@ -38,6 +39,10 @@ struct ConsoleView: View {
                         .onSubmit {
                             sendInput()
                         }
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 6)
+                                .stroke(isWaitingForInput ? Color.orange : Color.clear, lineWidth: 2)
+                        )
 
                     Button("Send") {
                         sendInput()
@@ -46,7 +51,7 @@ struct ConsoleView: View {
                 }
                 .padding(.horizontal, 8)
                 .padding(.vertical, 12)
-                .background(Color(NSColor.controlBackgroundColor))
+                .background(isWaitingForInput ? Color.orange.opacity(0.1) : Color(NSColor.controlBackgroundColor))
             }
         }
     }
@@ -60,12 +65,24 @@ struct ConsoleView: View {
 
 struct ConsoleView_Previews: PreviewProvider {
     static var previews: some View {
-        ConsoleView(
-            output: "Hello, World!\nProgram exited with code 0\n",
-            onSendInput: { input in
-                print("Input: \(input)")
-            }
-        )
-        .frame(width: 600, height: 200)
+        VStack {
+            ConsoleView(
+                output: "Hello, World!\nProgram exited with code 0\n",
+                isWaitingForInput: false,
+                onSendInput: { input in
+                    print("Input: \(input)")
+                }
+            )
+            .frame(width: 600, height: 200)
+
+            ConsoleView(
+                output: "Enter a number:\n",
+                isWaitingForInput: true,
+                onSendInput: { input in
+                    print("Input: \(input)")
+                }
+            )
+            .frame(width: 600, height: 200)
+        }
     }
 }

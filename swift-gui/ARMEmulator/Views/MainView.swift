@@ -139,6 +139,7 @@ struct MainView: View {
 
             ConsoleView(
                 output: viewModel.consoleOutput,
+                isWaitingForInput: viewModel.status == .waitingForInput,
                 onSendInput: { input in
                     Task {
                         await viewModel.sendInput(input)
@@ -183,7 +184,7 @@ struct MainView: View {
             )
             .help("Run program (⌘R)")
             .keyboardShortcut("r", modifiers: .command)
-            .disabled(viewModel.status == .running)
+            .disabled(viewModel.status == .running || viewModel.status == .waitingForInput)
 
             Button(
                 action: { Task { await viewModel.stop() } },
@@ -191,7 +192,7 @@ struct MainView: View {
             )
             .help("Stop execution (⌘.)")
             .keyboardShortcut(".", modifiers: .command)
-            .disabled(viewModel.status != .running)
+            .disabled(viewModel.status != .running && viewModel.status != .waitingForInput)
 
             Button(
                 action: { Task { await viewModel.step() } },
@@ -199,7 +200,7 @@ struct MainView: View {
             )
             .help("Step one instruction (⌘T)")
             .keyboardShortcut("t", modifiers: .command)
-            .disabled(viewModel.status == .running)
+            .disabled(viewModel.status == .running || viewModel.status == .waitingForInput)
 
             Button(
                 action: { Task { await viewModel.stepOver() } },
@@ -207,7 +208,7 @@ struct MainView: View {
             )
             .help("Step over function calls (⌘⇧T)")
             .keyboardShortcut("t", modifiers: [.command, .shift])
-            .disabled(viewModel.status == .running)
+            .disabled(viewModel.status == .running || viewModel.status == .waitingForInput)
 
             Button(
                 action: { Task { await viewModel.stepOut() } },
@@ -215,7 +216,7 @@ struct MainView: View {
             )
             .help("Step out of current function (⌘⌥T)")
             .keyboardShortcut("t", modifiers: [.command, .option])
-            .disabled(viewModel.status == .running)
+            .disabled(viewModel.status == .running || viewModel.status == .waitingForInput)
 
             Button(
                 action: { Task { await viewModel.reset() } },
@@ -244,6 +245,8 @@ struct MainView: View {
             return "pause.fill" // Pause symbol (stepping/paused)
         case .halted, .idle:
             return "stop.fill" // Red square (stopped/not executing)
+        case .waitingForInput:
+            return "keyboard.fill" // Keyboard icon (waiting for input)
         case .error:
             return "exclamationmark.triangle.fill"
         }
@@ -257,6 +260,8 @@ struct MainView: View {
             return .orange
         case .halted, .idle:
             return .red
+        case .waitingForInput:
+            return .orange
         case .error:
             return .red
         }
@@ -272,6 +277,8 @@ struct MainView: View {
             return "Halted"
         case .idle:
             return "Idle"
+        case .waitingForInput:
+            return "Waiting for Input"
         case .error:
             return "Error"
         }
@@ -346,6 +353,8 @@ struct StatusView: View {
             return .orange
         case .halted:
             return .blue
+        case .waitingForInput:
+            return .orange
         case .error:
             return .red
         }

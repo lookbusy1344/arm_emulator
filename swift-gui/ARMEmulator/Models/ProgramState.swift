@@ -6,6 +6,7 @@ enum VMState: String, Codable {
     case paused
     case halted
     case error
+    case waitingForInput = "waiting_for_input"
 }
 
 struct VMStatus: Codable {
