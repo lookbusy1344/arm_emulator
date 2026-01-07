@@ -129,7 +129,7 @@ class EmulatorViewModel: ObservableObject {
             // We need to trigger the onChange even though PC value hasn't changed
             // by briefly changing it and then setting it back
             let savedPC = currentPC
-            currentPC = 0xFFFFFFFF // Temporary different value
+            currentPC = 0xFFFF_FFFF // Temporary different value
             currentPC = savedPC // Restore actual PC, triggering onChange with valid mapping
 
             DebugLog.success(
@@ -193,7 +193,15 @@ class EmulatorViewModel: ObservableObject {
             try await refreshState()
             errorMessage = nil
         } catch {
-            errorMessage = "Failed to step: \(error.localizedDescription)"
+            // Check if program exited normally (not an error, just completion)
+            let errorDesc = error.localizedDescription
+            if errorDesc.contains("program exited with code") {
+                // Program terminated - refresh state to show halted status
+                try? await refreshState()
+                errorMessage = nil
+            } else {
+                errorMessage = "Failed to step: \(errorDesc)"
+            }
         }
     }
 
@@ -208,7 +216,15 @@ class EmulatorViewModel: ObservableObject {
             try await refreshState()
             errorMessage = nil
         } catch {
-            errorMessage = "Failed to step over: \(error.localizedDescription)"
+            // Check if program exited normally (not an error, just completion)
+            let errorDesc = error.localizedDescription
+            if errorDesc.contains("program exited with code") {
+                // Program terminated - refresh state to show halted status
+                try? await refreshState()
+                errorMessage = nil
+            } else {
+                errorMessage = "Failed to step over: \(errorDesc)"
+            }
         }
     }
 
@@ -223,7 +239,15 @@ class EmulatorViewModel: ObservableObject {
             try await refreshState()
             errorMessage = nil
         } catch {
-            errorMessage = "Failed to step out: \(error.localizedDescription)"
+            // Check if program exited normally (not an error, just completion)
+            let errorDesc = error.localizedDescription
+            if errorDesc.contains("program exited with code") {
+                // Program terminated - refresh state to show halted status
+                try? await refreshState()
+                errorMessage = nil
+            } else {
+                errorMessage = "Failed to step out: \(errorDesc)"
+            }
         }
     }
 
