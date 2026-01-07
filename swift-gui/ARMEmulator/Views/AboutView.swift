@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct AboutView: View {
+    @Environment(\.dismiss) private var dismiss
     @State private var backendVersion: BackendVersion?
     @State private var isLoading = false
     @State private var errorMessage: String?
@@ -48,6 +49,12 @@ struct AboutView: View {
             Text("© 2024-2026")
                 .font(.caption)
                 .foregroundColor(.secondary)
+
+            Button("OK") {
+                dismiss()
+            }
+            .keyboardShortcut(.defaultAction)
+            .padding(.top, 8)
         }
         .padding(30)
         .frame(width: 400)
