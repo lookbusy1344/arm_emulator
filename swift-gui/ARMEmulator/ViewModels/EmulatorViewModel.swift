@@ -16,6 +16,9 @@ class EmulatorViewModel: ObservableObject {
     @Published var errorMessage: String?
     @Published var isConnected = false
 
+    // Callback for scrolling editor to current PC
+    var scrollToCurrentPC: (() -> Void)?
+
     // Memory state
     @Published var memoryData: [UInt8] = []
     @Published var memoryAddress: UInt32 = 0x8000

@@ -223,6 +223,16 @@ struct MainView: View {
             )
             .help("Reset VM (⌘⇧R)")
             .keyboardShortcut("r", modifiers: [.command, .shift])
+
+            Divider()
+
+            Button(
+                action: { viewModel.scrollToCurrentPC?() },
+                label: { Label("Show PC", systemImage: "arrow.down.to.line") }
+            )
+            .help("Scroll to current PC (⌘J)")
+            .keyboardShortcut("j", modifiers: .command)
+            .disabled(viewModel.currentPC == 0)
         }
     }
 

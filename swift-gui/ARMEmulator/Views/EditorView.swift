@@ -6,6 +6,7 @@ struct EditorView: View {
     @State private var breakpoints: Set<Int> = []
     @State private var currentLine: Int?
     @State private var textView: NSTextView?
+    @State private var scrollView: NSScrollView?
     @EnvironmentObject var viewModel: EmulatorViewModel
 
     var body: some View {
@@ -26,6 +27,9 @@ struct EditorView: View {
                 },
                 onTextViewCreated: { textView in
                     self.textView = textView
+                },
+                onScrollViewCreated: { scrollView in
+                    self.scrollView = scrollView
                 }
             )
             .background(Color(NSColor.textBackgroundColor))
@@ -52,6 +56,9 @@ struct EditorView: View {
                     DebugLog.log("Sample mappings: \(samples)", category: "EditorView")
                 }
             #endif
+
+            // Scroll to bring PC into view
+            scrollToCurrentLine()
         }
         .onChange(of: viewModel.status) { newStatus in
             // Clear PC indicator when program is halted (finished execution)
@@ -62,6 +69,79 @@ struct EditorView: View {
                 #endif
             }
         }
+        .onAppear {
+            // Register scroll callback with view model
+            // Capture the necessary state explicitly since we're in a struct
+            let lineGetter: () -> Int? = { currentLine }
+            let textViewGetter: () -> NSTextView? = { textView }
+            let scrollViewGetter: () -> NSScrollView? = { scrollView }
+
+            viewModel.scrollToCurrentPC = {
+                if let currentLine = lineGetter(),
+                   let textView = textViewGetter(),
+                   let scrollView = scrollViewGetter()
+                {
+                    scrollToLine(currentLine, in: textView, scrollView: scrollView)
+                }
+            }
+        }
+    }
+
+    private func scrollToLine(_ lineNumber: Int, in textView: NSTextView, scrollView: NSScrollView) {
+        guard let layoutManager = textView.layoutManager,
+              let textContainer = textView.textContainer
+        else {
+            return
+        }
+
+        let text = textView.string as NSString
+        guard text.length > 0 else { return }
+
+        // Find the character range for the target line
+        var currentLine = 1
+        var characterIndex = 0
+
+        while characterIndex < text.length, currentLine < lineNumber {
+            let lineRange = text.lineRange(for: NSRange(location: characterIndex, length: 0))
+            characterIndex = NSMaxRange(lineRange)
+            currentLine += 1
+        }
+
+        if currentLine == lineNumber, characterIndex < text.length {
+            let lineRange = text.lineRange(for: NSRange(location: characterIndex, length: 0))
+            let glyphRange = layoutManager.glyphRange(forCharacterRange: lineRange, actualCharacterRange: nil)
+            let lineRect = layoutManager.boundingRect(forGlyphRange: glyphRange, in: textContainer)
+
+            // Convert to scroll view coordinates with text inset
+            let textInset = textView.textContainerInset.height
+            var scrollRect = lineRect
+            scrollRect.origin.y += textInset
+
+            // Center the line in the visible area
+            let visibleHeight = scrollView.documentVisibleRect.height
+            scrollRect.origin.y -= (visibleHeight - lineRect.height) / 2
+            scrollRect.size.height = visibleHeight
+
+            textView.scrollToVisible(scrollRect)
+
+            #if DEBUG
+                DebugLog.log(
+                    "Scrolled to line \(lineNumber), rect: \(scrollRect)",
+                    category: "EditorView"
+                )
+            #endif
+        }
+    }
+
+    func scrollToCurrentLine() {
+        guard let currentLine = currentLine,
+              let textView = textView,
+              let scrollView = scrollView
+        else {
+            return
+        }
+
+        scrollToLine(currentLine, in: textView, scrollView: scrollView)
     }
 
     private func toggleBreakpoint(at lineNumber: Int) {
@@ -101,6 +181,7 @@ struct EditorWithGutterView: NSViewRepresentable {
     @Binding var currentLine: Int?
     let onBreakpointToggle: (Int) -> Void
     let onTextViewCreated: (NSTextView) -> Void
+    let onScrollViewCreated: (NSScrollView) -> Void
 
     func makeNSView(context: Context) -> NSView {
         let containerView = NSView()
@@ -175,6 +256,7 @@ struct EditorWithGutterView: NSViewRepresentable {
         // Notify parent that text view was created
         DispatchQueue.main.async {
             onTextViewCreated(textView)
+            onScrollViewCreated(scrollView)
         }
 
         return containerView
