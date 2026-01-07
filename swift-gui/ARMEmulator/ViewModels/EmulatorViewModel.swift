@@ -271,15 +271,28 @@ class EmulatorViewModel: ObservableObject {
     }
 
     func sendInput(_ input: String) async {
+        DebugLog.log("sendInput() called with input: \(input.prefix(20))...", category: "ViewModel")
+        DebugLog.log("Current status: \(status)", category: "ViewModel")
+
         guard let sessionID = sessionID else {
             errorMessage = "No active session"
             return
         }
 
         do {
+            DebugLog.log("Sending stdin to backend...", category: "ViewModel")
             try await apiClient.sendStdin(sessionID: sessionID, data: input)
+            DebugLog.success("Stdin sent successfully", category: "ViewModel")
             errorMessage = nil
+
+            // Always step after sending input to consume the buffered input
+            // The backend buffers input when not running, and step will consume it
+            DebugLog.log("Stepping to consume input...", category: "ViewModel")
+            try await apiClient.step(sessionID: sessionID)
+            try await refreshState()
+            DebugLog.success("Step after input completed", category: "ViewModel")
         } catch {
+            DebugLog.error("sendInput() failed: \(error.localizedDescription)", category: "ViewModel")
             errorMessage = "Failed to send input: \(error.localizedDescription)"
         }
     }
@@ -407,10 +420,16 @@ class EmulatorViewModel: ObservableObject {
         case "state":
             if let data = event.data, case let .state(stateUpdate) = data {
                 DebugLog.log(
-                    "State update - PC: 0x\(String(format: "%08X", stateUpdate.pc)), status: \(stateUpdate.status)",
+                    "State update - status: \(stateUpdate.status), PC: \(stateUpdate.pc.map { String(format: "0x%08X", $0) } ?? "nil")",
                     category: "ViewModel"
                 )
-                updateRegisters(stateUpdate.registers)
+
+                // Update registers if provided (full state update)
+                if let registers = stateUpdate.registers {
+                    updateRegisters(registers)
+                }
+
+                // Always update status (even for status-only updates like waiting_for_input)
                 status = VMState(rawValue: stateUpdate.status) ?? .idle
             }
         case "output":

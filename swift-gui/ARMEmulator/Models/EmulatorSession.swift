@@ -47,9 +47,9 @@ enum EventData: Codable {
 
 struct StateUpdate: Codable {
     var status: String
-    var pc: UInt32
-    var registers: RegisterState
-    var flags: CPSRFlags
+    var pc: UInt32?
+    var registers: RegisterState?
+    var flags: CPSRFlags?
 }
 
 struct OutputUpdate: Codable {
