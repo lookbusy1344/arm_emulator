@@ -44,7 +44,8 @@ struct ConsoleView: View {
                     }
                     .keyboardShortcut(.return, modifiers: [])
                 }
-                .padding(8)
+                .padding(.horizontal, 8)
+                .padding(.vertical, 12)
                 .background(Color(NSColor.controlBackgroundColor))
             }
         }
