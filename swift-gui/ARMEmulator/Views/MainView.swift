@@ -152,6 +152,19 @@ struct MainView: View {
     @ToolbarContentBuilder
     private var toolbarContent: some ToolbarContent {
         ToolbarItemGroup(placement: .automatic) {
+            // Status indicator with icon
+            HStack(spacing: 4) {
+                Image(systemName: statusIcon)
+                    .foregroundColor(statusColor)
+                    .font(.system(size: 14, weight: .semibold))
+                Text(statusText)
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
+            .padding(.horizontal, 4)
+
+            Divider()
+
             Button(
                 action: { Task { await viewModel.loadProgram(source: viewModel.sourceCode) } },
                 label: { Label("Load", systemImage: "doc.text") }
@@ -210,6 +223,47 @@ struct MainView: View {
             )
             .help("Reset VM (⌘⇧R)")
             .keyboardShortcut("r", modifiers: [.command, .shift])
+        }
+    }
+
+    private var statusIcon: String {
+        switch viewModel.status {
+        case .running:
+            return "play.fill" // Green arrow (running)
+        case .paused:
+            return "pause.fill" // Pause symbol (stepping/paused)
+        case .halted, .idle:
+            return "stop.fill" // Red square (stopped/not executing)
+        case .error:
+            return "exclamationmark.triangle.fill"
+        }
+    }
+
+    private var statusColor: Color {
+        switch viewModel.status {
+        case .running:
+            return .green
+        case .paused:
+            return .orange
+        case .halted, .idle:
+            return .red
+        case .error:
+            return .red
+        }
+    }
+
+    private var statusText: String {
+        switch viewModel.status {
+        case .running:
+            return "Running"
+        case .paused:
+            return "Paused"
+        case .halted:
+            return "Halted"
+        case .idle:
+            return "Idle"
+        case .error:
+            return "Error"
         }
     }
 }

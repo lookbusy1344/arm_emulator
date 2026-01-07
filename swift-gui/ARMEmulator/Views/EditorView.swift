@@ -53,6 +53,15 @@ struct EditorView: View {
                 }
             #endif
         }
+        .onChange(of: viewModel.status) { newStatus in
+            // Clear PC indicator when program is halted (finished execution)
+            if newStatus == .halted {
+                self.currentLine = nil
+                #if DEBUG
+                    DebugLog.log("Program halted - clearing PC indicator", category: "EditorView")
+                #endif
+            }
+        }
     }
 
     private func toggleBreakpoint(at lineNumber: Int) {
