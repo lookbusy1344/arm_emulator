@@ -220,7 +220,10 @@ func (s *DebuggerService) GetRegisterState() RegisterState {
 // Step executes a single instruction
 func (s *DebuggerService) Step() error {
 	s.mu.Lock()
-	defer s.mu.Unlock()
+	// Release lock BEFORE Step() because Step() may block on stdin read.
+	// This allows SendInput() to acquire RLock and write to the stdin pipe.
+	s.mu.Unlock()
+
 	return s.vm.Step()
 }
 
@@ -764,8 +767,16 @@ func (s *DebuggerService) StepOver() error {
 			}
 		}
 
+		// Release lock BEFORE Step() because Step() may block on stdin read.
+		s.mu.Unlock()
+
 		// Execute one instruction
-		if err := s.vm.Step(); err != nil {
+		err := s.vm.Step()
+
+		// Re-acquire lock
+		s.mu.Lock()
+
+		if err != nil {
 			s.debugger.Running = false
 			return err
 		}
@@ -909,9 +920,14 @@ func (s *DebuggerService) SendInput(input string) error {
 		return fmt.Errorf("stdin pipe not initialized")
 	}
 
-	// Check if VM is running
-	// If not running, buffer the input for later (batch stdin pattern)
-	if !s.IsRunning() {
+	// Check if VM is running or waiting for input
+	// If not running and not waiting, buffer the input for later (batch stdin pattern)
+	s.mu.RLock()
+	running := s.debugger.Running
+	waiting := s.vm.State == vm.StateWaitingForInput
+	s.mu.RUnlock()
+
+	if !running && !waiting {
 		s.mu.Lock()
 		// Note: input should already include newline from API layer
 		s.stdinBuffer.WriteString(input)
@@ -920,7 +936,7 @@ func (s *DebuggerService) SendInput(input string) error {
 		return nil
 	}
 
-	// VM is running - echo to output and write to pipe
+	// VM is running or waiting for input - echo to output and write to pipe
 	// NOTE: No mutex lock for pipe write! io.Pipe is already thread-safe.
 	// Taking a lock here causes deadlock when RunUntilHalt holds the lock while blocked on stdin read.
 

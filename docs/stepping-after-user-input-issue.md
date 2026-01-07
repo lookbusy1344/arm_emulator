@@ -187,4 +187,23 @@ Currently **no workaround** - the GUI becomes unresponsive after sending input d
 
 ## Status
 
-**INVESTIGATING** - Root cause not yet confirmed. Needs backend debugging to determine why HTTP response is not being sent.
+**FIXED** - Root cause confirmed and fixed. See fix details below.
+
+# Fix: Stepping After User Input Issue
+
+## Problem
+The `swift-gui` (and other clients) experienced a hang when stepping through code that requires user input (e.g., `READ_INT`).
+The issue was a deadlock in `DebuggerService` and a logic error in `SendInput`.
+
+1. **Deadlock**: `Step()` held the service mutex (`s.mu`) while calling `vm.Step()`. `vm.Step()` blocks on `stdin` read. `SendInput` attempts to acquire `s.mu` to check VM status, blocking indefinitely.
+2. **Logic Error**: `SendInput` checked `IsRunning()` to decide whether to write to the pipe or buffer. During stepping, `IsRunning()` is false, so input was buffered instead of sent to the blocked VM.
+
+## Fix
+1. **Unlock during Step**: Modified `Step()` and `StepOver()` in `service/debugger_service.go` to release `s.mu` before calling `vm.Step()`. This allows other service methods (specifically `SendInput`) to execute while the VM is blocked on I/O.
+2. **Allow Input when Waiting**: Modified `SendInput()` to check `vm.State == StateWaitingForInput`. If the VM is waiting for input, we write to the pipe immediately, even if `IsRunning()` is false.
+
+## Verification
+This fix ensures that:
+1. `Step()` does not hold the lock while waiting for input.
+2. `SendInput()` correctly detects the "Waiting for Input" state and delivers data to the VM pipe.
+3. The VM unblocks, consumes the input, and `Step()` completes.
