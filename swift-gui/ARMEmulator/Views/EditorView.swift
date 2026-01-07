@@ -104,7 +104,7 @@ struct EditorWithGutterView: NSViewRepresentable {
         let textView = NSTextView()
         textView.isEditable = true
         textView.isSelectable = true
-        textView.font = NSFont.monospacedSystemFont(ofSize: 13, weight: .regular)
+        textView.font = NSFont.monospacedSystemFont(ofSize: 10, weight: .regular)
         textView.textColor = NSColor.labelColor
         textView.backgroundColor = NSColor.textBackgroundColor
         textView.textContainerInset = NSSize(width: 5, height: 5)
