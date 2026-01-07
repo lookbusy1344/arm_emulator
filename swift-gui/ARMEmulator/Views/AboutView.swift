@@ -49,7 +49,7 @@ struct AboutView: View {
                 .font(.subheadline)
                 .foregroundColor(.secondary)
 
-            Text("© 2024-2026")
+            Text("© 2026")
                 .font(.caption)
                 .foregroundColor(.secondary)
 
