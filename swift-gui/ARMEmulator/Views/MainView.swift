@@ -177,12 +177,17 @@ struct MainView: View {
 
             Button(
                 action: {
-                    DebugLog.ui("Run button clicked")
+                    DebugLog.ui("Run/Continue button clicked")
                     Task { await viewModel.run() }
                 },
-                label: { Label("Run", systemImage: "play.fill") }
+                label: {
+                    Label(
+                        viewModel.status == .paused ? "Continue" : "Run",
+                        systemImage: viewModel.status == .paused ? "play.circle.fill" : "play.fill"
+                    )
+                }
             )
-            .help("Run program (⌘R)")
+            .help(viewModel.status == .paused ? "Continue execution (⌘R)" : "Run program (⌘R)")
             .keyboardShortcut("r", modifiers: .command)
             .disabled(viewModel.status == .running || viewModel.status == .waitingForInput)
 
