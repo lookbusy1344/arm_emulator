@@ -1,6 +1,6 @@
 # UI Debugging with MCP Servers
 
-Updated by Opus 4.5 - 12:52, 8 Jan 2026
+Updated by Opus 4.5 - 13:23, 8 Jan 2026
 
 This guide covers how to use the Playwright and XcodeBuild MCP (Model Context Protocol) servers for debugging user interfaces across web and native iOS/macOS applications.
 
@@ -515,17 +515,101 @@ swipe startX=100 startY=500 endX=100 endY=100
 screenshot
 ```
 
-#### 5. Log Capture
+#### 5. Log Capture (Programmatic Debug Log Access)
+
+XcodeBuild MCP provides programmatic access to app logs - extremely useful for automated debugging workflows.
+
+**Available Tools:**
+
+| Tool | Platform | Description |
+|------|----------|-------------|
+| `start_sim_log_cap` | Simulator | Start capturing logs, returns session ID |
+| `stop_sim_log_cap` | Simulator | Stop capture and **return logs** |
+| `launch_app_logs_sim` | Simulator | Launch app with log capture in one step |
+| `start_device_log_cap` | Device | Start capturing device logs |
+| `stop_device_log_cap` | Device | Stop and return device logs |
+
+**Key Parameters:**
 
 ```bash
-# Start capturing simulator logs
-start_sim_log_cap          # Returns session ID
+# Basic log capture (structured os_log only)
+start_sim_log_cap bundleId="com.example.MyApp"
 
-# ... interact with app ...
-
-# Stop and retrieve logs
-stop_sim_log_cap sessionId="..."
+# Capture console output (print/NSLog/DebugLog) - RECOMMENDED for debugging
+start_sim_log_cap bundleId="com.example.MyApp" captureConsole=true
 ```
+
+> **Important:** `captureConsole: true` captures `print()`, `NSLog()`, and custom debug utilities like `DebugLog`. Without it, you only get structured `os_log` entries. Most debug logging ends up in console output.
+
+**Basic Workflow:**
+
+```bash
+# 1. Start log capture (returns session ID)
+start_sim_log_cap bundleId="com.example.ARMEmulator" captureConsole=true
+# Response: { "sessionId": "abc123" }
+
+# 2. Interact with app (run, step, trigger the bug, etc.)
+# ...
+
+# 3. Stop and retrieve logs
+stop_sim_log_cap logSessionId="abc123"
+# Response: { "logs": "🔵 [ViewModel] Loading program...\n❌ [StackView] Error: ..." }
+```
+
+**One-Step Launch with Logs:**
+
+```bash
+# Launch app and capture logs simultaneously
+launch_app_logs_sim bundleId="com.example.ARMEmulator" args=["test.s"]
+```
+
+**Example: Automated Log Analysis**
+
+```bash
+#!/bin/bash
+# debug_with_logs.sh - Capture and analyze app logs programmatically
+
+# Build and get bundle ID
+mcp-cli call XcodeBuildMCP/build_sim '{}'
+BUNDLE_ID=$(mcp-cli call XcodeBuildMCP/get_sim_app_path '{}' | jq -r '.bundleId')
+
+# Start log capture with console output
+SESSION=$(mcp-cli call XcodeBuildMCP/start_sim_log_cap "{
+  \"bundleId\": \"$BUNDLE_ID\",
+  \"captureConsole\": true
+}" | jq -r '.sessionId')
+
+echo "Log session: $SESSION"
+
+# Launch app
+mcp-cli call XcodeBuildMCP/launch_app_sim "{\"bundleId\": \"$BUNDLE_ID\"}"
+
+# Wait for app to do something interesting
+sleep 5
+
+# Stop capture and get logs
+LOGS=$(mcp-cli call XcodeBuildMCP/stop_sim_log_cap "{\"logSessionId\": \"$SESSION\"}")
+
+# Analyze logs
+echo "$LOGS" | jq -r '.logs' > app_debug.log
+
+# Search for errors
+echo "=== Errors Found ==="
+grep -E "❌|Error|error|failed|Failed" app_debug.log
+
+# Search for specific component
+echo "=== StackView Logs ==="
+grep "StackView" app_debug.log
+```
+
+**Structured Logs vs Console Output:**
+
+| Type | Captured By | Contains |
+|------|-------------|----------|
+| Structured (`os_log`) | Default | System events, lifecycle, crashes |
+| Console | `captureConsole: true` | `print()`, `NSLog()`, `DebugLog`, stdout/stderr |
+
+For debugging custom app logic, you almost always want `captureConsole: true`.
 
 ## Integration Patterns for AI Assistants
 
