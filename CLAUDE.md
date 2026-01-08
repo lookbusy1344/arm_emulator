@@ -211,11 +211,9 @@ The project can be fully developed in Xcode with all standard features (visual d
 **IMPORTANT:** Before building the Swift app, ensure the Go backend is built with version information:
 
 ```bash
+# Build Go backend first
 cd ..
 make build  # or ./build_with_version.sh
-cd swift-gui
-
-```bash
 cd swift-gui
 
 # Debug build
@@ -326,52 +324,292 @@ DebugLog.ui("Run button clicked")
 
 ### Debugging with MCP Servers
 
-The xcode MCP server can be used for advanced debugging and automation of the Swift GUI. For comprehensive documentation, see [docs/MCP_UI_DEBUGGING.md](docs/MCP_UI_DEBUGGING.md).
+The XcodeBuild and Playwright MCP servers enable automated debugging and testing of both native macOS apps and web UIs. For comprehensive documentation, see [docs/MCP_UI_DEBUGGING.md](docs/MCP_UI_DEBUGGING.md).
 
-**IMPORTANT:** Always check the tool schema first using `mcp-cli info <server>/<tool>` before making any MCP tool calls.
+#### MCP Setup
 
-**Common Debugging Workflows:**
+**XcodeBuild MCP** (iOS/macOS automation):
+```bash
+# Correct installation command
+claude mcp add --transport stdio XcodeBuildMCP -- npx -y xcodebuildmcp@latest
 
-1. **Build Diagnostics**
-   ```bash
-   # Check schema first
-   mcp-cli info xcodebuild/build
+# Install AXe for UI automation
+brew install cameroncooke/axe/axe
+```
 
-   # Build with verbose output to diagnose errors
-   mcp-cli call xcodebuild/build '{
-     "scheme": "ARMEmulator",
-     "configuration": "Debug",
-     "verbose": true
-   }'
-   ```
+**Playwright MCP** (web UI automation):
+```bash
+# Installation
+claude mcp add playwright npx @playwright/mcp@latest
+```
 
-2. **Running Tests**
-   ```bash
-   # Check schema first
-   mcp-cli info xcodebuild/test
+#### Critical Prerequisite: Check Schema First
 
-   # Run all tests with result bundles
-   mcp-cli call xcodebuild/test '{
-     "scheme": "ARMEmulator",
-     "destination": "platform=macOS",
-     "resultBundlePath": "./TestResults"
-   }'
-   ```
+**MANDATORY**: Always check tool schema using `mcp-cli info <server>/<tool>` before any `mcp-cli call` command. This is non-negotiable.
 
-3. **Device Management**
-   ```bash
-   # List available simulators and devices
-   mcp-cli call xcodebuild/list_devices '{}'
-   ```
+```bash
+# ALWAYS do this first
+mcp-cli info XcodeBuildMCP/build_macos
 
-**When to Use MCP Debugging:**
-- Diagnosing build failures with detailed error output
-- Automating test runs across multiple configurations
-- CI/CD integration and build automation
-- Investigating code signing or provisioning issues
-- Analyzing test results programmatically
+# Then make the call
+mcp-cli call XcodeBuildMCP/build_macos '{}'
+```
 
-See [docs/MCP_UI_DEBUGGING.md](docs/MCP_UI_DEBUGGING.md) for complete documentation including Playwright MCP for web UI debugging.
+#### XcodeBuild MCP Workflows
+
+**1. Set Session Defaults (Critical First Step)**
+
+Set defaults once to avoid repeating parameters in every call:
+
+```bash
+# For macOS app
+mcp-cli call XcodeBuildMCP/session_set_defaults '{
+  "projectPath": "/path/to/ARMEmulator.xcodeproj",
+  "scheme": "ARMEmulator"
+}'
+
+# For iOS app with simulator
+mcp-cli call XcodeBuildMCP/session_set_defaults '{
+  "projectPath": "/path/to/MyApp.xcodeproj",
+  "scheme": "MyApp",
+  "simulatorName": "iPhone 16"
+}'
+```
+
+**2. Build and Launch**
+
+```bash
+# Build the app
+mcp-cli call XcodeBuildMCP/build_macos '{}'
+
+# Get app bundle path
+mcp-cli call XcodeBuildMCP/get_mac_app_path '{}'
+
+# Launch with arguments
+mcp-cli call XcodeBuildMCP/launch_mac_app '{
+  "appPath": "/path/to/ARMEmulator.app",
+  "args": ["examples/fibonacci.s"]
+}'
+```
+
+**3. Log Capture (Programmatic Debug Access)**
+
+Capture app logs programmatically for automated debugging:
+
+```bash
+# Start log capture with console output (captures print/NSLog/DebugLog)
+mcp-cli call XcodeBuildMCP/start_sim_log_cap '{
+  "bundleId": "com.example.ARMEmulator",
+  "captureConsole": true
+}'
+# Returns: { "sessionId": "abc123" }
+
+# Interact with app (trigger the bug, etc.)
+# ...
+
+# Stop capture and retrieve logs
+mcp-cli call XcodeBuildMCP/stop_sim_log_cap '{
+  "logSessionId": "abc123"
+}'
+# Returns logs with all debug output
+```
+
+**IMPORTANT:** Use `captureConsole: true` to capture `print()`, `NSLog()`, and custom debug utilities like `DebugLog`. Without it, you only get structured `os_log` entries.
+
+**4. UI Automation with AXe**
+
+```bash
+# Get UI hierarchy (critical - don't guess coordinates!)
+mcp-cli call XcodeBuildMCP/describe_ui '{}'
+
+# Tap at coordinates
+mcp-cli call XcodeBuildMCP/tap '{"x": 100, "y": 200}'
+
+# Tap by accessibility label
+mcp-cli call XcodeBuildMCP/tap '{"accessibilityId": "RunButton"}'
+
+# Type text
+mcp-cli call XcodeBuildMCP/type_text '{"text": "hello"}'
+
+# Gesture presets
+mcp-cli call XcodeBuildMCP/gesture '{"gesture": "scroll-down"}'
+
+# Screenshot for verification
+mcp-cli call XcodeBuildMCP/screenshot '{}'
+```
+
+**5. Direct AXe CLI Usage**
+
+AXe can be used directly for shell scripts and CI pipelines:
+
+```bash
+# Get simulator UDID
+UDID=$(xcrun simctl list devices booted -j | jq -r '.devices[][] | select(.state=="Booted") | .udid' | head -1)
+
+# Tap at coordinates
+axe tap -x 100 -y 200 --udid $UDID
+
+# Gesture presets (easier than custom swipes!)
+axe gesture scroll-up --udid $UDID
+axe gesture swipe-from-left-edge --udid $UDID  # Back navigation
+
+# Type text
+echo "user@example.com" | axe type --stdin --udid $UDID
+
+# Get UI hierarchy
+axe describe-ui --udid $UDID
+
+# Screenshot
+axe screenshot --output ~/Desktop/test.png --udid $UDID
+```
+
+#### Playwright MCP Workflows (Wails GUI)
+
+**1. Navigate and Capture Snapshot**
+
+Key workflow: **navigate → snapshot → interact using refs**
+
+```bash
+# Navigate to page
+mcp-cli call playwright/browser_navigate '{"url": "http://localhost:34115"}'
+
+# Get accessibility tree (provides element refs)
+mcp-cli call playwright/browser_snapshot '{}'
+# Returns: - button "Run" [ref=e5]
+#          - textbox "Code" [ref=e4]
+
+# Click using ref
+mcp-cli call playwright/browser_click '{"element": "Run button", "ref": "e5"}'
+```
+
+**2. Inspect Network & Console**
+
+```bash
+# Get console errors
+mcp-cli call playwright/browser_console_messages '{"level": "error"}'
+
+# List network requests
+mcp-cli call playwright/browser_network_requests '{}'
+
+# Execute JavaScript
+mcp-cli call playwright/browser_evaluate '{
+  "function": "() => document.querySelector(\"#result\").textContent"
+}'
+```
+
+**3. Screenshots and Testing**
+
+```bash
+# Viewport screenshot
+mcp-cli call playwright/browser_take_screenshot '{}'
+
+# Full page screenshot
+mcp-cli call playwright/browser_take_screenshot '{"fullPage": true}'
+
+# Element screenshot
+mcp-cli call playwright/browser_take_screenshot '{
+  "element": "Chart",
+  "ref": "e8"
+}'
+```
+
+#### Automated Debugging Workflow Example
+
+Complete automation for reproducing Swift GUI bugs:
+
+```bash
+#!/bin/bash
+# debug_swift_gui.sh - Automated build-launch-debug cycle
+
+set -e
+
+echo "=== Building Swift GUI ==="
+mcp-cli call XcodeBuildMCP/build_macos '{}'
+
+echo "=== Stopping old instances ==="
+killall ARMEmulator 2>/dev/null || true
+sleep 1
+
+echo "=== Launching app with test file ==="
+APP_PATH=$(mcp-cli call XcodeBuildMCP/get_mac_app_path '{}' | jq -r '.appPath')
+mcp-cli call XcodeBuildMCP/launch_mac_app "{
+  \"appPath\": \"$APP_PATH\",
+  \"args\": [\"$(pwd)/examples/fibonacci.s\"]
+}"
+
+# Wait for backend to start
+sleep 3
+
+echo "=== Starting log capture ==="
+SESSION=$(mcp-cli call XcodeBuildMCP/start_sim_log_cap '{
+  "bundleId": "com.example.ARMEmulator",
+  "captureConsole": true
+}' | jq -r '.sessionId')
+
+echo "=== Testing via API ==="
+# Create API session and trigger bug
+# ...
+
+echo "=== Retrieving logs ==="
+LOGS=$(mcp-cli call XcodeBuildMCP/stop_sim_log_cap "{\"logSessionId\": \"$SESSION\"}")
+echo "$LOGS" | jq -r '.logs' > debug.log
+
+echo "=== Analyzing errors ==="
+grep -E "❌|Error" debug.log
+```
+
+**Benefits of Automation:**
+- Reproducibility: Exact same steps every time
+- Speed: Full cycle takes ~10 seconds vs 2+ minutes manually
+- Isolation: Test GUI and backend independently
+- Documentation: Script serves as executable documentation
+
+#### Best Practices
+
+1. **Always check schema first** - Use `mcp-cli info` before any `mcp-cli call`
+2. **Set session defaults early** - Call `session_set_defaults` once at start
+3. **Use describe_ui before interactions** - Never guess coordinates from screenshots
+4. **Capture logs with console output** - Use `captureConsole: true` for debug logs
+5. **Start with snapshots** - Get current state before interacting (both Playwright and XcodeBuild)
+6. **Clean builds for fresh state** - Use `clean` when debugging build issues
+
+#### When to Use MCP Debugging
+
+**Use Automation When:**
+- Reproducing specific bug scenarios repeatedly
+- Testing multiple edge cases quickly
+- Verifying fixes across different inputs
+- Running regression tests
+- CI/CD integration
+
+**Use Manual Debugging When:**
+- Exploring unknown behavior
+- UI layout/visual issues
+- Initial bug triage
+
+#### Troubleshooting
+
+**Problem:** App doesn't launch
+- Check backend binary built: `ls -la arm-emulator`
+- Fix: `make build`
+
+**Problem:** API connection refused
+- Check backend started (look for "API server starting")
+- Fix: Add `sleep 3` after launch
+
+**Problem:** No debug logs appear
+- Check building in Debug configuration (Release strips DebugLog)
+- Fix: `mcp-cli call XcodeBuildMCP/build_macos '{"configuration": "Debug"}'`
+
+**Problem:** "Element not found" (Playwright)
+- Capture fresh snapshot to get updated refs
+- Ensure page has loaded completely
+
+**Problem:** UI automation not working
+- Install AXe: `brew install cameroncooke/axe/axe`
+- Ensure simulator is booted and app is running
+
+See [docs/MCP_UI_DEBUGGING.md](docs/MCP_UI_DEBUGGING.md) for complete documentation with detailed examples, advanced techniques, and comprehensive troubleshooting.
 
 ## Project Structure
 
@@ -395,73 +633,20 @@ See [docs/MCP_UI_DEBUGGING.md](docs/MCP_UI_DEBUGGING.md) for complete documentat
 
 ## SWI Syscall Reference
 
-For the complete syscall reference, see [docs/INSTRUCTIONS.md](docs/INSTRUCTIONS.md#system-instructions).
-
-### Quick Reference
-
 The emulator implements traditional ARM2 syscall convention: `SWI #immediate_value` where the syscall number is encoded directly in the instruction. Arguments and return values use registers R0-R2.
 
-### Console I/O (0x00-0x07)
+**Common syscalls:**
+- `SWI #0x00` - EXIT (R0: exit code)
+- `SWI #0x01` - WRITE_CHAR (R0: character)
+- `SWI #0x02` - WRITE_STRING (R0: string address)
+- `SWI #0x04` - READ_CHAR (returns R0: character)
+- `SWI #0x06` - READ_INT (returns R0: integer)
+- `SWI #0x10` - OPEN (R0: filename, R1: mode → R0: fd)
+- `SWI #0x20` - ALLOCATE (R0: size → R0: address)
 
-| Code | Name | Description | Arguments | Return |
-|------|------|-------------|-----------|--------|
-| 0x00 | EXIT | Exit program | R0: exit code | - |
-| 0x01 | WRITE_CHAR | Write character to stdout | R0: character | - |
-| 0x02 | WRITE_STRING | Write null-terminated string | R0: string address | - |
-| 0x03 | WRITE_INT | Write integer in specified base | R0: value, R1: base (2/8/10/16, default 10) | - |
-| 0x04 | READ_CHAR | Read character from stdin (skips whitespace) | - | R0: character or 0xFFFFFFFF on error |
-| 0x05 | READ_STRING | Read string from stdin (until newline) | R0: buffer address, R1: max length (default 256) | R0: bytes written or 0xFFFFFFFF on error |
-| 0x06 | READ_INT | Read integer from stdin | - | R0: integer value or 0 on error |
-| 0x07 | WRITE_NEWLINE | Write newline to stdout | - | - |
+For the complete syscall reference including file operations, memory management, system information, error handling, and debugging support, see [docs/INSTRUCTIONS.md](docs/INSTRUCTIONS.md#system-instructions).
 
-### File Operations (0x10-0x16)
-
-| Code | Name | Description | Arguments | Return |
-|------|------|-------------|-----------|--------|
-| 0x10 | OPEN | Open file | R0: filename address, R1: mode (0=read, 1=write, 2=append) | R0: file descriptor or 0xFFFFFFFF on error |
-| 0x11 | CLOSE | Close file | R0: file descriptor | R0: 0 on success, 0xFFFFFFFF on error |
-| 0x12 | READ | Read from file | R0: fd, R1: buffer address, R2: length | R0: bytes read or 0xFFFFFFFF on error |
-| 0x13 | WRITE | Write to file | R0: fd, R1: buffer address, R2: length | R0: bytes written or 0xFFFFFFFF on error |
-| 0x14 | SEEK | Seek in file | R0: fd, R1: offset, R2: whence (0=start, 1=current, 2=end) | R0: new position or 0xFFFFFFFF on error |
-| 0x15 | TELL | Get current file position | R0: file descriptor | R0: position or 0xFFFFFFFF on error |
-| 0x16 | FILE_SIZE | Get file size | R0: file descriptor | R0: size or 0xFFFFFFFF on error |
-
-### Memory Operations (0x20-0x22)
-
-| Code | Name | Description | Arguments | Return |
-|------|------|-------------|-----------|--------|
-| 0x20 | ALLOCATE | Allocate memory from heap | R0: size in bytes | R0: address or 0 (NULL) on failure |
-| 0x21 | FREE | Free allocated memory | R0: address | R0: 0 on success, 0xFFFFFFFF on error |
-| 0x22 | REALLOCATE | Resize memory allocation | R0: old address, R1: new size | R0: new address or 0 (NULL) on failure |
-
-### System Information (0x30-0x33)
-
-| Code | Name | Description | Arguments | Return |
-|------|------|-------------|-----------|--------|
-| 0x30 | GET_TIME | Get time in milliseconds since Unix epoch | - | R0: timestamp (lower 32 bits) |
-| 0x31 | GET_RANDOM | Get random 32-bit number | - | R0: random value |
-| 0x32 | GET_ARGUMENTS | Get program arguments | - | R0: argc, R1: argv pointer (0 in current impl) |
-| 0x33 | GET_ENVIRONMENT | Get environment variables | - | R0: envp pointer (0 in current impl) |
-
-### Error Handling (0x40-0x42)
-
-| Code | Name | Description | Arguments | Return |
-|------|------|-------------|-----------|--------|
-| 0x40 | GET_ERROR | Get last error code | - | R0: error code (0 in current impl) |
-| 0x41 | SET_ERROR | Set error code | R0: error code | - |
-| 0x42 | PRINT_ERROR | Print error message to stderr | R0: error code | - |
-
-### Debugging Support (0xF0-0xF4)
-
-| Code | Name | Description | Arguments | Return |
-|------|------|-------------|-----------|--------|
-| 0xF0 | DEBUG_PRINT | Print debug message to stderr | R0: string address | - |
-| 0xF1 | BREAKPOINT | Trigger debugger breakpoint | - | - |
-| 0xF2 | DUMP_REGISTERS | Print all registers to stdout | - | - |
-| 0xF3 | DUMP_MEMORY | Dump memory region as hex dump | R0: address, R1: length (max 1KB) | - |
-| 0xF4 | ASSERT | Assert condition is true | R0: condition (0=fail), R1: message address | Halts if condition is 0 |
-
-**Note:** CPSR flags (N, Z, C, V) are preserved across all syscalls to prevent unintended side effects on conditional logic.
+**Note:** CPSR flags (N, Z, C, V) are preserved across all syscalls.
 
 ## Development Guidelines
 
@@ -573,56 +758,3 @@ These programs work correctly when provided with stdin input:
 - **bubble_sort.s** - Prompts for array size and elements (fully working)
 - **calculator.s** - Interactive calculator with +, -, *, / operations (fully working)
 - **fibonacci.s** - Prompts for count of Fibonacci numbers (fully working)
-
-#### Recent Fixes (Dec 2025)
-- **Security:** Fixed DoS vulnerability in stdin syscalls (bounded input to 4KB)
-- **Parser:** Added octal escape sequence support (`\NNN` format)
-- **Performance:** Optimized string building in trace output (strings.Builder)
-- **Performance:** Eliminated per-call map allocation in trace.go
-- **Performance:** Added memory bounds to RegisterTrace unique value tracking
-- **TUI:** Fixed help command display (black-on-black text issue)
-
-#### Previous Fixes (Oct 2025)
-- **calculator.s** - Fixed infinite loop bug when stdin exhausted (EOF handling)
-- **test_ltorg.s** - Fixed literal pool space reservation in parser
-- **test_org_0_with_ltorg.s** - Fixed literal pool space reservation + added missing branch instruction
-
-### Development Tools
-
-Located in `tools/` directory:
-
-- **Linter** - Analyze assembly code for issues (`tools/lint.go`)
-  - Undefined label detection with suggestions
-  - Unreachable code detection
-  - Register usage warnings
-  - 25 tests
-- **Formatter** - Format assembly code consistently (`tools/format.go`)
-  - Multiple format styles (default, compact, expanded)
-  - Configurable alignment and spacing
-  - 27 tests
-- **Cross-Reference** - Generate symbol usage reports (`tools/xref.go`)
-  - Symbol cross-reference with usage tracking
-  - Function and data label identification
-  - 21 tests
-
-### Machine Code Encoder/Decoder
-
-Located in `encoder/` directory:
-
-- **Encoder** - Convert assembly to ARM machine code
-- **Decoder** - Disassemble ARM machine code to assembly
-- Supports all ARM2 instruction formats
-- 1148 lines across 5 files
-- Complete encoding/decoding for data processing, memory, branch, and multiply instructions
-
-### Configuration
-
-Configuration files are stored in platform-specific locations:
-- **macOS/Linux:** `~/.config/arm-emu/config.toml`
-- **Windows:** `%APPDATA%\arm-emu\config.toml`
-
-See `config/config.go` for all available options.
-
-### Note
-
-Coreutils is installed on MacOS, so commands like `gtimeout` are available.
