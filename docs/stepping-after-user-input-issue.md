@@ -207,3 +207,72 @@ This fix ensures that:
 1. `Step()` does not hold the lock while waiting for input.
 2. `SendInput()` correctly detects the "Waiting for Input" state and delivers data to the VM pipe.
 3. The VM unblocks, consumes the input, and `Step()` completes.
+
+# Issue: Double-Step After User Input
+
+## Problem
+After the initial fix (commit 00a7731), a new issue was discovered: when stepping through code that requires user input, the GUI would execute TWO instructions instead of one after the user provided input.
+
+**Example:**
+```
+SWI #0x06    ; READ_INT - cursor here
+POP {pc}     ; Expected cursor position after input
+```
+
+**Expected behavior:** After user sends input, cursor moves to `POP {pc}`
+**Actual behavior:** Cursor jumps PAST `POP {pc}` - the POP has already executed
+
+## Root Cause
+The Swift GUI's `sendInput()` method unconditionally called `step()` after sending input:
+
+```swift
+func sendInput(_ input: String) async {
+    try await apiClient.sendStdin(sessionID: sessionID, data: input)
+
+    // Always step after sending input to consume the buffered input
+    try await apiClient.step(sessionID: sessionID)  // ← PROBLEM!
+}
+```
+
+This caused a double-step when the VM was waiting for input during a step operation:
+1. User clicks Step → Backend's `vm.Step()` blocks on `SWI #0x06` (READ_INT)
+2. User sends input → Backend unblocks from the FIRST step (SWI completes)
+3. GUI calls `step()` again → Backend executes SECOND step (`POP {pc}`)
+
+## Fix
+Modified `EmulatorViewModel.swift` to check the VM state before deciding whether to auto-step:
+
+```swift
+func sendInput(_ input: String) async {
+    // Capture status BEFORE sending input
+    let wasWaitingForInput = (status == .waitingForInput)
+
+    try await apiClient.sendStdin(sessionID: sessionID, data: input)
+
+    if wasWaitingForInput {
+        // VM was waiting - the step() that triggered the input request
+        // is still in progress and will complete. DON'T call step() again!
+        try await refreshState()
+    } else {
+        // VM was not waiting - backend buffered the input.
+        // Call step() to consume the buffered input.
+        try await apiClient.step(sessionID: sessionID)
+        try await refreshState()
+    }
+}
+```
+
+## Logic
+The backend has two modes for handling input:
+- **Buffered mode**: VM is NOT running AND NOT waiting → buffer input for later
+- **Immediate mode**: VM IS running OR waiting for input → write to pipe immediately
+
+The Swift GUI now matches this logic:
+- If `waiting_for_input` state: Input unblocks existing step, no additional step needed
+- Otherwise: Input is buffered, call step() to consume it
+
+## Verification
+This fix ensures:
+1. Single-step behavior works correctly when VM is waiting for input
+2. Batch input functionality is preserved (auto-step when buffering)
+3. No double-execution of instructions after user input
