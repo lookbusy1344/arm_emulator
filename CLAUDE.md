@@ -315,6 +315,55 @@ DebugLog.ui("Run button clicked")
 7. **Git tracking Xcode user files**: The `swift-gui/.gitignore` excludes user-specific files like `*.xcuserstate`, `xcuserdata/`, and build artifacts. These should never be committed.
 8. **SwiftUI/AppKit rendering issues**: When NSViewRepresentable views don't render content (blank view despite data being present), use divide-and-conquer debugging: comment out complex custom components (ruler views, overlays, custom drawing) to isolate the issue. Get the basic AppKit view working first, then add complexity back incrementally. Example: NSTextView not displaying text may be caused by NSRulerView interference.
 
+### Debugging with MCP Servers
+
+The xcode MCP server can be used for advanced debugging and automation of the Swift GUI. For comprehensive documentation, see [docs/MCP_UI_DEBUGGING.md](docs/MCP_UI_DEBUGGING.md).
+
+**IMPORTANT:** Always check the tool schema first using `mcp-cli info <server>/<tool>` before making any MCP tool calls.
+
+**Common Debugging Workflows:**
+
+1. **Build Diagnostics**
+   ```bash
+   # Check schema first
+   mcp-cli info xcodebuild/build
+
+   # Build with verbose output to diagnose errors
+   mcp-cli call xcodebuild/build '{
+     "scheme": "ARMEmulator",
+     "configuration": "Debug",
+     "verbose": true
+   }'
+   ```
+
+2. **Running Tests**
+   ```bash
+   # Check schema first
+   mcp-cli info xcodebuild/test
+
+   # Run all tests with result bundles
+   mcp-cli call xcodebuild/test '{
+     "scheme": "ARMEmulator",
+     "destination": "platform=macOS",
+     "resultBundlePath": "./TestResults"
+   }'
+   ```
+
+3. **Device Management**
+   ```bash
+   # List available simulators and devices
+   mcp-cli call xcodebuild/list_devices '{}'
+   ```
+
+**When to Use MCP Debugging:**
+- Diagnosing build failures with detailed error output
+- Automating test runs across multiple configurations
+- CI/CD integration and build automation
+- Investigating code signing or provisioning issues
+- Analyzing test results programmatically
+
+See [docs/MCP_UI_DEBUGGING.md](docs/MCP_UI_DEBUGGING.md) for complete documentation including Playwright MCP for web UI debugging.
+
 ## Project Structure
 
 - `main.go` - Entry point and CLI interface
