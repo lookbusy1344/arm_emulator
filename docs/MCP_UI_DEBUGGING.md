@@ -54,6 +54,12 @@ npx @playwright/mcp@latest
 
 ### XcodeBuild MCP
 
+This fixed installation:
+
+claude mcp add --transport stdio XcodeBuildMCP -- npx -y xcodebuildmcp@latest
+
+https://github.com/keskinonur/claude-code-ios-dev-guide?tab=readme-ov-file#7-xcodebuildmcp-integration
+
 **Installation via Smithery:**
 ```bash
 npx -y @smithery/cli@latest install cameroncooke/xcodebuildmcp --client claude
