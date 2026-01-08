@@ -240,6 +240,211 @@ Can you investigate?"
 4. Suggests fixes based on diagnostics
 5. Runs clean build to verify
 
+## Automated Debugging Workflows (Swift GUI)
+
+**Problem**: Manual debugging of Swift macOS apps is tedious:
+- Build in Xcode → Launch → Step through UI → Check console logs → Repeat
+- Hard to correlate UI state with backend behavior
+- Time-consuming to reproduce specific scenarios
+
+**Solution**: Automate the build-launch-debug cycle using XcodeBuild MCP + direct API testing.
+
+### Complete Automation Example: Stack View Bug
+
+This workflow debugged the Stack View display issue in the ARM Emulator Swift GUI.
+
+#### 1. Set Up Session Defaults
+
+**CRITICAL**: Set session defaults once to avoid repeating parameters:
+
+```bash
+# Check schema first
+mcp-cli info XcodeBuildMCP/session-set-defaults
+
+# Set project and scheme
+mcp-cli call XcodeBuildMCP/session-set-defaults '{
+  "projectPath": "/path/to/ARMEmulator.xcodeproj",
+  "scheme": "ARMEmulator"
+}'
+```
+
+#### 2. Build and Launch Automatically
+
+```bash
+# Build the app
+mcp-cli call XcodeBuildMCP/build_macos '{}'
+
+# Get app path
+APP_PATH=$(mcp-cli call XcodeBuildMCP/get_mac_app_path '{}' | grep -oE '/.*\.app')
+
+# Launch with test file pre-loaded
+mcp-cli call XcodeBuildMCP/launch_mac_app "{
+  \"appPath\": \"$APP_PATH\",
+  \"args\": [\"/path/to/test/fibonacci.s\"]
+}"
+```
+
+**Benefit**: App launches with test program already loaded - no manual "Open File" needed.
+
+#### 3. Debug with Console Logs
+
+The Swift app uses `DebugLog` utility that outputs to stdout. When launched via MCP, these logs appear in the terminal:
+
+```
+🔵 [StackView] loadStack() called, SP = 0x00050000
+🔵 [StackView] Fetching memory from 0x0004FFC0, length: 128 bytes
+❌ [StackView] Failed to fetch stack memory: Server error (500):
+    "memory access violation: address 0x00050000 is not mapped"
+```
+
+**Key Insight**: This immediately revealed the Stack View was trying to read unmapped memory above SP.
+
+#### 4. Combine with Backend API Testing
+
+While the GUI runs, directly test the backend API to isolate issues:
+
+```bash
+# Create session
+SESSION=$(curl -s -X POST http://localhost:8080/api/v1/session \
+  -H "Content-Type: application/json" -d '{}' | jq -r '.sessionId')
+
+# Load program
+curl -s -X POST "http://localhost:8080/api/v1/session/$SESSION/load" \
+  -H "Content-Type: application/json" \
+  -d "{\"source\": $(cat fibonacci.s | jq -Rs .)}" | jq .
+
+# Step through program
+curl -s -X POST "http://localhost:8080/api/v1/session/$SESSION/step"
+
+# Check registers
+curl -s "http://localhost:8080/api/v1/session/$SESSION/registers" | jq .
+
+# Test the problematic memory fetch
+SP=327680
+START=$((SP - 64))
+curl -s "http://localhost:8080/api/v1/session/$SESSION/memory?address=$START&length=128"
+```
+
+**Benefit**: Confirms whether the issue is in Swift GUI code or backend API.
+
+#### 5. Scripted Debugging Loop
+
+Create a script to automate the entire workflow:
+
+```bash
+#!/bin/bash
+# debug_stack_view.sh
+
+set -e
+
+echo "=== Building Swift GUI ==="
+mcp-cli call XcodeBuildMCP/build_macos '{}'
+
+echo "=== Stopping old instances ==="
+killall ARMEmulator 2>/dev/null || true
+sleep 1
+
+echo "=== Launching app ==="
+APP_PATH=$(mcp-cli call XcodeBuildMCP/get_mac_app_path '{}' | grep -oE '/.*\.app')
+mcp-cli call XcodeBuildMCP/launch_mac_app "{
+  \"appPath\": \"$APP_PATH\",
+  \"args\": [\"$(pwd)/examples/fibonacci.s\"]
+}" &
+
+# Give app time to start backend
+sleep 3
+
+echo "=== Creating API session ==="
+SESSION=$(curl -s -X POST http://localhost:8080/api/v1/session \
+  -H "Content-Type: application/json" -d '{}' | jq -r '.sessionId')
+
+echo "=== Loading fibonacci.s ==="
+curl -s -X POST "http://localhost:8080/api/v1/session/$SESSION/load" \
+  -H "Content-Type: application/json" \
+  -d "{\"source\": $(cat examples/fibonacci.s | jq -Rs .)}" | jq .
+
+echo "=== Stepping 3 times to trigger stack operations ==="
+for i in 1 2 3; do
+  curl -s -X POST "http://localhost:8080/api/v1/session/$SESSION/step" > /dev/null
+  echo "Step $i done"
+done
+
+echo "=== Checking register state ==="
+curl -s "http://localhost:8080/api/v1/session/$SESSION/registers" | jq '{pc, sp, lr}'
+
+echo "=== Testing stack memory fetch ==="
+SP=$(curl -s "http://localhost:8080/api/v1/session/$SESSION/registers" | jq -r '.sp')
+START=$((SP - 64))
+END=$((SP + 64))
+
+echo "Attempting to read from $START to $END (crosses SP=$SP)"
+curl -s "http://localhost:8080/api/v1/session/$SESSION/memory?address=$START&length=128" || echo "FAILED as expected"
+
+echo ""
+echo "=== Check Xcode console for [StackView] debug logs ==="
+```
+
+**Usage**:
+```bash
+chmod +x debug_stack_view.sh
+./debug_stack_view.sh
+```
+
+### Benefits of Automated Workflows
+
+1. **Reproducibility**: Exact same steps every time
+2. **Speed**: Full cycle takes ~10 seconds vs 2+ minutes manually
+3. **Isolation**: Test GUI and backend independently
+4. **Documentation**: Script serves as executable documentation
+5. **CI/CD Ready**: Same scripts work in automation pipelines
+
+### Advanced: Parsing Console Output
+
+Filter debug logs programmatically:
+
+```bash
+# Capture only Stack View logs
+mcp-cli call XcodeBuildMCP/launch_mac_app "{...}" 2>&1 | grep '\[StackView\]'
+
+# Count load attempts
+mcp-cli call XcodeBuildMCP/launch_mac_app "{...}" 2>&1 | grep 'loadStack() called' | wc -l
+
+# Detect failures
+mcp-cli call XcodeBuildMCP/launch_mac_app "{...}" 2>&1 | grep '❌' | tail -1
+```
+
+### Troubleshooting Automated Workflows
+
+**Problem**: App doesn't launch
+- **Check**: Backend binary built? `ls -la arm-emulator`
+- **Fix**: `cd .. && make build`
+
+**Problem**: API connection refused
+- **Check**: Backend started? Look for "API server starting on http://127.0.0.1:8080"
+- **Fix**: Add `sleep 3` after launch to let backend initialize
+
+**Problem**: No debug logs appear
+- **Check**: Building in Debug configuration? Release strips DebugLog calls
+- **Fix**: `mcp-cli call XcodeBuildMCP/build_macos '{"configuration": "Debug"}'`
+
+**Problem**: Session not found
+- **Check**: Backend process alive? `ps aux | grep arm-emulator`
+- **Fix**: Kill and relaunch app
+
+### When to Use Automation vs Manual
+
+**Use Automation When:**
+- Reproducing a specific bug scenario repeatedly
+- Testing multiple edge cases quickly
+- Verifying a fix works across different inputs
+- Running regression tests
+
+**Use Manual Debugging When:**
+- Exploring unknown behavior
+- UI layout/visual issues
+- Gesture/interaction testing
+- Initial bug triage
+
 ## Best Practices
 
 ### For Playwright MCP

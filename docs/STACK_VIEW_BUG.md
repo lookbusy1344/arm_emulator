@@ -129,17 +129,69 @@ These changes were meant to ensure proper async data fetching but **the display 
 - **Backend API**: Runs on `http://localhost:8080`
   - Endpoint: `GET /api/v1/session/{id}/memory?address={addr}&length={len}`
 
+## ROOT CAUSE IDENTIFIED
+
+**Date**: 2026-01-08
+
+Debug logging revealed the actual problem:
+
+```
+🔵 [StackView] loadStack() called, SP = 0x00050000
+🔵 [StackView] Fetching memory from 0x0004FFC0, length: 128 bytes
+❌ [StackView] Failed to fetch stack memory: Server error (500):
+    "Failed to read memory: memory access violation: address 0x00050000 is not mapped"
+```
+
+### The Problem
+
+The `loadStack()` function tries to read memory **centered around** the SP:
+- Calculates: `startAddress = SP - 64 bytes`
+- Fetches 128 bytes (±64 bytes around SP)
+- This means it reads from `(SP - 64)` to `(SP + 64)`
+
+**But the stack grows downward!**
+- SP = `0x00050000` (top of stack, not mapped)
+- Valid stack memory is **below** SP: `0x0004FFFF`, `0x0004FFFE`, etc.
+- Addresses **at or above** SP (`0x00050000+`) are unmapped memory
+
+When the fetch tries to read up to `0x00050040`, the backend correctly returns:
+```
+"memory access violation: address 0x00050000 is not mapped"
+```
+
+### Why It Fails
+
+```swift
+let offset = UInt32(wordsToShow / 2 * 4)  // 64 bytes
+let startAddress = sp >= offset ? sp - offset : 0  // SP - 64
+
+// Tries to fetch 128 bytes:
+localMemoryData = try await viewModel.fetchMemory(at: startAddress, length: wordsToShow * 4)
+// This reads from (SP - 64) to (SP - 64 + 128) = (SP + 64)
+//                                                   ^^^^^^^^ UNMAPPED!
+```
+
+### The Fix
+
+Only read memory **below** the stack pointer:
+- Read from `(SP - 128)` to `SP` (or `SP - 4` to avoid the exact boundary)
+- This shows the "top" 128 bytes of the stack (most recent pushes)
+- All addresses will be valid stack memory
+
+Alternative: Read from `(SP - 64)` to `(SP - 1)` (only 63 bytes, but safer)
+
 ## Next Steps
 
-1. Add debug output to confirm `loadStack()` is called and completes
-2. Add debug output to show `stackData.count` after populating
-3. Add temporary UI text to show data fetch status
-4. Verify the backend memory API is working correctly
-5. Check if there's a SwiftUI view update issue preventing ForEach from rendering
+1. ✅ **DONE**: Identified root cause - memory fetch crosses unmapped region
+2. Modify `loadStack()` to only read memory below SP
+3. Adjust the display to show stack entries from `SP-128` to `SP-4`
+4. Test with fibonacci.s to verify stack entries appear
+5. Update UI to clearly indicate "stack grows down" direction
 
 ## Notes
 
-- The SP value updates correctly, so register state is working
-- The header displays correctly, so the view itself renders
-- This suggests the issue is specifically with the **async data loading** or **array population**
-- The `MemoryView` works correctly, so the pattern should be similar
+- The SP value updates correctly, so register state is working ✓
+- The header displays correctly, so the view itself renders ✓
+- `loadStack()` IS being called on SP changes ✓
+- The issue is specifically with the **memory address calculation** crossing unmapped memory
+- The `MemoryView` works because it reads arbitrary addresses, not relative to SP
