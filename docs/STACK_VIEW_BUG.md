@@ -171,14 +171,34 @@ localMemoryData = try await viewModel.fetchMemory(at: startAddress, length: word
 //                                                   ^^^^^^^^ UNMAPPED!
 ```
 
-### The Fix
+### The Fix (First Attempt - INCOMPLETE)
 
 Only read memory **below** the stack pointer:
 - Read from `(SP - 128)` to `SP` (or `SP - 4` to avoid the exact boundary)
 - This shows the "top" 128 bytes of the stack (most recent pushes)
 - All addresses will be valid stack memory
 
-Alternative: Read from `(SP - 64)` to `(SP - 1)` (only 63 bytes, but safer)
+**PROBLEM WITH THIS FIX**: It still shows an arbitrary 128 bytes, not the actual stack contents!
+
+### The CORRECT Fix
+
+The stack has a known initial value from `vm/constants.go`:
+```go
+StackSegmentStart = 0x00040000 // Base of stack
+StackSegmentSize  = 0x00010000 // 64KB
+// Therefore: Initial SP = 0x00050000
+```
+
+**Correct approach:**
+1. Initial SP = `0x00050000` (constant, never changes)
+2. Current SP = from registers (e.g., `0x0004FFF0` after some pushes)
+3. Actual stack size = `InitialSP - CurrentSP` (e.g., `0x50000 - 0x4FFF0 = 16 bytes`)
+4. **Display ONLY**: Memory from `CurrentSP` to `(InitialSP - 1)`
+
+**Example:**
+- If SP = 0x0004FFF0 (16 bytes pushed)
+- Show memory from 0x0004FFF0 to 0x0004FFFF (exactly 16 bytes)
+- NOT 128 bytes below SP!
 
 ## Next Steps
 

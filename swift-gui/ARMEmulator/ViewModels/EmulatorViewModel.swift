@@ -513,6 +513,14 @@ class EmulatorViewModel: ObservableObject {
         }
     }
 
+    func fetchMemory(at address: UInt32, length: Int) async throws -> [UInt8] {
+        guard let sessionID = sessionID else {
+            throw NSError(domain: "EmulatorViewModel", code: 1, userInfo: [NSLocalizedDescriptionKey: "No active session"])
+        }
+
+        return try await apiClient.getMemory(sessionID: sessionID, address: address, length: length)
+    }
+
     func loadDisassembly(around address: UInt32, count: Int) async {
         guard let sessionID = sessionID else { return }
 

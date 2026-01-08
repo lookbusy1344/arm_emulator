@@ -11,14 +11,18 @@ struct StackEntry: Identifiable {
 struct StackView: View {
     @ObservedObject var viewModel: EmulatorViewModel
     @State private var stackData: [StackEntry] = []
+    @State private var localMemoryData: [UInt8] = []
+    @State private var loadCount = 0 // Debug: track load attempts
 
-    private let wordsToShow = 32 // Show ±128 bytes (±32 words)
+    // Stack configuration (from vm/constants.go)
+    private let initialSP: UInt32 = 0x00050000 // Initial stack pointer (StackSegmentStart + StackSegmentSize)
 
     var body: some View {
         VStack(spacing: 0) {
             // Header
             HStack {
-                Text("Stack (SP = \(String(format: "0x%08X", viewModel.registers.sp)))")
+                let stackSize = viewModel.registers.sp < initialSP ? initialSP - viewModel.registers.sp : 0
+                Text("Stack ↓ (SP = \(String(format: "0x%08X", viewModel.registers.sp))) - \(stackSize) bytes used")
                     .font(.system(size: 11, weight: .semibold))
                     .padding(8)
                 Spacer()
@@ -29,19 +33,25 @@ struct StackView: View {
 
             // Stack display
             ScrollView {
-                VStack(alignment: .leading, spacing: 0) {
-                    ForEach(stackData) { entry in
-                        StackRowView(
-                            offset: entry.offset,
-                            address: entry.address,
-                            value: entry.value,
-                            annotation: entry.annotation,
-                            isCurrent: entry.offset == 0
-                        )
+                if stackData.isEmpty {
+                    Text("Stack is empty (SP at initial value)")
+                        .foregroundColor(.secondary)
+                        .padding()
+                } else {
+                    VStack(alignment: .leading, spacing: 0) {
+                        ForEach(stackData) { entry in
+                            StackRowView(
+                                offset: entry.offset,
+                                address: entry.address,
+                                value: entry.value,
+                                annotation: entry.annotation,
+                                isCurrent: entry.offset == 0  // Highlight current SP location
+                            )
+                        }
                     }
+                    .font(.system(size: 10, design: .monospaced))
+                    .padding(8)
                 }
-                .font(.system(size: 10, design: .monospaced))
-                .padding(8)
             }
         }
         .task {
@@ -55,36 +65,57 @@ struct StackView: View {
     }
 
     private func loadStack() async {
-        let sp = viewModel.registers.sp
+        let currentSP = viewModel.registers.sp
+        DebugLog.log("loadStack() called, SP = 0x\(String(format: "%08X", currentSP))", category: "StackView")
 
-        // Don't try to load stack if no program is loaded (SP is 0 or invalid)
-        // Valid stack pointers are typically in high memory (0x00040000+)
-        guard sp >= 0x1000 else {
+        // Check if SP is at initial value (no stack usage yet)
+        if currentSP >= initialSP {
+            DebugLog.log("SP at or above initial value (0x\(String(format: "%08X", initialSP))), no stack data", category: "StackView")
             stackData = []
+            localMemoryData = []
             return
         }
 
-        let offset = UInt32(wordsToShow / 2 * 4)
+        // Calculate actual stack size: how many bytes have been pushed
+        let stackSize = initialSP - currentSP
+        DebugLog.log("Stack size: \(stackSize) bytes (from 0x\(String(format: "%08X", currentSP)) to 0x\(String(format: "%08X", initialSP - 1)))", category: "StackView")
 
-        // Prevent arithmetic underflow when sp is too small
-        let startAddress = sp >= offset ? sp - offset : 0
+        // Fetch ONLY the actual stack contents from currentSP to (initialSP - 1)
+        let startAddress = currentSP
+        let bytesToRead = Int(stackSize)
 
-        await viewModel.loadMemory(at: startAddress, length: wordsToShow * 4)
-
-        guard viewModel.memoryData.count >= wordsToShow * 4 else {
+        // Sanity check: don't try to read more than 64KB (max stack size)
+        guard bytesToRead <= 65536 else {
+            DebugLog.error("Stack size too large: \(bytesToRead) bytes (SP may be corrupted)", category: "StackView")
             stackData = []
+            localMemoryData = []
             return
         }
 
+        DebugLog.log("Fetching actual stack contents: 0x\(String(format: "%08X", startAddress)) to 0x\(String(format: "%08X", initialSP - 1)) (\(bytesToRead) bytes)", category: "StackView")
+
+        // Fetch memory data into local state
+        do {
+            localMemoryData = try await viewModel.fetchMemory(at: startAddress, length: bytesToRead)
+            DebugLog.success("Fetched \(localMemoryData.count) bytes of actual stack memory", category: "StackView")
+        } catch {
+            DebugLog.error("Failed to fetch stack memory: \(error.localizedDescription)", category: "StackView")
+            stackData = []
+            localMemoryData = []
+            return
+        }
+
+        // Build stack entries (word-aligned)
         var data: [StackEntry] = []
+        let wordCount = localMemoryData.count / 4
 
-        for i in 0 ..< wordsToShow {
+        for i in 0 ..< wordCount {
             let wordOffset = i * 4
             let address = startAddress + UInt32(wordOffset)
-            let offset = Int(address) - Int(sp)
+            let offset = Int(address) - Int(currentSP)
 
             // Read 4 bytes as little-endian UInt32
-            let bytes = viewModel.memoryData[wordOffset ..< wordOffset + 4]
+            let bytes = localMemoryData[wordOffset ..< wordOffset + 4]
             let value = bytes.enumerated().reduce(UInt32(0)) { result, item in
                 result | (UInt32(item.element) << (item.offset * 8))
             }
@@ -94,6 +125,8 @@ struct StackView: View {
         }
 
         stackData = data
+        loadCount += 1
+        DebugLog.success("Created \(stackData.count) stack entries (load #\(loadCount))", category: "StackView")
     }
 
     private func detectAnnotation(value: UInt32, offset: Int) -> String {
