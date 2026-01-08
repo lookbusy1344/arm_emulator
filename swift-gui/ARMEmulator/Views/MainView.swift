@@ -4,9 +4,11 @@ struct MainView: View {
     @EnvironmentObject var backendManager: BackendManager
     @EnvironmentObject var fileService: FileService
     @EnvironmentObject var settings: AppSettings
+    @Environment(\.appDelegate) var appDelegate
     @StateObject private var viewModel = EmulatorViewModel()
     @State private var showingError = false
     @State private var showingExamplesBrowser = false
+    @State private var hasLoadedStartupFile = false
 
     var body: some View {
         ZStack {
@@ -48,6 +50,17 @@ struct MainView: View {
             if newStatus == .running, !viewModel.isConnected {
                 Task {
                     await viewModel.initialize()
+                }
+            }
+        }
+        .onChange(of: viewModel.isConnected) { isConnected in
+            // Auto-load startup file if specified via command-line arguments
+            if isConnected, !hasLoadedStartupFile {
+                hasLoadedStartupFile = true
+                if let startupPath = appDelegate?.startupFilePath {
+                    Task {
+                        await loadStartupFile(path: startupPath)
+                    }
                 }
             }
         }
@@ -147,6 +160,32 @@ struct MainView: View {
                 }
             )
             .frame(minHeight: 150)
+        }
+    }
+
+    private func loadStartupFile(path: String) async {
+        let url = URL(fileURLWithPath: path)
+
+        // Validate file exists
+        guard FileManager.default.fileExists(atPath: path) else {
+            viewModel.errorMessage = "Could not load '\(url.lastPathComponent)': File not found"
+            return
+        }
+
+        // Validate file extension
+        guard url.pathExtension == "s" else {
+            viewModel.errorMessage = "Could not load '\(url.lastPathComponent)': Not an assembly file (.s)"
+            return
+        }
+
+        // Try to read file
+        do {
+            let content = try String(contentsOf: url, encoding: .utf8)
+            await viewModel.loadProgram(source: content)
+            fileService.currentFileURL = url
+            fileService.addToRecentFiles(url)
+        } catch {
+            viewModel.errorMessage = "Could not load '\(url.lastPathComponent)': \(error.localizedDescription)"
         }
     }
 

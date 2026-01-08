@@ -304,6 +304,15 @@ DebugLog.ui("Run button clicked")
 - Easy to toggle on/off for specific debugging sessions
 - Consistent formatting across the codebase
 
+**When DebugLog Doesn't Work (Terminal Output)**
+- `DebugLog` uses `print()` which writes to stdout
+- When running macOS GUI apps from the terminal, stdout may not be captured
+- **For debugging GUI apps from terminal, use `NSLog()`** - it writes to stderr and system log
+- Example: `NSLog("🔵 [Category] Message: %@", value)`
+- `NSLog()` output appears in Console.app and terminal stderr
+- Once debugging is complete, remove `NSLog()` calls - they bypass Swift's type system
+- For production code, use `DebugLog` (works in Xcode) or `os_log` for system-level logging
+
 ### Common Pitfalls
 
 1. **"No such module 'SwiftUI'" error**: Ensure Xcode Command Line Tools are installed: `xcode-select --install`
