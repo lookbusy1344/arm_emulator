@@ -658,9 +658,27 @@ For the complete syscall reference including file operations, memory management,
 
 **IMPORTANT:** Always run `go fmt ./...`, `golangci-lint run ./...`, and `go build -o arm-emulator && go clean -testcache && go test ./...` after making changes and **BEFORE committing** to ensure code quality and correctness. Linting must pass with 0 issues before any commit.
 
-**IMPORTANT:** Focus on Test-Driven Development (TDD). Write tests before implementing features. Ensure all new code is covered by tests. Use unit tests for individual components and integration tests for end-to-end functionality.
+### Test-Driven Development (TDD)
+
+**CRITICAL:** This project follows strict Test-Driven Development (TDD) practices. All development must follow the red-green-refactor cycle:
+
+1. **Red**: Write a failing test that defines the desired behavior
+2. **Green**: Write the minimal code to make the test pass
+3. **Refactor**: Clean up the code while keeping tests passing
+
+**TDD Requirements:**
+- **Write tests FIRST**: Before implementing any feature or fix, write the test that validates the expected behavior
+- **Comprehensive coverage**: All new code must be covered by tests
+- **Test types**:
+  - Unit tests for individual functions and components (in `tests/unit/`)
+  - Integration tests for complete workflows and programs (in `tests/integration/`)
+- **Tests as documentation**: Tests should clearly demonstrate how the code is intended to be used
+- **Run tests frequently**: Execute tests after each small change to catch regressions immediately
+- **Test quality**: Tests should be clear, focused, and test one thing at a time
 
 **IMPORTANT:** Do not delete tests without explicit instructions. Do not simplify tests because they fail. If you think a test is malfunctioning, think about it carefully and ask me before making any changes to the tests.
+
+**IMPORTANT:** Tests serve as both validation and documentation. When reviewing code, always check that corresponding tests exist and properly validate the intended behavior.
 
 **IMPORTANT:** Anything that cannot be implemented should be noted in `TODO.md` with details so work can result later. TODO.md should not contain completed work, that should go in PROGRESS.md.
 
