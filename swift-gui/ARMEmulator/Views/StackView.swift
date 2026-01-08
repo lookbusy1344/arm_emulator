@@ -15,7 +15,7 @@ struct StackView: View {
     @State private var loadCount = 0 // Debug: track load attempts
 
     // Stack configuration (from vm/constants.go)
-    private let initialSP: UInt32 = 0x00050000 // Initial stack pointer (StackSegmentStart + StackSegmentSize)
+    private let initialSP: UInt32 = 0x0005_0000 // Initial stack pointer (StackSegmentStart + StackSegmentSize)
 
     var body: some View {
         VStack(spacing: 0) {
@@ -45,7 +45,7 @@ struct StackView: View {
                                 address: entry.address,
                                 value: entry.value,
                                 annotation: entry.annotation,
-                                isCurrent: entry.offset == 0  // Highlight current SP location
+                                isCurrent: entry.offset == 0 // Highlight current SP location
                             )
                         }
                     }
@@ -70,7 +70,10 @@ struct StackView: View {
 
         // Check if SP is at initial value (no stack usage yet)
         if currentSP >= initialSP {
-            DebugLog.log("SP at or above initial value (0x\(String(format: "%08X", initialSP))), no stack data", category: "StackView")
+            DebugLog.log(
+                "SP at or above initial value (0x\(String(format: "%08X", initialSP))), no stack data",
+                category: "StackView"
+            )
             stackData = []
             localMemoryData = []
             return
@@ -78,7 +81,10 @@ struct StackView: View {
 
         // Calculate actual stack size: how many bytes have been pushed
         let stackSize = initialSP - currentSP
-        DebugLog.log("Stack size: \(stackSize) bytes (from 0x\(String(format: "%08X", currentSP)) to 0x\(String(format: "%08X", initialSP - 1)))", category: "StackView")
+        DebugLog.log(
+            "Stack size: \(stackSize) bytes (from 0x\(String(format: "%08X", currentSP)) to 0x\(String(format: "%08X", initialSP - 1)))",
+            category: "StackView"
+        )
 
         // Fetch ONLY the actual stack contents from currentSP to (initialSP - 1)
         let startAddress = currentSP
@@ -92,7 +98,10 @@ struct StackView: View {
             return
         }
 
-        DebugLog.log("Fetching actual stack contents: 0x\(String(format: "%08X", startAddress)) to 0x\(String(format: "%08X", initialSP - 1)) (\(bytesToRead) bytes)", category: "StackView")
+        DebugLog.log(
+            "Fetching actual stack contents: 0x\(String(format: "%08X", startAddress)) to 0x\(String(format: "%08X", initialSP - 1)) (\(bytesToRead) bytes)",
+            category: "StackView"
+        )
 
         // Fetch memory data into local state
         do {

@@ -26,8 +26,11 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             return nil
         }
 
-        // Take the first argument (ignore any extras)
-        let filePath = args[1]
+        // Find first argument that looks like an assembly file (ends with .s)
+        // This filters out Xcode debug flags like "-NSDocumentRevisionsDebugMode YES"
+        guard let filePath = args.dropFirst().first(where: { $0.hasSuffix(".s") }) else {
+            return nil
+        }
 
         // Convert to absolute path if relative
         let absolutePath = (filePath as NSString).expandingTildeInPath
