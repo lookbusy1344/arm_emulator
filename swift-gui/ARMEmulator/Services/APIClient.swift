@@ -105,6 +105,11 @@ class APIClient: ObservableObject {
         try await post(url: url, body: EmptyBody())
     }
 
+    func restart(sessionID: String) async throws {
+        let url = baseURL.appendingPathComponent("/api/v1/session/\(sessionID)/restart")
+        try await post(url: url, body: EmptyBody())
+    }
+
     func sendStdin(sessionID: String, data: String) async throws {
         struct StdinRequest: Codable {
             let data: String

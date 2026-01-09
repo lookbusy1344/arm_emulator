@@ -179,6 +179,7 @@ class EmulatorViewModel: ObservableObject {
 
         do {
             try await apiClient.stop(sessionID: sessionID)
+            try await refreshState()
             errorMessage = nil
         } catch {
             errorMessage = "Failed to stop: \(error.localizedDescription)"
@@ -261,12 +262,12 @@ class EmulatorViewModel: ObservableObject {
         }
 
         do {
-            try await apiClient.reset(sessionID: sessionID)
+            try await apiClient.restart(sessionID: sessionID)
             consoleOutput = ""
             try await refreshState()
             errorMessage = nil
         } catch {
-            errorMessage = "Failed to reset: \(error.localizedDescription)"
+            errorMessage = "Failed to restart: \(error.localizedDescription)"
         }
     }
 

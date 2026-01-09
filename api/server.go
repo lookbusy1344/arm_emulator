@@ -230,6 +230,8 @@ func (s *Server) handleSessionRoute(w http.ResponseWriter, r *http.Request) {
 		s.handleStepOut(w, r, sessionID)
 	case "reset":
 		s.handleReset(w, r, sessionID)
+	case "restart":
+		s.handleRestart(w, r, sessionID)
 	case "registers":
 		s.handleGetRegisters(w, r, sessionID)
 	case "memory":

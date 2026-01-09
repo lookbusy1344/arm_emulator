@@ -1346,3 +1346,134 @@ func TestReRunProgram(t *testing.T) {
 		t.Errorf("After third run: Expected R0 = 2, got %d", regs3.R0)
 	}
 }
+
+// TestRestart tests the restart endpoint which resets execution to entry point
+// while preserving the loaded program (unlike reset which clears everything)
+func TestRestart(t *testing.T) {
+	server := testServer()
+
+	// Create session
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/session", bytes.NewReader([]byte("{}")))
+	w := httptest.NewRecorder()
+	server.Handler().ServeHTTP(w, req)
+
+	var createResp api.SessionCreateResponse
+	if err := json.NewDecoder(w.Body).Decode(&createResp); err != nil {
+		t.Fatalf("Failed to decode session response: %v", err)
+	}
+	sessionID := createResp.SessionID
+
+	// Load a simple program
+	source := `
+	.org 0x8000
+	MOV R0, #10
+	ADD R0, R0, #5
+	ADD R0, R0, #7
+	SWI #0
+	`
+
+	loadReq := api.LoadProgramRequest{Source: source}
+	body, _ := json.Marshal(loadReq)
+	req = httptest.NewRequest(http.MethodPost,
+		fmt.Sprintf("/api/v1/session/%s/load", sessionID), bytes.NewReader(body))
+	w = httptest.NewRecorder()
+	server.Handler().ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("Expected status 200 for load, got %d: %s", w.Code, w.Body.String())
+	}
+
+	// Get initial PC (should be entry point)
+	req = httptest.NewRequest(http.MethodGet,
+		fmt.Sprintf("/api/v1/session/%s/registers", sessionID), nil)
+	w = httptest.NewRecorder()
+	server.Handler().ServeHTTP(w, req)
+
+	var initialRegs api.RegistersResponse
+	if err := json.NewDecoder(w.Body).Decode(&initialRegs); err != nil {
+		t.Fatalf("Failed to decode initial registers: %v", err)
+	}
+	entryPoint := initialRegs.PC
+
+	// Step twice to advance PC
+	for i := 0; i < 2; i++ {
+		req = httptest.NewRequest(http.MethodPost,
+			fmt.Sprintf("/api/v1/session/%s/step", sessionID), nil)
+		w = httptest.NewRecorder()
+		server.Handler().ServeHTTP(w, req)
+
+		if w.Code != http.StatusOK {
+			t.Fatalf("Expected status 200 for step, got %d: %s", w.Code, w.Body.String())
+		}
+	}
+
+	// Verify PC has advanced
+	req = httptest.NewRequest(http.MethodGet,
+		fmt.Sprintf("/api/v1/session/%s/registers", sessionID), nil)
+	w = httptest.NewRecorder()
+	server.Handler().ServeHTTP(w, req)
+
+	var steppedRegs api.RegistersResponse
+	if err := json.NewDecoder(w.Body).Decode(&steppedRegs); err != nil {
+		t.Fatalf("Failed to decode stepped registers: %v", err)
+	}
+
+	if steppedRegs.PC == entryPoint {
+		t.Error("PC should have advanced after stepping")
+	}
+
+	// Restart (should reset PC to entry point but keep program loaded)
+	req = httptest.NewRequest(http.MethodPost,
+		fmt.Sprintf("/api/v1/session/%s/restart", sessionID), nil)
+	w = httptest.NewRecorder()
+	server.Handler().ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("Expected status 200 for restart, got %d: %s", w.Code, w.Body.String())
+	}
+
+	// Verify PC is back at entry point
+	req = httptest.NewRequest(http.MethodGet,
+		fmt.Sprintf("/api/v1/session/%s/registers", sessionID), nil)
+	w = httptest.NewRecorder()
+	server.Handler().ServeHTTP(w, req)
+
+	var restartedRegs api.RegistersResponse
+	if err := json.NewDecoder(w.Body).Decode(&restartedRegs); err != nil {
+		t.Fatalf("Failed to decode restarted registers: %v", err)
+	}
+
+	if restartedRegs.PC != entryPoint {
+		t.Errorf("After restart: Expected PC = 0x%08X (entry point), got 0x%08X",
+			entryPoint, restartedRegs.PC)
+	}
+
+	// Step again to verify program is still loaded and executable
+	req = httptest.NewRequest(http.MethodPost,
+		fmt.Sprintf("/api/v1/session/%s/step", sessionID), nil)
+	w = httptest.NewRecorder()
+	server.Handler().ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("Expected status 200 for step after restart, got %d: %s", w.Code, w.Body.String())
+	}
+
+	// Verify execution continued correctly
+	req = httptest.NewRequest(http.MethodGet,
+		fmt.Sprintf("/api/v1/session/%s/registers", sessionID), nil)
+	w = httptest.NewRecorder()
+	server.Handler().ServeHTTP(w, req)
+
+	var finalRegs api.RegistersResponse
+	if err := json.NewDecoder(w.Body).Decode(&finalRegs); err != nil {
+		t.Fatalf("Failed to decode final registers: %v", err)
+	}
+
+	if finalRegs.R0 != 10 {
+		t.Errorf("After restart and first step: Expected R0 = 10, got %d", finalRegs.R0)
+	}
+
+	if finalRegs.PC == entryPoint {
+		t.Error("PC should have advanced after stepping post-restart")
+	}
+}

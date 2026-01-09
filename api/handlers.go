@@ -343,6 +343,31 @@ func (s *Server) handleReset(w http.ResponseWriter, r *http.Request, sessionID s
 	})
 }
 
+// handleRestart handles POST /api/v1/session/{id}/restart
+// Resets execution to entry point while preserving the loaded program
+func (s *Server) handleRestart(w http.ResponseWriter, r *http.Request, sessionID string) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	session, err := s.sessions.GetSession(sessionID)
+	if err != nil {
+		writeError(w, http.StatusNotFound, "Session not found")
+		return
+	}
+
+	if err := session.Service.ResetToEntryPoint(); err != nil {
+		writeError(w, http.StatusInternalServerError, fmt.Sprintf("Restart failed: %v", err))
+		return
+	}
+
+	writeJSON(w, http.StatusOK, SuccessResponse{
+		Success: true,
+		Message: "VM restarted to entry point",
+	})
+}
+
 // handleGetRegisters handles GET /api/v1/session/{id}/registers
 func (s *Server) handleGetRegisters(w http.ResponseWriter, r *http.Request, sessionID string) {
 	if r.Method != http.MethodGet {
