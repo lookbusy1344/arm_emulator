@@ -90,7 +90,7 @@ struct MainView: View {
             HSplitView {
                 EditorView(text: $viewModel.sourceCode)
                     .environmentObject(viewModel)
-                    .frame(minWidth: 300)
+                    .frame(minWidth: 150)
 
                 TabView(selection: $settings.selectedTab) {
                     VStack(spacing: 0) {
@@ -146,7 +146,7 @@ struct MainView: View {
                         }
                         .tag(6)
                 }
-                .frame(minWidth: 250, maxWidth: 500)
+                .frame(minWidth: 250, maxWidth: 800)
             }
             .frame(minHeight: 300)
 

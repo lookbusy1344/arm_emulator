@@ -72,15 +72,12 @@ struct MemoryView: View {
             Divider()
 
             // Memory display
-            ScrollView {
+            ScrollView([.vertical, .horizontal]) {
                 VStack(alignment: .leading, spacing: 0) {
                     ForEach(0 ..< rowsToShow, id: \.self) { row in
                         MemoryRowView(
                             address: baseAddress + UInt32(row * bytesPerRow),
-                            bytes: Array(memoryData[row * bytesPerRow ..< min(
-                                (row + 1) * bytesPerRow,
-                                memoryData.count
-                            )]),
+                            bytes: bytesForRow(row),
                             highlightAddress: autoScrollEnabled ? viewModel.currentPC : nil,
                             lastWriteAddress: viewModel.lastMemoryWrite
                         )
@@ -100,6 +97,18 @@ struct MemoryView: View {
                 }
             }
         }
+    }
+
+    private func bytesForRow(_ row: Int) -> [UInt8] {
+        let startIndex = row * bytesPerRow
+        let endIndex = min((row + 1) * bytesPerRow, memoryData.count)
+
+        // Return empty array if start is beyond available data
+        guard startIndex < memoryData.count else {
+            return []
+        }
+
+        return Array(memoryData[startIndex..<endIndex])
     }
 
     private func loadMemoryFromInput() {
