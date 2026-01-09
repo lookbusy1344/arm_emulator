@@ -70,6 +70,7 @@ struct MemoryView: View {
             }
             .padding(8)
             .background(Color(NSColor.controlBackgroundColor))
+            .fixedSize(horizontal: false, vertical: true)
 
             Divider()
 

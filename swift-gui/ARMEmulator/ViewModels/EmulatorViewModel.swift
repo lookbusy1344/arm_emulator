@@ -549,12 +549,18 @@ extension EmulatorViewModel {
             return
         }
 
-        DebugLog.log("loadMemory: address=0x\(String(format: "%08X", address)), length=\(length)", category: "ViewModel")
+        DebugLog.log(
+            "loadMemory: address=0x\(String(format: "%08X", address)), length=\(length)",
+            category: "ViewModel"
+        )
 
         do {
             memoryData = try await apiClient.getMemory(sessionID: sessionID, address: address, length: length)
             memoryAddress = address
-            DebugLog.log("loadMemory: Got \(memoryData.count) bytes at 0x\(String(format: "%08X", memoryAddress))", category: "ViewModel")
+            DebugLog.log(
+                "loadMemory: Got \(memoryData.count) bytes at 0x\(String(format: "%08X", memoryAddress))",
+                category: "ViewModel"
+            )
         } catch {
             DebugLog.error("loadMemory failed: \(error.localizedDescription)", category: "ViewModel")
             memoryData = []
