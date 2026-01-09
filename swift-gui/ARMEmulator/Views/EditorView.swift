@@ -60,15 +60,6 @@ struct EditorView: View {
             // Scroll to bring PC into view
             scrollToCurrentLine()
         }
-        .onChange(of: viewModel.status) { newStatus in
-            // Clear PC indicator when program is halted (finished execution)
-            if newStatus == .halted {
-                self.currentLine = nil
-                #if DEBUG
-                    DebugLog.log("Program halted - clearing PC indicator", category: "EditorView")
-                #endif
-            }
-        }
         .onAppear {
             // Register scroll callback with view model
             // Capture the necessary state explicitly since we're in a struct
