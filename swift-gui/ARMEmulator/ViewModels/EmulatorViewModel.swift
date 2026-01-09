@@ -282,6 +282,7 @@ class EmulatorViewModel: ObservableObject {
 
         // Track last memory write
         if let hasWrite = vmStatus.hasWrite, hasWrite, let writeAddr = vmStatus.writeAddr {
+            DebugLog.log("Memory write detected at 0x\(String(format: "%08X", writeAddr))", category: "ViewModel")
             lastMemoryWrite = writeAddr
         }
     }

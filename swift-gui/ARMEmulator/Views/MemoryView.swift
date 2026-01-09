@@ -64,7 +64,7 @@ struct MemoryView: View {
 
                 // Auto-scroll toggle
                 Toggle("Auto-scroll", isOn: $autoScrollEnabled)
-                    .help("Auto-scroll to PC when stepping")
+                    .help("Auto-scroll to memory writes when stepping")
             }
             .padding(8)
             .background(Color(NSColor.controlBackgroundColor))
@@ -78,7 +78,7 @@ struct MemoryView: View {
                         MemoryRowView(
                             address: baseAddress + UInt32(row * bytesPerRow),
                             bytes: bytesForRow(row),
-                            highlightAddress: autoScrollEnabled ? viewModel.currentPC : nil,
+                            highlightAddress: viewModel.currentPC,
                             lastWriteAddress: viewModel.lastMemoryWrite
                         )
                     }
@@ -91,9 +91,16 @@ struct MemoryView: View {
             await loadMemory(at: baseAddress)
         }
         .onChange(of: viewModel.currentPC) { _ in
-            if autoScrollEnabled {
+            // Refresh memory at current address to show updates
+            Task {
+                await refreshMemory()
+            }
+        }
+        .onChange(of: viewModel.lastMemoryWrite) { newWriteAddress in
+            if autoScrollEnabled, let writeAddr = newWriteAddress {
+                DebugLog.log("Auto-scrolling to memory write at 0x\(String(format: "%08X", writeAddr))", category: "MemoryView")
                 Task {
-                    await loadMemory(at: viewModel.currentPC)
+                    await loadMemory(at: writeAddr)
                 }
             }
         }
@@ -134,6 +141,12 @@ struct MemoryView: View {
             addressInput = String(format: "0x%X", baseAddress)
         }
     }
+
+    private func refreshMemory() async {
+        // Reload memory at current address without changing the base
+        await viewModel.loadMemory(at: baseAddress, length: totalBytes)
+        memoryData = viewModel.memoryData
+    }
 }
 
 struct MemoryRowView: View {
@@ -171,6 +184,7 @@ struct MemoryRowView: View {
                         Text(String(format: "%02X", bytes[i]))
                             .frame(width: 20)
                             .foregroundColor(isRecentWrite(byteIndex: i) ? .green : .primary)
+                            .fontWeight(isRecentWrite(byteIndex: i) ? .bold : .regular)
                     } else {
                         Text("  ")
                             .frame(width: 20)
@@ -189,6 +203,8 @@ struct MemoryRowView: View {
                         let displayChar = (32 ... 126).contains(char) ? String(UnicodeScalar(char)) : "."
                         Text(displayChar)
                             .frame(width: 10)
+                            .foregroundColor(isRecentWrite(byteIndex: i) ? .green : .primary)
+                            .fontWeight(isRecentWrite(byteIndex: i) ? .bold : .regular)
                     } else {
                         Text(" ")
                             .frame(width: 10)
