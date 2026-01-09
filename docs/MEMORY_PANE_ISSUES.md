@@ -1,4 +1,4 @@
-# Memory Pane Issues and Failed Fixes
+# Memory Pane Issues and Fixes
 
 ## Original Issues Reported
 
@@ -15,173 +15,128 @@
 ### 2. Memory Write Highlighting
 **Problem**: Edited memory locations should be highlighted in green (like registers are).
 
-**Attempts**:
-1. Added green foreground color to written bytes in `MemoryView.swift:173`
-2. Added bold font weight to written bytes in `MemoryView.swift:174`
-3. Applied same highlighting to ASCII column in `MemoryView.swift:193-194`
-4. Added debug logging to track when writes are detected
+**Root Cause Found**: Race condition between two `onChange` handlers:
+1. `onChange(of: viewModel.currentPC)` - refreshed memory at old address (0x8000)
+2. `onChange(of: viewModel.lastMemoryWrite)` - tried to scroll to new address (0x0004FFC0)
 
-**Current Code**:
-```swift
-// In MemoryRowView
-private func isRecentWrite(byteIndex: Int) -> Bool {
-    guard let writeAddr = lastWriteAddress else { return false }
-    let byteAddr = address + UInt32(byteIndex)
-    // Highlight the written byte and the next 3 bytes (for 32-bit writes)
-    return writeAddr <= byteAddr && byteAddr < writeAddr + 4
-}
+Both started async Tasks that competed to update shared `viewModel.memoryData` state. Depending on which completed last, the wrong data would be displayed.
 
-// In hex bytes rendering
-Text(String(format: "%02X", bytes[i]))
-    .frame(width: 20)
-    .foregroundColor(isRecentWrite(byteIndex: i) ? .green : .primary)
-    .fontWeight(isRecentWrite(byteIndex: i) ? .bold : .regular)
-```
+**Fix Applied** (2026-01-09):
+1. Added local `highlightedWriteAddress` state to track highlighting separately from navigation
+2. Added `refreshID` state with `.id(refreshID)` modifier to force SwiftUI re-renders
+3. Coordinated onChange handlers - PC handler skips refresh when write is pending
+4. Made `loadMemoryAsync(at:)` a proper async function that can be awaited
+5. Updated ViewModel to clear `lastMemoryWrite` when no write occurs
 
-**Status**: ❌ FAILED - Highlighting code is in place but not visible to user. Debug logs confirm writes are detected:
-```
-🔵 [ViewModel] Memory write detected at 0x0004FFC0
-🔵 [MemoryView] Auto-scrolling to memory write at 0x0004FFC0
-```
+**Status**: ❌ NOT FIXED - Multiple attempts failed. See "Fix Attempts" section below.
 
 ### 3. Auto-scroll to Memory Writes
 **Problem**: When a memory location is altered, it should automatically be scrolled into view.
 
-**Attempts**:
-1. Added `onChange(of: viewModel.lastMemoryWrite)` handler in `MemoryView.swift:99-106`
-2. Auto-scroll jumps to write address when `autoScrollEnabled` is true
-3. Removed PC auto-scroll (was causing view to jump on every step)
-4. Added `refreshMemory()` function to update memory data without changing base address
+**Status**: ❌ NOT FIXED - Auto-scroll code exists but memory loading itself is broken.
 
-**Current Code**:
+## Technical Details
+
+### Analysis (2026-01-09)
+
+**Original Problem**: Two `onChange` handlers competed for shared state:
+
 ```swift
+// BROKEN - Race condition between handlers
 .onChange(of: viewModel.currentPC) { _ in
-    // Refresh memory at current address to show updates
-    Task {
-        await refreshMemory()
+    // This checked viewModel.lastMemoryWrite, but timing was unreliable
+    if viewModel.lastMemoryWrite == nil {
+        Task { await refreshMemory() }  // Refreshed at baseAddress (0x8000)
     }
 }
 .onChange(of: viewModel.lastMemoryWrite) { newWriteAddress in
-    if autoScrollEnabled, let writeAddr = newWriteAddress {
-        DebugLog.log("Auto-scrolling to memory write at 0x\(String(format: "%08X", writeAddr))", category: "MemoryView")
-        Task {
-            await loadMemory(at: writeAddr)
-        }
-    }
+    Task { await loadMemory(at: writeAddr) }  // Tried to change baseAddress
 }
 ```
 
-**Status**: ⚠️ PARTIAL - Debug logs show auto-scroll is triggering, but user reports no visible changes.
+**Why it failed**: In `refreshState()`, `currentPC` is set BEFORE `lastMemoryWrite`:
+1. `updateRegisters()` → sets `currentPC` → triggers PC onChange
+2. `lastMemoryWrite = writeAddr` → triggers its onChange
 
-## Debug Evidence
+The PC onChange might fire before `lastMemoryWrite` is updated, seeing the OLD value (nil from previous step). This caused it to refresh at 0x8000 (code area) instead of the write address (stack area).
 
-Logs from stepping through `addressing_modes.s` show:
-- Memory writes ARE being detected by backend
-- ViewModel IS receiving write notifications
-- Auto-scroll handler IS being triggered
-- Memory refresh IS being called
+**Key Insight**: The user saw the **row highlighted blue** (PC highlight working) but **no green bytes** (write highlight missing). This confirms the view was still showing the CODE area (where PC is), not the STACK area (where writes happen). The auto-scroll wasn't actually scrolling.
 
-Example log sequence:
-```
-🔵 [ViewModel] Memory write detected at 0x0004FFC0
-🔵 [MemoryView] Auto-scrolling to memory write at 0x0004FFC0
-[...next step...]
-🔵 [ViewModel] Memory write detected at 0x0004FFC4
-🔵 [MemoryView] Auto-scrolling to memory write at 0x0004FFC4
-```
+### Fix Attempts (All Failed)
 
-## Possible Root Causes
+#### Attempt 1: Fix Race Condition Between onChange Handlers
+- **Theory**: Two onChange handlers (PC and lastMemoryWrite) were competing
+- **Fix**: Removed PC onChange handler entirely, simplified to single handler
+- **Result**: ❌ FAILED - Same behavior
 
-### Theory 1: Timing/Race Condition
-The `lastMemoryWrite` might be getting cleared or overwritten before the view can render with the highlighting.
+#### Attempt 2: Add Local Highlighting State
+- **Theory**: Using `viewModel.lastMemoryWrite` directly might cause timing issues
+- **Fix**: Added `highlightedWriteAddress` as local `@State` property
+- **Result**: ❌ FAILED - `Write` shows value but `Base` doesn't update
 
-**Evidence**:
-- Changed registers use similar mechanism and DO work
-- No code clears `lastMemoryWrite` between steps
-- But highlighting persists for registers, not memory
+#### Attempt 3: Force View Refresh
+- **Theory**: SwiftUI might not be detecting state changes
+- **Fix**: Added `refreshID = UUID()` with `.id(refreshID)` modifier
+- **Result**: ❌ FAILED - No visible change
 
-### Theory 2: View Update Not Triggering
-SwiftUI might not be re-rendering `MemoryRowView` when `lastWriteAddress` changes.
+#### Attempt 4: Add Debug Logging
+- **Theory**: Need visibility into what's happening
+- **Fix**: Added extensive DebugLog calls throughout the code path
+- **Result**: Logs not visible when running from Finder (only in Xcode console)
 
-**Evidence**:
-- `lastWriteAddress` is passed as a parameter to `MemoryRowView`
-- Changes to `@Published var lastMemoryWrite` should trigger view update
-- But user reports no visible highlighting
+#### Attempt 5: Add Debug Bar and Refresh Button
+- **Theory**: Need visual confirmation of state values
+- **Fix**: Added yellow debug bar showing `Base`, `Write`, `Data`, `AutoScroll`
+- **Result**: Debug bar reveals the problem but doesn't fix it
 
-### Theory 3: Memory Data Not Refreshing
-The memory bytes themselves might not be updating, making the highlighting moot.
+### Current State (2026-01-09)
 
-**Evidence**:
-- `refreshMemory()` is called on every PC change
-- User reports "no memory changing"
-- But logs don't show memory fetch failures
+**Debug bar shows:**
+- `Base: 0x00008000` - NOT updating when write occurs
+- `Write: 0x0004FFC0` - IS being set correctly
+- `Data: 0b` - NO memory data is loading at all
+- `AutoScroll: ON` (presumably)
 
-### Theory 4: Wrong Memory Address Range
-The memory view might be showing address 0x8000 (code) while writes are at 0x0004FFC0 (stack).
+**Key observations:**
+1. `viewModel.lastMemoryWrite` IS being set (Write shows value)
+2. `highlightedWriteAddress` IS being set (same value appears)
+3. `memoryData` is EMPTY (no hex bytes displayed, Data shows 0b)
+4. `baseAddress` is NOT updating (stays at 0x8000)
+5. Even the initial `.task` load appears to fail (no data on view appear)
+6. Manual Refresh button also doesn't load data
 
-**Evidence**:
-- Memory view defaults to 0x8000
-- Stack writes are at 0x0004FFC0-0x0004FFC8
-- User would need to click "SP" button to see stack
-- Auto-scroll should handle this, but might not be working
+**Root cause likely:**
+- `viewModel.loadMemory()` is failing silently
+- Either `sessionID` is nil, or the API call is failing
+- The error handling silently sets `memoryData = []`
 
-### Theory 5: Background/Async Issue
-The async memory loading might complete after the highlight state is cleared.
+### Files Modified
 
-**Evidence**:
-- All memory operations use `Task { await ... }`
-- `refreshMemory()` is async
-- Timing between state update and view render is unclear
+- `swift-gui/ARMEmulator/Views/MemoryView.swift` - Added debug bar, refresh button, logging
+- `swift-gui/ARMEmulator/ViewModels/EmulatorViewModel.swift` - Added logging to loadMemory
 
-## What Works
+### What Needs Investigation
 
-1. ✅ Memory pane resizing
-2. ✅ Horizontal scroll bar
-3. ✅ Detection of memory writes (backend)
-4. ✅ Propagation of write events to ViewModel
-5. ✅ Triggering of auto-scroll handler
-6. ✅ Debug logging throughout the chain
+1. **Why is `loadMemory` failing?**
+   - Is `sessionID` nil when Memory tab is shown?
+   - Is the API returning an error?
+   - Run from Xcode to see DebugLog output
 
-## What Doesn't Work
+2. **Session timing issue?**
+   - Memory tab might be displayed before session is fully initialized
+   - The `.task` runs on view appear, but session might not be ready
 
-1. ❌ Visual highlighting of written bytes
-2. ❌ Visible memory value changes
-3. ❌ Observable auto-scroll behavior
+3. **API issue?**
+   - Check if `/api/v1/session/{id}/memory` endpoint is working
+   - Test with curl to isolate Swift vs API issue
 
-## Next Steps to Debug
+### How to Debug Further
 
-1. **Add visual confirmation**: Add a `Text()` view showing current `lastMemoryWrite` value to confirm it's being set
-2. **Log memory data**: Add logging to show actual memory bytes being fetched and displayed
-3. **Force view refresh**: Try using `@State private var refreshID = UUID()` and `.id(refreshID)` to force re-render
-4. **Check Stack tab**: Compare with Stack view which DOES update and show memory changes
-5. **Simplify test**: Create minimal reproduction with single memory write and manual address entry
-6. **Profile timing**: Add timestamps to logs to check for race conditions
-7. **Check API response**: Log the actual memory bytes returned by `loadMemory()` API call
-
-## Files Modified
-
-- `swift-gui/ARMEmulator/Views/MemoryView.swift` - Main view logic
-- `swift-gui/ARMEmulator/Views/MainView.swift` - Layout constraints
-- `swift-gui/ARMEmulator/ViewModels/EmulatorViewModel.swift` - Write detection logging
-
-## User Test Instructions
-
-To verify the highlighting SHOULD work (if it were working):
-
-1. Load `addressing_modes.s`
-2. Click **Memory** tab
-3. Click **SP** button (jumps to stack at ~0x0004FFC0)
-4. Enable **Auto-scroll** toggle
-5. Step through with **Step** button
-6. Expected: Green bold bytes at write addresses, view jumping to writes
-7. Actual: User reports nothing visible changes
-
-## Conclusion
-
-The memory write detection and auto-scroll infrastructure is in place and functioning at the code level (confirmed by logs), but the visual manifestation (highlighting and scrolling) is not appearing to the user. This suggests either:
-- A SwiftUI view update issue
-- A timing/async problem
-- The memory data itself not updating
-- Or the user is looking at the wrong address range
-
-Needs further investigation with more targeted debugging.
+1. **Run from Xcode** to see console output with DebugLog messages
+2. **Check session initialization** - is sessionID set when Memory view appears?
+3. **Test API directly**:
+   ```bash
+   # Get session ID from app, then:
+   curl http://localhost:8080/api/v1/session/{SESSION_ID}/memory?address=0x8000&length=256
+   ```
+4. **Add NSLog for terminal debugging** - DebugLog uses print() which doesn't show in terminal

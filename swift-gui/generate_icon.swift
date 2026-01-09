@@ -34,8 +34,8 @@ func generateIcon(size: CGFloat, outputPath: String) {
     let gradient = CGGradient(
         colorsSpace: colorSpace,
         colors: [
-            CGColor(red: 0.2, green: 0.3, blue: 0.6, alpha: 1.0),  // Deep blue
-            CGColor(red: 0.4, green: 0.2, blue: 0.6, alpha: 1.0)   // Purple
+            CGColor(red: 0.2, green: 0.3, blue: 0.6, alpha: 1.0), // Deep blue
+            CGColor(red: 0.4, green: 0.2, blue: 0.6, alpha: 1.0), // Purple
         ] as CFArray,
         locations: [0.0, 1.0]
     )!
@@ -52,8 +52,8 @@ func generateIcon(size: CGFloat, outputPath: String) {
     context.clip()
     context.drawLinearGradient(
         gradient,
-        start: CGPoint(x: size/2, y: 0),
-        end: CGPoint(x: size/2, y: size),
+        start: CGPoint(x: size / 2, y: 0),
+        end: CGPoint(x: size / 2, y: size),
         options: []
     )
 
@@ -79,7 +79,7 @@ func generateIcon(size: CGFloat, outputPath: String) {
     let font = CTFontCreateWithName("Helvetica-Bold" as CFString, fontSize, nil)
     let attributes: [NSAttributedString.Key: Any] = [
         .font: font,
-        .foregroundColor: CGColor(red: 1, green: 1, blue: 1, alpha: 1)
+        .foregroundColor: CGColor(red: 1, green: 1, blue: 1, alpha: 1),
     ]
 
     let attributedString = CFAttributedStringCreate(
@@ -116,7 +116,7 @@ func generateIcon(size: CGFloat, outputPath: String) {
     context.setStrokeColor(CGColor(red: 1, green: 1, blue: 1, alpha: 0.3))
     context.setLineWidth(size * 0.02)
     context.addArc(
-        center: CGPoint(x: size/2, y: size/2),
+        center: CGPoint(x: size / 2, y: size / 2),
         radius: size * 0.45,
         startAngle: .pi * 1.1,
         endAngle: .pi * 1.9,

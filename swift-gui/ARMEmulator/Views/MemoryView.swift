@@ -6,6 +6,8 @@ struct MemoryView: View {
     @State private var memoryData: [UInt8] = []
     @State private var baseAddress: UInt32 = 0x8000
     @State private var autoScrollEnabled = true
+    @State private var highlightedWriteAddress: UInt32?
+    @State private var refreshID = UUID()
 
     private let bytesPerRow = 16
     private let rowsToShow = 16
@@ -62,6 +64,16 @@ struct MemoryView: View {
 
                 Spacer()
 
+                // Manual refresh button for debugging
+                Button("Refresh") {
+                    Task {
+                        DebugLog.log("Manual refresh triggered at 0x\(String(format: "%08X", baseAddress))", category: "MemoryView")
+                        await loadMemoryAsync(at: baseAddress)
+                        refreshID = UUID()
+                    }
+                }
+                .help("Manually refresh memory at current address")
+
                 // Auto-scroll toggle
                 Toggle("Auto-scroll", isOn: $autoScrollEnabled)
                     .help("Auto-scroll to memory writes when stepping")
@@ -71,6 +83,19 @@ struct MemoryView: View {
 
             Divider()
 
+            // Debug info bar (shows current state for debugging)
+            HStack {
+                Text("Base: 0x\(String(format: "%08X", baseAddress))")
+                Text("Write: \(highlightedWriteAddress.map { "0x\(String(format: "%08X", $0))" } ?? "nil")")
+                Text("Data: \(memoryData.count)b")
+                Text("AutoScroll: \(autoScrollEnabled ? "ON" : "OFF")")
+            }
+            .font(.system(size: 9, design: .monospaced))
+            .foregroundColor(.secondary)
+            .padding(.horizontal, 8)
+            .padding(.vertical, 2)
+            .background(Color.yellow.opacity(0.2))
+
             // Memory display
             ScrollView([.vertical, .horizontal]) {
                 VStack(alignment: .leading, spacing: 0) {
@@ -79,29 +104,60 @@ struct MemoryView: View {
                             address: baseAddress + UInt32(row * bytesPerRow),
                             bytes: bytesForRow(row),
                             highlightAddress: viewModel.currentPC,
-                            lastWriteAddress: viewModel.lastMemoryWrite
+                            lastWriteAddress: highlightedWriteAddress
                         )
                     }
                 }
                 .font(.system(size: 10, design: .monospaced))
                 .padding(8)
             }
+            .id(refreshID)
         }
         .task {
-            await loadMemory(at: baseAddress)
-        }
-        .onChange(of: viewModel.currentPC) { _ in
-            // Refresh memory at current address to show updates
-            Task {
-                await refreshMemory()
-            }
+            await loadMemoryAsync(at: baseAddress)
         }
         .onChange(of: viewModel.lastMemoryWrite) { newWriteAddress in
-            if autoScrollEnabled, let writeAddr = newWriteAddress {
-                DebugLog.log("Auto-scrolling to memory write at 0x\(String(format: "%08X", writeAddr))", category: "MemoryView")
-                Task {
-                    await loadMemory(at: writeAddr)
+            // Handle memory write highlighting and auto-scroll
+            // Note: We intentionally DON'T refresh on PC change - memory content
+            // only changes when there's a write, not when PC advances.
+            DebugLog.log(
+                "onChange(lastMemoryWrite): newWriteAddress=\(newWriteAddress.map { String(format: "0x%08X", $0) } ?? "nil")",
+                category: "MemoryView"
+            )
+
+            Task {
+                DebugLog.log("onChange Task starting, autoScrollEnabled=\(autoScrollEnabled)", category: "MemoryView")
+
+                if let writeAddr = newWriteAddress {
+                    DebugLog.log(
+                        "Processing write at 0x\(String(format: "%08X", writeAddr))",
+                        category: "MemoryView"
+                    )
+
+                    if autoScrollEnabled {
+                        // Scroll to write address and highlight
+                        DebugLog.log("Calling loadMemoryAsync...", category: "MemoryView")
+                        await loadMemoryAsync(at: writeAddr)
+                        DebugLog.log("loadMemoryAsync completed", category: "MemoryView")
+                    } else {
+                        // Just refresh current view in case write is visible
+                        await refreshMemoryAsync()
+                    }
+
+                    // Set highlighting AFTER memory is loaded
+                    highlightedWriteAddress = writeAddr
+                    DebugLog.log(
+                        "Highlight set to 0x\(String(format: "%08X", writeAddr)), baseAddress=0x\(String(format: "%08X", baseAddress)), memoryData.count=\(memoryData.count)",
+                        category: "MemoryView"
+                    )
+                } else {
+                    // No write this step - clear highlighting
+                    DebugLog.log("Clearing highlight (no write)", category: "MemoryView")
+                    highlightedWriteAddress = nil
                 }
+                // Force view refresh
+                DebugLog.log("Refreshing view with new UUID", category: "MemoryView")
+                refreshID = UUID()
             }
         }
     }
@@ -115,7 +171,7 @@ struct MemoryView: View {
             return []
         }
 
-        return Array(memoryData[startIndex..<endIndex])
+        return Array(memoryData[startIndex ..< endIndex])
     }
 
     private func loadMemoryFromInput() {
@@ -130,22 +186,56 @@ struct MemoryView: View {
             return
         }
 
-        loadMemory(at: address)
-    }
-
-    private func loadMemory(at address: UInt32) {
+        // Clear any existing highlight when manually navigating
+        highlightedWriteAddress = nil
         Task {
-            await viewModel.loadMemory(at: address, length: totalBytes)
-            memoryData = viewModel.memoryData
-            baseAddress = viewModel.memoryAddress
-            addressInput = String(format: "0x%X", baseAddress)
+            await loadMemoryAsync(at: address)
+            refreshID = UUID()
         }
     }
 
-    private func refreshMemory() async {
-        // Reload memory at current address without changing the base
+    /// Loads memory at the specified address and updates local state
+    /// This is a proper async function that can be awaited
+    private func loadMemoryAsync(at address: UInt32) async {
+        DebugLog.log("loadMemoryAsync: Requesting address 0x\(String(format: "%08X", address))", category: "MemoryView")
+        await viewModel.loadMemory(at: address, length: totalBytes)
+
+        // Copy data from viewModel to local state
+        let loadedData = viewModel.memoryData
+        let loadedAddress = viewModel.memoryAddress
+
+        DebugLog.log(
+            "loadMemoryAsync: viewModel returned \(loadedData.count) bytes at 0x\(String(format: "%08X", loadedAddress))",
+            category: "MemoryView"
+        )
+
+        memoryData = loadedData
+        baseAddress = loadedAddress
+        addressInput = String(format: "0x%X", baseAddress)
+
+        DebugLog.log(
+            "loadMemoryAsync: Local state updated - baseAddress=0x\(String(format: "%08X", baseAddress)), memoryData.count=\(memoryData.count)",
+            category: "MemoryView"
+        )
+    }
+
+    /// Refreshes memory at the current base address without changing navigation
+    private func refreshMemoryAsync() async {
         await viewModel.loadMemory(at: baseAddress, length: totalBytes)
         memoryData = viewModel.memoryData
+        DebugLog.log(
+            "Memory refreshed at 0x\(String(format: "%08X", baseAddress)), \(memoryData.count) bytes",
+            category: "MemoryView"
+        )
+    }
+
+    /// Synchronous wrapper for button actions that start a Task
+    private func loadMemory(at address: UInt32) {
+        highlightedWriteAddress = nil
+        Task {
+            await loadMemoryAsync(at: address)
+            refreshID = UUID()
+        }
     }
 }
 

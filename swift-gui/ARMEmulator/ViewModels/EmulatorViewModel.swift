@@ -280,10 +280,13 @@ class EmulatorViewModel: ObservableObject {
         let vmStatus = try await apiClient.getStatus(sessionID: sessionID)
         status = vmStatus.vmState
 
-        // Track last memory write
+        // Track last memory write - clear when no write occurs
         if let hasWrite = vmStatus.hasWrite, hasWrite, let writeAddr = vmStatus.writeAddr {
             DebugLog.log("Memory write detected at 0x\(String(format: "%08X", writeAddr))", category: "ViewModel")
             lastMemoryWrite = writeAddr
+        } else {
+            // Clear the write flag when no write happened
+            lastMemoryWrite = nil
         }
     }
 
@@ -354,10 +357,10 @@ class EmulatorViewModel: ObservableObject {
         isInitializing = false
         sessionID = nil
     }
-
 }
 
 // MARK: - Input Operations Extension
+
 extension EmulatorViewModel {
     func sendInput(_ input: String) async {
         DebugLog.log("sendInput() called with input: \(input.prefix(20))...", category: "ViewModel")
@@ -408,6 +411,7 @@ extension EmulatorViewModel {
 }
 
 // MARK: - Event Handling Extension
+
 extension EmulatorViewModel {
     func handleEvent(_ event: EmulatorEvent) {
         guard event.sessionId == sessionID else {
@@ -467,6 +471,7 @@ extension EmulatorViewModel {
 }
 
 // MARK: - Debug Operations Extension
+
 extension EmulatorViewModel {
     func toggleBreakpoint(at address: UInt32) async {
         guard let sessionID = sessionID else {
@@ -536,16 +541,22 @@ extension EmulatorViewModel {
 }
 
 // MARK: - Memory Operations Extension
+
 extension EmulatorViewModel {
     func loadMemory(at address: UInt32, length: Int) async {
-        guard let sessionID = sessionID else { return }
+        guard let sessionID = sessionID else {
+            DebugLog.error("loadMemory: No session ID", category: "ViewModel")
+            return
+        }
+
+        DebugLog.log("loadMemory: address=0x\(String(format: "%08X", address)), length=\(length)", category: "ViewModel")
 
         do {
             memoryData = try await apiClient.getMemory(sessionID: sessionID, address: address, length: length)
             memoryAddress = address
+            DebugLog.log("loadMemory: Got \(memoryData.count) bytes at 0x\(String(format: "%08X", memoryAddress))", category: "ViewModel")
         } catch {
-            // Silently fail - memory loading errors are benign (e.g., no program loaded)
-            // Views will just show empty data
+            DebugLog.error("loadMemory failed: \(error.localizedDescription)", category: "ViewModel")
             memoryData = []
         }
     }
