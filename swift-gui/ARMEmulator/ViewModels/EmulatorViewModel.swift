@@ -25,7 +25,7 @@ class EmulatorViewModel: ObservableObject {
     @Published var lastMemoryWrite: UInt32?
 
     // Disassembly state
-    @Published var disassembly: [DisassembledInstruction] = []
+    @Published var disassembly: [DisassemblyInstruction] = []
 
     // Source map: address -> source line (for display)
     @Published var sourceMap: [UInt32: String] = [:]

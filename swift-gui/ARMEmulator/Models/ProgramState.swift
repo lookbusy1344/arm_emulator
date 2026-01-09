@@ -33,9 +33,22 @@ struct MemoryData: Codable {
     var data: [UInt8]
 }
 
-struct DisassemblyInstruction: Codable {
+struct DisassemblyInstruction: Codable, Identifiable, Hashable {
     var address: UInt32
     var machineCode: UInt32
     var disassembly: String
     var symbol: String?
+
+    var id: UInt32 { address }
+
+    // Alias for compatibility with code expecting 'mnemonic'
+    var mnemonic: String { disassembly }
+
+    func hash(into hasher: inout Hasher) {
+        hasher.combine(address)
+    }
+
+    static func == (lhs: DisassemblyInstruction, rhs: DisassemblyInstruction) -> Bool {
+        lhs.address == rhs.address
+    }
 }

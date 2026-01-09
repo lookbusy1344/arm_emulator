@@ -16,6 +16,16 @@ This is a complete ARM2 emulator written in Go with ARMv3 extensions, featuring 
 
 ---
 
+## Recent Highlights (January 2026)
+
+### Swift GUI Improvements (Jan 9) ✅
+- ✅ **API Client Consolidation:** Unified `getDisassembly` and `getMemory` methods, removed duplicate implementations and confusing types (`DisassembledInstruction` vs `DisassemblyInstruction`).
+- ✅ **WebSocket Reliability:** Implemented robust reconnection logic with exponential backoff to handle connection drops gracefully.
+- ✅ **Input Validation:** Added file existence checks for command-line file loading in the Swift app.
+- **Files Modified:** `Services/APIClient.swift`, `Services/WebSocketClient.swift`, `ViewModels/EmulatorViewModel.swift`, `Views/DisassemblyView.swift`, `Models/ProgramState.swift`, `ARMEmulatorApp.swift`.
+
+---
+
 ## Recent Highlights (November 2025)
 
 ### Stack Bounds Validation Investigation (Nov 14) ✅

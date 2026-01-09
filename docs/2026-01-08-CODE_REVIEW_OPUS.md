@@ -321,4 +321,23 @@ ARMEmulatorTests/
 
 ---
 
+## 9. Remediation - 9 January 2026
+
+### High Priority Items Addressed ✅
+
+1. **Duplicate API Methods & Type Confusion**
+   - Consolidated `DisassemblyInstruction` and `DisassembledInstruction` into a single `DisassemblyInstruction` struct in `Models/ProgramState.swift` (Identifiable, Hashable).
+   - Removed duplicate `getDisassembly` and `getMemory` methods in `Services/APIClient.swift`.
+   - Updated `ViewModels/EmulatorViewModel.swift` and `Views/DisassemblyView.swift` to use the unified types.
+
+2. **WebSocket Reconnection**
+   - Implemented robust reconnection logic in `Services/WebSocketClient.swift`.
+   - Added exponential backoff (1s, 2s, 4s...) and session ID persistence for seamless resubscription.
+
+3. **Input Validation**
+   - Added file existence check in `ARMEmulatorApp.swift` for command-line file loading.
+
+---
+
 *Review completed: 8 January 2026*
+*Remediation started: 9 January 2026*

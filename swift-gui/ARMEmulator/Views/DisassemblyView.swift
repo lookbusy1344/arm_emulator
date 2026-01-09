@@ -2,7 +2,7 @@ import SwiftUI
 
 struct DisassemblyView: View {
     @ObservedObject var viewModel: EmulatorViewModel
-    @State private var disassembly: [DisassembledInstruction] = []
+    @State private var disassembly: [DisassemblyInstruction] = []
 
     private let instructionsToShow = 64 // ±32 around PC
 
@@ -56,7 +56,7 @@ struct DisassemblyView: View {
 }
 
 struct DisassemblyRowView: View {
-    let instruction: DisassembledInstruction
+    let instruction: DisassemblyInstruction
     let isPC: Bool
     let hasBreakpoint: Bool
 

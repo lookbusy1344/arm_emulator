@@ -126,45 +126,6 @@ class APIClient: ObservableObject {
         return try await get(url: url)
     }
 
-    func getMemory(sessionID: String, address: UInt32, length: UInt32) async throws -> MemoryData {
-        var components = URLComponents(
-            url: baseURL.appendingPathComponent("/api/v1/session/\(sessionID)/memory"),
-            resolvingAgainstBaseURL: false
-        )!
-        components.queryItems = [
-            URLQueryItem(name: "address", value: String(address)),
-            URLQueryItem(name: "length", value: String(length)),
-        ]
-
-        guard let url = components.url else {
-            throw APIError.invalidURL
-        }
-
-        return try await get(url: url)
-    }
-
-    func getDisassembly(sessionID: String, address: UInt32, count: UInt32) async throws -> [DisassemblyInstruction] {
-        struct DisassemblyResponse: Codable {
-            let instructions: [DisassemblyInstruction]
-        }
-
-        var components = URLComponents(
-            url: baseURL.appendingPathComponent("/api/v1/session/\(sessionID)/disassembly"),
-            resolvingAgainstBaseURL: false
-        )!
-        components.queryItems = [
-            URLQueryItem(name: "address", value: String(address)),
-            URLQueryItem(name: "count", value: String(count)),
-        ]
-
-        guard let url = components.url else {
-            throw APIError.invalidURL
-        }
-
-        let response: DisassemblyResponse = try await get(url: url)
-        return response.instructions
-    }
-
     // MARK: - Debugging
 
     func addBreakpoint(sessionID: String, address: UInt32) async throws {
@@ -363,9 +324,9 @@ class APIClient: ObservableObject {
         return Array(data)
     }
 
-    func getDisassembly(sessionID: String, address: UInt32, count: Int) async throws -> [DisassembledInstruction] {
+    func getDisassembly(sessionID: String, address: UInt32, count: Int) async throws -> [DisassemblyInstruction] {
         struct DisassemblyResponse: Codable {
-            let instructions: [DisassembledInstruction]
+            let instructions: [DisassemblyInstruction]
         }
 
         var components = URLComponents(
@@ -373,7 +334,7 @@ class APIClient: ObservableObject {
             resolvingAgainstBaseURL: false
         )!
         components.queryItems = [
-            URLQueryItem(name: "addr", value: String(format: "0x%X", address)),
+            URLQueryItem(name: "address", value: String(format: "0x%X", address)),
             URLQueryItem(name: "count", value: String(count)),
         ]
 
@@ -415,25 +376,6 @@ extension APIClient {
     func getVersion() async throws -> BackendVersion {
         let url = baseURL.appendingPathComponent("/api/v1/version")
         return try await get(url: url)
-    }
-}
-
-// MARK: - Models
-
-struct DisassembledInstruction: Codable, Identifiable, Hashable {
-    let address: UInt32
-    let machineCode: UInt32
-    let mnemonic: String
-    let symbol: String?
-
-    var id: UInt32 { address }
-
-    func hash(into hasher: inout Hasher) {
-        hasher.combine(address)
-    }
-
-    static func == (lhs: DisassembledInstruction, rhs: DisassembledInstruction) -> Bool {
-        lhs.address == rhs.address
     }
 }
 
