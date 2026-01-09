@@ -1,7 +1,7 @@
 import XCTest
 @testable import ARMEmulator
 
-// TODO: Implement comprehensive Swift UI tests for core workflows
+// Future work: Implement comprehensive Swift UI tests for core workflows
 // - Load program workflow
 // - Run program workflow
 // - Step through program workflow

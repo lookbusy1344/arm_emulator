@@ -177,11 +177,43 @@ struct EditorWithGutterView: NSViewRepresentable {
     func makeNSView(context: Context) -> NSView {
         let containerView = NSView()
 
+        let scrollView = configureScrollView()
+        let textView = configureTextView(scrollView: scrollView, coordinator: context.coordinator)
+
+        scrollView.documentView = textView
+
+        // Create custom gutter view (not NSRulerView - it breaks text rendering)
+        let gutterView = CustomGutterView(textView: textView, scrollView: scrollView)
+        gutterView.configure(onBreakpointToggle: onBreakpointToggle)
+
+        // Add gutter and scroll view to container
+        containerView.addSubview(gutterView)
+        containerView.addSubview(scrollView)
+
+        // Layout gutter and scroll view
+        setupLayout(containerView: containerView, gutterView: gutterView, scrollView: scrollView)
+
+        // Store gutter reference for updates
+        context.coordinator.gutterView = gutterView
+
+        // Notify parent that text view was created
+        DispatchQueue.main.async {
+            onTextViewCreated(textView)
+            onScrollViewCreated(scrollView)
+        }
+
+        return containerView
+    }
+
+    private func configureScrollView() -> NSScrollView {
         let scrollView = NSScrollView()
         scrollView.hasVerticalScroller = true
         scrollView.hasHorizontalScroller = true
         scrollView.autohidesScrollers = true
+        return scrollView
+    }
 
+    private func configureTextView(scrollView: NSScrollView, coordinator: Coordinator) -> NSTextView {
         let textView = NSTextView()
         textView.isEditable = true
         textView.isSelectable = true
@@ -192,7 +224,7 @@ struct EditorWithGutterView: NSViewRepresentable {
         textView.isAutomaticQuoteSubstitutionEnabled = false
         textView.isAutomaticDashSubstitutionEnabled = false
         textView.isAutomaticTextReplacementEnabled = false
-        textView.delegate = context.coordinator
+        textView.delegate = coordinator
 
         // Configure for horizontal scrolling (no wrapping)
         textView.isVerticallyResizable = true
@@ -213,17 +245,10 @@ struct EditorWithGutterView: NSViewRepresentable {
             textContainer.widthTracksTextView = false
         }
 
-        scrollView.documentView = textView
+        return textView
+    }
 
-        // Create custom gutter view (not NSRulerView - it breaks text rendering)
-        let gutterView = CustomGutterView(textView: textView, scrollView: scrollView)
-        gutterView.configure(onBreakpointToggle: onBreakpointToggle)
-
-        // Add gutter and scroll view to container
-        containerView.addSubview(gutterView)
-        containerView.addSubview(scrollView)
-
-        // Layout gutter and scroll view
+    private func setupLayout(containerView: NSView, gutterView: CustomGutterView, scrollView: NSScrollView) {
         gutterView.translatesAutoresizingMaskIntoConstraints = false
         scrollView.translatesAutoresizingMaskIntoConstraints = false
 
@@ -240,17 +265,6 @@ struct EditorWithGutterView: NSViewRepresentable {
             scrollView.topAnchor.constraint(equalTo: containerView.topAnchor),
             scrollView.bottomAnchor.constraint(equalTo: containerView.bottomAnchor),
         ])
-
-        // Store gutter reference for updates
-        context.coordinator.gutterView = gutterView
-
-        // Notify parent that text view was created
-        DispatchQueue.main.async {
-            onTextViewCreated(textView)
-            onScrollViewCreated(scrollView)
-        }
-
-        return containerView
     }
 
     func updateNSView(_ containerView: NSView, context: Context) {

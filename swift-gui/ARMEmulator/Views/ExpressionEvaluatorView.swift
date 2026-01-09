@@ -25,7 +25,9 @@ struct ExpressionEvaluatorView: View {
                         Task { await evaluateExpression() }
                     }
 
-                Button(action: { Task { await evaluateExpression() } }) {
+                Button {
+                    Task { await evaluateExpression() }
+                } label: {
                     Label("Evaluate", systemImage: "equal.circle.fill")
                 }
                 .disabled(expression.isEmpty || isEvaluating)

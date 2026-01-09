@@ -271,6 +271,93 @@ class EmulatorViewModel: ObservableObject {
         }
     }
 
+    private func refreshState() async throws {
+        guard let sessionID = sessionID else { return }
+
+        let newRegisters = try await apiClient.getRegisters(sessionID: sessionID)
+        updateRegisters(newRegisters)
+
+        let vmStatus = try await apiClient.getStatus(sessionID: sessionID)
+        status = vmStatus.vmState
+
+        // Track last memory write
+        if let hasWrite = vmStatus.hasWrite, hasWrite, let writeAddr = vmStatus.writeAddr {
+            lastMemoryWrite = writeAddr
+        }
+    }
+
+    private func updateRegisters(_ newRegisters: RegisterState) {
+        // Track changes
+        var changed = Set<String>()
+
+        if let prev = previousRegisters {
+            changed = detectRegisterChanges(previous: prev, new: newRegisters)
+        }
+
+        previousRegisters = registers
+        changedRegisters = changed
+        registers = newRegisters
+        currentPC = newRegisters.pc
+    }
+
+    private func detectRegisterChanges(previous: RegisterState, new: RegisterState) -> Set<String> {
+        var changed = Set<String>()
+
+        // Compare general-purpose registers
+        struct RegisterComparison {
+            let name: String
+            let prev: UInt32
+            let new: UInt32
+        }
+
+        let registers: [RegisterComparison] = [
+            RegisterComparison(name: "R0", prev: previous.r0, new: new.r0),
+            RegisterComparison(name: "R1", prev: previous.r1, new: new.r1),
+            RegisterComparison(name: "R2", prev: previous.r2, new: new.r2),
+            RegisterComparison(name: "R3", prev: previous.r3, new: new.r3),
+            RegisterComparison(name: "R4", prev: previous.r4, new: new.r4),
+            RegisterComparison(name: "R5", prev: previous.r5, new: new.r5),
+            RegisterComparison(name: "R6", prev: previous.r6, new: new.r6),
+            RegisterComparison(name: "R7", prev: previous.r7, new: new.r7),
+            RegisterComparison(name: "R8", prev: previous.r8, new: new.r8),
+            RegisterComparison(name: "R9", prev: previous.r9, new: new.r9),
+            RegisterComparison(name: "R10", prev: previous.r10, new: new.r10),
+            RegisterComparison(name: "R11", prev: previous.r11, new: new.r11),
+            RegisterComparison(name: "R12", prev: previous.r12, new: new.r12),
+            RegisterComparison(name: "SP", prev: previous.sp, new: new.sp),
+            RegisterComparison(name: "LR", prev: previous.lr, new: new.lr),
+            RegisterComparison(name: "PC", prev: previous.pc, new: new.pc),
+        ]
+
+        for reg in registers where reg.prev != reg.new {
+            changed.insert(reg.name)
+        }
+
+        if previous.cpsr != new.cpsr {
+            changed.insert("CPSR")
+        }
+
+        return changed
+    }
+
+    func cleanup() {
+        wsClient.disconnect()
+
+        if let sessionID = sessionID {
+            Task {
+                try? await apiClient.destroySession(sessionID: sessionID)
+            }
+        }
+
+        isConnected = false
+        isInitializing = false
+        sessionID = nil
+    }
+
+}
+
+// MARK: - Input Operations Extension
+extension EmulatorViewModel {
     func sendInput(_ input: String) async {
         DebugLog.log("sendInput() called with input: \(input.prefix(20))...", category: "ViewModel")
         DebugLog.log("Current status: \(status)", category: "ViewModel")
@@ -317,7 +404,69 @@ class EmulatorViewModel: ObservableObject {
             errorMessage = "Failed to send input: \(error.localizedDescription)"
         }
     }
+}
 
+// MARK: - Event Handling Extension
+extension EmulatorViewModel {
+    func handleEvent(_ event: EmulatorEvent) {
+        guard event.sessionId == sessionID else {
+            DebugLog.warning("Ignoring event for different session", category: "ViewModel")
+            return
+        }
+
+        DebugLog.log("WebSocket event received: \(event.type)", category: "ViewModel")
+
+        switch event.type {
+        case "state":
+            if let data = event.data, case let .state(stateUpdate) = data {
+                DebugLog.log(
+                    "State update - status: \(stateUpdate.status), PC: \(stateUpdate.pc.map { String(format: "0x%08X", $0) } ?? "nil")",
+                    category: "ViewModel"
+                )
+
+                // Update registers if provided (full state update)
+                if let registers = stateUpdate.registers {
+                    updateRegisters(registers)
+                }
+
+                // Always update status (even for status-only updates like waiting_for_input)
+                status = VMState(rawValue: stateUpdate.status) ?? .idle
+            }
+        case "output":
+            if let data = event.data, case let .output(outputUpdate) = data {
+                DebugLog.log("Console output: \(outputUpdate.content.prefix(50))...", category: "ViewModel")
+                consoleOutput += outputUpdate.content
+            }
+        case "event":
+            if let data = event.data, case let .event(execEvent) = data {
+                DebugLog.log("Execution event: \(execEvent.event)", category: "ViewModel")
+                handleExecutionEvent(execEvent)
+            }
+        default:
+            DebugLog.warning("Unknown event type: \(event.type)", category: "ViewModel")
+        }
+    }
+
+    func handleExecutionEvent(_ event: ExecutionEvent) {
+        switch event.event {
+        case "breakpoint_hit":
+            status = .paused
+            if let address = event.address {
+                currentPC = address
+            }
+        case "error":
+            status = .error
+            errorMessage = event.message ?? "Unknown error"
+        case "halted":
+            status = .halted
+        default:
+            break
+        }
+    }
+}
+
+// MARK: - Debug Operations Extension
+extension EmulatorViewModel {
     func toggleBreakpoint(at address: UInt32) async {
         guard let sessionID = sessionID else {
             errorMessage = "No active session"
@@ -383,124 +532,10 @@ class EmulatorViewModel: ObservableObject {
             errorMessage = "Failed to refresh watchpoints: \(error.localizedDescription)"
         }
     }
+}
 
-    private func refreshState() async throws {
-        guard let sessionID = sessionID else { return }
-
-        let newRegisters = try await apiClient.getRegisters(sessionID: sessionID)
-        updateRegisters(newRegisters)
-
-        let vmStatus = try await apiClient.getStatus(sessionID: sessionID)
-        status = vmStatus.vmState
-
-        // Track last memory write
-        if let hasWrite = vmStatus.hasWrite, hasWrite, let writeAddr = vmStatus.writeAddr {
-            lastMemoryWrite = writeAddr
-        }
-    }
-
-    private func updateRegisters(_ newRegisters: RegisterState) {
-        // Track changes
-        var changed = Set<String>()
-
-        if let prev = previousRegisters {
-            if prev.r0 != newRegisters.r0 { changed.insert("R0") }
-            if prev.r1 != newRegisters.r1 { changed.insert("R1") }
-            if prev.r2 != newRegisters.r2 { changed.insert("R2") }
-            if prev.r3 != newRegisters.r3 { changed.insert("R3") }
-            if prev.r4 != newRegisters.r4 { changed.insert("R4") }
-            if prev.r5 != newRegisters.r5 { changed.insert("R5") }
-            if prev.r6 != newRegisters.r6 { changed.insert("R6") }
-            if prev.r7 != newRegisters.r7 { changed.insert("R7") }
-            if prev.r8 != newRegisters.r8 { changed.insert("R8") }
-            if prev.r9 != newRegisters.r9 { changed.insert("R9") }
-            if prev.r10 != newRegisters.r10 { changed.insert("R10") }
-            if prev.r11 != newRegisters.r11 { changed.insert("R11") }
-            if prev.r12 != newRegisters.r12 { changed.insert("R12") }
-            if prev.sp != newRegisters.sp { changed.insert("SP") }
-            if prev.lr != newRegisters.lr { changed.insert("LR") }
-            if prev.pc != newRegisters.pc { changed.insert("PC") }
-            if prev.cpsr != newRegisters.cpsr { changed.insert("CPSR") }
-        }
-
-        previousRegisters = registers
-        changedRegisters = changed
-        registers = newRegisters
-        currentPC = newRegisters.pc
-    }
-
-    private func handleEvent(_ event: EmulatorEvent) {
-        guard event.sessionId == sessionID else {
-            DebugLog.warning("Ignoring event for different session", category: "ViewModel")
-            return
-        }
-
-        DebugLog.log("WebSocket event received: \(event.type)", category: "ViewModel")
-
-        switch event.type {
-        case "state":
-            if let data = event.data, case let .state(stateUpdate) = data {
-                DebugLog.log(
-                    "State update - status: \(stateUpdate.status), PC: \(stateUpdate.pc.map { String(format: "0x%08X", $0) } ?? "nil")",
-                    category: "ViewModel"
-                )
-
-                // Update registers if provided (full state update)
-                if let registers = stateUpdate.registers {
-                    updateRegisters(registers)
-                }
-
-                // Always update status (even for status-only updates like waiting_for_input)
-                status = VMState(rawValue: stateUpdate.status) ?? .idle
-            }
-        case "output":
-            if let data = event.data, case let .output(outputUpdate) = data {
-                DebugLog.log("Console output: \(outputUpdate.content.prefix(50))...", category: "ViewModel")
-                consoleOutput += outputUpdate.content
-            }
-        case "event":
-            if let data = event.data, case let .event(execEvent) = data {
-                DebugLog.log("Execution event: \(execEvent.event)", category: "ViewModel")
-                handleExecutionEvent(execEvent)
-            }
-        default:
-            DebugLog.warning("Unknown event type: \(event.type)", category: "ViewModel")
-        }
-    }
-
-    private func handleExecutionEvent(_ event: ExecutionEvent) {
-        switch event.event {
-        case "breakpoint_hit":
-            status = .paused
-            if let address = event.address {
-                currentPC = address
-            }
-        case "error":
-            status = .error
-            errorMessage = event.message ?? "Unknown error"
-        case "halted":
-            status = .halted
-        default:
-            break
-        }
-    }
-
-    func cleanup() {
-        wsClient.disconnect()
-
-        if let sessionID = sessionID {
-            Task {
-                try? await apiClient.destroySession(sessionID: sessionID)
-            }
-        }
-
-        isConnected = false
-        isInitializing = false
-        sessionID = nil
-    }
-
-    // MARK: - Memory Operations
-
+// MARK: - Memory Operations Extension
+extension EmulatorViewModel {
     func loadMemory(at address: UInt32, length: Int) async {
         guard let sessionID = sessionID else { return }
 

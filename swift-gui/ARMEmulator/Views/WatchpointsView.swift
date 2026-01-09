@@ -87,9 +87,9 @@ struct WatchpointsView: View {
 
             Spacer()
 
-            Button(action: {
+            Button {
                 Task { await viewModel.removeWatchpoint(id: watchpoint.id) }
-            }) {
+            } label: {
                 Image(systemName: "trash")
                     .foregroundColor(.red)
             }

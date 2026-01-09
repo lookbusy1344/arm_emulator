@@ -60,11 +60,11 @@ struct BreakpointsListView: View {
 
             Spacer()
 
-            Button(action: {
+            Button {
                 Task {
                     await viewModel.toggleBreakpoint(at: address)
                 }
-            }) {
+            } label: {
                 Image(systemName: "trash")
                     .foregroundColor(.red)
             }
@@ -91,11 +91,11 @@ struct BreakpointsListView: View {
 
             Spacer()
 
-            Button(action: {
+            Button {
                 Task {
                     await viewModel.removeWatchpoint(id: watchpoint.id)
                 }
-            }) {
+            } label: {
                 Image(systemName: "trash")
                     .foregroundColor(.red)
             }

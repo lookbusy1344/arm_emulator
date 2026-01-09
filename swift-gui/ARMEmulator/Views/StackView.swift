@@ -86,8 +86,6 @@ struct StackView: View {
             category: "StackView"
         )
 
-        // Fetch ONLY the actual stack contents from currentSP to (initialSP - 1)
-        let startAddress = currentSP
         let bytesToRead = Int(stackSize)
 
         // Sanity check: don't try to read more than 64KB (max stack size)
@@ -98,23 +96,36 @@ struct StackView: View {
             return
         }
 
+        // Fetch stack memory
+        guard await fetchStackMemory(startAddress: currentSP, bytesToRead: bytesToRead) else {
+            return
+        }
+
+        // Build stack entries
+        stackData = buildStackEntries(startAddress: currentSP, currentSP: currentSP)
+        loadCount += 1
+        DebugLog.success("Created \(stackData.count) stack entries (load #\(loadCount))", category: "StackView")
+    }
+
+    private func fetchStackMemory(startAddress: UInt32, bytesToRead: Int) async -> Bool {
         DebugLog.log(
             "Fetching actual stack contents: 0x\(String(format: "%08X", startAddress)) to 0x\(String(format: "%08X", initialSP - 1)) (\(bytesToRead) bytes)",
             category: "StackView"
         )
 
-        // Fetch memory data into local state
         do {
             localMemoryData = try await viewModel.fetchMemory(at: startAddress, length: bytesToRead)
             DebugLog.success("Fetched \(localMemoryData.count) bytes of actual stack memory", category: "StackView")
+            return true
         } catch {
             DebugLog.error("Failed to fetch stack memory: \(error.localizedDescription)", category: "StackView")
             stackData = []
             localMemoryData = []
-            return
+            return false
         }
+    }
 
-        // Build stack entries (word-aligned)
+    private func buildStackEntries(startAddress: UInt32, currentSP: UInt32) -> [StackEntry] {
         var data: [StackEntry] = []
         let wordCount = localMemoryData.count / 4
 
@@ -133,9 +144,7 @@ struct StackView: View {
             data.append(StackEntry(offset: offset, address: address, value: value, annotation: annotation))
         }
 
-        stackData = data
-        loadCount += 1
-        DebugLog.success("Created \(stackData.count) stack entries (load #\(loadCount))", category: "StackView")
+        return data
     }
 
     private func detectAnnotation(value: UInt32, offset: Int) -> String {
