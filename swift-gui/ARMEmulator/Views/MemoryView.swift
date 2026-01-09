@@ -64,16 +64,6 @@ struct MemoryView: View {
 
                 Spacer()
 
-                // Manual refresh button for debugging
-                Button("Refresh") {
-                    Task {
-                        DebugLog.log("Manual refresh triggered at 0x\(String(format: "%08X", baseAddress))", category: "MemoryView")
-                        await loadMemoryAsync(at: baseAddress)
-                        refreshID = UUID()
-                    }
-                }
-                .help("Manually refresh memory at current address")
-
                 // Auto-scroll toggle
                 Toggle("Auto-scroll", isOn: $autoScrollEnabled)
                     .help("Auto-scroll to memory writes when stepping")
@@ -82,19 +72,6 @@ struct MemoryView: View {
             .background(Color(NSColor.controlBackgroundColor))
 
             Divider()
-
-            // Debug info bar (shows current state for debugging)
-            HStack {
-                Text("Base: 0x\(String(format: "%08X", baseAddress))")
-                Text("Write: \(highlightedWriteAddress.map { "0x\(String(format: "%08X", $0))" } ?? "nil")")
-                Text("Data: \(memoryData.count)b")
-                Text("AutoScroll: \(autoScrollEnabled ? "ON" : "OFF")")
-            }
-            .font(.system(size: 9, design: .monospaced))
-            .foregroundColor(.secondary)
-            .padding(.horizontal, 8)
-            .padding(.vertical, 2)
-            .background(Color.yellow.opacity(0.2))
 
             // Memory display
             ScrollView([.vertical, .horizontal]) {

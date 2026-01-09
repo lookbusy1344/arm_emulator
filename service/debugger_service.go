@@ -370,7 +370,10 @@ func (s *DebuggerService) GetMemory(address uint32, size uint32) ([]byte, error)
 		b, err := s.vm.Memory.ReadByteAt(address + i)
 		if err != nil {
 			serviceLog.Printf("GetMemory: ReadByteAt failed at offset %d: %v", i, err)
-			return nil, err
+			// Return 0 for unmapped or unreadable memory instead of failing the whole request
+			// This allows the memory view to show partial results at segment boundaries
+			data[i] = 0
+			continue
 		}
 		data[i] = b
 	}
