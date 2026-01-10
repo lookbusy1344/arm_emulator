@@ -47,6 +47,6 @@ msg_result:
 
         .align  4
 src_buffer:
-        .space  100
+        .space  16
 dst_buffer:
-        .space  100
+        .space  16
