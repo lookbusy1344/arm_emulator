@@ -117,17 +117,116 @@ Yet the UI shows nothing.
    - Multiple state updates could be in flight
    - Could state be getting overwritten?
 
-## Potential Unexplored Solutions
+## Subsequent Fix Attempts (2026-01)
 
-1. **Make `baseAddress` change slightly then change back** - Force SwiftUI to see a change
-2. **Use `@ObservedObject` or `@StateObject` for memory data** - Different state management
-3. **Add explicit equatable conformance** - Help SwiftUI detect changes
-4. **Debug SwiftUI rendering** - Add logging inside MemoryRowView to see if it's being called
-5. **Check if memoryData actually contains the written bytes** - Log the actual byte values after refresh
+These were attempted after the initial analysis above; none resolved the user-visible behavior.
+
+### Attempt 5: “Only scroll if out-of-view” (overlap-based)
+
+**Change:** In `onChange(of: lastMemoryWrite)`, detect whether the write overlaps the current `[baseAddress, baseAddress+256)` window.
+- If in-view: `refreshMemoryAsync()` at the existing base
+- If out-of-view: `loadMemoryAsync(at: targetBase)`
+
+**Result:** Logs show the intended branch is taken (in-view refresh) and `baseAddress` stays stable, but the UI still behaves as if the view is “jumping” / not showing the updated region.
+
+### Attempt 6: Remove forced view rebuild (`.id(refreshID)`)
+
+**Hypothesis:** forcing a full view identity change on each write makes SwiftUI recreate the ScrollView content and resets scroll offset.
+
+**Change:** Remove `.id(refreshID)` and any `refreshID = UUID()` usage.
+
+**Result:** No change in observed behavior.
+
+### Attempt 7: MainActor / highlight race mitigation
+
+**Hypothesis:** `lastMemoryWrite` is emitted as `writeAddr` then quickly as `nil` on the next tick (`refreshState()` clears it when no write), racing SwiftUI.
+
+**Changes:**
+- Ensure write handling runs on the main actor (`Task { @MainActor in ... }`)
+- Avoid clearing highlight on `lastMemoryWrite == nil`
+
+**Result:** Still no visible highlight / update per user report.
+
+### Attempt 8: Remove local `@State` memory cache
+
+**Hypothesis:** local `@State memoryData` copy prevents SwiftUI from observing the real published changes.
+
+**Change:** Render directly from `viewModel.memoryData`.
+
+**Result:** No change.
+
+### Attempt 9: Coalesce write-handling tasks
+
+**Hypothesis:** overlapping async tasks (one per byte write) stomp state and/or create inconsistent UI updates.
+
+**Change:** track and cancel a previous `writeHandlingTask` before starting a new one.
+
+**Result:** No change.
+
+### Attempt 10: Prove backend bytes are changing (Post-refresh diagnostics)
+
+**Change:** After each refresh/load, log:
+- `baseAddress`, `writeAddr`, computed `offset`
+- the specific `memoryData[offset]`
+- the full 16-byte row containing the write
+
+**Result (key discovery):** Backend memory fetch is correct; bytes *do* change as expected.
+Example:
+- write `0x80E4` -> byte `0x48` ('H')
+- write `0x80E5` -> byte `0x65` ('e')
+
+So this is not “stale memory data”; it’s UI presentation (scroll/window/visibility) diverging from the underlying model.
+
+### Attempt 11: Stabilize row identity + virtualization
+
+**Hypothesis:** `ForEach(0..<rowsToShow, id: \.self)` + frequent updates causes SwiftUI to rebuild in a way that resets scroll position; also row identity should be by address not index.
+
+**Changes:**
+- use `LazyVStack`
+- build `rowAddresses` and `ForEach(rowAddresses, id: \.self)`
+
+**Result:** Still reproduces per user.
+
+## Updated Understanding
+
+- The memory bytes *are* changing in the fetched window (proved by `Post-refresh:` logs).
+- The remaining bug is likely one of:
+  1) Scroll position being reset (user loses the `0x80E0` area and ends up back near `0x8000`), or
+  2) SwiftUI diffing/invalidations not repainting the visible rows reliably under rapid updates, or
+  3) A second view/state path is overwriting the window/scroll outside the code we’ve been focusing on.
+
+## Further Diagnostic Steps (Next)
+
+1. **Confirm what address range is actually visible when the user reports “no update”.**
+   - Add a small, always-visible overlay in MemoryView showing:
+     - `baseAddress` (window start)
+     - the currently highlighted write address
+     - the last `Post-refresh` row start address
+   - This distinguishes “data updated but user is scrolled elsewhere” vs “data not painted”.
+
+2. **Track ScrollView offset explicitly (SwiftUI PreferenceKey).**
+   - Use a `GeometryReader` + custom `PreferenceKey` to record the ScrollView’s content offset.
+   - Log when the offset jumps (especially back toward top) during byte writes.
+
+3. **Instrument row rendering.
+   - Add an `onAppear` / `onChange(of: bytes)` log inside `MemoryRowView` for the specific row containing `dst_buffer` (e.g. `0x000080E0`).
+   - If the row body is not re-evaluated when bytes change, it’s a diffing/identity issue.
+
+4. **Programmatic scroll anchoring (diagnostic, not final UX).
+   - Wrap in `ScrollViewReader` and, after refresh, `scrollTo(addressRow, anchor: .top)` ONLY when we detect the view jumped unexpectedly.
+   - If this “fixes” visibility, it confirms an offset-reset problem.
+
+5. **Rule out tab/view re-creation.
+   - Add a `DebugLog` in `MemoryView.init` and/or `.onAppear/.onDisappear` to see if the Memory tab is being reconstructed during execution.
+
+6. **Backend cross-check (already effectively confirmed).
+   - Optionally curl `GET /api/v1/session/{id}/memory?address=0x80E0&length=64` during reproduction to validate outside SwiftUI.
 
 ## Current State
 
-The code has been reset to original via `git checkout`. The bug (view scrolling to write address) persists, but highlighting works.
+- UX target remains: keep the current visible window stable and only scroll when the write is fully outside.
+- Multiple SwiftUI-side attempts (in-view refresh, identity fixes, MainActor, task coalescing, LazyVStack + address IDs) did not resolve the user-visible behavior.
+- Latest evidence strongly indicates the remaining issue is ScrollView/visibility (not incorrect backend memory reads).
 
 ## Files Involved
 
