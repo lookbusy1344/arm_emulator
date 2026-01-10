@@ -15,6 +15,33 @@ struct MemoryView: View {
 
     var body: some View {
         VStack(spacing: 0) {
+            #if DEBUG
+            // Diagnostic overlay - shows live state for debugging
+            VStack(alignment: .leading, spacing: 2) {
+                Text("baseAddress: 0x\(String(format: "%08X", baseAddress))")
+                Text("highlightAddr: \(highlightedWriteAddress.map { String(format: "0x%08X", $0) } ?? "nil")")
+                Text("memoryData.count: \(memoryData.count)")
+                Text("refreshID: \(refreshID.uuidString.prefix(8))...")
+                if memoryData.count > 0 {
+                    let visibleRange = "0x\(String(format: "%08X", baseAddress)) - 0x\(String(format: "%08X", baseAddress + UInt32(memoryData.count)))"
+                    Text("Visible range: \(visibleRange)")
+                }
+                if let highlight = highlightedWriteAddress {
+                    let inRange = highlight >= baseAddress && highlight < baseAddress + UInt32(memoryData.count)
+                    Text("Highlight in range: \(inRange ? "YES" : "NO")")
+                    if inRange {
+                        let offset = Int(highlight - baseAddress)
+                        let byteValue = offset < memoryData.count ? String(format: "0x%02X", memoryData[offset]) : "?"
+                        Text("Byte at highlight: \(byteValue)")
+                    }
+                }
+            }
+            .font(.system(size: 9, design: .monospaced))
+            .padding(4)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(Color.yellow.opacity(0.3))
+            #endif
+
             // Toolbar
             HStack(spacing: 8) {
                 // Address input
@@ -112,13 +139,26 @@ struct MemoryView: View {
                         category: "MemoryView"
                     )
 
-                    if autoScrollEnabled {
-                        // Scroll to write address and highlight
-                        DebugLog.log("Calling loadMemoryAsync...", category: "MemoryView")
-                        await loadMemoryAsync(at: writeAddr)
-                        DebugLog.log("loadMemoryAsync completed", category: "MemoryView")
+                    // Check if write is within currently visible range
+                    let visibleEnd = baseAddress + UInt32(totalBytes)
+                    let isVisible = writeAddr >= baseAddress && writeAddr < visibleEnd
+
+                    DebugLog.log(
+                        "Visibility check: writeAddr=0x\(String(format: "%08X", writeAddr)), visible=[0x\(String(format: "%08X", baseAddress))-0x\(String(format: "%08X", visibleEnd))), isVisible=\(isVisible)",
+                        category: "MemoryView"
+                    )
+
+                    if autoScrollEnabled && !isVisible {
+                        // Write is outside visible range - scroll to it (aligned to 16-byte boundary)
+                        let alignedAddress = writeAddr & ~UInt32(0xF)  // Align to 16-byte boundary
+                        DebugLog.log(
+                            "Scrolling to aligned address 0x\(String(format: "%08X", alignedAddress))",
+                            category: "MemoryView"
+                        )
+                        await loadMemoryAsync(at: alignedAddress)
                     } else {
-                        // Just refresh current view in case write is visible
+                        // Write is visible (or auto-scroll disabled) - just refresh data in place
+                        DebugLog.log("Write is visible, refreshing in place", category: "MemoryView")
                         await refreshMemoryAsync()
                     }
 
@@ -128,14 +168,15 @@ struct MemoryView: View {
                         "Highlight set to 0x\(String(format: "%08X", writeAddr)), baseAddress=0x\(String(format: "%08X", baseAddress)), memoryData.count=\(memoryData.count)",
                         category: "MemoryView"
                     )
+
+                    // Force view refresh
+                    DebugLog.log("Refreshing view with new UUID", category: "MemoryView")
+                    refreshID = UUID()
                 } else {
-                    // No write this step - clear highlighting
-                    DebugLog.log("Clearing highlight (no write)", category: "MemoryView")
-                    highlightedWriteAddress = nil
+                    // No write this step - DON'T clear highlighting
+                    // Keep the previous highlight visible until the next write occurs
+                    DebugLog.log("No write this step, keeping previous highlight", category: "MemoryView")
                 }
-                // Force view refresh
-                DebugLog.log("Refreshing view with new UUID", category: "MemoryView")
-                refreshID = UUID()
             }
         }
     }
@@ -236,11 +277,29 @@ struct MemoryRowView: View {
     }
 
     var body: some View {
+        // Compute highlighting once per row render for debugging
+        let highlightOffset: Int? = {
+            guard let writeAddr = lastWriteAddress else { return nil }
+            if writeAddr >= address && writeAddr < address + 16 {
+                return Int(writeAddr - address)
+            }
+            return nil
+        }()
+
         HStack(spacing: 4) {
             // Address
             Text(String(format: "0x%08X", address))
                 .foregroundColor(.secondary)
                 .frame(width: 90, alignment: .leading)
+
+            // Debug: show if this row should have highlighting
+            #if DEBUG
+            if let offset = highlightOffset {
+                Text("[\(offset)]")
+                    .foregroundColor(.red)
+                    .font(.system(size: 8))
+            }
+            #endif
 
             Text("|")
                 .foregroundColor(.secondary)
@@ -249,10 +308,17 @@ struct MemoryRowView: View {
             HStack(spacing: 2) {
                 ForEach(0 ..< 16) { i in
                     if i < bytes.count {
+                        // Use pre-computed offset for highlighting
+                        let shouldHighlight: Bool = {
+                            guard let offset = highlightOffset else { return false }
+                            return i >= offset && i < offset + 4
+                        }()
                         Text(String(format: "%02X", bytes[i]))
                             .frame(width: 20)
-                            .foregroundColor(isRecentWrite(byteIndex: i) ? .green : .primary)
-                            .fontWeight(isRecentWrite(byteIndex: i) ? .bold : .regular)
+                            .foregroundColor(shouldHighlight ? .white : .primary)
+                            .fontWeight(shouldHighlight ? .bold : .regular)
+                            .background(shouldHighlight ? Color.green : Color.clear)
+                            .cornerRadius(2)
                     } else {
                         Text("  ")
                             .frame(width: 20)
@@ -269,10 +335,16 @@ struct MemoryRowView: View {
                     if i < bytes.count {
                         let char = bytes[i]
                         let displayChar = (32 ... 126).contains(char) ? String(UnicodeScalar(char)) : "."
+                        let shouldHighlight: Bool = {
+                            guard let offset = highlightOffset else { return false }
+                            return i >= offset && i < offset + 4
+                        }()
                         Text(displayChar)
                             .frame(width: 10)
-                            .foregroundColor(isRecentWrite(byteIndex: i) ? .green : .primary)
-                            .fontWeight(isRecentWrite(byteIndex: i) ? .bold : .regular)
+                            .foregroundColor(shouldHighlight ? .white : .primary)
+                            .fontWeight(shouldHighlight ? .bold : .regular)
+                            .background(shouldHighlight ? Color.green : Color.clear)
+                            .cornerRadius(2)
                     } else {
                         Text(" ")
                             .frame(width: 10)
@@ -285,5 +357,37 @@ struct MemoryRowView: View {
         .padding(.vertical, 2)
         .background(isHighlighted ? Color.accentColor.opacity(0.2) : Color.clear)
         .cornerRadius(2)
+        #if DEBUG
+        .onAppear {
+            // Check if this row should have highlighting
+            let hasHighlight = lastWriteAddress != nil
+            let highlightInThisRow: Bool = {
+                guard let writeAddr = lastWriteAddress else { return false }
+                return writeAddr >= address && writeAddr < address + 16
+            }()
+            DebugLog.log(
+                "RowView APPEAR: 0x\(String(format: "%08X", address)), bytes=\(bytes.count), lastWriteAddress=\(lastWriteAddress.map { String(format: "0x%08X", $0) } ?? "nil"), highlightInRow=\(highlightInThisRow)",
+                category: "MemoryRow"
+            )
+        }
+        .onChange(of: bytes) { newBytes in
+            DebugLog.log(
+                "RowView BYTES CHANGED: 0x\(String(format: "%08X", address)) -> [\(newBytes.prefix(4).map { String(format: "%02X", $0) }.joined(separator: " "))]",
+                category: "MemoryRow"
+            )
+        }
+        .onChange(of: lastWriteAddress) { newHighlight in
+            let highlightInThisRow: Bool = {
+                guard let writeAddr = newHighlight else { return false }
+                return writeAddr >= address && writeAddr < address + 16
+            }()
+            if highlightInThisRow {
+                DebugLog.log(
+                    "RowView HIGHLIGHT CHANGED: 0x\(String(format: "%08X", address)) should highlight 0x\(String(format: "%08X", newHighlight!))",
+                    category: "MemoryRow"
+                )
+            }
+        }
+        #endif
     }
 }
