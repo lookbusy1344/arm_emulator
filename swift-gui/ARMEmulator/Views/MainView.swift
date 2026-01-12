@@ -9,6 +9,7 @@ struct MainView: View {
     @State private var showingError = false
     @State private var showingExamplesBrowser = false
     @State private var hasLoadedStartupFile = false
+    @FocusState private var isWindowFocused: Bool
 
     var body: some View {
         ZStack {
@@ -66,6 +67,12 @@ struct MainView: View {
         }
         .onDisappear {
             viewModel.cleanup()
+        }
+        .focusable()
+        .focused($isWindowFocused)
+        .focusEffectDisabled()
+        .onAppear {
+            isWindowFocused = true
         }
         .focusedSceneValue(\.viewModel, viewModel)
         .preferredColorScheme(settings.preferredColorScheme)
