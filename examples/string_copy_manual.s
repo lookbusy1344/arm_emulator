@@ -11,7 +11,7 @@ _start:
 
         ; Read string into source_buffer
         LDR     R0, =src_buffer
-        MOV     R1, #100        ; Max length
+        MOV     R1, #16         ; Max length
         SWI     #0x05           ; READ_STRING
 
         ; Initialize pointers for copy
