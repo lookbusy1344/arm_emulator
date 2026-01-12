@@ -87,6 +87,7 @@ type StackEntry struct {
 // MemoryWriteInfo represents information about the last memory write
 type MemoryWriteInfo struct {
 	Address  uint32 `json:"address"`
+	Size     uint32 `json:"size"` // Size of write in bytes (1, 2, or 4)
 	HasWrite bool   `json:"hasWrite"`
 }
 

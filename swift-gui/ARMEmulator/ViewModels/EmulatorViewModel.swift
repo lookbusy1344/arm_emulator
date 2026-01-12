@@ -23,6 +23,7 @@ class EmulatorViewModel: ObservableObject {
     @Published var memoryData: [UInt8] = []
     @Published var memoryAddress: UInt32 = 0x8000
     @Published var lastMemoryWrite: UInt32?
+    @Published var lastMemoryWriteSize: UInt32 = 4 // Size in bytes (1, 2, or 4)
 
     // Disassembly state
     @Published var disassembly: [DisassemblyInstruction] = []
@@ -282,8 +283,13 @@ class EmulatorViewModel: ObservableObject {
 
         // Track last memory write - clear when no write occurs
         if let hasWrite = vmStatus.hasWrite, hasWrite, let writeAddr = vmStatus.writeAddr {
-            DebugLog.log("Memory write detected at 0x\(String(format: "%08X", writeAddr))", category: "ViewModel")
+            let writeSize = vmStatus.writeSize ?? 4 // Default to 4 if not provided
+            DebugLog.log(
+                "Memory write detected at 0x\(String(format: "%08X", writeAddr)), size=\(writeSize) bytes",
+                category: "ViewModel"
+            )
             lastMemoryWrite = writeAddr
+            lastMemoryWriteSize = writeSize
         } else {
             // Clear the write flag when no write happened
             lastMemoryWrite = nil

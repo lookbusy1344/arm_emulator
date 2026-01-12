@@ -388,9 +388,10 @@ func (s *DebuggerService) GetLastMemoryWrite() MemoryWriteInfo {
 
 	result := MemoryWriteInfo{
 		Address:  s.vm.LastMemoryWrite,
+		Size:     s.vm.LastMemoryWriteSize,
 		HasWrite: s.vm.HasMemoryWrite,
 	}
-	serviceLog.Printf("GetLastMemoryWrite: address=0x%08X, hasWrite=%v", result.Address, result.HasWrite)
+	serviceLog.Printf("GetLastMemoryWrite: address=0x%08X, size=%d, hasWrite=%v", result.Address, result.Size, result.HasWrite)
 	s.vm.HasMemoryWrite = false
 	return result
 }

@@ -1477,3 +1477,111 @@ func TestRestart(t *testing.T) {
 		t.Error("PC should have advanced after stepping post-restart")
 	}
 }
+
+// TestMemoryWriteSize_STRB tests that API returns writeSize=1 for STRB instruction
+func TestMemoryWriteSize_STRB(t *testing.T) {
+	server := testServer()
+	sessionID := createTestSession(t, server)
+
+	// Load program with STRB instruction
+	program := `
+	.org 0x8000
+main:
+	LDR R0, =0x12345678
+	LDR R1, =data_area
+	STRB R0, [R1]    ; Store byte - should track size=1
+	SWI #0
+
+data_area:
+	.space 16
+	`
+	loadProgram(t, server, sessionID, program)
+
+	// Run to completion (program will halt on SWI #0)
+	req := httptest.NewRequest(http.MethodPost,
+		fmt.Sprintf("/api/v1/session/%s/run", sessionID), nil)
+	w := httptest.NewRecorder()
+	server.Handler().ServeHTTP(w, req)
+
+	// Wait for program to complete
+	time.Sleep(50 * time.Millisecond)
+
+	// Get session status
+	req = httptest.NewRequest(http.MethodGet,
+		fmt.Sprintf("/api/v1/session/%s", sessionID), nil)
+	w = httptest.NewRecorder()
+	server.Handler().ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("Expected status 200, got %d: %s", w.Code, w.Body.String())
+	}
+
+	var status api.SessionStatusResponse
+	if err := json.NewDecoder(w.Body).Decode(&status); err != nil {
+		t.Fatalf("Failed to decode status: %v", err)
+	}
+
+	// Verify write was tracked
+	if !status.HasWrite {
+		t.Error("Expected HasWrite=true after STRB")
+	}
+
+	// NEW: Verify write SIZE is included in response
+	if status.WriteSize != 1 {
+		t.Errorf("Expected WriteSize=1 for STRB, got %d", status.WriteSize)
+	}
+}
+
+// TestMemoryWriteSize_STR tests that API returns writeSize=4 for STR instruction
+func TestMemoryWriteSize_STR(t *testing.T) {
+	server := testServer()
+	sessionID := createTestSession(t, server)
+
+	// Load program with STR instruction
+	program := `
+	.org 0x8000
+main:
+	LDR R0, =0xDEADBEEF
+	LDR R1, =data_area
+	STR R0, [R1]     ; Store word - should track size=4
+	SWI #0
+
+data_area:
+	.space 16
+	`
+	loadProgram(t, server, sessionID, program)
+
+	// Run to completion (program will halt on SWI #0)
+	req := httptest.NewRequest(http.MethodPost,
+		fmt.Sprintf("/api/v1/session/%s/run", sessionID), nil)
+	w := httptest.NewRecorder()
+	server.Handler().ServeHTTP(w, req)
+
+	// Wait for program to complete
+	time.Sleep(50 * time.Millisecond)
+
+	// Get session status
+	req = httptest.NewRequest(http.MethodGet,
+		fmt.Sprintf("/api/v1/session/%s", sessionID), nil)
+	w = httptest.NewRecorder()
+	server.Handler().ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("Expected status 200, got %d: %s", w.Code, w.Body.String())
+	}
+
+	var status api.SessionStatusResponse
+	if err := json.NewDecoder(w.Body).Decode(&status); err != nil {
+		t.Fatalf("Failed to decode status: %v", err)
+	}
+
+	// Verify write was tracked
+	if !status.HasWrite {
+		t.Error("Expected HasWrite=true after STR")
+	}
+
+	// NEW: Verify write SIZE is included in response
+	if status.WriteSize != 4 {
+		t.Errorf("Expected WriteSize=4 for STR, got %d", status.WriteSize)
+	}
+}

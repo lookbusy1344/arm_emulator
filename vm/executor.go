@@ -98,8 +98,9 @@ type VM struct {
 	stdinReader *bufio.Reader
 
 	// Last memory write address for GUI highlighting
-	LastMemoryWrite uint32
-	HasMemoryWrite  bool
+	LastMemoryWrite     uint32
+	LastMemoryWriteSize uint32 // Size of last write in bytes (1, 2, or 4)
+	HasMemoryWrite      bool
 
 	// State change callback for API/GUI to broadcast state changes (e.g., waiting for input)
 	OnStateChange func(state ExecutionState)
@@ -163,6 +164,7 @@ func (vm *VM) Reset() {
 
 	// Clear memory write tracking
 	vm.LastMemoryWrite = 0
+	vm.LastMemoryWriteSize = 0
 	vm.HasMemoryWrite = false
 
 	// Clear trace/diagnostic structures

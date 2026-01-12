@@ -140,20 +140,24 @@ func ExecuteLoadStore(v *VM, inst *Instruction) error {
 		var err error
 		var sizeStr string
 
+		var writeSize uint32
 		if isHalfword {
 			// Store halfword - ARM architecture truncates to lower 16 bits
 			//nolint:gosec // G115: Intentional truncation for STRH instruction
 			err = vm.Memory.WriteHalfword(accessAddr, uint16(value&HalfwordValueMask))
 			sizeStr = "HALF"
+			writeSize = 2
 		} else if byteTransfer == 1 {
 			// Store byte - ARM architecture truncates to lower 8 bits
 			//nolint:gosec // G115: Intentional truncation for STRB instruction
 			err = vm.Memory.WriteByteAt(accessAddr, uint8(value&ByteValueMask))
 			sizeStr = "BYTE"
+			writeSize = 1
 		} else {
 			// Store word
 			err = vm.Memory.WriteWord(accessAddr, value)
 			sizeStr = "WORD"
+			writeSize = 4
 		}
 
 		if err != nil {
@@ -162,6 +166,7 @@ func ExecuteLoadStore(v *VM, inst *Instruction) error {
 
 		// Track last memory write for GUI
 		vm.LastMemoryWrite = accessAddr
+		vm.LastMemoryWriteSize = writeSize
 		vm.HasMemoryWrite = true
 
 		// Record memory trace if enabled

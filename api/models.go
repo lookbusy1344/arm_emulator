@@ -29,6 +29,7 @@ type SessionStatusResponse struct {
 	Error     string `json:"error,omitempty"`
 	HasWrite  bool   `json:"hasWrite"`
 	WriteAddr uint32 `json:"writeAddr,omitempty"`
+	WriteSize uint32 `json:"writeSize,omitempty"` // Size of last write in bytes (1, 2, or 4)
 }
 
 // LoadProgramRequest represents a request to load a program

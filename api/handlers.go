@@ -66,6 +66,7 @@ func (s *Server) handleGetSessionStatus(w http.ResponseWriter, r *http.Request, 
 		Cycles:    regs.Cycles,
 		HasWrite:  memWrite.HasWrite,
 		WriteAddr: memWrite.Address,
+		WriteSize: memWrite.Size,
 	}
 
 	writeJSON(w, http.StatusOK, response)

@@ -196,6 +196,7 @@ struct MemoryRowView: View {
     let bytes: [UInt8]
     let highlightAddress: UInt32?
     let lastWriteAddress: UInt32?
+    let lastWriteSize: UInt32
 
     private var isHighlighted: Bool {
         guard let highlight = highlightAddress else { return false }
@@ -205,8 +206,8 @@ struct MemoryRowView: View {
     private func isRecentWrite(byteIndex: Int) -> Bool {
         guard let writeAddr = lastWriteAddress else { return false }
         let byteAddr = address + UInt32(byteIndex)
-        // Highlight the written byte and the next 3 bytes (for 32-bit writes)
-        return writeAddr <= byteAddr && byteAddr < writeAddr + 4
+        // Highlight based on actual write size (1, 2, or 4 bytes)
+        return writeAddr <= byteAddr && byteAddr < writeAddr + lastWriteSize
     }
 
     var body: some View {
@@ -235,7 +236,7 @@ struct MemoryRowView: View {
                         // Use pre-computed offset for highlighting
                         let shouldHighlight: Bool = {
                             guard let offset = highlightOffset else { return false }
-                            return i >= offset && i < offset + 4
+                            return i >= offset && i < offset + Int(lastWriteSize)
                         }()
                         Text(String(format: "%02X", bytes[i]))
                             .frame(width: 20)
@@ -261,7 +262,7 @@ struct MemoryRowView: View {
                         let displayChar = (32 ... 126).contains(char) ? String(UnicodeScalar(char)) : "."
                         let shouldHighlight: Bool = {
                             guard let offset = highlightOffset else { return false }
-                            return i >= offset && i < offset + 4
+                            return i >= offset && i < offset + Int(lastWriteSize)
                         }()
                         Text(displayChar)
                             .frame(width: 10)
@@ -305,7 +306,8 @@ struct MemoryDisplayView: View {
                             address: baseAddress + UInt32(row * bytesPerRow),
                             bytes: bytesForRow(row),
                             highlightAddress: viewModel.currentPC,
-                            lastWriteAddress: highlightedWriteAddress
+                            lastWriteAddress: highlightedWriteAddress,
+                            lastWriteSize: viewModel.lastMemoryWriteSize
                         )
                         .id("row_\(row)")
                     }

@@ -17,6 +17,7 @@ struct VMStatus: Codable {
     var error: String?
     var hasWrite: Bool?
     var writeAddr: UInt32?
+    var writeSize: UInt32? // Size of last write in bytes (1, 2, or 4)
 
     var vmState: VMState {
         VMState(rawValue: state) ?? .idle

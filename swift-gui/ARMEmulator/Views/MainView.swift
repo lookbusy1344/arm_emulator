@@ -127,8 +127,11 @@ struct MainView: View {
                         switch settings.selectedTab {
                         case 0:
                             VStack(spacing: 0) {
-                                RegistersView(registers: viewModel.registers, changedRegisters: viewModel.changedRegisters)
-                                    .frame(minHeight: 200)
+                                RegistersView(
+                                    registers: viewModel.registers,
+                                    changedRegisters: viewModel.changedRegisters
+                                )
+                                .frame(minHeight: 200)
 
                                 Divider()
 
@@ -152,8 +155,11 @@ struct MainView: View {
                             BreakpointsListView(viewModel: viewModel)
                         default:
                             VStack(spacing: 0) {
-                                RegistersView(registers: viewModel.registers, changedRegisters: viewModel.changedRegisters)
-                                    .frame(minHeight: 200)
+                                RegistersView(
+                                    registers: viewModel.registers,
+                                    changedRegisters: viewModel.changedRegisters
+                                )
+                                .frame(minHeight: 200)
 
                                 Divider()
 
