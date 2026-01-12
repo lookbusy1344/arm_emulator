@@ -174,6 +174,16 @@ The Wails backend must be running on http://localhost:34115 before any E2E tests
 
 **Note:** The Swift app automatically manages the Go HTTP API backend lifecycle - it finds, starts, and monitors the backend process. No manual backend startup required.
 
+### Platform Requirements
+
+**IMPORTANT:** This Swift project targets modern platforms only - no backward compatibility required.
+
+- **macOS:** 26.2
+- **Swift:** 6.2
+- **Xcode:** 26.2
+
+The project uses the latest SwiftUI APIs and Swift language features. Always use modern Swift/SwiftUI capabilities without concern for older OS versions.
+
 ### Prerequisites
 
 Install required tools via Homebrew:
