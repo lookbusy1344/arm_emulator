@@ -506,6 +506,12 @@ func handleReadString(vm *VM) error {
 	}
 
 	vm.CPU.SetRegister(0, bytesToWrite) // Return number of bytes written (excluding null)
+
+	// Track memory write for GUI highlighting
+	vm.LastMemoryWrite = addr
+	vm.LastMemoryWriteSize = bytesToWrite + 1 // Include null terminator
+	vm.HasMemoryWrite = true
+
 	vm.CPU.IncrementPC()
 	return nil
 }
@@ -914,6 +920,14 @@ func handleRead(vm *VM) error {
 	}
 	//nolint:gosec // G115: n is bounded by reasonable read size
 	vm.CPU.SetRegister(0, uint32(n))
+
+	// Track memory write for GUI highlighting (only if bytes were actually read)
+	if n > 0 {
+		vm.LastMemoryWrite = bufferAddr
+		vm.LastMemoryWriteSize = uint32(n) // #nosec G115 -- n is bounded by reasonable read size
+		vm.HasMemoryWrite = true
+	}
+
 	vm.CPU.IncrementPC()
 	return nil
 }
@@ -1131,6 +1145,12 @@ func handleReallocate(vm *VM) error {
 	_ = vm.Memory.Free(oldAddr)
 
 	vm.CPU.SetRegister(0, newAddr)
+
+	// Track memory write for GUI highlighting
+	vm.LastMemoryWrite = newAddr
+	vm.LastMemoryWriteSize = copySize
+	vm.HasMemoryWrite = true
+
 	vm.CPU.IncrementPC()
 	return nil
 }
