@@ -223,11 +223,8 @@ struct MemoryRowView: View {
         HStack(spacing: 4) {
             // Address
             Text(String(format: "0x%08X", address))
-                .foregroundColor(.secondary)
-                .frame(width: 90, alignment: .leading)
-
-            Text("|")
-                .foregroundColor(.secondary)
+                .foregroundColor(Color(red: 0.5, green: 0.6, blue: 0.7))
+                .frame(width: 75, alignment: .leading)
 
             // Hex bytes
             HStack(spacing: 2) {
@@ -250,9 +247,6 @@ struct MemoryRowView: View {
                     }
                 }
             }
-
-            Text("|")
-                .foregroundColor(.secondary)
 
             // ASCII representation
             HStack(spacing: 0) {
