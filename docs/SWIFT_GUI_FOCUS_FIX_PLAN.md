@@ -1,8 +1,21 @@
 # Swift GUI Focus Fix Plan
 
+## ✅ RESOLVED
+
+**Status:** Fixed and committed
+**Solution:** Global NSEvent monitor in AppDelegate + Media key code support
+**Commit:** 8a83cdc
+
 ## Problem Summary
 
 After the app loses and regains focus (Cmd+Tab), F8/F10 shortcuts beep instead of executing debug commands. This occurs specifically during `waiting_for_input` state after `SWI #0x05` (READ_STRING).
+
+## Root Cause (Discovered)
+
+Two-part issue:
+
+1. **SwiftUI Focus Dependency**: `DebugCommands` uses `@FocusedValue(\.viewModel)` which breaks when `firstResponder` becomes `nil` after Cmd+Tab
+2. **MacBook Keyboard Behavior**: F10 without Fn modifier sends keyCode `109` (media/volume key), not `63245` (NSF10FunctionKey constant)
 
 ## Architecture Analysis
 
@@ -232,5 +245,114 @@ var body: some Commands {
 src_buffer: .space 100
 ```
 
-Expected: F8 should execute stepOver after Cmd+Tab return  
+Expected: F8 should execute stepOver after Cmd+Tab return
 Actual (bug): System beep, no action
+
+---
+
+## Implemented Solution
+
+### What Was Implemented
+
+**Solution 1: Global Key Handler via NSApplication** (from plan above)
+
+### Implementation Details
+
+#### 1. AppDelegate (ARMEmulatorApp.swift)
+
+Added `weak var viewModel: EmulatorViewModel?` to AppDelegate to hold reference to active view model.
+
+```swift
+func applicationDidFinishLaunching(_: Notification) {
+    // Install global key event monitor to handle function keys even when focus is lost
+    NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
+        if self?.handleFunctionKey(event) == true {
+            return nil // Consume the event
+        }
+        return event // Pass through
+    }
+}
+```
+
+#### 2. Function Key Handler (ARMEmulatorApp.swift)
+
+Critical discovery: Must handle BOTH media key codes AND function key codes.
+
+```swift
+private func handleFunctionKey(_ event: NSEvent) -> Bool {
+    guard let viewModel = viewModel else { return false }
+
+    let keyCode = Int(event.keyCode)
+
+    switch keyCode {
+    case NSF5FunctionKey, 96: // F5 (Run)
+        Task { await viewModel.run() }
+        return true
+    case NSF8FunctionKey, 100, // F8 (Step Over)
+         NSF10FunctionKey, 109: // F10 (Step Over)
+        Task { await viewModel.stepOver() }
+        return true
+    case NSF11FunctionKey, 103: // F11 (Step)
+        Task { await viewModel.step() }
+        return true
+    case NSF9FunctionKey, 101: // F9 (Toggle Breakpoint)
+        Task { await viewModel.toggleBreakpoint(at: viewModel.currentPC) }
+        return true
+    default:
+        return false
+    }
+}
+```
+
+**Key Insight:** Modern MacBook keyboards send different keyCodes:
+- **Without Fn**: Media key codes (96, 100, 101, 103, 109)
+- **With Fn**: Function key codes (NSF5FunctionKey=63240, NSF8FunctionKey=63243, etc.)
+
+SwiftUI's keyboard shortcuts handle both automatically, but raw NSEvent monitors must explicitly support both ranges.
+
+#### 3. ViewModel Wiring (MainView.swift)
+
+```swift
+.onAppear {
+    // Wire viewModel to AppDelegate for global function key handling
+    appDelegate?.viewModel = viewModel
+}
+```
+
+### What Was Removed
+
+- Removed failed `@FocusState` attempt from MainView (commit a889b1e)
+- No longer need `.focusable()`, `.focused()`, or `.focusEffectDisabled()` modifiers
+- SwiftUI keyboard shortcuts in `DebugCommands.swift` remain as fallback for menu bar clicks
+
+### Why It Works
+
+1. **NSEvent.addLocalMonitorForEvents** intercepts key events BEFORE the responder chain
+2. Works regardless of `firstResponder` state or focus hierarchy
+3. Handles both media keys (MacBook default) and function keys (with Fn)
+4. Weak reference to viewModel prevents memory leaks
+5. SwiftUI shortcuts still work for menu bar interaction
+
+### Testing Verification
+
+Test program: `examples/test_focus_fix.s`
+
+1. Load program and step to `SWI #0x05` (READ_STRING) → enters `waiting_for_input`
+2. Cmd+Tab away, Cmd+Tab back → `firstResponder` becomes `nil`
+3. Press F8/F10 → ✅ Works! (previously beeped)
+
+### Key Codes Reference
+
+| Key | Media Code (no Fn) | Function Code (with Fn) | Constant Value |
+|-----|-------------------|-------------------------|---------------|
+| F5  | 96                | 63240                   | NSF5FunctionKey |
+| F8  | 100               | 63243                   | NSF8FunctionKey |
+| F9  | 101               | 63244                   | NSF9FunctionKey |
+| F10 | 109               | 63245                   | NSF10FunctionKey |
+| F11 | 103               | 63246                   | NSF11FunctionKey |
+
+### Files Modified
+
+- `swift-gui/ARMEmulator/ARMEmulatorApp.swift` - Added NSEvent monitor and handler
+- `swift-gui/ARMEmulator/Views/MainView.swift` - Wire viewModel to AppDelegate, removed failed focus workaround
+- `examples/test_focus_fix.s` - Added test program for future regression testing
