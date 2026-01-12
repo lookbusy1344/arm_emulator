@@ -49,7 +49,7 @@ struct ConsoleView: View {
                     }
                     .keyboardShortcut(.return, modifiers: [])
                 }
-                .padding(.horizontal, 8)
+                .padding(.horizontal, 20)
                 .padding(.vertical, 12)
                 .background(isWaitingForInput ? Color.orange.opacity(0.1) : Color(NSColor.controlBackgroundColor))
             }

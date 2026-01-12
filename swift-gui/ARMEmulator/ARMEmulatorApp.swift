@@ -35,13 +35,13 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         // Convert to absolute path if relative
         let absolutePath = (filePath as NSString).expandingTildeInPath
         let url = URL(fileURLWithPath: absolutePath)
-        
+
         // Verify file exists
         guard FileManager.default.fileExists(atPath: url.path) else {
             print("Warning: Startup file not found: \(url.path)")
             return nil
         }
-        
+
         return url.path
     }()
 }
