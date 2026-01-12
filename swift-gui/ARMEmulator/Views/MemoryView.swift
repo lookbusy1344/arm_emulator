@@ -8,6 +8,7 @@ struct MemoryView: View {
     @State private var autoScrollEnabled = true
     @State private var highlightedWriteAddress: UInt32?
     @State private var refreshID = UUID()
+    @State private var scrollToRow: Int?
 
     private let bytesPerRow = 16
     private let rowsToShow = 16
@@ -102,29 +103,25 @@ struct MemoryView: View {
             Divider()
 
             // Memory display
-            ScrollView([.vertical, .horizontal]) {
-                VStack(alignment: .leading, spacing: 0) {
-                    ForEach(0 ..< rowsToShow, id: \.self) { row in
-                        MemoryRowView(
-                            address: baseAddress + UInt32(row * bytesPerRow),
-                            bytes: bytesForRow(row),
-                            highlightAddress: viewModel.currentPC,
-                            lastWriteAddress: highlightedWriteAddress
-                        )
-                    }
-                }
-                .font(.system(size: 10, design: .monospaced))
-                .padding(8)
-            }
-            .id(refreshID)
+            MemoryDisplayView(
+                rowsToShow: rowsToShow,
+                bytesPerRow: bytesPerRow,
+                baseAddress: baseAddress,
+                memoryData: memoryData,
+                viewModel: viewModel,
+                highlightedWriteAddress: highlightedWriteAddress,
+                scrollToRow: scrollToRow,
+                refreshID: refreshID
+            )
         }
         .task {
             await loadMemoryAsync(at: baseAddress)
         }
-        .onChange(of: viewModel.lastMemoryWrite) { newWriteAddress in
+        .onChange(of: viewModel.lastMemoryWrite) {
             // Handle memory write highlighting and auto-scroll
             // Note: We intentionally DON'T refresh on PC change - memory content
             // only changes when there's a write, not when PC advances.
+            let newWriteAddress = viewModel.lastMemoryWrite
             DebugLog.log(
                 "onChange(lastMemoryWrite): newWriteAddress=\(newWriteAddress.map { String(format: "0x%08X", $0) } ?? "nil")",
                 category: "MemoryView"
@@ -168,6 +165,18 @@ struct MemoryView: View {
                         "Highlight set to 0x\(String(format: "%08X", writeAddr)), baseAddress=0x\(String(format: "%08X", baseAddress)), memoryData.count=\(memoryData.count)",
                         category: "MemoryView"
                     )
+
+                    // Trigger scroll to the row containing the write (if auto-scroll enabled)
+                    if autoScrollEnabled {
+                        let rowOffset = Int((writeAddr - baseAddress) / UInt32(bytesPerRow))
+                        if rowOffset >= 0 && rowOffset < rowsToShow {
+                            DebugLog.log(
+                                "Triggering scroll to row \(rowOffset) for address 0x\(String(format: "%08X", writeAddr))",
+                                category: "MemoryView"
+                            )
+                            scrollToRow = rowOffset
+                        }
+                    }
 
                     // Force view refresh
                     DebugLog.log("Refreshing view with new UUID", category: "MemoryView")
@@ -360,7 +369,6 @@ struct MemoryRowView: View {
         #if DEBUG
         .onAppear {
             // Check if this row should have highlighting
-            let hasHighlight = lastWriteAddress != nil
             let highlightInThisRow: Bool = {
                 guard let writeAddr = lastWriteAddress else { return false }
                 return writeAddr >= address && writeAddr < address + 16
@@ -370,13 +378,13 @@ struct MemoryRowView: View {
                 category: "MemoryRow"
             )
         }
-        .onChange(of: bytes) { newBytes in
+        .onChange(of: bytes) { _, newBytes in
             DebugLog.log(
                 "RowView BYTES CHANGED: 0x\(String(format: "%08X", address)) -> [\(newBytes.prefix(4).map { String(format: "%02X", $0) }.joined(separator: " "))]",
                 category: "MemoryRow"
             )
         }
-        .onChange(of: lastWriteAddress) { newHighlight in
+        .onChange(of: lastWriteAddress) { _, newHighlight in
             let highlightInThisRow: Bool = {
                 guard let writeAddr = newHighlight else { return false }
                 return writeAddr >= address && writeAddr < address + 16
@@ -389,5 +397,58 @@ struct MemoryRowView: View {
             }
         }
         #endif
+    }
+}
+
+/// Separate view for the memory display with ScrollViewReader
+/// This separation avoids SwiftUI type inference issues with nested modifiers
+struct MemoryDisplayView: View {
+    let rowsToShow: Int
+    let bytesPerRow: Int
+    let baseAddress: UInt32
+    let memoryData: [UInt8]
+    @ObservedObject var viewModel: EmulatorViewModel
+    let highlightedWriteAddress: UInt32?
+    let scrollToRow: Int?
+    let refreshID: UUID
+
+    var body: some View {
+        ScrollView([.vertical, .horizontal]) {
+            ScrollViewReader { proxy in
+                VStack(alignment: .leading, spacing: 0) {
+                    ForEach(0 ..< rowsToShow, id: \.self) { row in
+                        MemoryRowView(
+                            address: baseAddress + UInt32(row * bytesPerRow),
+                            bytes: bytesForRow(row),
+                            highlightAddress: viewModel.currentPC,
+                            lastWriteAddress: highlightedWriteAddress
+                        )
+                        .id("row_\(row)")
+                    }
+                }
+                .font(.system(size: 10, design: .monospaced))
+                .padding(8)
+                .task(id: scrollToRow) {
+                    if let row = scrollToRow {
+                        try? await Task.sleep(nanoseconds: 10_000_000) // 10ms delay
+                        withAnimation(.easeInOut(duration: 0.3)) {
+                            proxy.scrollTo("row_\(row)", anchor: .center)
+                        }
+                    }
+                }
+            }
+        }
+        .id(refreshID)
+    }
+
+    private func bytesForRow(_ row: Int) -> [UInt8] {
+        let startIndex = row * bytesPerRow
+        let endIndex = min((row + 1) * bytesPerRow, memoryData.count)
+
+        guard startIndex < memoryData.count else {
+            return []
+        }
+
+        return Array(memoryData[startIndex ..< endIndex])
     }
 }

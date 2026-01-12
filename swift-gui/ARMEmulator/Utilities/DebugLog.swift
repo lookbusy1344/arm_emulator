@@ -5,7 +5,7 @@ import Foundation
 enum DebugLog {
     /// Enable/disable debug logging even in DEBUG builds
     /// Set to false to silence all debug logs without rebuilding
-    static var enabled = true
+    nonisolated(unsafe) static var enabled = true
 
     /// Log a debug message (only in DEBUG builds)
     static func log(_ message: String, category: String = "App") {
