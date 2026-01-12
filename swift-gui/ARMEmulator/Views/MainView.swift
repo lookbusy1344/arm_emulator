@@ -96,61 +96,77 @@ struct MainView: View {
                     .environmentObject(viewModel)
                     .frame(minWidth: 150)
 
-                TabView(selection: $settings.selectedTab) {
-                    VStack(spacing: 0) {
-                        RegistersView(registers: viewModel.registers, changedRegisters: viewModel.changedRegisters)
-                            .frame(minHeight: 200)
+                VStack(spacing: 0) {
+                    // Compact popup picker navigation
+                    HStack {
+                        Text("View:")
+                            .font(.system(size: 11))
+                            .foregroundColor(.secondary)
 
-                        Divider()
+                        Picker("", selection: $settings.selectedTab) {
+                            Label("Registers", systemImage: "cpu").tag(0)
+                            Label("Memory", systemImage: "memorychip").tag(1)
+                            Label("Stack", systemImage: "square.stack.3d.down.right").tag(2)
+                            Label("Disassembly", systemImage: "hammer").tag(3)
+                            Label("Evaluator", systemImage: "function").tag(4)
+                            Label("Watchpoints", systemImage: "eye").tag(5)
+                            Label("Breakpoints", systemImage: "circle.hexagongrid").tag(6)
+                        }
+                        .pickerStyle(.menu)
+                        .frame(width: 150)
 
-                        StatusView(
-                            status: viewModel.status,
-                            pc: viewModel.currentPC
-                        )
-                        .frame(height: 60)
+                        Spacer()
                     }
-                    .tabItem {
-                        Label("Registers", systemImage: "cpu")
+                    .padding(8)
+                    .background(Color(NSColor.controlBackgroundColor))
+
+                    Divider()
+
+                    // Content based on selected tab
+                    Group {
+                        switch settings.selectedTab {
+                        case 0:
+                            VStack(spacing: 0) {
+                                RegistersView(registers: viewModel.registers, changedRegisters: viewModel.changedRegisters)
+                                    .frame(minHeight: 200)
+
+                                Divider()
+
+                                StatusView(
+                                    status: viewModel.status,
+                                    pc: viewModel.currentPC
+                                )
+                                .frame(height: 60)
+                            }
+                        case 1:
+                            MemoryView(viewModel: viewModel)
+                        case 2:
+                            StackView(viewModel: viewModel)
+                        case 3:
+                            DisassemblyView(viewModel: viewModel)
+                        case 4:
+                            ExpressionEvaluatorView(viewModel: viewModel)
+                        case 5:
+                            WatchpointsView(viewModel: viewModel)
+                        case 6:
+                            BreakpointsListView(viewModel: viewModel)
+                        default:
+                            VStack(spacing: 0) {
+                                RegistersView(registers: viewModel.registers, changedRegisters: viewModel.changedRegisters)
+                                    .frame(minHeight: 200)
+
+                                Divider()
+
+                                StatusView(
+                                    status: viewModel.status,
+                                    pc: viewModel.currentPC
+                                )
+                                .frame(height: 60)
+                            }
+                        }
                     }
-                    .tag(0)
-
-                    MemoryView(viewModel: viewModel)
-                        .tabItem {
-                            Label("Memory", systemImage: "memorychip")
-                        }
-                        .tag(1)
-
-                    StackView(viewModel: viewModel)
-                        .tabItem {
-                            Label("Stack", systemImage: "square.stack.3d.down.right")
-                        }
-                        .tag(2)
-
-                    DisassemblyView(viewModel: viewModel)
-                        .tabItem {
-                            Label("Disassembly", systemImage: "hammer")
-                        }
-                        .tag(3)
-
-                    ExpressionEvaluatorView(viewModel: viewModel)
-                        .tabItem {
-                            Label("Evaluator", systemImage: "function")
-                        }
-                        .tag(4)
-
-                    WatchpointsView(viewModel: viewModel)
-                        .tabItem {
-                            Label("Watchpoints", systemImage: "eye")
-                        }
-                        .tag(5)
-
-                    BreakpointsListView(viewModel: viewModel)
-                        .tabItem {
-                            Label("Breakpoints", systemImage: "circle.hexagongrid")
-                        }
-                        .tag(6)
                 }
-                .frame(minWidth: 250, maxWidth: 800)
+                .frame(maxWidth: 800)
             }
             .frame(minHeight: 300)
 

@@ -9,57 +9,80 @@ struct RegistersView: View {
         self.changedRegisters = changedRegisters
     }
 
+    // Determine grid columns based on available width (1-3 columns)
+    private func gridColumns(for width: CGFloat) -> [GridItem] {
+        let columnCount: Int
+        if width < 500 {
+            columnCount = 1
+        } else if width < 700 {
+            columnCount = 2
+        } else {
+            columnCount = 3
+        }
+        return Array(repeating: GridItem(.flexible(), spacing: 4), count: columnCount)
+    }
+
     var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            Text("Registers")
-                .font(.system(size: 11, weight: .semibold))
-                .padding(.horizontal)
-                .padding(.vertical, 8)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .background(Color(NSColor.controlBackgroundColor))
-
-            ScrollView {
-                VStack(alignment: .leading, spacing: 4) {
-                    RegisterRow(name: "R0", value: registers.r0, isChanged: changedRegisters.contains("R0"))
-                    RegisterRow(name: "R1", value: registers.r1, isChanged: changedRegisters.contains("R1"))
-                    RegisterRow(name: "R2", value: registers.r2, isChanged: changedRegisters.contains("R2"))
-                    RegisterRow(name: "R3", value: registers.r3, isChanged: changedRegisters.contains("R3"))
-                    RegisterRow(name: "R4", value: registers.r4, isChanged: changedRegisters.contains("R4"))
-                    RegisterRow(name: "R5", value: registers.r5, isChanged: changedRegisters.contains("R5"))
-                    RegisterRow(name: "R6", value: registers.r6, isChanged: changedRegisters.contains("R6"))
-                    RegisterRow(name: "R7", value: registers.r7, isChanged: changedRegisters.contains("R7"))
-                    RegisterRow(name: "R8", value: registers.r8, isChanged: changedRegisters.contains("R8"))
-                    RegisterRow(name: "R9", value: registers.r9, isChanged: changedRegisters.contains("R9"))
-                    RegisterRow(name: "R10", value: registers.r10, isChanged: changedRegisters.contains("R10"))
-                    RegisterRow(name: "R11", value: registers.r11, isChanged: changedRegisters.contains("R11"))
-                    RegisterRow(name: "R12", value: registers.r12, isChanged: changedRegisters.contains("R12"))
-
-                    Divider()
-                        .padding(.vertical, 4)
-
-                    RegisterRow(name: "SP", value: registers.sp, isChanged: changedRegisters.contains("SP"))
-                    RegisterRow(name: "LR", value: registers.lr, isChanged: changedRegisters.contains("LR"))
-                    RegisterRow(name: "PC", value: registers.pc, isChanged: changedRegisters.contains("PC"))
-
-                    Divider()
-                        .padding(.vertical, 4)
-
-                    HStack {
-                        Text("CPSR:")
-                            .font(.system(size: 10, design: .monospaced))
-                            .fontWeight(.bold)
-                            .frame(width: 60, alignment: .leading)
-
-                        Text(registers.cpsr.displayString)
-                            .font(.system(size: 10, design: .monospaced))
-                            .foregroundColor(changedRegisters.contains("CPSR") ? .green : .primary)
-                    }
+        GeometryReader { geometry in
+            VStack(alignment: .leading, spacing: 0) {
+                Text("Registers")
+                    .font(.system(size: 11, weight: .semibold))
                     .padding(.horizontal)
-                    .padding(.vertical, 2)
+                    .padding(.vertical, 8)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(Color(NSColor.controlBackgroundColor))
+
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 4) {
+                        // General-purpose registers (R0-R12) in responsive grid
+                        LazyVGrid(columns: gridColumns(for: geometry.size.width), alignment: .leading, spacing: 4) {
+                            RegisterRow(name: "R0", value: registers.r0, isChanged: changedRegisters.contains("R0"))
+                            RegisterRow(name: "R1", value: registers.r1, isChanged: changedRegisters.contains("R1"))
+                            RegisterRow(name: "R2", value: registers.r2, isChanged: changedRegisters.contains("R2"))
+                            RegisterRow(name: "R3", value: registers.r3, isChanged: changedRegisters.contains("R3"))
+                            RegisterRow(name: "R4", value: registers.r4, isChanged: changedRegisters.contains("R4"))
+                            RegisterRow(name: "R5", value: registers.r5, isChanged: changedRegisters.contains("R5"))
+                            RegisterRow(name: "R6", value: registers.r6, isChanged: changedRegisters.contains("R6"))
+                            RegisterRow(name: "R7", value: registers.r7, isChanged: changedRegisters.contains("R7"))
+                            RegisterRow(name: "R8", value: registers.r8, isChanged: changedRegisters.contains("R8"))
+                            RegisterRow(name: "R9", value: registers.r9, isChanged: changedRegisters.contains("R9"))
+                            RegisterRow(name: "R10", value: registers.r10, isChanged: changedRegisters.contains("R10"))
+                            RegisterRow(name: "R11", value: registers.r11, isChanged: changedRegisters.contains("R11"))
+                            RegisterRow(name: "R12", value: registers.r12, isChanged: changedRegisters.contains("R12"))
+                        }
+                        .padding(.horizontal, 8)
+
+                        Divider()
+                            .padding(.vertical, 4)
+
+                        // Special registers in responsive grid
+                        LazyVGrid(columns: gridColumns(for: geometry.size.width), alignment: .leading, spacing: 4) {
+                            RegisterRow(name: "SP", value: registers.sp, isChanged: changedRegisters.contains("SP"))
+                            RegisterRow(name: "LR", value: registers.lr, isChanged: changedRegisters.contains("LR"))
+                            RegisterRow(name: "PC", value: registers.pc, isChanged: changedRegisters.contains("PC"))
+                        }
+                        .padding(.horizontal, 8)
+
+                        Divider()
+                            .padding(.vertical, 4)
+
+                        HStack {
+                            Text("CPSR:")
+                                .font(.system(size: 10, design: .monospaced))
+                                .fontWeight(.bold)
+                                .frame(width: 60, alignment: .leading)
+
+                            Text(registers.cpsr.displayString)
+                                .font(.system(size: 10, design: .monospaced))
+                                .foregroundColor(changedRegisters.contains("CPSR") ? .green : .primary)
+                        }
+                        .padding(.horizontal)
+                        .padding(.vertical, 2)
+                    }
+                    .padding(.vertical, 8)
                 }
-                .padding(.vertical, 8)
+                .background(Color(NSColor.textBackgroundColor))
             }
-            .background(Color(NSColor.textBackgroundColor))
         }
     }
 }
