@@ -4,7 +4,7 @@
 
 **Status:** Fixed and committed
 **Solution:** Global NSEvent monitor in AppDelegate + Media key code support
-**Commit:** 8a83cdc
+**Commit:** 59d63caf26261460241833e062071e8f7f6dbe3a
 
 ## Problem Summary
 
