@@ -193,6 +193,9 @@ class EmulatorViewModel: ObservableObject {
             return
         }
 
+        // Clear memory write tracking before step to ensure onChange triggers
+        lastMemoryWrite = nil
+
         do {
             try await apiClient.step(sessionID: sessionID)
             try await refreshState()
@@ -216,6 +219,9 @@ class EmulatorViewModel: ObservableObject {
             return
         }
 
+        // Clear memory write tracking before step to ensure onChange triggers
+        lastMemoryWrite = nil
+
         do {
             try await apiClient.stepOver(sessionID: sessionID)
             try await refreshState()
@@ -238,6 +244,9 @@ class EmulatorViewModel: ObservableObject {
             errorMessage = "No active session"
             return
         }
+
+        // Clear memory write tracking before step to ensure onChange triggers
+        lastMemoryWrite = nil
 
         do {
             try await apiClient.stepOut(sessionID: sessionID)
@@ -281,19 +290,14 @@ class EmulatorViewModel: ObservableObject {
         let vmStatus = try await apiClient.getStatus(sessionID: sessionID)
         status = vmStatus.vmState
 
-        // Track last memory write - clear when no write occurs
+        // Track last memory write - value persists until next write or explicit clear in step()
         if let hasWrite = vmStatus.hasWrite, hasWrite, let writeAddr = vmStatus.writeAddr {
-            let writeSize = vmStatus.writeSize ?? 4 // Default to 4 if not provided
-            DebugLog.log(
-                "Memory write detected at 0x\(String(format: "%08X", writeAddr)), size=\(writeSize) bytes",
-                category: "ViewModel"
-            )
+            let writeSize = vmStatus.writeSize ?? 4
             lastMemoryWrite = writeAddr
             lastMemoryWriteSize = writeSize
-        } else {
-            // Clear the write flag when no write happened
-            lastMemoryWrite = nil
         }
+        // Don't clear here - let the value persist so onChange can fire
+        // It will be cleared at the start of the next step() operation
     }
 
     private func updateRegisters(_ newRegisters: RegisterState) {

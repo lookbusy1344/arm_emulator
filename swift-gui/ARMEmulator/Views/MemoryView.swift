@@ -96,7 +96,6 @@ struct MemoryView: View {
             // Note: We intentionally DON'T refresh on PC change - memory content
             // only changes when there's a write, not when PC advances.
             guard let writeAddr = viewModel.lastMemoryWrite else {
-                // No write this step - keep previous highlight visible
                 return
             }
 
