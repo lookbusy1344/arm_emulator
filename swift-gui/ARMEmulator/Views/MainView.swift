@@ -172,7 +172,7 @@ struct MainView: View {
                         }
                     }
                 }
-                .frame(maxWidth: 800)
+                .frame(idealWidth: 665, maxWidth: 800)
             }
             .frame(minHeight: 300)
 

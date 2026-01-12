@@ -307,7 +307,8 @@ struct MemoryDisplayView: View {
                     }
                 }
                 .font(.system(size: 10, design: .monospaced))
-                .padding(8)
+                .padding(.vertical, 8)
+                .padding(.horizontal, 4)
                 .task(id: scrollToRow) {
                     if let row = scrollToRow {
                         try? await Task.sleep(nanoseconds: 10_000_000) // 10ms delay
