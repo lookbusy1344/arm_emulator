@@ -9,6 +9,7 @@ struct MemoryView: View {
     @State private var highlightedWriteAddress: UInt32?
     @State private var refreshID = UUID()
     @State private var scrollToRow: Int?
+    @State private var lastScrolledRow: Int?
 
     private let bytesPerRow = 16
     private let rowsToShow = 16
@@ -117,15 +118,14 @@ struct MemoryView: View {
                 highlightedWriteAddress = writeAddr
 
                 // Trigger scroll to the row containing the write (if auto-scroll enabled)
+                // Only scroll if the row has changed to avoid redundant animations
                 if autoScrollEnabled {
                     let rowOffset = Int((writeAddr - baseAddress) / UInt32(bytesPerRow))
-                    if rowOffset >= 0 && rowOffset < rowsToShow {
+                    if rowOffset >= 0 && rowOffset < rowsToShow && rowOffset != lastScrolledRow {
                         scrollToRow = rowOffset
+                        lastScrolledRow = rowOffset
                     }
                 }
-
-                // Force view refresh
-                refreshID = UUID()
             }
         }
     }
@@ -154,8 +154,9 @@ struct MemoryView: View {
             return
         }
 
-        // Clear any existing highlight when manually navigating
+        // Clear any existing highlight and scroll tracking when manually navigating
         highlightedWriteAddress = nil
+        lastScrolledRow = nil
         Task {
             await loadMemoryAsync(at: address)
             refreshID = UUID()
@@ -182,6 +183,7 @@ struct MemoryView: View {
     /// Synchronous wrapper for button actions that start a Task
     private func loadMemory(at address: UInt32) {
         highlightedWriteAddress = nil
+        lastScrolledRow = nil
         Task {
             await loadMemoryAsync(at: address)
             refreshID = UUID()
