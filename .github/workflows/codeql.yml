@@ -53,10 +53,19 @@ jobs:
 
       - if: matrix.language == 'swift'
         name: Install Swift tools
+        shell: bash
         run: |
-          if command -v xcodegen &> /dev/null; then
+          set -euo pipefail
+
+          if command -v xcodegen >/dev/null 2>&1; then
             echo "xcodegen already installed"
-          elif [ -f /usr/local/bin/brew ]; then
+            exit 0
+          fi
+
+          # Homebrew refuses to operate when invoked under Rosetta with an ARM prefix.
+          if [ -x /opt/homebrew/bin/brew ]; then
+            /usr/bin/arch -arm64 /opt/homebrew/bin/brew install xcodegen
+          elif [ -x /usr/local/bin/brew ]; then
             /usr/local/bin/brew install xcodegen
           else
             brew install xcodegen
@@ -65,13 +74,27 @@ jobs:
       - if: matrix.language == 'swift'
         name: Generate Xcode project
         working-directory: swift-gui
-        run: xcodegen generate
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ "$(/usr/sbin/sysctl -n sysctl.proc_translated 2>/dev/null || echo 0)" = "1" ]; then
+            /usr/bin/arch -arm64 xcodegen generate
+          else
+            xcodegen generate
+          fi
 
       - if: matrix.language == 'swift'
         name: Build Swift app
         working-directory: swift-gui
+        shell: bash
         run: |
-          xcodebuild clean build \
+          set -euo pipefail
+          XCODEBUILD=(xcodebuild)
+          if [ "$(/usr/sbin/sysctl -n sysctl.proc_translated 2>/dev/null || echo 0)" = "1" ]; then
+            XCODEBUILD=(/usr/bin/arch -arm64 xcodebuild)
+          fi
+
+          "${XCODEBUILD[@]}" clean build \
             -project ARMEmulator.xcodeproj \
             -scheme ARMEmulator \
             -configuration Release \
