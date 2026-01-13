@@ -6,7 +6,9 @@ This is an example of using vibe coding to re-create my first commercial project
 
 Here I am attempting to use Claude Code to broadly recreate the emulator as a cross-platform Go project, with a simple TUI debugger. Claude was given a one-paragraph prompt and essentially left to its own devices, with only gentle high level steering.
 
-This branch contains a Swift native macOS app GUI that connects to the Go backend API. See [SWIFT_GUI_PLANNING.md](SWIFT_GUI_PLANNING.md) for architecture details and [docs/SWIFT_CLI_AUTOMATION.md](docs/SWIFT_CLI_AUTOMATION.md) for comprehensive CLI development guide. This is intended as a replacement for the Wails cross-platform GUI, which proved overly complex to develop.
+After the TUI interface, I went on to make a cross-platform GUI using Wails. While this works, I was dissatisfied with the webview interface, so in version 2 I have gone on to write a native Swift GUI for macOS, calling into the go VM using a rest API.
+
+Perhaps later I will write a Windows GUI using the same backend, using WinUI or WPF.
 
 ## Security
 
@@ -24,126 +26,9 @@ The Acorn Archimedes family of personal computers was built using the ARM2 along
 
 https://en.wikichip.org/wiki/acorn/microarchitectures/arm1
 
-## Initial prompt to Claude
+## Vibe Coded
 
-*"Write a markdown file outline specification for a ARM2 assembly language emulator. Actually producing machine code is not initially important, the assembly language file should be interpreted and run by a simple virtual machine environment. We also need a debugger with a TUI, allowing single step, step over/into, and watching memory locations and registers and viewing the call stack."*
-
-## Later prompts
-
-Once I checked the specification, I asked Claude to produce a staged implementation plan, breaking the project down into manageable phases in `IMPLEMENTATION_PLAN.md`. It produced 10 phases, which looked reasonable.
-
-The prompt for each phase was *"Let’s implement phase X from IMPLEMENTATION_PLAN.md, documenting completed work in PROGRESS.md, and implement appropriate tests. Anything that you cannot fix, note in TODO.md"*
-
-Claude can sometimes suffer from groupthink, just confirming the code is excellent without looking afresh. This prompt helps *"Look at it with fresh eyes. The engineer implemented it suspiciously quickly and I do not trust their work"*
-
-## Project duration and size
-
-Estimated time spent vibing this project in the initial phase, based on git logs:
-
-| Date       | Hours | Tool    |
-|------------|-------|---------|
-| 2025-10-08 | 3.8   | Claude  |
-| 2025-10-09 | 4.6   | Claude  |
-| 2025-10-10 | 3.1   | Claude  |
-| 2025-10-11 | 5.1   | Claude  |
-| 2025-10-12 | 3.3   | Claude  |
-| 2025-10-13 | 5.7   | Copilot VSCode  |
-| 2025-10-14 | 4.2   | Copilot CLI |
-| 2025-10-15 | 2.7   | Copilot CLI |
-| 2025-10-16 | 3.5   | Claude  |
-| 2025-10-17 | 5.5   | Claude  |
-| 2025-10-18 | 3.9   | Claude  |
-| 2025-10-19 | 4.9   | Claude  |
-| 2025-10-20 | 1.1   | Claude  |
-| 2025-10-21 | 1.6   | Claude  |
-| 2025-10-22 | 1.9   | Copilot CLI  |
-| 2025-10-23 | 2.1   | Claude  |
-| **Total**  | **57.0** |
-| **Average** | **3.6** |
-
-Length of Go code on 29 Dec 2025 is **54,046 lines**. About 800 lines per hour, or 6,400 lines per standard 8 hour day. This excludes documentation and other files.
-
-## Daily progress
-
-**Day 1 - 8 Oct** - Claude has written a specification, and a staged implementation plan. It's made good progress with phases 1-5 completed.
-
-**Day 2 - 9 Oct** - Phases 6-10 completed. From the original plan the project should be essentially complete, but there is actually much more to do, including the parser. I have directed Claude to note in TODO.md anything it cannot complete, as frequently it will truncate a complex task and then 'forget' about the more difficult features left unfinished.
-
-**Day 3 - 10 Oct** - Go code is about 25,000 lines using command:
-
-```
-find . -name "*.go" -type f -exec cat {} + | wc -l
-```
-
-**Day 4 - 11 Oct** - Whats becoming increasingly clear is that, although Claude is very impressive and has done great things in only 4 days (3 hours per day), it can get lost in the weeds. It has a tendency to 'fix' tests by removing them, or simplifying them. It sometimes loses sight of the big picture and currently several of the test programs to not operate correctly (but Claude hasn't noticed).
-
-Today I have focused on getting the example programs (written by Claude) to run properly, which acts as good integration testing.
-
-Go code is 28,331 lines long at the end of day. Weekly Claude usages limits are being approached.
-
-**Day 5 - 12 Oct** - Asking Claude if any core ARM2 instructions are left to implement (apparently not), and to write comprehensive tests for all instructions. This has found several instructions that are malfunctioning, and it’s important to keep reminding Claude not to simplify or delete tests that fail, but to address the underlying issue. However the project is beginning to look impressive now, and I still haven't written or edited one line of Go here, just markdown files and prompts to Claude.
-
-Today I have focused on asking Claude to write challenging example programs, but not at this stage getting them to run (to avoid issues with Claude just deleting things that don't work). I have also asked it to write comprehensive tests for all instructions, again without focusing too much on whether they pass.
-
-Go code is 33,461 lines. Weekly Claude usage limits reached, can resume again on Thursday 16 Oct. In the interim I will use Sonnet 4.5 with Copilot.
-
-It's important to have clear daily (or at least progressive) goals, so we can keep Claude focused on them.
-
-**Day 6 - 13 Oct - Copilot VSCode** - Switched to Sonnet 4.5 in Copilot interactively with VSCode, because Claude Code weekly limits have been reached. While making progress, several more example programs are failing without detection from Copilot. The automated tests are clearly not thorough enough.
-
-I've been working through the failing example programs, and getting them to run without Copilot editing out the parts that don't work. This is a slow but I'm making progress.
-
-Last step of the day was to take more detailed control, and tell Copilot to include integration tests that run whole example programs, comparing the output to expected output files. This is a good way to catch problems that unit tests miss (although some example programs are still failing). This is the first code I have actually looked at in detail and directed more closely, eg 9262a29b2373970592ad.
-
-Go code now is 34,735 lines.
-
-**Day 7 - 14 Oct - Copilot CLI** - Today I’m trying Copilot CLI. https://github.com/github/copilot-cli with the default Sonnet 4.5 model, from commit c3d1c0ada6fbf073e0. Not as slick as Claude Code, and needs more confirmations.
-
-Commit f19616250600ed4ed9883 breaks integration tests (the script runs fine by hand), and Sonnet 4.5 completely failed to fix it. Switching to GPT-5 however seemed to fixed very elegantly, although it is slow and uncommunicative. The solution just appeared after minutes of silence!
-
-By 2001523f91760431f078e we have all the example programs fixed, and running as integration tests. Something I've closely pushed for in the latest phase of development.
-
-**Day 8 - 15 Oct - Copilot CLI** - More integration tests. Updating the documents. Although not as polished as Claude, Copilot has the choice of models which can be useful.
-
-Go code now is 35,206 lines.
-
-**Day 9 - 16 Oct - Claude Code** - Back on Claude Code, far superior to Copilot. Adding some missing assembly instructions, and automated testing the TUI interface, and Register Access Pattern Analysis.
-
-Go code is now 40,352 lines and we have 75% code coverage. Note the big jump in output.
-
-**Day 10 - 17 Oct** - The project is almost finished and ready for detailed review, a substantial task for over 40k lines of code! Today I have mainly focused on docs, checked through the tutorial and making a list of specific fixes and clarifications I’d like Claude to make. Also worked on a solution for the CPSR issue with 32 bit addresses (this is a small departure from strict ARM2 that used 26 bit addressing, and stored CPU flags in the remaining bits of the PC register). This emulator uses full 32 bit addressing, so we need to store the CPSR flags separately. This is only a theoretical issue for most example programs, because there are no hardware interrupts.
-
-Go code is now 42,481 lines.
-
-All unit and integration tests are passing, and the test system runs all the example programs and confirms their output.
-
-Release automation added, and v0.9.0 tagged. We now have automatic builds for 4 platforms. Perhaps at this point I should actually try it with some assembly I have written myself 😂
-
-**Day 11 - 18 Oct** - Telling Claude to take a fresh look with prompt *"Look at it with fresh eyes. The engineer implemented it suspiciously quickly and I do not trust their work"* created a good PR that apparently fixes some serious bugs from commits 233b2d5 to 93e7fa0. Interesting!
-
-Also working on TUI debugging, which had a number of problems and doesn't seem to be well tested. By end of day it's much more usable.
-
-Go code is now 44,073 lines, over approx 45 hours. That's 980 lines per hour.
-
-**Day 12 - 19 Oct** - Final polish on the TUI, highlighting altered memory locations in green and showing labels properly in the Source window. UI testing is much slower because I need to manually run it, observe changes I'd like, ask Claude and repeat the loop.
-
-Go code is now 44,276 lines.
-
-## Summary, some thoughts
-
-At this stage I’ve probably taken vibing as far as I can go without actually writing some ARM2 assembly and trying to run and debug it by hand. So far every test program has been written by Claude (or Copilot, when Claude limits were exceeded).
-
-In terms of developer experience, *Claude Code* is amazing for backend/API and when testing can be automated. It’s easy to get jaded and blasé about current AI progress, but if you told me 2 years ago this would be possible I would have said you were dreaming! It's not so good when work is highly visual (the TUI debugger), and automated testing doesn't seem very useful. This would probably extend to websites.
-
-My criticisms are minor. You need to lean on Claude to preserve tests that fail, and actually fix the issue not delete the test. Instructions in CLAUDE.md should be strong in this regard. The only time I’ve applied detailed pressure and closely monitored code was when instructing Claude to write comprehensive integration tests, running the example programs and checking the output against expected results. Even then, some failing examples survived unnoticed between days 7-10. This might be less of an issue when Claude is writing something less esoteric and more easily seen, like a website. In this project, the goals were always loosely defined and many example programs were pretty open-ended.
-
-Giving Claude strong instructions to "Look at it with fresh eyes" is vital for getting good code reviews.
-
-Claude continues to evolve quickly. Even during these 2 weeks, it has had 2 significant updates: first with Sonnet 4.5 and then today the faster Haiku 4.5 for simple tasks. Haiku completed small doc updates and automatic release workflows almost instantly.
-
-Exciting times. Perhaps I should think of a second more challenging vibe-coding project!
-
-**The rest of this document is AI generated.**
+This is a vibe-coded project. Details of the initial prompt and development process followed in the first few weeks are documented in [Vibe_coding.md](Vibe_coding.md).
 
 ## Documentation
 
