@@ -6,9 +6,13 @@ This is an example of using vibe coding to re-create my first commercial project
 
 Here I am attempting to use Claude Code to broadly recreate the emulator as a cross-platform Go project, with a simple TUI debugger. Claude was given a one-paragraph prompt and essentially left to its own devices, with only gentle high level steering.
 
-After the TUI interface, I went on to make a cross-platform GUI using Wails. While this works, I was dissatisfied with the webview interface, so **the Wails GUI is now deprecated**. The current GUI is a **native Swift app for macOS** that provides a superior native experience, calling into the Go VM using a REST API.
+After the TUI interface, I went on to make a cross-platform GUI using Wails. While this works, I was dissatisfied with the webview interface, so **the Wails GUI is now deprecated**. The current GUI is a **native Swift app for macOS** that provides a superior native experience, calling into the Go VM using a REST API. Perhaps later I will write a Windows GUI using the same backend, using WinUI or WPF.
 
-Perhaps later I will write a Windows GUI using the same backend, using WinUI or WPF.
+The project therefore consists of:
+
+- A Go backend implementing the ARM2 emulator, CLI and TUI debugger, and REST API for GUI integration
+- A native Swift macOS app providing a GUI frontend using SwiftUI and MVVM architecture
+- (Deprecated) A Wails cross-platform GUI using web technologies
 
 ## Security
 
@@ -29,6 +33,8 @@ https://en.wikichip.org/wiki/acorn/microarchitectures/arm1
 ## Vibe Coded
 
 This is a vibe-coded project. Details of the initial prompt and development process followed in the first few weeks are documented in [Vibe_coding.md](Vibe_coding.md).
+
+As a rough guide to the size of the project, the Go code on 13 Jan 2026 is around **61,000 lines**. The Swift GUI code is around **6,100 lines**.
 
 ## Documentation
 
