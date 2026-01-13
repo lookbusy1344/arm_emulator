@@ -23,27 +23,6 @@ jobs:
       - name: Build
         run: go build -o arm-emulator
 
-      - name: Install Linux dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.1-dev pkg-config
-          sudo ln -sf /usr/lib/x86_64-linux-gnu/pkgconfig/webkit2gtk-4.1.pc /usr/lib/x86_64-linux-gnu/pkgconfig/webkit2gtk-4.0.pc || true
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-
-      - name: Install Wails
-        run: go install github.com/wailsapp/wails/v2/cmd/wails@latest
-
-      - name: Build Wails GUI
-        run: |
-          cd gui/frontend
-          npm install
-          cd ..
-          wails build
-
       - name: Run tests
         run: go test ./...
 
@@ -54,3 +33,41 @@ jobs:
 
       - name: Run golangci-lint
         run: golangci-lint run ./...
+
+  swift-gui:
+    runs-on: macos-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.25"
+
+      - name: Build Go backend
+        run: make build
+
+      - name: Install Swift tools
+        run: |
+          brew install xcodegen swiftlint swiftformat xcbeautify
+
+      - name: Generate Xcode project
+        working-directory: swift-gui
+        run: xcodegen generate
+
+      - name: Run SwiftFormat check
+        working-directory: swift-gui
+        run: swiftformat --lint .
+
+      - name: Run SwiftLint
+        working-directory: swift-gui
+        run: swiftlint
+
+      - name: Build Swift app
+        working-directory: swift-gui
+        run: xcodebuild -project ARMEmulator.xcodeproj -scheme ARMEmulator build | xcbeautify
+
+      - name: Run Swift tests
+        working-directory: swift-gui
+        run: xcodebuild test -project ARMEmulator.xcodeproj -scheme ARMEmulator -destination 'platform=macOS' | xcbeautify
