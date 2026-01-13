@@ -53,7 +53,7 @@ jobs:
 
       - if: matrix.language == 'swift'
         name: Install Swift tools
-        run: brew install xcodegen swiftlint swiftformat xcbeautify
+        run: arch -arm64 brew install xcodegen swiftlint swiftformat xcbeautify
 
       - if: matrix.language == 'swift'
         name: Generate Xcode project
