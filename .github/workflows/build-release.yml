@@ -258,8 +258,14 @@ jobs:
           xcodebuild -project ARMEmulator.xcodeproj \
             -scheme ARMEmulator \
             -configuration Release \
+            -derivedDataPath build \
             -destination 'platform=macOS,arch=arm64' \
             build | xcbeautify
+
+      - name: Verify build output
+        run: |
+          echo "=== Checking swift-gui/build directory ==="
+          ls -laR swift-gui/build/ || echo "No build directory found"
 
       - name: Sign macOS app
         run: |
