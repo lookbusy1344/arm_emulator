@@ -26,6 +26,7 @@ const (
 	StateHalted
 	StateBreakpoint
 	StateError
+	StateWaitingForInput // VM is blocked waiting for stdin input
 )
 
 // Instruction represents a decoded ARM instruction
@@ -97,8 +98,12 @@ type VM struct {
 	stdinReader *bufio.Reader
 
 	// Last memory write address for GUI highlighting
-	LastMemoryWrite uint32
-	HasMemoryWrite  bool
+	LastMemoryWrite     uint32
+	LastMemoryWriteSize uint32 // Size of last write in bytes (1, 2, or 4)
+	HasMemoryWrite      bool
+
+	// State change callback for API/GUI to broadcast state changes (e.g., waiting for input)
+	OnStateChange func(state ExecutionState)
 }
 
 // NewVM creates a new virtual machine instance
@@ -116,6 +121,14 @@ func NewVM() *VM {
 		OutputWriter:     os.Stdout,                            // Default to stdout
 		files:            make([]*os.File, DefaultFDTableSize), // Will be lazily initialized to stdin/stdout/stderr
 		stdinReader:      bufio.NewReader(os.Stdin),            // Per-instance stdin reader
+	}
+}
+
+// SetState sets the VM state and calls the state change callback if registered
+func (vm *VM) SetState(state ExecutionState) {
+	vm.State = state
+	if vm.OnStateChange != nil {
+		vm.OnStateChange(state)
 	}
 }
 
@@ -151,6 +164,7 @@ func (vm *VM) Reset() {
 
 	// Clear memory write tracking
 	vm.LastMemoryWrite = 0
+	vm.LastMemoryWriteSize = 0
 	vm.HasMemoryWrite = false
 
 	// Clear trace/diagnostic structures
@@ -447,11 +461,6 @@ func (vm *VM) Run() error {
 // GetState returns the current execution state
 func (vm *VM) GetState() ExecutionState {
 	return vm.State
-}
-
-// SetState sets the execution state
-func (vm *VM) SetState(state ExecutionState) {
-	vm.State = state
 }
 
 // GetInstructionHistory returns the history of executed instruction addresses

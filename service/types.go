@@ -44,10 +44,11 @@ type MemoryRegion struct {
 type ExecutionState string
 
 const (
-	StateRunning    ExecutionState = "running"
-	StateHalted     ExecutionState = "halted"
-	StateBreakpoint ExecutionState = "breakpoint"
-	StateError      ExecutionState = "error"
+	StateRunning         ExecutionState = "running"
+	StateHalted          ExecutionState = "halted"
+	StateBreakpoint      ExecutionState = "breakpoint"
+	StateError           ExecutionState = "error"
+	StateWaitingForInput ExecutionState = "waiting_for_input"
 )
 
 // VMStateToExecution converts vm.ExecutionState to service.ExecutionState
@@ -61,6 +62,8 @@ func VMStateToExecution(state vm.ExecutionState) ExecutionState {
 		return StateBreakpoint
 	case vm.StateError:
 		return StateError
+	case vm.StateWaitingForInput:
+		return StateWaitingForInput
 	default:
 		return StateHalted
 	}
@@ -84,5 +87,13 @@ type StackEntry struct {
 // MemoryWriteInfo represents information about the last memory write
 type MemoryWriteInfo struct {
 	Address  uint32 `json:"address"`
+	Size     uint32 `json:"size"` // Size of write in bytes (1, 2, or 4)
 	HasWrite bool   `json:"hasWrite"`
+}
+
+// SourceMapEntry represents a mapping from address to source code
+type SourceMapEntry struct {
+	Address    uint32 `json:"address"`
+	LineNumber int    `json:"lineNumber"` // 1-based source file line number
+	Line       string `json:"line"`       // Source code text
 }

@@ -1,6 +1,10 @@
 package vm_test
 
-import "github.com/lookbusy1344/arm-emulator/vm"
+import (
+	"io"
+
+	"github.com/lookbusy1344/arm-emulator/vm"
+)
 
 // Helper function to enable write permissions on code segment
 func setupCodeWrite(v *vm.VM) {
@@ -18,4 +22,9 @@ func setupDataWrite(v *vm.VM) {
 			seg.Permissions = vm.PermRead | vm.PermWrite
 		}
 	}
+}
+
+// Helper function to create a stdin pipe for testing
+func createStdinPipe() (*io.PipeReader, *io.PipeWriter) {
+	return io.Pipe()
 }

@@ -1,13 +1,20 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
+	"net/http"
 	"os"
+	"os/signal"
 	"path/filepath"
 	"sort"
 	"strings"
+	"sync"
+	"syscall"
+	"time"
 
+	"github.com/lookbusy1344/arm-emulator/api"
 	"github.com/lookbusy1344/arm-emulator/config"
 	"github.com/lookbusy1344/arm-emulator/debugger"
 	"github.com/lookbusy1344/arm-emulator/loader"
@@ -30,6 +37,8 @@ func main() {
 		showHelp    = flag.Bool("help", false, "Show help information")
 		debugMode   = flag.Bool("debug", false, "Start in debugger mode")
 		tuiMode     = flag.Bool("tui", false, "Use TUI (Text User Interface) debugger")
+		apiServer   = flag.Bool("api-server", false, "Start HTTP API server mode")
+		apiPort     = flag.Int("port", 8080, "API server port (used with -api-server)")
 		maxCycles   = flag.Uint64("max-cycles", 1000000, "Maximum CPU cycles before halt")
 		stackSize   = flag.Uint("stack-size", vm.StackSegmentSize, "Stack size in bytes")
 		entryPoint  = flag.String("entry", "0x8000", "Entry point address (hex or decimal)")
@@ -81,7 +90,60 @@ func main() {
 	}
 
 	// Show help
-	if *showHelp || flag.NArg() == 0 {
+	if *showHelp {
+		printHelp()
+		os.Exit(0)
+	}
+
+	// Start API server mode if requested
+	if *apiServer {
+		server := api.NewServerWithVersion(*apiPort, Version, Commit, Date)
+
+		// Setup graceful shutdown
+		sigChan := make(chan os.Signal, 1)
+		signal.Notify(sigChan, os.Interrupt, syscall.SIGTERM)
+
+		// Create shutdown function with sync.Once to ensure it runs only once
+		// This prevents race conditions between signal handler and process monitor
+		var shutdownOnce sync.Once
+		performShutdown := func() {
+			shutdownOnce.Do(func() {
+				fmt.Println("\nShutting down API server...")
+
+				// Graceful shutdown with timeout
+				ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+				defer cancel()
+
+				if err := server.Shutdown(ctx); err != nil {
+					fmt.Fprintf(os.Stderr, "Error during shutdown: %v\n", err)
+					os.Exit(1)
+				}
+
+				fmt.Println("API server stopped")
+				os.Exit(0)
+			})
+		}
+
+		// Start process monitor to detect parent death (Swift app crash/force-quit)
+		// This prevents orphaned backend processes when the GUI terminates unexpectedly
+		monitor := api.NewProcessMonitor(performShutdown)
+		monitor.Start()
+
+		// Start server in goroutine
+		go func() {
+			if err := server.Start(); err != nil && err != http.ErrServerClosed {
+				fmt.Fprintf(os.Stderr, "API server error: %v\n", err)
+				os.Exit(1)
+			}
+		}()
+
+		// Wait for shutdown signal (Ctrl+C or SIGTERM)
+		<-sigChan
+		performShutdown()
+	}
+
+	// Require assembly file for emulator mode
+	if flag.NArg() == 0 {
 		printHelp()
 		os.Exit(0)
 	}
@@ -645,10 +707,13 @@ func printHelp() {
 	fmt.Printf(`ARM2 Emulator %s
 
 Usage: arm-emulator [options] <assembly-file>
+       arm-emulator -api-server [-port N]
 
 Options:
   -help              Show this help message
   -version           Show version information
+  -api-server        Start HTTP API server mode (no assembly file required)
+  -port N            API server port (default: 8080, used with -api-server)
   -debug             Start in debugger mode (CLI)
   -tui               Start in TUI debugger mode
   -max-cycles N      Set maximum CPU cycles (default: 1000000)
@@ -687,6 +752,10 @@ Diagnostic Modes:
   -register-trace-format Register trace format: text, json (default: text)
 
 Examples:
+  # Start API server for GUI frontends (Swift app, Wails app)
+  arm-emulator -api-server
+  arm-emulator -api-server -port 3000
+
   # Run a program directly
   arm-emulator examples/hello.s
 

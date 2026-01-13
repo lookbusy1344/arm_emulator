@@ -1,6 +1,8 @@
 package vm_test
 
 import (
+	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/lookbusy1344/arm-emulator/vm"
@@ -675,5 +677,242 @@ func TestVM_FindEntryPoint(t *testing.T) {
 	}
 	if addr3 != vm.CodeSegmentStart {
 		t.Errorf("expected default entry point=0x%08X, got 0x%08X", vm.CodeSegmentStart, addr3)
+	}
+}
+
+// Memory Tracking Tests for SWI Syscalls
+
+func TestReadStringSetsMemoryTracking(t *testing.T) {
+	// Setup VM with stdin pipe
+	v := vm.NewVM()
+	stdinReader, stdinWriter := createStdinPipe()
+	v.SetStdinReader(stdinReader)
+
+	// Setup buffer in data segment
+	bufferAddr := uint32(0x10000)
+	v.CPU.R[0] = bufferAddr // Buffer address
+	v.CPU.R[1] = 100        // Max length
+	v.CPU.PC = 0x8000
+
+	// Clear tracking flags before test
+	v.HasMemoryWrite = false
+	v.LastMemoryWrite = 0
+	v.LastMemoryWriteSize = 0
+
+	// Execute SWI #0x05 (READ_STRING) in goroutine
+	setupCodeWrite(v)
+	v.Memory.WriteWord(0x8000, 0xEF000005)
+
+	// Write test input to stdin in goroutine (after VM starts reading)
+	testInput := "hello"
+	go func() {
+		stdinWriter.Write([]byte(testInput + "\n"))
+	}()
+
+	err := v.Step()
+
+	if err != nil {
+		t.Fatalf("READ_STRING failed: %v", err)
+	}
+
+	// Verify memory tracking flags are set
+	if !v.HasMemoryWrite {
+		t.Error("expected HasMemoryWrite=true after READ_STRING")
+	}
+
+	if v.LastMemoryWrite != bufferAddr {
+		t.Errorf("expected LastMemoryWrite=0x%08X, got 0x%08X", bufferAddr, v.LastMemoryWrite)
+	}
+
+	expectedSize := uint32(len(testInput) + 1) // Input + null terminator
+	if v.LastMemoryWriteSize != expectedSize {
+		t.Errorf("expected LastMemoryWriteSize=%d, got %d", expectedSize, v.LastMemoryWriteSize)
+	}
+}
+
+func TestReadStringErrorNoTracking(t *testing.T) {
+	// Setup VM with closed stdin pipe to trigger read error
+	v := vm.NewVM()
+	stdinReader, stdinWriter := createStdinPipe()
+	v.SetStdinReader(stdinReader)
+	stdinWriter.Close() // Close writer to cause EOF/error
+
+	// Setup buffer in data segment
+	bufferAddr := uint32(0x10000)
+	v.CPU.R[0] = bufferAddr // Buffer address
+	v.CPU.R[1] = 100        // Max length
+	v.CPU.PC = 0x8000
+
+	// Clear tracking flags before test
+	v.HasMemoryWrite = false
+	v.LastMemoryWrite = 0
+	v.LastMemoryWriteSize = 0
+
+	// Execute SWI #0x05 (READ_STRING)
+	setupCodeWrite(v)
+	v.Memory.WriteWord(0x8000, 0xEF000005)
+	err := v.Step()
+
+	if err != nil {
+		t.Fatalf("Step() failed: %v", err)
+	}
+
+	// Verify syscall returned error code
+	if v.CPU.R[0] != vm.SyscallErrorGeneral {
+		t.Errorf("expected R0=0xFFFFFFFF (error), got R0=0x%08X", v.CPU.R[0])
+	}
+
+	// Verify memory tracking flags are NOT set on error
+	if v.HasMemoryWrite {
+		t.Error("expected HasMemoryWrite=false after READ_STRING error")
+	}
+
+	if v.LastMemoryWrite != 0 {
+		t.Errorf("expected LastMemoryWrite=0 after error, got 0x%08X", v.LastMemoryWrite)
+	}
+
+	if v.LastMemoryWriteSize != 0 {
+		t.Errorf("expected LastMemoryWriteSize=0 after error, got %d", v.LastMemoryWriteSize)
+	}
+}
+
+func TestReadSetsMemoryTracking(t *testing.T) {
+	// Create temporary file with test data
+	tmpDir := t.TempDir()
+	tmpFile := filepath.Join(tmpDir, "testfile.txt")
+	testData := []byte("test data!")
+	if err := os.WriteFile(tmpFile, testData, 0600); err != nil {
+		t.Fatalf("failed to create test file: %v", err)
+	}
+
+	// Setup VM with filesystem root
+	v := vm.NewVM()
+	v.FilesystemRoot = tmpDir
+
+	// Write filename to memory for OPEN syscall
+	filenameAddr := uint32(0x10000)
+	filename := "testfile.txt"
+	setupDataWrite(v)
+	for i, ch := range []byte(filename) {
+		v.Memory.WriteByteAt(filenameAddr+uint32(i), ch)
+	}
+	v.Memory.WriteByteAt(filenameAddr+uint32(len(filename)), 0) // Null terminator
+
+	// Open file (SWI #0x10)
+	v.CPU.R[0] = filenameAddr    // Filename address
+	v.CPU.R[1] = vm.FileModeRead // Read mode
+	v.CPU.PC = 0x8000
+	setupCodeWrite(v)
+	v.Memory.WriteWord(0x8000, 0xEF000010) // SWI #0x10 (OPEN)
+	if err := v.Step(); err != nil {
+		t.Fatalf("OPEN failed: %v", err)
+	}
+
+	fd := v.CPU.R[0]
+	if fd == vm.SyscallErrorGeneral {
+		t.Fatal("OPEN returned error")
+	}
+
+	// Now test READ with tracking
+	bufferAddr := uint32(0x11000)
+	length := uint32(10)
+	v.CPU.R[0] = fd // File descriptor from OPEN
+	v.CPU.R[1] = bufferAddr
+	v.CPU.R[2] = length
+	v.CPU.PC = 0x8004
+
+	// Clear tracking flags before test
+	v.HasMemoryWrite = false
+	v.LastMemoryWrite = 0
+	v.LastMemoryWriteSize = 0
+
+	// Execute SWI #0x12 (READ)
+	v.Memory.WriteWord(0x8004, 0xEF000012)
+	err := v.Step()
+
+	if err != nil {
+		t.Fatalf("READ failed: %v", err)
+	}
+
+	// Verify read succeeded
+	bytesRead := v.CPU.R[0]
+	if bytesRead != length {
+		t.Errorf("expected R0=%d bytes read, got %d", length, bytesRead)
+	}
+
+	// Verify memory tracking flags are set
+	if !v.HasMemoryWrite {
+		t.Error("expected HasMemoryWrite=true after READ")
+	}
+
+	if v.LastMemoryWrite != bufferAddr {
+		t.Errorf("expected LastMemoryWrite=0x%08X, got 0x%08X", bufferAddr, v.LastMemoryWrite)
+	}
+
+	if v.LastMemoryWriteSize != length {
+		t.Errorf("expected LastMemoryWriteSize=%d, got %d", length, v.LastMemoryWriteSize)
+	}
+}
+
+func TestReallocateSetsMemoryTracking(t *testing.T) {
+	// Setup VM and allocate initial memory
+	v := vm.NewVM()
+	v.CPU.PC = 0x8000
+
+	// Allocate 64 bytes (SWI #0x20)
+	v.CPU.R[0] = 64
+	setupCodeWrite(v)
+	v.Memory.WriteWord(0x8000, 0xEF000020) // SWI #0x20 (ALLOCATE)
+	if err := v.Step(); err != nil {
+		t.Fatalf("ALLOCATE failed: %v", err)
+	}
+
+	oldAddr := v.CPU.R[0]
+	if oldAddr == 0 {
+		t.Fatal("ALLOCATE returned NULL")
+	}
+
+	// Write some data to old allocation
+	setupDataWrite(v)
+	for i := uint32(0); i < 10; i++ {
+		v.Memory.WriteByteAt(oldAddr+i, byte('A'+i))
+	}
+
+	// Now reallocate to 128 bytes (SWI #0x22)
+	v.CPU.R[0] = oldAddr // Old address
+	v.CPU.R[1] = 128     // New size
+	v.CPU.PC = 0x8004
+
+	// Clear tracking flags before test
+	v.HasMemoryWrite = false
+	v.LastMemoryWrite = 0
+	v.LastMemoryWriteSize = 0
+
+	// Execute SWI #0x22 (REALLOCATE)
+	v.Memory.WriteWord(0x8004, 0xEF000022)
+	err := v.Step()
+
+	if err != nil {
+		t.Fatalf("REALLOCATE failed: %v", err)
+	}
+
+	newAddr := v.CPU.R[0]
+	if newAddr == 0 {
+		t.Fatal("REALLOCATE returned NULL")
+	}
+
+	// Verify memory tracking flags are set
+	if !v.HasMemoryWrite {
+		t.Error("expected HasMemoryWrite=true after REALLOCATE")
+	}
+
+	if v.LastMemoryWrite != newAddr {
+		t.Errorf("expected LastMemoryWrite=0x%08X (new addr), got 0x%08X", newAddr, v.LastMemoryWrite)
+	}
+
+	// copySize should be min(oldSize, newSize) = min(64, 128) = 64
+	expectedSize := uint32(64)
+	if v.LastMemoryWriteSize != expectedSize {
+		t.Errorf("expected LastMemoryWriteSize=%d, got %d", expectedSize, v.LastMemoryWriteSize)
 	}
 }

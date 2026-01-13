@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log"
 	"math/rand"
 	"os"
 	"path/filepath"
@@ -12,6 +13,8 @@ import (
 	"strings"
 	"time"
 )
+
+var vmDebugEnabled = os.Getenv("ARM_EMULATOR_DEBUG") != ""
 
 // Error Handling Philosophy:
 //
@@ -379,6 +382,9 @@ func handleWriteString(vm *VM) error {
 		}
 	}
 
+	if vmDebugEnabled {
+		log.Printf("VM: handleWriteString writing %d bytes: %q to OutputWriter %T", len(str), string(str), vm.OutputWriter)
+	}
 	_, _ = fmt.Fprint(vm.OutputWriter, string(str)) // Ignore write errors
 	// Sync if it's a regular file (not a character device like stdout)
 	if f, ok := vm.OutputWriter.(*os.File); ok && shouldSyncFile(f) {
@@ -428,16 +434,21 @@ func handleWriteInt(vm *VM) error {
 }
 
 func handleReadChar(vm *VM) error {
+	// Signal that VM is waiting for input before blocking on read
+	vm.SetState(StateWaitingForInput)
+
 	// Skip any leading whitespace (newlines, spaces, tabs)
 	for {
 		char, err := vm.stdinReader.ReadByte()
 		if err != nil {
+			vm.SetState(StateRunning)                  // Restore running state
 			vm.CPU.SetRegister(0, SyscallErrorGeneral) // Return -1 on error
 			vm.CPU.IncrementPC()
 			return nil
 		}
 		// If it's not whitespace, we found our character
 		if char != '\n' && char != '\r' && char != ' ' && char != '\t' {
+			vm.SetState(StateRunning) // Restore running state
 			vm.CPU.SetRegister(0, uint32(char))
 			vm.CPU.IncrementPC()
 			return nil
@@ -453,14 +464,20 @@ func handleReadString(vm *VM) error {
 		maxLen = DefaultStringBuffer // Default max length
 	}
 
+	// Signal that VM is waiting for input before blocking on read
+	vm.SetState(StateWaitingForInput)
+
 	// Read string from stdin with size limit (DoS protection)
 	// Use a limited reader to prevent unbounded memory allocation
 	input, err := readLineWithLimit(vm.stdinReader, MaxStdinInputSize)
 	if err != nil {
+		vm.SetState(StateRunning)                  // Restore running state
 		vm.CPU.SetRegister(0, SyscallErrorGeneral) // Return -1 on error
 		vm.CPU.IncrementPC()
 		return nil
 	}
+
+	vm.SetState(StateRunning) // Restore running state
 
 	// Remove trailing newline
 	input = strings.TrimSuffix(input, "\n")
@@ -489,16 +506,26 @@ func handleReadString(vm *VM) error {
 	}
 
 	vm.CPU.SetRegister(0, bytesToWrite) // Return number of bytes written (excluding null)
+
+	// Track memory write for GUI highlighting
+	vm.LastMemoryWrite = addr
+	vm.LastMemoryWriteSize = bytesToWrite + 1 // Include null terminator
+	vm.HasMemoryWrite = true
+
 	vm.CPU.IncrementPC()
 	return nil
 }
 
 func handleReadInt(vm *VM) error {
+	// Signal that VM is waiting for input before blocking on read
+	vm.SetState(StateWaitingForInput)
+
 	// Read lines until we get a non-empty one or hit EOF
 	for {
 		// Use limited read to prevent DoS from unbounded input
 		line, err := readLineWithLimit(vm.stdinReader, MaxStdinInputSize)
 		if err != nil {
+			vm.SetState(StateRunning) // Restore running state
 			vm.CPU.SetRegister(0, 0)
 			vm.CPU.IncrementPC()
 			return nil
@@ -510,6 +537,8 @@ func handleReadInt(vm *VM) error {
 			// Skip empty lines
 			continue
 		}
+
+		vm.SetState(StateRunning) // Restore running state
 
 		value, err := strconv.ParseInt(line, 10, 32)
 		if err != nil {
@@ -854,6 +883,12 @@ func handleRead(vm *VM) error {
 		vm.CPU.IncrementPC()
 		return nil
 	}
+
+	// Signal waiting for input if reading from stdin (fd 0)
+	if fd == 0 {
+		vm.SetState(StateWaitingForInput)
+	}
+
 	// Buffer allocation: We allocate before the read operation rather than after validating
 	// the read will succeed. This is a trade-off for code clarity:
 	// - The file descriptor, size, and buffer range have been validated above
@@ -864,6 +899,12 @@ func handleRead(vm *VM) error {
 	// - Maximum allocation is capped at 1MB, limiting potential waste
 	data := make([]byte, length)
 	n, err := f.Read(data)
+
+	// Restore running state if we were reading from stdin
+	if fd == 0 {
+		vm.SetState(StateRunning)
+	}
+
 	if err != nil && n == 0 {
 		vm.CPU.SetRegister(0, SyscallErrorGeneral)
 		vm.CPU.IncrementPC()
@@ -879,6 +920,14 @@ func handleRead(vm *VM) error {
 	}
 	//nolint:gosec // G115: n is bounded by reasonable read size
 	vm.CPU.SetRegister(0, uint32(n))
+
+	// Track memory write for GUI highlighting (only if bytes were actually read)
+	if n > 0 {
+		vm.LastMemoryWrite = bufferAddr
+		vm.LastMemoryWriteSize = uint32(n) // #nosec G115 -- n is bounded by reasonable read size
+		vm.HasMemoryWrite = true
+	}
+
 	vm.CPU.IncrementPC()
 	return nil
 }
@@ -887,12 +936,7 @@ func handleWrite(vm *VM) error {
 	fd := vm.CPU.GetRegister(0)
 	bufferAddr := vm.CPU.GetRegister(1)
 	length := vm.CPU.GetRegister(2)
-	f, err := vm.getFile(fd)
-	if err != nil {
-		vm.CPU.SetRegister(0, SyscallErrorGeneral)
-		vm.CPU.IncrementPC()
-		return nil
-	}
+
 	// Security: limit write size to prevent memory exhaustion attacks
 	// Maximum allowed: 1MB
 	if length > MaxWriteSize {
@@ -916,6 +960,28 @@ func handleWrite(vm *VM) error {
 			return nil
 		}
 		data[i] = b
+	}
+
+	// Special handling for stdout/stderr when OutputWriter is configured
+	// This ensures consistency with SWI #0x10, #0x11, #0x12 which write to OutputWriter
+	if (fd == StdOut || fd == StdErr) && vm.OutputWriter != nil && vm.OutputWriter != os.Stdout {
+		n, err := vm.OutputWriter.Write(data)
+		if err != nil {
+			vm.CPU.SetRegister(0, SyscallErrorGeneral)
+		} else {
+			//nolint:gosec // G115: n is bounded by reasonable write size
+			vm.CPU.SetRegister(0, uint32(n))
+		}
+		vm.CPU.IncrementPC()
+		return nil
+	}
+
+	// For all other file descriptors, use the standard file descriptor table
+	f, err := vm.getFile(fd)
+	if err != nil {
+		vm.CPU.SetRegister(0, SyscallErrorGeneral)
+		vm.CPU.IncrementPC()
+		return nil
 	}
 	n, err := f.Write(data)
 	if err != nil {
@@ -1079,6 +1145,12 @@ func handleReallocate(vm *VM) error {
 	_ = vm.Memory.Free(oldAddr)
 
 	vm.CPU.SetRegister(0, newAddr)
+
+	// Track memory write for GUI highlighting
+	vm.LastMemoryWrite = newAddr
+	vm.LastMemoryWriteSize = copySize
+	vm.HasMemoryWrite = true
+
 	vm.CPU.IncrementPC()
 	return nil
 }

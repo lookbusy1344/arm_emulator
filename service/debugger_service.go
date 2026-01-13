@@ -8,6 +8,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 	"time"
 
@@ -67,7 +68,8 @@ type DebuggerService struct {
 	vm                   *vm.VM
 	debugger             *debugger.Debugger
 	symbols              map[string]uint32
-	sourceMap            map[uint32]string
+	sourceMap            []SourceMapEntry  // Address to source line mapping with line numbers
+	sourceMapByAddr      map[uint32]string // Quick lookup by address (for debugger)
 	program              *parser.Program
 	entryPoint           uint32
 	outputWriter         *EventEmittingWriter
@@ -77,6 +79,7 @@ type DebuggerService struct {
 	// stdin redirection for guest programs (GUI)
 	stdinPipeReader *io.PipeReader
 	stdinPipeWriter *io.PipeWriter
+	stdinBuffer     strings.Builder // Buffer for stdin sent before execution starts
 }
 
 // NewDebuggerService creates a new debugger service
@@ -89,7 +92,8 @@ func NewDebuggerService(machine *vm.VM) *DebuggerService {
 		vm:              machine,
 		debugger:        debugger.NewDebugger(machine),
 		symbols:         make(map[string]uint32),
-		sourceMap:       make(map[uint32]string),
+		sourceMap:       nil,
+		sourceMapByAddr: make(map[uint32]string),
 		stdinPipeReader: stdinReader,
 		stdinPipeWriter: stdinWriter,
 	}
@@ -132,26 +136,42 @@ func (s *DebuggerService) LoadProgram(program *parser.Program, entryPoint uint32
 		}
 	}
 
-	// Build source map
-	s.sourceMap = make(map[uint32]string)
+	// Build source map with line numbers
+	s.sourceMap = nil
+	s.sourceMapByAddr = make(map[uint32]string)
 	for _, inst := range program.Instructions {
-		s.sourceMap[inst.Address] = inst.RawLine
+		entry := SourceMapEntry{
+			Address:    inst.Address,
+			LineNumber: inst.Pos.Line,
+			Line:       inst.RawLine,
+		}
+		s.sourceMap = append(s.sourceMap, entry)
+		s.sourceMapByAddr[inst.Address] = inst.RawLine
 	}
+	// Note: Data directives are excluded from breakpoint-valid locations
+	// but kept in sourceMapByAddr for debugger display
 	for _, dir := range program.Directives {
 		if dir.Name == ".word" || dir.Name == ".byte" || dir.Name == ".ascii" ||
 			dir.Name == ".asciz" || dir.Name == ".space" {
-			s.sourceMap[dir.Address] = "[DATA]" + dir.RawLine
+			s.sourceMapByAddr[dir.Address] = "[DATA]" + dir.RawLine
 		}
 	}
 
 	// Create output buffer with event emission
-	outputBuffer := &bytes.Buffer{}
-	s.outputWriter = NewEventEmittingWriter(outputBuffer, s.ctx)
-	s.vm.OutputWriter = s.outputWriter
+	// IMPORTANT: Only set OutputWriter if it hasn't been configured already.
+	// The API server sets up EventWriter for WebSocket broadcasting before calling LoadProgram.
+	// The GUI (Wails) doesn't pre-configure OutputWriter, so we set up EventEmittingWriter for it.
+	if s.vm.OutputWriter == os.Stdout {
+		// OutputWriter is still the default (os.Stdout), so set up event emission
+		outputBuffer := &bytes.Buffer{}
+		s.outputWriter = NewEventEmittingWriter(outputBuffer, s.ctx)
+		s.vm.OutputWriter = s.outputWriter
+	}
+	// else: OutputWriter was already configured (e.g., by API layer), leave it alone
 
 	// Load into debugger
 	s.debugger.LoadSymbols(s.symbols)
-	s.debugger.LoadSourceMap(s.sourceMap)
+	s.debugger.LoadSourceMap(s.sourceMapByAddr)
 
 	// Load into VM memory
 	if err := loader.LoadProgramIntoVM(s.vm, program, entryPoint); err != nil {
@@ -200,7 +220,10 @@ func (s *DebuggerService) GetRegisterState() RegisterState {
 // Step executes a single instruction
 func (s *DebuggerService) Step() error {
 	s.mu.Lock()
-	defer s.mu.Unlock()
+	// Release lock BEFORE Step() because Step() may block on stdin read.
+	// This allows SendInput() to acquire RLock and write to the stdin pipe.
+	s.mu.Unlock()
+
 	return s.vm.Step()
 }
 
@@ -242,7 +265,8 @@ func (s *DebuggerService) Reset() error {
 	s.vm.EntryPoint = 0
 	s.vm.StackTop = 0
 	s.symbols = make(map[string]uint32)
-	s.sourceMap = make(map[uint32]string)
+	s.sourceMap = nil
+	s.sourceMapByAddr = make(map[uint32]string)
 
 	// Clear all breakpoints and watchpoints
 	s.debugger.Breakpoints.Clear()
@@ -289,6 +313,18 @@ func (s *DebuggerService) GetExecutionState() ExecutionState {
 func (s *DebuggerService) AddBreakpoint(address uint32) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+
+	// Validate that the address corresponds to actual code (not data)
+	// Use sourceMapByAddr which contains both code and data entries
+	line, exists := s.sourceMapByAddr[address]
+	if !exists {
+		return fmt.Errorf("invalid breakpoint address: 0x%X does not correspond to executable code", address)
+	}
+	// Reject data locations (prefixed with [DATA])
+	if len(line) >= 6 && line[:6] == "[DATA]" {
+		return fmt.Errorf("invalid breakpoint address: 0x%X is a data location, not executable code", address)
+	}
+
 	s.debugger.Breakpoints.AddBreakpoint(address, false, "")
 	return nil
 }
@@ -334,7 +370,10 @@ func (s *DebuggerService) GetMemory(address uint32, size uint32) ([]byte, error)
 		b, err := s.vm.Memory.ReadByteAt(address + i)
 		if err != nil {
 			serviceLog.Printf("GetMemory: ReadByteAt failed at offset %d: %v", i, err)
-			return nil, err
+			// Return 0 for unmapped or unreadable memory instead of failing the whole request
+			// This allows the memory view to show partial results at segment boundaries
+			data[i] = 0
+			continue
 		}
 		data[i] = b
 	}
@@ -349,9 +388,10 @@ func (s *DebuggerService) GetLastMemoryWrite() MemoryWriteInfo {
 
 	result := MemoryWriteInfo{
 		Address:  s.vm.LastMemoryWrite,
+		Size:     s.vm.LastMemoryWriteSize,
 		HasWrite: s.vm.HasMemoryWrite,
 	}
-	serviceLog.Printf("GetLastMemoryWrite: address=0x%08X, hasWrite=%v", result.Address, result.HasWrite)
+	serviceLog.Printf("GetLastMemoryWrite: address=0x%08X, size=%d, hasWrite=%v", result.Address, result.Size, result.HasWrite)
 	s.vm.HasMemoryWrite = false
 	return result
 }
@@ -360,21 +400,31 @@ func (s *DebuggerService) GetLastMemoryWrite() MemoryWriteInfo {
 func (s *DebuggerService) GetSourceLine(address uint32) string {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
-	return s.sourceMap[address]
+	return s.sourceMapByAddr[address]
 }
 
-// GetSourceMap returns the complete source map (address -> source line)
-func (s *DebuggerService) GetSourceMap() map[uint32]string {
+// GetSourceMap returns the source map entries with line numbers
+func (s *DebuggerService) GetSourceMap() []SourceMapEntry {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
 	// Return copy of source map to prevent external modification
-	sourceMap := make(map[uint32]string, len(s.sourceMap))
-	for addr, line := range s.sourceMap {
-		sourceMap[addr] = line
-	}
+	result := make([]SourceMapEntry, len(s.sourceMap))
+	copy(result, s.sourceMap)
+	return result
+}
 
-	return sourceMap
+// GetSourceMapByAddr returns address-to-line lookup (for debugger display)
+func (s *DebuggerService) GetSourceMapByAddr() map[uint32]string {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	// Return copy to prevent external modification
+	result := make(map[uint32]string, len(s.sourceMapByAddr))
+	for addr, line := range s.sourceMapByAddr {
+		result[addr] = line
+	}
+	return result
 }
 
 // GetSymbols returns all symbols
@@ -418,6 +468,24 @@ func (s *DebuggerService) RunUntilHalt() error {
 		s.mu.Unlock()
 		return nil
 	}
+
+	// Flush any buffered stdin to the pipe in a background goroutine
+	// This supports the batch stdin pattern where input is sent before calling run
+	// We use a goroutine because pipe writes block until there's a reader,
+	// but the reader only starts when the VM execution loop begins
+	if s.stdinBuffer.Len() > 0 {
+		buffered := s.stdinBuffer.String()
+		s.stdinBuffer.Reset()
+		serviceLog.Printf("Flushing %d bytes of buffered stdin in background", len(buffered))
+
+		// Launch goroutine to write to pipe (won't block RunUntilHalt)
+		go func() {
+			if _, err := s.stdinPipeWriter.Write([]byte(buffered)); err != nil {
+				serviceLog.Printf("Error writing buffered stdin to pipe: %v", err)
+			}
+		}()
+	}
+
 	s.vm.State = vm.StateRunning
 	s.mu.Unlock()
 
@@ -440,9 +508,18 @@ func (s *DebuggerService) RunUntilHalt() error {
 			break
 		}
 
-		// Execute step (while holding lock)
+		// Capture values needed for step
 		pc := s.vm.CPU.PC
+
+		// Release lock BEFORE Step() because Step() may block on stdin read.
+		// This allows SendInput() to acquire RLock and write to the stdin pipe.
+		s.mu.Unlock()
+
+		// Execute step (without holding lock - Step may block on stdin)
 		err := s.vm.Step()
+
+		// Reacquire lock to check state
+		s.mu.Lock()
 		halted := s.vm.State == vm.StateHalted
 		s.mu.Unlock()
 
@@ -566,7 +643,7 @@ func (s *DebuggerService) GetDisassembly(startAddr uint32, count int) []Disassem
 
 		// Get mnemonic from source map if available
 		mnemonic := ""
-		if sourceLine, ok := s.sourceMap[addr]; ok {
+		if sourceLine, ok := s.sourceMapByAddr[addr]; ok {
 			mnemonic = sourceLine
 		}
 
@@ -694,8 +771,16 @@ func (s *DebuggerService) StepOver() error {
 			}
 		}
 
+		// Release lock BEFORE Step() because Step() may block on stdin read.
+		s.mu.Unlock()
+
 		// Execute one instruction
-		if err := s.vm.Step(); err != nil {
+		err := s.vm.Step()
+
+		// Re-acquire lock
+		s.mu.Lock()
+
+		if err != nil {
 			s.debugger.Running = false
 			return err
 		}
@@ -835,12 +920,29 @@ func (s *DebuggerService) EvaluateExpression(expr string) (uint32, error) {
 // SendInput sends user input to the guest program's stdin
 // This is called from the GUI frontend when the user provides input
 func (s *DebuggerService) SendInput(input string) error {
-	// NOTE: No mutex lock here! io.Pipe is already thread-safe for concurrent reads/writes.
-	// Taking a lock here causes deadlock when RunUntilHalt holds the lock while blocked on stdin read.
-
 	if s.stdinPipeWriter == nil {
 		return fmt.Errorf("stdin pipe not initialized")
 	}
+
+	// Check if VM is running or waiting for input
+	// If not running and not waiting, buffer the input for later (batch stdin pattern)
+	s.mu.RLock()
+	running := s.debugger.Running
+	waiting := s.vm.State == vm.StateWaitingForInput
+	s.mu.RUnlock()
+
+	if !running && !waiting {
+		s.mu.Lock()
+		// Note: input should already include newline from API layer
+		s.stdinBuffer.WriteString(input)
+		s.mu.Unlock()
+		serviceLog.Printf("SendInput: Buffered %d bytes for later", len(input))
+		return nil
+	}
+
+	// VM is running or waiting for input - echo to output and write to pipe
+	// NOTE: No mutex lock for pipe write! io.Pipe is already thread-safe.
+	// Taking a lock here causes deadlock when RunUntilHalt holds the lock while blocked on stdin read.
 
 	// Echo the input to the output window so the user can see what they typed
 	// Use RLock to safely access OutputWriter
@@ -855,4 +957,97 @@ func (s *DebuggerService) SendInput(input string) error {
 	// Write input + newline to the stdin pipe (io.Pipe.Write is thread-safe)
 	_, err := s.stdinPipeWriter.Write([]byte(input + "\n"))
 	return err
+}
+
+// EnableExecutionTrace enables execution tracing
+func (s *DebuggerService) EnableExecutionTrace() error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	// Create execution trace if it doesn't exist
+	if s.vm.ExecutionTrace == nil {
+		// Use a bytes buffer for the trace output
+		var buf bytes.Buffer
+		s.vm.ExecutionTrace = vm.NewExecutionTrace(&buf)
+		// Load symbols if available
+		if len(s.symbols) > 0 {
+			s.vm.ExecutionTrace.LoadSymbols(s.symbols)
+		}
+	}
+
+	s.vm.ExecutionTrace.Enabled = true
+	s.vm.ExecutionTrace.Start()
+	return nil
+}
+
+// DisableExecutionTrace disables execution tracing
+func (s *DebuggerService) DisableExecutionTrace() {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	if s.vm.ExecutionTrace != nil {
+		s.vm.ExecutionTrace.Enabled = false
+	}
+}
+
+// GetExecutionTraceData returns execution trace entries
+func (s *DebuggerService) GetExecutionTraceData() ([]vm.TraceEntry, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	if s.vm.ExecutionTrace == nil {
+		return []vm.TraceEntry{}, nil
+	}
+
+	return s.vm.ExecutionTrace.GetEntries(), nil
+}
+
+// ClearExecutionTrace clears execution trace entries
+func (s *DebuggerService) ClearExecutionTrace() {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	if s.vm.ExecutionTrace != nil {
+		s.vm.ExecutionTrace.Clear()
+	}
+}
+
+// EnableStatistics enables performance statistics collection
+func (s *DebuggerService) EnableStatistics() error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	// Create statistics collector if it doesn't exist
+	if s.vm.Statistics == nil {
+		s.vm.Statistics = vm.NewPerformanceStatistics()
+	}
+
+	s.vm.Statistics.Enabled = true
+	s.vm.Statistics.Start()
+	return nil
+}
+
+// DisableStatistics disables performance statistics collection
+func (s *DebuggerService) DisableStatistics() {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	if s.vm.Statistics != nil {
+		s.vm.Statistics.Enabled = false
+	}
+}
+
+// GetStatistics returns performance statistics
+func (s *DebuggerService) GetStatistics() (*vm.PerformanceStatistics, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	if s.vm.Statistics == nil {
+		return nil, fmt.Errorf("statistics not enabled")
+	}
+
+	// Finalize statistics before returning
+	s.vm.Statistics.Finalize()
+
+	return s.vm.Statistics, nil
 }

@@ -1,0 +1,75 @@
+# Xcode User-Specific Files
+# These store personal preferences and should never be committed
+*.xcuserstate
+*.xcuserdatad/
+xcuserdata/
+project.xcworkspace/xcuserdata/
+
+# XcodeGen - Ignore generated project files
+# Project is generated from project.yml - run `xcodegen generate` to recreate
+*.xcodeproj
+
+# Xcode Build Products
+build/
+DerivedData/
+*.pbxuser
+*.mode1v3
+*.mode2v3
+*.perspectivev3
+
+# Xcode Schemes (keep shared schemes, ignore user schemes)
+!xcshareddata/
+
+# Swift Package Manager
+.swiftpm/
+Packages/
+*.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/
+.build/
+
+# macOS Files
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon
+
+# Thumbnails
+._*
+
+# Files that might appear in the root of a volume
+.DocumentRevisions-V100
+.fseventsd
+.Spotlight-V100
+.TemporaryItems
+.Trashes
+.VolumeIcon.icns
+.com.apple.timemachine.donotpresent
+
+# Directories potentially created on remote AFP share
+.AppleDB
+.AppleDesktop
+Network Trash Folder
+Temporary Items
+.apdisk
+
+# Testing
+*.gcda
+*.gcno
+
+# Code Coverage
+*.profdata
+*.coverage
+
+# App Packaging
+*.ipa
+*.dSYM.zip
+*.dSYM
+
+# Playgrounds
+timeline.xctimeline
+playground.xcworkspace
+
+# fastlane
+fastlane/report.xml
+fastlane/Preview.html
+fastlane/screenshots/**/*.png
+fastlane/test_output
