@@ -1,0 +1,78 @@
+name: "CodeQL"
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+  schedule:
+    - cron: '0 0 * * 1'  # Weekly on Monday
+
+permissions:
+  contents: read
+  security-events: write
+  actions: read
+
+jobs:
+  analyze:
+    name: Analyze (${{ matrix.language }})
+    runs-on: ${{ matrix.language == 'swift' && 'macos-latest' || 'ubuntu-latest' }}
+    timeout-minutes: 360
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - language: go
+            build-mode: autobuild
+          - language: swift
+            build-mode: manual
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: ${{ matrix.language }}
+          build-mode: ${{ matrix.build-mode }}
+
+      # Go autobuild works fine, so no manual steps needed
+
+      # Swift requires manual build steps
+      - if: matrix.language == 'swift'
+        name: Set up Go for Swift backend dependency
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.25"
+
+      - if: matrix.language == 'swift'
+        name: Build Go backend
+        run: make build
+
+      - if: matrix.language == 'swift'
+        name: Install Swift tools
+        run: brew install xcodegen swiftlint swiftformat xcbeautify
+
+      - if: matrix.language == 'swift'
+        name: Generate Xcode project
+        working-directory: swift-gui
+        run: xcodegen generate
+
+      - if: matrix.language == 'swift'
+        name: Build Swift app
+        working-directory: swift-gui
+        run: |
+          xcodebuild clean build \
+            -project ARMEmulator.xcodeproj \
+            -scheme ARMEmulator \
+            -configuration Release \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            | xcbeautify
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v3
+        with:
+          category: "/language:${{ matrix.language }}"
