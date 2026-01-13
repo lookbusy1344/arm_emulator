@@ -1,3 +1,9 @@
+# CodeQL security analysis
+# Note: Swift analysis is disabled due to known issues with CodeQL's DYLD_INSERT_LIBRARIES
+# tracing on macOS ARM64 with hardened Xcode binaries. The build succeeds but CodeQL
+# cannot trace the Swift compilation. See: https://github.com/github/codeql-action/issues/2506
+# Swift code is still built and tested in ci.yml
+
 name: "CodeQL"
 
 on:
@@ -15,18 +21,9 @@ permissions:
 
 jobs:
   analyze:
-    name: Analyze (${{ matrix.language }})
-    runs-on: ${{ matrix.language == 'swift' && 'macos-26' || 'ubuntu-latest' }}
+    name: Analyze Go
+    runs-on: ubuntu-latest
     timeout-minutes: 360
-
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - language: go
-            build-mode: autobuild
-          - language: swift
-            build-mode: manual
 
     steps:
       - name: Checkout repository
@@ -35,72 +32,10 @@ jobs:
       - name: Initialize CodeQL
         uses: github/codeql-action/init@v3
         with:
-          languages: ${{ matrix.language }}
-          build-mode: ${{ matrix.build-mode }}
-
-      # Go autobuild works fine, so no manual steps needed
-
-      # Swift requires manual build steps
-      - if: matrix.language == 'swift'
-        name: Set up Go for Swift backend dependency
-        uses: actions/setup-go@v5
-        with:
-          go-version: "1.25"
-
-      - if: matrix.language == 'swift'
-        name: Build Go backend
-        run: make build
-
-      - if: matrix.language == 'swift'
-        name: Install Swift tools
-        shell: bash
-        run: |
-          set -euo pipefail
-
-          if command -v xcodegen >/dev/null 2>&1; then
-            echo "xcodegen already installed"
-            exit 0
-          fi
-
-          # Homebrew refuses to operate when invoked under Rosetta with an ARM prefix.
-          if [ -x /opt/homebrew/bin/brew ]; then
-            env -u DYLD_INSERT_LIBRARIES -u SEMMLE_PRELOAD_libtrace /usr/bin/arch -arm64 /opt/homebrew/bin/brew install xcodegen
-          elif [ -x /usr/local/bin/brew ]; then
-            env -u DYLD_INSERT_LIBRARIES -u SEMMLE_PRELOAD_libtrace /usr/local/bin/brew install xcodegen
-          else
-            env -u DYLD_INSERT_LIBRARIES -u SEMMLE_PRELOAD_libtrace brew install xcodegen
-          fi
-
-      - if: matrix.language == 'swift'
-        name: Generate Xcode project
-        working-directory: swift-gui
-        shell: bash
-        run: |
-          set -euo pipefail
-
-          # xcodegen isn't part of compilation; avoid CodeQL's tracer injection which can trip Rosetta/arch.
-          env -u DYLD_INSERT_LIBRARIES -u SEMMLE_PRELOAD_libtrace xcodegen generate
-
-      - if: matrix.language == 'swift'
-        name: Build Swift app
-        working-directory: swift-gui
-        shell: bash
-        run: |
-          set -euo pipefail
-          XCODEBUILD=(xcodebuild)
-          if [ "$(/usr/sbin/sysctl -n sysctl.proc_translated 2>/dev/null || echo 0)" = "1" ]; then
-            XCODEBUILD=(/usr/bin/arch -arm64 xcodebuild)
-          fi
-
-          "${XCODEBUILD[@]}" clean build \
-            -project ARMEmulator.xcodeproj \
-            -scheme ARMEmulator \
-            -configuration Release \
-            -destination 'platform=macOS' \
-            CODE_SIGNING_ALLOWED=NO \
-            CODE_SIGNING_REQUIRED=NO
+          languages: go
+          build-mode: autobuild
 
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v3
         with:
-          category: "/language:${{ matrix.language }}"
+          category: "/language:go"
