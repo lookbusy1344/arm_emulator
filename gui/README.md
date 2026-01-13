@@ -1,5 +1,7 @@
 # ARM Emulator GUI
 
+> **⚠️ DEPRECATED**: The Wails GUI is deprecated in favor of the native Swift macOS app (see [../docs/SWIFT_APP.md](../docs/SWIFT_APP.md)). It remains available for reference and cross-platform testing, but is no longer actively developed. For quick reference, see [../Wails.md](../Wails.md).
+
 ## About
 
 This is the Wails-based graphical user interface for the ARM2 Emulator. It provides a modern, cross-platform debugging environment with source view, register inspection, memory viewer, and breakpoint management.

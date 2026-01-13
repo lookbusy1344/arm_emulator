@@ -119,60 +119,9 @@ By default, guest programs can only access files within the current working dire
 
 When running tests, the filesystem root is automatically set appropriately for each test case.
 
-## GUI Commands (Wails)
+## Swift Native macOS App Commands (Primary GUI)
 
-**IMPORTANT:** Always use the `-nocolour` flag with `wails build` and `wails dev` to prevent ANSI escape codes in output.
-
-### Build GUI
-
-```bash
-wails build -nocolour
-```
-
-### Run GUI in Development Mode
-
-```bash
-wails dev -nocolour
-```
-
-### Run GUI with a File Pre-loaded
-
-To launch the GUI with a specific assembly file already loaded:
-
-```bash
-cd gui
-wails dev -nocolour -appargs "../examples/stack.s"
-```
-
-The window title will show "ARM Emulator - filename.s" when a file is loaded.
-
-### Check Wails Environment
-
-```bash
-wails doctor
-```
-
-### E2E Testing
-
-**IMPORTANT:** E2E tests require the Wails dev server to be running first. Tests will hang indefinitely if the backend is not available.
-
-```bash
-# Terminal 1: Start Wails dev server
-cd gui
-wails dev -nocolour
-
-# Terminal 2: Run E2E tests
-cd gui/frontend
-npm run test:e2e                    # Run all tests
-npm run test:e2e -- --project=chromium  # Run chromium only
-npm run test:e2e:headed             # Run with visible browser
-```
-
-The Wails backend must be running on http://localhost:34115 before any E2E tests can execute.
-
-## Swift Native macOS App Commands
-
-**Note:** The Swift app automatically manages the Go HTTP API backend lifecycle - it finds, starts, and monitors the backend process. No manual backend startup required.
+**Note:** The Swift app is the primary GUI for this project and automatically manages the Go HTTP API backend lifecycle - it finds, starts, and monitors the backend process. No manual backend startup required.
 
 ### Platform Requirements
 
@@ -621,6 +570,59 @@ grep -E "❌|Error" debug.log
 
 See [docs/MCP_UI_DEBUGGING.md](docs/MCP_UI_DEBUGGING.md) for complete documentation with detailed examples, advanced techniques, and comprehensive troubleshooting.
 
+## GUI Commands (Wails) - ⚠️ DEPRECATED
+
+> **IMPORTANT:** The Wails GUI is deprecated in favor of the native Swift app. It remains available for reference and cross-platform testing, but is no longer actively developed. Use the Swift GUI (above) for all new development.
+
+**IMPORTANT:** Always use the `-nocolour` flag with `wails build` and `wails dev` to prevent ANSI escape codes in output.
+
+### Build GUI
+
+```bash
+wails build -nocolour
+```
+
+### Run GUI in Development Mode
+
+```bash
+wails dev -nocolour
+```
+
+### Run GUI with a File Pre-loaded
+
+To launch the GUI with a specific assembly file already loaded:
+
+```bash
+cd gui
+wails dev -nocolour -appargs "../examples/stack.s"
+```
+
+The window title will show "ARM Emulator - filename.s" when a file is loaded.
+
+### Check Wails Environment
+
+```bash
+wails doctor
+```
+
+### E2E Testing
+
+**IMPORTANT:** E2E tests require the Wails dev server to be running first. Tests will hang indefinitely if the backend is not available.
+
+```bash
+# Terminal 1: Start Wails dev server
+cd gui
+wails dev -nocolour
+
+# Terminal 2: Run E2E tests
+cd gui/frontend
+npm run test:e2e                    # Run all tests
+npm run test:e2e -- --project=chromium  # Run chromium only
+npm run test:e2e:headed             # Run with visible browser
+```
+
+The Wails backend must be running on http://localhost:34115 before any E2E tests can execute.
+
 ## Project Structure
 
 - `main.go` - Entry point and CLI interface
@@ -633,8 +635,8 @@ See [docs/MCP_UI_DEBUGGING.md](docs/MCP_UI_DEBUGGING.md) for complete documentat
 - `tools/` - Development tools (linter, formatter, cross-reference generator)
 - `api/` - HTTP REST API backend for GUI frontends (runs on port 8080)
 - `service/` - Service layer for API/GUI integration and emulator state management
-- `gui/` - Wails cross-platform GUI (Go + Svelte web frontend)
-- `swift-gui/` - Swift native macOS app (SwiftUI + MVVM, connects to API backend)
+- `swift-gui/` - Swift native macOS app (SwiftUI + MVVM, connects to API backend) - **Primary GUI**
+- `gui/` - Wails cross-platform GUI (Go + Svelte web frontend) - **DEPRECATED**
 - `tests/` - Test files (1,024 tests, 100% pass rate)
   - `tests/unit/` - Unit tests for all packages
   - `tests/integration/` - Integration tests for complete programs

@@ -1,5 +1,7 @@
 # GUI Documentation
 
+> **⚠️ DEPRECATED**: The Wails GUI is deprecated in favor of the native Swift macOS app. See [SWIFT_APP.md](SWIFT_APP.md) for the recommended GUI. For quick reference on Wails commands and development, see [../Wails.md](../Wails.md).
+
 ## Overview
 
 The ARM Emulator GUI provides a graphical interface for debugging ARM assembly programs. Built with Wails, it combines a Go backend with a React/TypeScript frontend for cross-platform compatibility.

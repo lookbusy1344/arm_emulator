@@ -6,7 +6,7 @@ This is an example of using vibe coding to re-create my first commercial project
 
 Here I am attempting to use Claude Code to broadly recreate the emulator as a cross-platform Go project, with a simple TUI debugger. Claude was given a one-paragraph prompt and essentially left to its own devices, with only gentle high level steering.
 
-After the TUI interface, I went on to make a cross-platform GUI using Wails. While this works, I was dissatisfied with the webview interface, so in version 2 I have gone on to write a native Swift GUI for macOS, calling into the go VM using a rest API.
+After the TUI interface, I went on to make a cross-platform GUI using Wails. While this works, I was dissatisfied with the webview interface, so **the Wails GUI is now deprecated**. The current GUI is a **native Swift app for macOS** that provides a superior native experience, calling into the Go VM using a REST API.
 
 Perhaps later I will write a Windows GUI using the same backend, using WinUI or WPF.
 
@@ -172,42 +172,7 @@ For complete debugger documentation including conditional breakpoints, watchpoin
 
 **Two GUI options available:**
 
-#### Option 1: Wails Cross-Platform GUI (Web-based)
-
-Run programs in GUI mode with code editor, register view, and memory inspector:
-
-```bash
-cd gui
-wails dev  # Development mode
-```
-
-Or build for production:
-
-```bash
-cd gui
-wails build
-./build/bin/arm-emulator
-```
-
-See [docs/GUI.md](docs/GUI.md) for detailed GUI documentation.
-
-**E2E Testing:**
-
-End-to-end tests for the GUI require the Wails backend running in a separate terminal:
-
-```bash
-# Terminal 1: Start Wails backend
-cd gui
-wails dev -nocolour
-
-# Terminal 2: Run E2E tests (after backend is ready)
-cd gui/frontend
-npm run test:e2e -- --project=chromium
-```
-
-See [gui/frontend/e2e/README.md](gui/frontend/e2e/README.md) for complete testing documentation.
-
-#### Option 2: Swift Native macOS App
+#### Option 1: Swift Native macOS App (Recommended)
 
 A native macOS app built with SwiftUI that connects to the Go backend API:
 
@@ -267,6 +232,46 @@ find ~/Library/Developer/Xcode/DerivedData -name "ARMEmulator.app" -type d -exec
 - [docs/SWIFT_CLI_AUTOMATION.md](docs/SWIFT_CLI_AUTOMATION.md) - General Swift CLI development guide
 - [API.md](API.md) - REST API and WebSocket reference
 - [openapi.yaml](openapi.yaml) - OpenAPI 3.0 specification
+
+#### Option 2: Wails Cross-Platform GUI (⚠️ Deprecated)
+
+> **Note:** The Wails GUI is deprecated in favor of the native Swift app. It remains available for reference and cross-platform testing, but is no longer actively developed. See [Wails.md](Wails.md) for complete Wails documentation.
+
+Run programs in GUI mode with code editor, register view, and memory inspector:
+
+```bash
+cd gui
+wails dev  # Development mode
+```
+
+Or build for production:
+
+```bash
+cd gui
+wails build
+./build/bin/arm-emulator
+```
+
+**Documentation:**
+- [Wails.md](Wails.md) - Quick reference and development guide
+- [docs/GUI.md](docs/GUI.md) - Complete architecture and implementation details
+- [gui/frontend/e2e/README.md](gui/frontend/e2e/README.md) - E2E testing guide
+
+**E2E Testing:**
+
+End-to-end tests for the GUI require the Wails backend running in a separate terminal:
+
+```bash
+# Terminal 1: Start Wails backend
+cd gui
+wails dev -nocolour
+
+# Terminal 2: Run E2E tests (after backend is ready)
+cd gui/frontend
+npm run test:e2e -- --project=chromium
+```
+
+See [gui/frontend/e2e/README.md](gui/frontend/e2e/README.md) for complete testing documentation.
 
 ### Symbol Table Dump
 
@@ -508,8 +513,8 @@ Each release includes:
 ├── tools/               # Development tools (lint, format, xref)
 ├── api/                 # HTTP REST API backend for GUIs
 ├── service/             # Service layer for API/GUI integration
-├── gui/                 # Wails cross-platform GUI (Go + Web)
-├── swift-gui/           # Swift native macOS app (SwiftUI + MVVM)
+├── swift-gui/           # Swift native macOS app (SwiftUI + MVVM) - Primary GUI
+├── gui/                 # Wails cross-platform GUI (DEPRECATED)
 ├── tests/               # Test files (1,024 tests, 100% passing, 75% coverage)
 ├── examples/            # Example ARM assembly programs (49 programs)
 └── docs/                # User and developer documentation
