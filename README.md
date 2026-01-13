@@ -35,7 +35,6 @@ This is a vibe-coded project. Details of the initial prompt and development proc
 ### Project Documentation
 - [SPECIFICATION.md](SPECIFICATION.md) - Detailed specification for the ARM2 emulator
 - [docs/IMPLEMENTATION_PLAN.md](docs/IMPLEMENTATION_PLAN.md) - Implementation roadmap and plan
-- [PROGRESS.md](PROGRESS.md) - Development progress and completed phases
 - **[docs/SECURITY.md](docs/SECURITY.md) - Comprehensive security audit and anti-virus false positive explanation**
 
 ### User Documentation
@@ -51,7 +50,8 @@ This is a vibe-coded project. Details of the initial prompt and development proc
 - [docs/FAQ.md](docs/FAQ.md) - Frequently asked questions and troubleshooting
 
 ### Developer Documentation
-- [API.md](API.md) - Complete HTTP REST API and WebSocket reference
+- [docs/HTTP_API.md](docs/HTTP_API.md) - Complete HTTP REST API and WebSocket reference
+- [API_VERSION_SUMMARY.md](API_VERSION_SUMMARY.md) - Version endpoint implementation details
 - [openapi.yaml](openapi.yaml) - OpenAPI 3.0 specification (machine-readable)
 - [docs/SWIFT_APP.md](docs/SWIFT_APP.md) - Swift native macOS app guide
 - [docs/architecture.md](docs/architecture.md) - System architecture and design
@@ -230,7 +230,8 @@ find ~/Library/Developer/Xcode/DerivedData -name "ARMEmulator.app" -type d -exec
 - [docs/SWIFT_APP.md](docs/SWIFT_APP.md) - Complete Swift app guide (architecture, building, development)
 - [SWIFT_GUI_PLANNING.md](SWIFT_GUI_PLANNING.md) - Implementation roadmap and technical planning
 - [docs/SWIFT_CLI_AUTOMATION.md](docs/SWIFT_CLI_AUTOMATION.md) - General Swift CLI development guide
-- [API.md](API.md) - REST API and WebSocket reference
+- [docs/HTTP_API.md](docs/HTTP_API.md) - REST API and WebSocket reference
+- [API_VERSION_SUMMARY.md](API_VERSION_SUMMARY.md) - Version endpoint implementation
 - [openapi.yaml](openapi.yaml) - OpenAPI 3.0 specification
 
 #### Option 2: Wails Cross-Platform GUI (⚠️ Deprecated)

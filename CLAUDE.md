@@ -662,12 +662,6 @@ For the complete syscall reference including file operations, memory management,
 
 ## Development Guidelines
 
-**IMPORTANT:** After implementing each phase of development, update `PROGRESS.md` to reflect the completed work, including:
-- Mark the phase as completed
-- Document any implementation details or deviations from the original plan
-- Update the status of related tasks
-- Note outstanding work and issues in `TODO.md`
-
 **IMPORTANT:** Always run `go fmt ./...`, `golangci-lint run ./...`, and `go build -o arm-emulator && go clean -testcache && go test ./...` after making changes and **BEFORE committing** to ensure code quality and correctness. Linting must pass with 0 issues before any commit.
 
 ### Test-Driven Development (TDD)
@@ -691,8 +685,6 @@ For the complete syscall reference including file operations, memory management,
 **IMPORTANT:** Do not delete tests without explicit instructions. Do not simplify tests because they fail. If you think a test is malfunctioning, think about it carefully and ask me before making any changes to the tests.
 
 **IMPORTANT:** Tests serve as both validation and documentation. When reviewing code, always check that corresponding tests exist and properly validate the intended behavior.
-
-**IMPORTANT:** Anything that cannot be implemented should be noted in `TODO.md` with details so work can result later. TODO.md should not contain completed work, that should go in PROGRESS.md.
 
 **IMPORTANT:** Do not modify example programs just to make them work without explicit permission, unless they are actually broken. Instead, fix the emulator to run the programs properly. Example programs are test cases that demonstrate expected behavior.
 

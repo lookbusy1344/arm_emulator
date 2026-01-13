@@ -1,7 +1,7 @@
 # Version API Implementation Summary
 
 ## Overview
-Added a `/api/v1/version` endpoint to the backend and integrated it into the Swift GUI's About dialog.
+The `/api/v1/version` endpoint provides backend version information (git tag, commit hash, build date) to API clients. This is used by the Swift GUI's About dialog and is available to any HTTP client.
 
 ## Backend Changes
 
@@ -127,10 +127,11 @@ xcodebuild test -project ARMEmulator.xcodeproj -scheme ARMEmulator -destination 
 3. Test endpoint: `curl http://localhost:8080/api/v1/version`
 4. Or open Swift app and click "About ARM Emulator" in app menu
 
-## Documentation Updates
+## Related Documentation
 
-- Updated `CLAUDE.md` with build instructions emphasizing version injection
-- Added warning to Swift app build section about building backend first
+- **[docs/HTTP_API.md](docs/HTTP_API.md)** - Complete HTTP REST API reference
+- **[README.md](README.md)** - Build instructions with version injection
+- **[CLAUDE.md](CLAUDE.md)** - Development guidelines and build system
 
 ## Verification
 

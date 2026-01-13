@@ -94,6 +94,40 @@ Returns server health status.
 
 ---
 
+### Version Information
+
+#### GET /api/v1/version
+
+Returns backend version information (git tag, commit hash, build date).
+
+**Response:**
+```json
+{
+  "version": "v1.1.2-123-g1e713a3-dirty",
+  "commit": "1e713a3006ca790974eb44d22691a192f2ab98c1",
+  "date": "2026-01-07T09:34:45Z"
+}
+```
+
+**Status Codes:**
+- `200 OK` - Version information returned
+- `405 Method Not Allowed` - Wrong HTTP method
+
+**Notes:**
+- Version information is injected at build time using `-ldflags`
+- Use `make build` or `./build_with_version.sh` to build with version info
+- Without build-time injection, returns `"version": "dev"`, `"commit": "unknown"`, `"date": "unknown"`
+- Used by Swift GUI's About dialog to display backend version
+
+**Example:**
+```bash
+curl http://localhost:8080/api/v1/version
+```
+
+See [API_VERSION_SUMMARY.md](../API_VERSION_SUMMARY.md) for implementation details.
+
+---
+
 ### Session Management
 
 #### POST /api/v1/session
