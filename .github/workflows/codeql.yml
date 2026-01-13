@@ -53,7 +53,7 @@ jobs:
 
       - if: matrix.language == 'swift'
         name: Install Swift tools
-        run: arch -arm64 brew install xcodegen swiftlint swiftformat xcbeautify
+        run: brew install xcodegen
 
       - if: matrix.language == 'swift'
         name: Generate Xcode project
@@ -68,10 +68,9 @@ jobs:
             -project ARMEmulator.xcodeproj \
             -scheme ARMEmulator \
             -configuration Release \
-            -destination 'platform=macOS,arch=arm64' \
+            -destination 'platform=macOS' \
             CODE_SIGNING_ALLOWED=NO \
-            CODE_SIGNING_REQUIRED=NO \
-            | xcbeautify
+            CODE_SIGNING_REQUIRED=NO
 
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v3
