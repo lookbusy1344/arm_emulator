@@ -22,7 +22,7 @@ var debugEnabled bool
 func init() {
 	// Check if debug logging is enabled via environment variable
 	debugEnabled = os.Getenv("ARM_EMULATOR_DEBUG") != ""
-	
+
 	if debugEnabled {
 		// Create debug log file with restrictive permissions (0600 = owner read/write only).
 		// Note: File handle intentionally not closed - kept open for process lifetime.
@@ -67,7 +67,10 @@ func NewApp() *App {
 	machine := vm.NewVM()
 	// Use correct stack top (stack segment is already created by NewVM)
 	stackTop := uint32(vm.StackSegmentStart + vm.StackSegmentSize)
-	machine.InitializeStack(stackTop)
+	if err := machine.InitializeStack(stackTop); err != nil {
+		// This should never fail with valid stack configuration from NewVM
+		panic(fmt.Sprintf("failed to initialize stack: %v", err))
+	}
 
 	return &App{
 		machine: machine,
@@ -218,6 +221,7 @@ func (a *App) LoadProgramFromFile() error {
 	}
 
 	// Read file contents
+	// #nosec G304 -- filePath comes from OS file picker dialog, user-controlled by design
 	source, err := os.ReadFile(filePath)
 	if err != nil {
 		return fmt.Errorf("failed to read file: %w", err)

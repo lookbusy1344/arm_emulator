@@ -29,18 +29,16 @@ export const SourceView: React.FC = () => {
       const breakpointAddresses = new Set(breakpoints.map(bp => bp.address));
 
       // Fetch all symbols in a single batch API call
-      const entries = Object.entries(sourceMap);
-      const addresses = entries.map(([addrStr]) => parseInt(addrStr));
+      const addresses = sourceMap.map(entry => entry.address);
       const symbolMap = await GetSymbolsForAddresses(addresses);
 
-      const sourceLines: SourceLine[] = entries.map(([addrStr, source]) => {
-        const address = parseInt(addrStr);
+      const sourceLines: SourceLine[] = sourceMap.map(entry => {
         return {
-          address,
-          source,
-          hasBreakpoint: breakpointAddresses.has(address),
-          isCurrent: address === pc,
-          symbol: symbolMap[address] || '',
+          address: entry.address,
+          source: entry.line,
+          hasBreakpoint: breakpointAddresses.has(entry.address),
+          isCurrent: entry.address === pc,
+          symbol: symbolMap[entry.address] || '',
         };
       });
 

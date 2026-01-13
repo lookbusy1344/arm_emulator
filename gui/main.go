@@ -19,13 +19,14 @@ var assets embed.FS
 func main() {
 	// Parse command line flags
 	flag.Parse()
-	
+
 	// Create application
 	app := NewApp()
-	
+
 	// Load initial file if specified (with preprocessing support)
 	if flag.NArg() > 0 {
 		filePath := flag.Arg(0)
+		// #nosec G304 -- filePath comes from command-line argument, user-controlled by design
 		source, err := os.ReadFile(filePath)
 		if err != nil {
 			log.Fatalf("Failed to read file %s: %v", filePath, err)

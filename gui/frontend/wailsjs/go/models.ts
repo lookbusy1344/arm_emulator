@@ -54,6 +54,7 @@ export namespace service {
 	}
 	export class MemoryWriteInfo {
 	    address: number;
+	    size: number;
 	    hasWrite: boolean;
 	
 	    static createFrom(source: any = {}) {
@@ -63,6 +64,7 @@ export namespace service {
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.address = source["address"];
+	        this.size = source["size"];
 	        this.hasWrite = source["hasWrite"];
 	    }
 	}
@@ -101,6 +103,22 @@ export namespace service {
 		    }
 		    return a;
 		}
+	}
+	export class SourceMapEntry {
+	    address: number;
+	    lineNumber: number;
+	    line: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new SourceMapEntry(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.address = source["address"];
+	        this.lineNumber = source["lineNumber"];
+	        this.line = source["line"];
+	    }
 	}
 	export class StackEntry {
 	    address: number;

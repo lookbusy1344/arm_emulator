@@ -32,7 +32,7 @@ export function GetRegisters():Promise<service.RegisterState>;
 
 export function GetSourceLine(arg1:number):Promise<string>;
 
-export function GetSourceMap():Promise<Record<number, string>>;
+export function GetSourceMap():Promise<Array<service.SourceMapEntry>>;
 
 export function GetStack(arg1:number,arg2:number):Promise<Array<service.StackEntry>>;
 
