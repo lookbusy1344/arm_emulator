@@ -64,11 +64,11 @@ jobs:
 
           # Homebrew refuses to operate when invoked under Rosetta with an ARM prefix.
           if [ -x /opt/homebrew/bin/brew ]; then
-            /usr/bin/arch -arm64 /opt/homebrew/bin/brew install xcodegen
+            env -u DYLD_INSERT_LIBRARIES -u SEMMLE_PRELOAD_libtrace /usr/bin/arch -arm64 /opt/homebrew/bin/brew install xcodegen
           elif [ -x /usr/local/bin/brew ]; then
-            /usr/local/bin/brew install xcodegen
+            env -u DYLD_INSERT_LIBRARIES -u SEMMLE_PRELOAD_libtrace /usr/local/bin/brew install xcodegen
           else
-            brew install xcodegen
+            env -u DYLD_INSERT_LIBRARIES -u SEMMLE_PRELOAD_libtrace brew install xcodegen
           fi
 
       - if: matrix.language == 'swift'
@@ -77,11 +77,9 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          if [ "$(/usr/sbin/sysctl -n sysctl.proc_translated 2>/dev/null || echo 0)" = "1" ]; then
-            /usr/bin/arch -arm64 xcodegen generate
-          else
-            xcodegen generate
-          fi
+
+          # xcodegen isn't part of compilation; avoid CodeQL's tracer injection which can trip Rosetta/arch.
+          env -u DYLD_INSERT_LIBRARIES -u SEMMLE_PRELOAD_libtrace xcodegen generate
 
       - if: matrix.language == 'swift'
         name: Build Swift app
