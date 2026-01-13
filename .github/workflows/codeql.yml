@@ -68,6 +68,7 @@ jobs:
             -project ARMEmulator.xcodeproj \
             -scheme ARMEmulator \
             -configuration Release \
+            -destination 'platform=macOS,arch=arm64' \
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGNING_REQUIRED=NO \
             | xcbeautify
