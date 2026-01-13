@@ -227,7 +227,8 @@ struct MainView: View {
                     .font(.system(size: 11))
                     .foregroundColor(.secondary)
             }
-            .padding(.horizontal, 4)
+            .padding(.leading, 12)
+            .padding(.trailing, 4)
 
             Divider()
 
