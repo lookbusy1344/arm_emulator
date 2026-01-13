@@ -1,6 +1,7 @@
 import XCTest
 @testable import ARMEmulator
 
+@MainActor
 class CustomGutterViewTests: XCTestCase {
     var scrollView: NSScrollView!
     var textView: NSTextView!
@@ -130,9 +131,14 @@ class CustomGutterViewTests: XCTestCase {
         {
             layoutManager.ensureLayout(for: textContainer)
 
-            // Verify needsDisplay is set (we don't actually call draw to avoid UI dependencies)
-            gutterView.needsDisplay = true
-            XCTAssertTrue(gutterView.needsDisplay, "Gutter should be marked for redraw")
+            // Verify that setting current line doesn't crash
+            // (needsDisplay is managed by AppKit and may be reset asynchronously)
+            XCTAssertNotNil(gutterView, "Gutter view should remain valid")
+
+            // Test changing current line multiple times
+            gutterView.setCurrentLine(3)
+            gutterView.setCurrentLine(nil)
+            gutterView.setCurrentLine(1)
 
             // If we get here without crashing, setup is successful
             XCTAssertTrue(true, "Current line indicator should be configured without errors")

@@ -1,6 +1,7 @@
 import XCTest
 @testable import ARMEmulator
 
+@MainActor
 class LineNumberGutterViewTests: XCTestCase {
     var textView: NSTextView!
     var scrollView: NSScrollView!

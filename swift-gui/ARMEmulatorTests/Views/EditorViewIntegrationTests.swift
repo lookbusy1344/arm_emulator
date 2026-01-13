@@ -1,6 +1,7 @@
 import XCTest
 @testable import ARMEmulator
 
+@MainActor
 class EditorViewIntegrationTests: XCTestCase {
     var scrollView: NSScrollView!
     var textView: NSTextView!
