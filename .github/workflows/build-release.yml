@@ -125,21 +125,21 @@ jobs:
           # Determine GUI artifact location and name
           if [ "${{ matrix.os }}" = "darwin" ]; then
             GUI_SOURCE="build/bin/arm-emulator.app"
-            GUI_ARTIFACT_NAME="arm-emulator-gui-${PLATFORM}-${{ matrix.arch }}.app.tar.gz"
+            GUI_ARTIFACT_NAME="arm-emulator-wails-${PLATFORM}-${{ matrix.arch }}.app.tar.gz"
             if [ -d "$GUI_SOURCE" ]; then
               tar -czf "$GUI_ARTIFACT_NAME" -C build/bin arm-emulator.app
               echo "gui_artifact_name=$GUI_ARTIFACT_NAME" >> $GITHUB_OUTPUT
             fi
           elif [ "${{ matrix.os }}" = "windows" ]; then
             GUI_SOURCE="build/bin/arm-emulator-gui.exe"
-            GUI_ARTIFACT_NAME="arm-emulator-gui-${PLATFORM}-${{ matrix.arch }}.exe"
+            GUI_ARTIFACT_NAME="arm-emulator-wails-${PLATFORM}-${{ matrix.arch }}.exe"
             if [ -f "$GUI_SOURCE" ]; then
               cp "$GUI_SOURCE" "$GUI_ARTIFACT_NAME"
               echo "gui_artifact_name=$GUI_ARTIFACT_NAME" >> $GITHUB_OUTPUT
             fi
           else
             GUI_SOURCE="build/bin/arm-emulator-gui"
-            GUI_ARTIFACT_NAME="arm-emulator-gui-${PLATFORM}-${{ matrix.arch }}"
+            GUI_ARTIFACT_NAME="arm-emulator-wails-${PLATFORM}-${{ matrix.arch }}"
             if [ -f "$GUI_SOURCE" ]; then
               cp "$GUI_SOURCE" "$GUI_ARTIFACT_NAME"
               echo "gui_artifact_name=$GUI_ARTIFACT_NAME" >> $GITHUB_OUTPUT
@@ -275,7 +275,7 @@ jobs:
         id: package
         run: |
           cd swift-gui/build/Build/Products/Release
-          ARTIFACT_NAME="arm-emulator-swift-gui-macos-arm64.app.tar.gz"
+          ARTIFACT_NAME="arm-emulator-swift-gui.app.tar.gz"
           tar -czf "$ARTIFACT_NAME" ARMEmulator.app
           mv "$ARTIFACT_NAME" ../../../../..
           cd ../../../../..
