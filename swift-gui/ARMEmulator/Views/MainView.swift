@@ -129,7 +129,7 @@ struct MainView: View {
                             VStack(spacing: 0) {
                                 RegistersView(
                                     registers: viewModel.registers,
-                                    changedRegisters: viewModel.changedRegisters
+                                    registerHighlights: viewModel.registerHighlights
                                 )
                                 .frame(minHeight: 200)
 
@@ -157,7 +157,7 @@ struct MainView: View {
                             VStack(spacing: 0) {
                                 RegistersView(
                                     registers: viewModel.registers,
-                                    changedRegisters: viewModel.changedRegisters
+                                    registerHighlights: viewModel.registerHighlights
                                 )
                                 .frame(minHeight: 200)
 

@@ -2,11 +2,11 @@ import SwiftUI
 
 struct RegistersView: View {
     let registers: RegisterState
-    let changedRegisters: Set<String>
+    let registerHighlights: [String: UUID]
 
-    init(registers: RegisterState, changedRegisters: Set<String> = []) {
+    init(registers: RegisterState, registerHighlights: [String: UUID] = [:]) {
         self.registers = registers
-        self.changedRegisters = changedRegisters
+        self.registerHighlights = registerHighlights
     }
 
     // Determine grid columns based on available width (1-3 columns)
@@ -36,19 +36,19 @@ struct RegistersView: View {
                     VStack(alignment: .leading, spacing: 4) {
                         // General-purpose registers (R0-R12) in responsive grid
                         LazyVGrid(columns: gridColumns(for: geometry.size.width), alignment: .leading, spacing: 4) {
-                            RegisterRow(name: "R0", value: registers.r0, isChanged: changedRegisters.contains("R0"))
-                            RegisterRow(name: "R1", value: registers.r1, isChanged: changedRegisters.contains("R1"))
-                            RegisterRow(name: "R2", value: registers.r2, isChanged: changedRegisters.contains("R2"))
-                            RegisterRow(name: "R3", value: registers.r3, isChanged: changedRegisters.contains("R3"))
-                            RegisterRow(name: "R4", value: registers.r4, isChanged: changedRegisters.contains("R4"))
-                            RegisterRow(name: "R5", value: registers.r5, isChanged: changedRegisters.contains("R5"))
-                            RegisterRow(name: "R6", value: registers.r6, isChanged: changedRegisters.contains("R6"))
-                            RegisterRow(name: "R7", value: registers.r7, isChanged: changedRegisters.contains("R7"))
-                            RegisterRow(name: "R8", value: registers.r8, isChanged: changedRegisters.contains("R8"))
-                            RegisterRow(name: "R9", value: registers.r9, isChanged: changedRegisters.contains("R9"))
-                            RegisterRow(name: "R10", value: registers.r10, isChanged: changedRegisters.contains("R10"))
-                            RegisterRow(name: "R11", value: registers.r11, isChanged: changedRegisters.contains("R11"))
-                            RegisterRow(name: "R12", value: registers.r12, isChanged: changedRegisters.contains("R12"))
+                            RegisterRow(name: "R0", value: registers.r0, highlightID: registerHighlights["R0"])
+                            RegisterRow(name: "R1", value: registers.r1, highlightID: registerHighlights["R1"])
+                            RegisterRow(name: "R2", value: registers.r2, highlightID: registerHighlights["R2"])
+                            RegisterRow(name: "R3", value: registers.r3, highlightID: registerHighlights["R3"])
+                            RegisterRow(name: "R4", value: registers.r4, highlightID: registerHighlights["R4"])
+                            RegisterRow(name: "R5", value: registers.r5, highlightID: registerHighlights["R5"])
+                            RegisterRow(name: "R6", value: registers.r6, highlightID: registerHighlights["R6"])
+                            RegisterRow(name: "R7", value: registers.r7, highlightID: registerHighlights["R7"])
+                            RegisterRow(name: "R8", value: registers.r8, highlightID: registerHighlights["R8"])
+                            RegisterRow(name: "R9", value: registers.r9, highlightID: registerHighlights["R9"])
+                            RegisterRow(name: "R10", value: registers.r10, highlightID: registerHighlights["R10"])
+                            RegisterRow(name: "R11", value: registers.r11, highlightID: registerHighlights["R11"])
+                            RegisterRow(name: "R12", value: registers.r12, highlightID: registerHighlights["R12"])
                         }
                         .padding(.horizontal, 8)
 
@@ -57,9 +57,9 @@ struct RegistersView: View {
 
                         // Special registers in responsive grid
                         LazyVGrid(columns: gridColumns(for: geometry.size.width), alignment: .leading, spacing: 4) {
-                            RegisterRow(name: "SP", value: registers.sp, isChanged: changedRegisters.contains("SP"))
-                            RegisterRow(name: "LR", value: registers.lr, isChanged: changedRegisters.contains("LR"))
-                            RegisterRow(name: "PC", value: registers.pc, isChanged: changedRegisters.contains("PC"))
+                            RegisterRow(name: "SP", value: registers.sp, highlightID: registerHighlights["SP"])
+                            RegisterRow(name: "LR", value: registers.lr, highlightID: registerHighlights["LR"])
+                            RegisterRow(name: "PC", value: registers.pc, highlightID: registerHighlights["PC"])
                         }
                         .padding(.horizontal, 8)
 
@@ -74,7 +74,7 @@ struct RegistersView: View {
 
                             Text(registers.cpsr.displayString)
                                 .font(.system(size: 10, design: .monospaced))
-                                .foregroundColor(changedRegisters.contains("CPSR") ? .green : .primary)
+                                .foregroundColor(registerHighlights["CPSR"] != nil ? .green : .primary)
                         }
                         .padding(.horizontal)
                         .padding(.vertical, 2)
