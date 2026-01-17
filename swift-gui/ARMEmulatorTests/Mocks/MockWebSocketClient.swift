@@ -1,14 +1,26 @@
+import Combine
 import Foundation
 @testable import ARMEmulator
 
 /// Mock implementation of WebSocketClient for testing
-/// Currently subclasses concrete WebSocketClient class - should implement protocol once extracted
-final class MockWebSocketClient: WebSocketClient, @unchecked Sendable {
-    override func connect(sessionID: String) {
+/// Implements WebSocketClientProtocol to enable proper dependency injection
+final class MockWebSocketClient: WebSocketClientProtocol, @unchecked Sendable {
+    private let eventSubject = PassthroughSubject<EmulatorEvent, Never>()
+
+    var events: AnyPublisher<EmulatorEvent, Never> {
+        eventSubject.eraseToAnyPublisher()
+    }
+
+    func connect(sessionID: String) {
         // No-op
     }
 
-    override func disconnect() {
+    func disconnect() {
         // No-op
+    }
+
+    // Helper method for tests to emit events
+    func emitEvent(_ event: EmulatorEvent) {
+        eventSubject.send(event)
     }
 }

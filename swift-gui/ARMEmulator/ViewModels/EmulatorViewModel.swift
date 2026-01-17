@@ -46,8 +46,8 @@ class EmulatorViewModel: ObservableObject {
     // Address to line number mapping for breakpoint display
     @Published var addressToLine: [UInt32: Int] = [:]
 
-    let apiClient: APIClient
-    private let wsClient: WebSocketClient
+    let apiClient: any APIClientProtocol
+    private let wsClient: any WebSocketClientProtocol
     var sessionID: String?
     private var cancellables = Set<AnyCancellable>()
     private var isInitializing = false
@@ -89,7 +89,7 @@ class EmulatorViewModel: ObservableObject {
         }
     }
 
-    init(apiClient: APIClient = APIClient(), wsClient: WebSocketClient = WebSocketClient()) {
+    init(apiClient: any APIClientProtocol = APIClient(), wsClient: any WebSocketClientProtocol = WebSocketClient()) {
         self.apiClient = apiClient
         self.wsClient = wsClient
 
