@@ -82,7 +82,6 @@ struct MemoryView: View {
                 baseAddress: baseAddress,
                 memoryData: memoryData,
                 viewModel: viewModel,
-                highlightedWriteAddress: highlightedWriteAddress,
                 scrollToRow: scrollToRow,
                 refreshID: refreshID
             )
@@ -187,32 +186,21 @@ struct MemoryView: View {
 struct MemoryRowView: View {
     let address: UInt32
     let bytes: [UInt8]
-    let highlightAddress: UInt32?
-    let lastWriteAddress: UInt32?
-    let lastWriteSize: UInt32
+    let highlightAddress: UInt32?  // PC highlight (keep for now)
+    let memoryHighlights: [UInt32: UUID]  // Changed from lastWriteAddress
+    let lastWriteSize: UInt32  // Keep for compatibility
 
     private var isHighlighted: Bool {
         guard let highlight = highlightAddress else { return false }
         return address <= highlight && highlight < address + UInt32(bytes.count)
     }
 
-    private func isRecentWrite(byteIndex: Int) -> Bool {
-        guard let writeAddr = lastWriteAddress else { return false }
+    private func highlightID(for byteIndex: Int) -> UUID? {
         let byteAddr = address + UInt32(byteIndex)
-        // Highlight based on actual write size (1, 2, or 4 bytes)
-        return writeAddr <= byteAddr && byteAddr < writeAddr + lastWriteSize
+        return memoryHighlights[byteAddr]
     }
 
     var body: some View {
-        // Compute highlighting once per row render
-        let highlightOffset: Int? = {
-            guard let writeAddr = lastWriteAddress else { return nil }
-            if writeAddr >= address && writeAddr < address + 16 {
-                return Int(writeAddr - address)
-            }
-            return nil
-        }()
-
         HStack(spacing: 4) {
             // Address
             Text(String(format: "0x%08X", address))
@@ -223,17 +211,14 @@ struct MemoryRowView: View {
             HStack(spacing: 2) {
                 ForEach(0 ..< 16) { i in
                     if i < bytes.count {
-                        // Use pre-computed offset for highlighting
-                        let shouldHighlight: Bool = {
-                            guard let offset = highlightOffset else { return false }
-                            return i >= offset && i < offset + Int(lastWriteSize)
-                        }()
+                        let highlight = highlightID(for: i)
                         Text(String(format: "%02X", bytes[i]))
                             .frame(width: 20)
-                            .foregroundColor(shouldHighlight ? .white : .primary)
-                            .fontWeight(shouldHighlight ? .bold : .regular)
-                            .background(shouldHighlight ? Color.green : Color.clear)
+                            .foregroundColor(highlight != nil ? .white : .primary)
+                            .fontWeight(highlight != nil ? .bold : .regular)
+                            .background(highlight != nil ? Color.green : Color.clear)
                             .cornerRadius(2)
+                            .animation(.easeOut(duration: 1.5), value: highlight)
                     } else {
                         Text("  ")
                             .frame(width: 20)
@@ -247,16 +232,14 @@ struct MemoryRowView: View {
                     if i < bytes.count {
                         let char = bytes[i]
                         let displayChar = (32 ... 126).contains(char) ? String(UnicodeScalar(char)) : "."
-                        let shouldHighlight: Bool = {
-                            guard let offset = highlightOffset else { return false }
-                            return i >= offset && i < offset + Int(lastWriteSize)
-                        }()
+                        let highlight = highlightID(for: i)
                         Text(displayChar)
                             .frame(width: 10)
-                            .foregroundColor(shouldHighlight ? .white : .primary)
-                            .fontWeight(shouldHighlight ? .bold : .regular)
-                            .background(shouldHighlight ? Color.green : Color.clear)
+                            .foregroundColor(highlight != nil ? .white : .primary)
+                            .fontWeight(highlight != nil ? .bold : .regular)
+                            .background(highlight != nil ? Color.green : Color.clear)
                             .cornerRadius(2)
+                            .animation(.easeOut(duration: 1.5), value: highlight)
                     } else {
                         Text(" ")
                             .frame(width: 10)
@@ -280,7 +263,6 @@ struct MemoryDisplayView: View {
     let baseAddress: UInt32
     let memoryData: [UInt8]
     @ObservedObject var viewModel: EmulatorViewModel
-    let highlightedWriteAddress: UInt32?
     let scrollToRow: Int?
     let refreshID: UUID
 
@@ -293,7 +275,7 @@ struct MemoryDisplayView: View {
                             address: baseAddress + UInt32(row * bytesPerRow),
                             bytes: bytesForRow(row),
                             highlightAddress: viewModel.currentPC,
-                            lastWriteAddress: highlightedWriteAddress,
+                            memoryHighlights: viewModel.memoryHighlights,  // Pass highlights map
                             lastWriteSize: viewModel.lastMemoryWriteSize
                         )
                         .id("row_\(row)")
