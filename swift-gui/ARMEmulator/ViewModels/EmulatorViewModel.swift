@@ -7,6 +7,15 @@ class EmulatorViewModel: ObservableObject {
     @Published var registers: RegisterState = .empty
     @Published var previousRegisters: RegisterState?
     @Published var changedRegisters: Set<String> = []
+
+    // Highlight tracking with UUIDs for animation
+    @Published var registerHighlights: [String: UUID] = [:]
+    @Published var memoryHighlights: [UInt32: UUID] = [:]
+
+    // Task tracking for cleanup
+    private var highlightTasks: [String: Task<Void, Never>] = [:]
+    private var memoryHighlightTasks: [UInt32: Task<Void, Never>] = [:]
+
     @Published var consoleOutput = ""
     @Published var status: VMState = .idle
     @Published var breakpoints: Set<UInt32> = []
@@ -42,6 +51,41 @@ class EmulatorViewModel: ObservableObject {
     var sessionID: String?
     private var cancellables = Set<AnyCancellable>()
     private var isInitializing = false
+
+    func highlightRegister(_ name: String) {
+        // Cancel existing fade task for this register
+        highlightTasks[name]?.cancel()
+
+        // Add new highlight (triggers animation to green)
+        registerHighlights[name] = UUID()
+
+        // Schedule removal after 1.5 seconds
+        highlightTasks[name] = Task { @MainActor in
+            try? await Task.sleep(nanoseconds: 1_500_000_000)
+            registerHighlights[name] = nil
+            highlightTasks[name] = nil
+        }
+    }
+
+    func highlightMemoryAddress(_ address: UInt32, size: UInt32) {
+        // Highlight each byte in the write
+        for offset in 0 ..< size {
+            let addr = address + offset
+
+            // Cancel existing fade task
+            memoryHighlightTasks[addr]?.cancel()
+
+            // Add new highlight
+            memoryHighlights[addr] = UUID()
+
+            // Schedule removal after 1.5 seconds
+            memoryHighlightTasks[addr] = Task { @MainActor in
+                try? await Task.sleep(nanoseconds: 1_500_000_000)
+                memoryHighlights[addr] = nil
+                memoryHighlightTasks[addr] = nil
+            }
+        }
+    }
 
     init(apiClient: APIClient = APIClient(), wsClient: WebSocketClient = WebSocketClient()) {
         self.apiClient = apiClient
