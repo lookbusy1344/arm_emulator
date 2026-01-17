@@ -228,7 +228,7 @@ swiftlint
 swiftlint --fix
 ```
 
-**IMPORTANT:** SwiftLint and SwiftFormat configurations are in `.swiftlint.yml` and `.swiftformat` respectively. Current configuration enforces 0 violations before commit.
+**IMPORTANT:** Always run `swiftformat .` and `swiftlint` after making changes and **BEFORE committing** to ensure code quality and correctness. SwiftLint and SwiftFormat configurations are in `.swiftlint.yml` and `.swiftformat` respectively. Linting must pass with 0 violations before any commit.
 
 ### Swift App Architecture
 
