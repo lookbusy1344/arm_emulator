@@ -354,6 +354,11 @@ class EmulatorViewModel: ObservableObject {
             changed = detectRegisterChanges(previous: prev, new: newRegisters)
         }
 
+        // Highlight each changed register (independent timers)
+        for registerName in changed {
+            highlightRegister(registerName)
+        }
+
         previousRegisters = registers
         changedRegisters = changed
         registers = newRegisters
