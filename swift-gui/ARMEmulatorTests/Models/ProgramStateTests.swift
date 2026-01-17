@@ -87,7 +87,7 @@ final class ProgramStateTests: XCTestCase {
         XCTAssertEqual(status.cycleCount, 12345)
         XCTAssertNil(status.error)
         XCTAssertEqual(status.hasWrite, true)
-        XCTAssertEqual(status.writeAddr, 327680)
+        XCTAssertEqual(status.writeAddr, 327_680)
         XCTAssertEqual(status.writeSize, 4)
     }
 
@@ -225,7 +225,7 @@ final class ProgramStateTests: XCTestCase {
         let instruction = try JSONDecoder().decode(DisassemblyInstruction.self, from: data)
 
         XCTAssertEqual(instruction.address, 32768)
-        XCTAssertEqual(instruction.machineCode, 3758096384)
+        XCTAssertEqual(instruction.machineCode, 3_758_096_384)
         XCTAssertEqual(instruction.disassembly, "MOV R0, #42")
         XCTAssertNil(instruction.symbol)
     }
@@ -244,7 +244,7 @@ final class ProgramStateTests: XCTestCase {
         let instruction = try JSONDecoder().decode(DisassemblyInstruction.self, from: data)
 
         XCTAssertEqual(instruction.address, 32768)
-        XCTAssertEqual(instruction.machineCode, 3758096384)
+        XCTAssertEqual(instruction.machineCode, 3_758_096_384)
         XCTAssertEqual(instruction.disassembly, "MOV R0, #42")
         XCTAssertEqual(instruction.symbol, "main")
     }
@@ -252,7 +252,7 @@ final class ProgramStateTests: XCTestCase {
     func testDisassemblyInstructionIdentifiable() {
         let instruction = DisassemblyInstruction(
             address: 32768,
-            machineCode: 3758096384,
+            machineCode: 3_758_096_384,
             disassembly: "MOV R0, #42",
             symbol: nil
         )
@@ -263,7 +263,7 @@ final class ProgramStateTests: XCTestCase {
     func testDisassemblyInstructionMnemonicAlias() {
         let instruction = DisassemblyInstruction(
             address: 32768,
-            machineCode: 3758096384,
+            machineCode: 3_758_096_384,
             disassembly: "MOV R0, #42",
             symbol: nil
         )
@@ -275,21 +275,21 @@ final class ProgramStateTests: XCTestCase {
     func testDisassemblyInstructionHashable() {
         let instruction1 = DisassemblyInstruction(
             address: 32768,
-            machineCode: 3758096384,
+            machineCode: 3_758_096_384,
             disassembly: "MOV R0, #42",
             symbol: "main"
         )
 
         let instruction2 = DisassemblyInstruction(
             address: 32768,
-            machineCode: 3758096384,
+            machineCode: 3_758_096_384,
             disassembly: "MOV R0, #42",
             symbol: "main"
         )
 
         let instruction3 = DisassemblyInstruction(
             address: 32772,
-            machineCode: 3758096384,
+            machineCode: 3_758_096_384,
             disassembly: "MOV R1, #100",
             symbol: nil
         )

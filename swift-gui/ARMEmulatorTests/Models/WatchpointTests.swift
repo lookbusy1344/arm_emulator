@@ -34,7 +34,7 @@ final class WatchpointTests: XCTestCase {
         let watchpoint = try JSONDecoder().decode(Watchpoint.self, from: data)
 
         XCTAssertEqual(watchpoint.id, 2)
-        XCTAssertEqual(watchpoint.address, 327680)
+        XCTAssertEqual(watchpoint.address, 327_680)
         XCTAssertEqual(watchpoint.type, "read")
     }
 

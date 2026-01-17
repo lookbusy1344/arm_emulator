@@ -45,7 +45,11 @@ final class MockAPIClient: APIClientProtocol, @unchecked Sendable {
     func createSession() async throws -> String {
         createSessionCalled = true
         if shouldFailCreateSession {
-            throw NSError(domain: "MockAPIClient", code: -1, userInfo: [NSLocalizedDescriptionKey: "Mock session creation failed"])
+            throw NSError(
+                domain: "MockAPIClient",
+                code: -1,
+                userInfo: [NSLocalizedDescriptionKey: "Mock session creation failed"]
+            )
         }
         return mockSessionID
     }
@@ -63,7 +67,11 @@ final class MockAPIClient: APIClientProtocol, @unchecked Sendable {
         loadProgramCalled = true
         lastLoadedSource = source
         if shouldFailLoadProgram {
-            throw NSError(domain: "MockAPIClient", code: -1, userInfo: [NSLocalizedDescriptionKey: "Mock load program failed"])
+            throw NSError(
+                domain: "MockAPIClient",
+                code: -1,
+                userInfo: [NSLocalizedDescriptionKey: "Mock load program failed"]
+            )
         }
         return mockLoadProgramResponse
     }
@@ -82,21 +90,33 @@ final class MockAPIClient: APIClientProtocol, @unchecked Sendable {
     func step(sessionID: String) async throws {
         stepCalled = true
         if shouldFailStep {
-            throw NSError(domain: "MockAPIClient", code: -1, userInfo: [NSLocalizedDescriptionKey: stepErrorMessage ?? "Mock step failed"])
+            throw NSError(
+                domain: "MockAPIClient",
+                code: -1,
+                userInfo: [NSLocalizedDescriptionKey: stepErrorMessage ?? "Mock step failed"]
+            )
         }
     }
 
     func stepOver(sessionID: String) async throws {
         stepOverCalled = true
         if shouldFailStep {
-            throw NSError(domain: "MockAPIClient", code: -1, userInfo: [NSLocalizedDescriptionKey: stepErrorMessage ?? "Mock step over failed"])
+            throw NSError(
+                domain: "MockAPIClient",
+                code: -1,
+                userInfo: [NSLocalizedDescriptionKey: stepErrorMessage ?? "Mock step over failed"]
+            )
         }
     }
 
     func stepOut(sessionID: String) async throws {
         stepOutCalled = true
         if shouldFailStep {
-            throw NSError(domain: "MockAPIClient", code: -1, userInfo: [NSLocalizedDescriptionKey: stepErrorMessage ?? "Mock step out failed"])
+            throw NSError(
+                domain: "MockAPIClient",
+                code: -1,
+                userInfo: [NSLocalizedDescriptionKey: stepErrorMessage ?? "Mock step out failed"]
+            )
         }
     }
 
@@ -122,7 +142,11 @@ final class MockAPIClient: APIClientProtocol, @unchecked Sendable {
         addBreakpointCalled = true
         lastBreakpointAddress = address
         if shouldFailAddBreakpoint {
-            throw NSError(domain: "MockAPIClient", code: -1, userInfo: [NSLocalizedDescriptionKey: "Mock add breakpoint failed"])
+            throw NSError(
+                domain: "MockAPIClient",
+                code: -1,
+                userInfo: [NSLocalizedDescriptionKey: "Mock add breakpoint failed"]
+            )
         }
     }
 
@@ -130,7 +154,11 @@ final class MockAPIClient: APIClientProtocol, @unchecked Sendable {
         removeBreakpointCalled = true
         lastBreakpointAddress = address
         if shouldFailRemoveBreakpoint {
-            throw NSError(domain: "MockAPIClient", code: -1, userInfo: [NSLocalizedDescriptionKey: "Mock remove breakpoint failed"])
+            throw NSError(
+                domain: "MockAPIClient",
+                code: -1,
+                userInfo: [NSLocalizedDescriptionKey: "Mock remove breakpoint failed"]
+            )
         }
     }
 

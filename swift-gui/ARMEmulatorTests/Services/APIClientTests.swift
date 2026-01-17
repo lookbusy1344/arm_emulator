@@ -5,11 +5,11 @@ import XCTest
 final class MockURLProtocol: URLProtocol {
     nonisolated(unsafe) static var requestHandler: ((URLRequest) throws -> (HTTPURLResponse, Data?))?
 
-    override class func canInit(with request: URLRequest) -> Bool {
+    override static func canInit(with request: URLRequest) -> Bool {
         true
     }
 
-    override class func canonicalRequest(for request: URLRequest) -> URLRequest {
+    override static func canonicalRequest(for request: URLRequest) -> URLRequest {
         request
     }
 
@@ -69,11 +69,11 @@ final class APIClientSessionTests: XCTestCase {
             XCTAssertEqual(request.url?.path, "/api/v1/session")
 
             // Return mock session response
-            let responseData = """
+            let responseData = Data("""
             {
                 "sessionId": "test-session-123"
             }
-            """.data(using: .utf8)!
+            """.utf8)
 
             let response = HTTPURLResponse(
                 url: request.url!,
@@ -257,7 +257,7 @@ final class APIClientURLConstructionTests: XCTestCase {
         let formatted2 = String(format: "0x%X", address2)
         XCTAssertEqual(formatted2, "0xFFFF")
 
-        let address3: UInt32 = 0x1234ABCD
+        let address3: UInt32 = 0x1234_ABCD
         let formatted3 = String(format: "0x%X", address3)
         XCTAssertEqual(formatted3, "0x1234ABCD")
     }

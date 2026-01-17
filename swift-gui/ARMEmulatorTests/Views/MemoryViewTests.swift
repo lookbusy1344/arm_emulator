@@ -45,7 +45,7 @@ final class MemoryViewAddressParsingTests: XCTestCase {
         let addresses = [
             "0x8000": UInt32(0x8000),
             "0x0": UInt32(0),
-            "0xFFFFFFFF": UInt32(0xFFFFFFFF),
+            "0xFFFFFFFF": UInt32(0xFFFF_FFFF),
             "0x10000": UInt32(0x10000),
         ]
 
@@ -65,7 +65,7 @@ final class MemoryViewAddressParsingTests: XCTestCase {
         let addresses = [
             "8000": UInt32(0x8000),
             "0": UInt32(0),
-            "FFFFFFFF": UInt32(0xFFFFFFFF),
+            "FFFFFFFF": UInt32(0xFFFF_FFFF),
             "10000": UInt32(0x10000),
         ]
 
@@ -192,7 +192,7 @@ final class MemoryViewHexFormattingTests: XCTestCase {
         let formatted1 = String(format: "0x%08X", address1)
         XCTAssertEqual(formatted1, "0x00008000")
 
-        let address2: UInt32 = 0xFFFFFFFF
+        let address2: UInt32 = 0xFFFF_FFFF
         let formatted2 = String(format: "0x%08X", address2)
         XCTAssertEqual(formatted2, "0xFFFFFFFF")
 
