@@ -208,7 +208,7 @@ File operations (~237 lines) has **zero tests**:
    - [ ] Test `MemoryData` and `DisassemblyInstruction` decoding
    ```
 
-### Phase 3: ViewModel Tests (Priority: Critical, Effort: 3-4 days) - ⚠️ 10% COMPLETE
+### Phase 3: ViewModel Tests (Priority: Critical, Effort: 3-4 days) - ✅ COMPLETE
 
 5. **EmulatorViewModel unit tests**
    ```
@@ -217,52 +217,63 @@ File operations (~237 lines) has **zero tests**:
    - [x] ✅ Test highlight timer restart on rapid changes
    - [x] ✅ Test multiple independent highlights
    - [x] ✅ Test `updateRegisters()` triggers highlights
-   - [ ] Test `initialize()` - session creation and WebSocket connection
-   - [ ] Test `loadProgram()` - success path with source map
-   - [ ] Test `loadProgram()` - failure with error messages
-   - [ ] Test `run()`, `stop()`, `step()` - state transitions (EmulatorViewModel+Execution.swift)
-   - [ ] Test `stepOver()`, `stepOut()` - including program exit handling
-   - [ ] Test `reset()` - console clearing and state reset
-   - [ ] Test `toggleBreakpoint()` - add/remove logic (EmulatorViewModel+Debug.swift)
-   - [ ] Test `handleEvent()` - all event types (state/output/event) (EmulatorViewModel+Events.swift)
-   - [ ] Test register change detection (`detectRegisterChanges`)
-   - [ ] Test `sendInput()` - buffered vs waiting states (EmulatorViewModel+Input.swift)
-   - [ ] Test memory operations (EmulatorViewModel+Memory.swift)
-   - [ ] Test `cleanup()` - session teardown
+   - [x] ✅ Test `initialize()` - session creation and WebSocket connection
+   - [x] ✅ Test `loadProgram()` - success path with source map
+   - [x] ✅ Test `loadProgram()` - failure with error messages
+   - [x] ✅ Test `run()`, `stop()`, `step()` - state transitions (EmulatorViewModel+Execution.swift)
+   - [x] ✅ Test `stepOver()`, `stepOut()` - including program exit handling
+   - [x] ✅ Test `reset()` - console clearing and state reset
+   - [x] ✅ Test `toggleBreakpoint()` - add/remove logic (EmulatorViewModel+Debug.swift)
+   - [x] ✅ Test `handleEvent()` - all event types (state/output/event) (EmulatorViewModel+Events.swift)
+   - [x] ✅ Test register change detection (`detectRegisterChanges`)
+   - [x] ✅ Test `sendInput()` - buffered vs waiting states (EmulatorViewModel+Input.swift)
+   - [x] ✅ Test `cleanup()` - session teardown
    ```
 
-**Progress:** 7 tests added (highlight feature only), ~50+ tests still needed for remaining functionality.
+**Status:** Phase 3 complete - 35 comprehensive ViewModel tests covering initialization, program loading, execution control, debug features, event handling, and input/output.
 
-### Phase 4: Service Tests (Priority: High, Effort: 2-3 days)
+**Note:** Memory operations (EmulatorViewModel+Memory.swift) tested through `highlightMemoryAddress()` tests.
 
-6. **APIClient unit tests**
-   ```
-   - [ ] Test request encoding for each endpoint
-   - [ ] Test response decoding for each endpoint
-   - [ ] Test error handling (network, server, decoding errors)
-   - [ ] Test URL construction for memory/disassembly queries
-   ```
+### Phase 4: Service Tests (Priority: High, Effort: 2-3 days) - ⚠️ PARTIALLY COMPLETE
 
-7. **WebSocketClient tests**
+6. **APIClient unit tests** (10 tests added - testable aspects only)
    ```
-   - [ ] Test connection/disconnection lifecycle
-   - [ ] Test message parsing and event emission
-   - [ ] Test subscription message format
+   - [x] ✅ Test error handling (all APIError types with descriptions)
+   - [x] ✅ Test response decoding (LoadProgramResponse, BackendVersion, SourceMapEntry)
+   - [x] ✅ Test URL construction for memory/disassembly queries
+   - [x] ✅ Test hex address formatting
+   - [~] ⚠️ DEFERRED: Full network request/response testing (requires URLSession injection)
+   - [~] ⚠️ DEFERRED: Request encoding testing (requires URLSession injection)
    ```
 
-8. **FileService tests**
+7. **WebSocketClient tests** - DEFERRED
    ```
-   - [ ] Test `addToRecentFiles()` deduplication and limit
-   - [ ] Test `extractDescription()` from source comments
-   - [ ] Test examples directory discovery logic
+   - [~] ⚠️ DEFERRED: Connection/disconnection lifecycle (requires injectable WebSocket)
+   - [~] ⚠️ DEFERRED: Message parsing and event emission (requires injectable WebSocket)
+   - [~] ⚠️ DEFERRED: Subscription message format (requires injectable WebSocket)
    ```
+   **Reason:** Production code uses URLSession.shared and real WebSocket connections. Would require refactoring APIClient/WebSocketClient to accept injectable URLSession for comprehensive testing.
 
-9. **BackendManager tests**
+8. **FileService tests** (9 tests added - testable aspects only)
    ```
-   - [ ] Test `findBinaryPath()` search locations
-   - [ ] Test `checkBackendHealth()` HTTP handling
-   - [ ] Test `waitForBackendReady()` timeout behavior
+   - [x] ✅ Test ExampleProgram model (initialization, formatted size, hashable, equality)
+   - [x] ✅ Test `addToRecentFiles()` deduplication and max limit
+   - [x] ✅ Test `clearRecentFiles()` functionality
+   - [x] ✅ Test recent files ordering (most recent first)
+   - [~] ⚠️ DEFERRED: `extractDescription()` testing (private method)
+   - [~] ⚠️ DEFERRED: `findExamplesDirectory()` testing (private method, filesystem-dependent)
    ```
+   **Reason:** Private methods require either making them internal for testing or extracting to separate testable utilities.
+
+9. **BackendManager tests** - DEFERRED
+   ```
+   - [~] ⚠️ DEFERRED: `findBinaryPath()` search locations (filesystem-dependent, process management)
+   - [~] ⚠️ DEFERRED: `checkBackendHealth()` HTTP handling (requires running backend)
+   - [~] ⚠️ DEFERRED: `waitForBackendReady()` timeout behavior (complex async process management)
+   ```
+   **Reason:** BackendManager involves complex process spawning, health checks, and filesystem operations. Requires significant test infrastructure setup and potentially refactoring for dependency injection.
+
+**Phase 4 Status:** 19 tests added covering testable aspects of APIClient and FileService. WebSocketClient and BackendManager deferred due to architectural constraints requiring production code refactoring for comprehensive testing.
 
 ### Phase 5: View Tests (Priority: Medium, Effort: 4-5 days) - ⚠️ SCOPE INCREASED
 
@@ -350,22 +361,30 @@ ARMEmulatorTests/
 
 ---
 
-## Priority Summary
+## Priority Summary (Updated 2026-01-17)
 
 | Priority | Component | Effort | Impact | Status |
 |----------|-----------|--------|--------|--------|
-| 🔴 Critical | EmulatorViewModel tests | 3-4 days | Core logic validation | ⚠️ 10% done (7/50+ tests) |
-| 🔴 Critical | Test infrastructure (mocks) | 2-3 days | Enables all other tests | ⚠️ 40% done (basic mocks exist) |
-| 🟡 High | APIClient tests | 2 days | Network reliability | ❌ Not started |
-| 🟡 High | WebSocketClient tests | 1-2 days | Real-time updates | ❌ Not started |
-| 🟡 High | Model decoding tests | 1 day | Data integrity | ❌ Not started |
-| 🟢 Medium | FileService tests | 1 day | File handling | ❌ Not started |
-| 🟢 Medium | BackendManager tests | 1 day | Process lifecycle | ❌ Not started |
-| 🟢 Medium | View tests | 4-5 days (↑ from 2) | UI correctness | ⚠️ 3 views tested |
+| 🔴 Critical | EmulatorViewModel tests | 3-4 days | Core logic validation | ✅ Complete (35 tests) |
+| 🔴 Critical | Test infrastructure (mocks) | 2-3 days | Enables all other tests | ✅ Complete (protocols + mocks) |
+| 🟡 High | APIClient tests | 2 days | Network reliability | ⚠️ Partial (10 tests, testable aspects) |
+| 🟡 High | WebSocketClient tests | 1-2 days | Real-time updates | ⚠️ Deferred (needs refactoring) |
+| 🟡 High | Model decoding tests | 1 day | Data integrity | ✅ Complete (53 tests) |
+| 🟢 Medium | FileService tests | 1 day | File handling | ⚠️ Partial (9 tests, testable aspects) |
+| 🟢 Medium | BackendManager tests | 1 day | Process lifecycle | ⚠️ Deferred (needs refactoring) |
+| 🟢 Medium | View tests | 4-5 days | UI correctness | ⚠️ 3 views tested (16 untested) |
 | 🔵 Low | Integration tests | 2 days | E2E confidence | ❌ Not started |
 
-**Total estimated effort:** 17-23 days (was 13-18 days)
-**Reason for increase:** +1,663 lines of new view code, WebSocketClient expanded 63%
+**Progress Update (2026-01-17):**
+- ✅ Phases 1-3 complete: 122 tests (infrastructure, models, ViewModels)
+- ⚠️ Phase 4 partial: +19 tests (APIClient, FileService testable aspects)
+- **Current total: 141 tests** (was 35 at start, +106 new tests)
+- Test coverage increased from ~16% to estimated ~25%
+
+**Deferred Items (require production code refactoring):**
+- WebSocketClient testing (needs injectable URLSession/WebSocket)
+- BackendManager testing (complex process management)
+- Private method testing (extractDescription, findExamplesDirectory)
 
 ---
 
