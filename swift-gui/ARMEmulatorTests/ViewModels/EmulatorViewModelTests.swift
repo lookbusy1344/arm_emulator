@@ -55,7 +55,7 @@ final class HighlightTests: XCTestCase {
         XCTAssertNotNil(viewModel.registerHighlights["R0"])
 
         // Wait for fade to complete
-        try await Task.sleep(nanoseconds: 1_600_000_000)  // 1.6s
+        try await Task.sleep(nanoseconds: 1_600_000_000) // 1.6s
 
         // Should be removed
         XCTAssertNil(viewModel.registerHighlights["R0"])
@@ -65,7 +65,7 @@ final class HighlightTests: XCTestCase {
         viewModel.highlightRegister("R0")
 
         // Wait halfway through fade
-        try await Task.sleep(nanoseconds: 500_000_000)  // 0.5s
+        try await Task.sleep(nanoseconds: 500_000_000) // 0.5s
 
         // Trigger another change (should restart timer)
         viewModel.highlightRegister("R0")
@@ -86,7 +86,7 @@ final class HighlightTests: XCTestCase {
     func testMultipleRegisterHighlightsIndependent() async throws {
         viewModel.highlightRegister("R0")
 
-        try await Task.sleep(nanoseconds: 500_000_000)  // 0.5s
+        try await Task.sleep(nanoseconds: 500_000_000) // 0.5s
 
         viewModel.highlightRegister("R1")
 
@@ -110,7 +110,7 @@ final class HighlightTests: XCTestCase {
         XCTAssertNotNil(viewModel.memoryHighlights[0x8001])
         XCTAssertNotNil(viewModel.memoryHighlights[0x8002])
         XCTAssertNotNil(viewModel.memoryHighlights[0x8003])
-        XCTAssertNil(viewModel.memoryHighlights[0x8004])  // 5th byte not written
+        XCTAssertNil(viewModel.memoryHighlights[0x8004]) // 5th byte not written
     }
 
     func testUpdateRegistersTriggersHighlights() async throws {
@@ -136,6 +136,6 @@ final class HighlightTests: XCTestCase {
         XCTAssertNotNil(viewModel.registerHighlights["R0"])
         XCTAssertNotNil(viewModel.registerHighlights["R1"])
         XCTAssertNotNil(viewModel.registerHighlights["PC"])
-        XCTAssertNil(viewModel.registerHighlights["R2"])  // Unchanged
+        XCTAssertNil(viewModel.registerHighlights["R2"]) // Unchanged
     }
 }

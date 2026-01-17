@@ -186,9 +186,9 @@ struct MemoryView: View {
 struct MemoryRowView: View {
     let address: UInt32
     let bytes: [UInt8]
-    let highlightAddress: UInt32?  // PC highlight (keep for now)
-    let memoryHighlights: [UInt32: UUID]  // Changed from lastWriteAddress
-    let lastWriteSize: UInt32  // Keep for compatibility
+    let highlightAddress: UInt32? // PC highlight (keep for now)
+    let memoryHighlights: [UInt32: UUID] // Changed from lastWriteAddress
+    let lastWriteSize: UInt32 // Keep for compatibility
 
     private var isHighlighted: Bool {
         guard let highlight = highlightAddress else { return false }
@@ -275,7 +275,7 @@ struct MemoryDisplayView: View {
                             address: baseAddress + UInt32(row * bytesPerRow),
                             bytes: bytesForRow(row),
                             highlightAddress: viewModel.currentPC,
-                            memoryHighlights: viewModel.memoryHighlights,  // Pass highlights map
+                            memoryHighlights: viewModel.memoryHighlights, // Pass highlights map
                             lastWriteSize: viewModel.lastMemoryWriteSize
                         )
                         .id("row_\(row)")

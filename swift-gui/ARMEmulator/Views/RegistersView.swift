@@ -90,7 +90,7 @@ struct RegistersView: View {
 struct RegisterRow: View {
     let name: String
     let value: UInt32
-    let highlightID: UUID?  // Changed from isChanged: Bool
+    let highlightID: UUID? // Changed from isChanged: Bool
 
     init(name: String, value: UInt32, highlightID: UUID? = nil) {
         self.name = name
@@ -134,7 +134,7 @@ struct RegistersView_Previews: PreviewProvider {
                 r12: 0, sp: 0x0005_0000, lr: 0, pc: 0x0000_8004,
                 cpsr: CPSRFlags(n: false, z: false, c: true, v: false)
             ),
-            registerHighlights: ["R0": UUID(), "PC": UUID()]  // Show R0 and PC highlighted
+            registerHighlights: ["R0": UUID(), "PC": UUID()] // Show R0 and PC highlighted
         )
         .frame(width: 300, height: 500)
     }
