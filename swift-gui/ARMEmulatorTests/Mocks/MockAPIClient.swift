@@ -4,32 +4,68 @@ import Foundation
 /// Mock implementation of APIClient for testing
 /// Implements APIClientProtocol to enable proper dependency injection
 final class MockAPIClient: APIClientProtocol, @unchecked Sendable {
+    // Call tracking
+    var createSessionCalled = false
+    var destroySessionCalled = false
+    var loadProgramCalled = false
+    var lastLoadedSource: String?
+    var runCalled = false
+    var stopCalled = false
+    var stepCalled = false
+    var resetCalled = false
+    var getRegistersCalled = false
+    var getStatusCalled = false
+
+    // Error simulation
+    var shouldFailCreateSession = false
+    var shouldFailLoadProgram = false
+    var shouldFailRun = false
+
+    // Response customization
+    var mockSessionID = "mock-session-id"
+    var mockLoadProgramResponse = LoadProgramResponse(success: true, errors: nil, symbols: ["main": 0x8000])
+    var mockRegisters = RegisterState.empty
+    var mockStatus = VMStatus(state: "idle", pc: 0x8000, instruction: nil, cycleCount: nil, error: nil)
+
     func createSession() async throws -> String {
-        return "mock-session-id"
+        createSessionCalled = true
+        if shouldFailCreateSession {
+            throw NSError(domain: "MockAPIClient", code: -1, userInfo: [NSLocalizedDescriptionKey: "Mock session creation failed"])
+        }
+        return mockSessionID
     }
 
     func destroySession(sessionID: String) async throws {
-        // No-op
+        destroySessionCalled = true
     }
 
     func getStatus(sessionID: String) async throws -> VMStatus {
-        return VMStatus(state: "idle", pc: 0, instruction: nil, cycleCount: nil, error: nil)
+        getStatusCalled = true
+        return mockStatus
     }
 
     func loadProgram(sessionID: String, source: String) async throws -> LoadProgramResponse {
-        return LoadProgramResponse(success: true, errors: nil, symbols: nil)
+        loadProgramCalled = true
+        lastLoadedSource = source
+        if shouldFailLoadProgram {
+            throw NSError(domain: "MockAPIClient", code: -1, userInfo: [NSLocalizedDescriptionKey: "Mock load program failed"])
+        }
+        return mockLoadProgramResponse
     }
 
     func run(sessionID: String) async throws {
-        // No-op
+        runCalled = true
+        if shouldFailRun {
+            throw NSError(domain: "MockAPIClient", code: -1, userInfo: [NSLocalizedDescriptionKey: "Mock run failed"])
+        }
     }
 
     func stop(sessionID: String) async throws {
-        // No-op
+        stopCalled = true
     }
 
     func step(sessionID: String) async throws {
-        // No-op
+        stepCalled = true
     }
 
     func stepOver(sessionID: String) async throws {
@@ -41,7 +77,7 @@ final class MockAPIClient: APIClientProtocol, @unchecked Sendable {
     }
 
     func reset(sessionID: String) async throws {
-        // No-op
+        resetCalled = true
     }
 
     func restart(sessionID: String) async throws {
@@ -53,7 +89,8 @@ final class MockAPIClient: APIClientProtocol, @unchecked Sendable {
     }
 
     func getRegisters(sessionID: String) async throws -> RegisterState {
-        return .empty
+        getRegistersCalled = true
+        return mockRegisters
     }
 
     func addBreakpoint(sessionID: String, address: UInt32) async throws {

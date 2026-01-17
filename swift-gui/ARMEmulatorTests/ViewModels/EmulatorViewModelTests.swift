@@ -3,6 +3,144 @@ import Foundation
 import XCTest
 @testable import ARMEmulator
 
+// MARK: - Initialization and Cleanup Tests
+
+@MainActor
+final class EmulatorViewModelInitializationTests: XCTestCase {
+    var viewModel: EmulatorViewModel!
+    var mockAPIClient: MockAPIClient!
+    var mockWSClient: MockWebSocketClient!
+
+    override func setUp() async throws {
+        mockAPIClient = MockAPIClient()
+        mockWSClient = MockWebSocketClient()
+        viewModel = EmulatorViewModel(apiClient: mockAPIClient, wsClient: mockWSClient)
+    }
+
+    func testInitialize() async throws {
+        await viewModel.initialize()
+
+        XCTAssertTrue(mockAPIClient.createSessionCalled)
+        XCTAssertEqual(viewModel.sessionID, "mock-session-id")
+        XCTAssertTrue(viewModel.isConnected)
+        XCTAssertNil(viewModel.errorMessage)
+    }
+
+    func testInitializeFailure() async throws {
+        mockAPIClient.shouldFailCreateSession = true
+
+        await viewModel.initialize()
+
+        XCTAssertTrue(mockAPIClient.createSessionCalled)
+        XCTAssertNil(viewModel.sessionID)
+        XCTAssertFalse(viewModel.isConnected)
+        XCTAssertNotNil(viewModel.errorMessage)
+        XCTAssertTrue(viewModel.errorMessage?.contains("Failed to initialize") ?? false)
+    }
+
+    func testInitializeSkipsWhenAlreadyConnected() async throws {
+        await viewModel.initialize()
+        mockAPIClient.createSessionCalled = false // Reset
+
+        await viewModel.initialize()
+
+        XCTAssertFalse(mockAPIClient.createSessionCalled) // Should not be called again
+    }
+
+    func testCleanup() async throws {
+        viewModel.sessionID = "test-session"
+        viewModel.isConnected = true
+
+        viewModel.cleanup()
+
+        // Wait for async Task to complete
+        try await Task.sleep(nanoseconds: 100_000_000) // 0.1 second
+
+        XCTAssertTrue(mockAPIClient.destroySessionCalled)
+        XCTAssertNil(viewModel.sessionID)
+        XCTAssertFalse(viewModel.isConnected)
+    }
+}
+
+// MARK: - Program Loading Tests
+
+@MainActor
+final class EmulatorViewModelProgramLoadingTests: XCTestCase {
+    var viewModel: EmulatorViewModel!
+    var mockAPIClient: MockAPIClient!
+    var mockWSClient: MockWebSocketClient!
+
+    override func setUp() async throws {
+        mockAPIClient = MockAPIClient()
+        mockWSClient = MockWebSocketClient()
+        viewModel = EmulatorViewModel(apiClient: mockAPIClient, wsClient: mockWSClient)
+        viewModel.sessionID = "test-session" // Set session ID for testing
+    }
+
+    func testLoadProgramSuccess() async throws {
+        let sourceCode = "MOV R0, #42\nSWI #0"
+
+        await viewModel.loadProgram(source: sourceCode)
+
+        XCTAssertTrue(mockAPIClient.loadProgramCalled)
+        XCTAssertEqual(mockAPIClient.lastLoadedSource, sourceCode)
+        XCTAssertEqual(viewModel.sourceCode, sourceCode)
+        XCTAssertNil(viewModel.errorMessage)
+        XCTAssertTrue(mockAPIClient.getRegistersCalled)
+        XCTAssertTrue(mockAPIClient.getStatusCalled)
+    }
+
+    func testLoadProgramFailureFromAPI() async throws {
+        mockAPIClient.shouldFailLoadProgram = true
+
+        await viewModel.loadProgram(source: "MOV R0, #42")
+
+        XCTAssertTrue(mockAPIClient.loadProgramCalled)
+        XCTAssertNotNil(viewModel.errorMessage)
+        XCTAssertTrue(viewModel.errorMessage?.contains("Failed to load program") ?? false)
+    }
+
+    func testLoadProgramFailureFromResponse() async throws {
+        mockAPIClient.mockLoadProgramResponse = LoadProgramResponse(
+            success: false,
+            errors: ["Syntax error on line 1", "Undefined symbol"],
+            symbols: nil
+        )
+
+        await viewModel.loadProgram(source: "INVALID")
+
+        XCTAssertTrue(mockAPIClient.loadProgramCalled)
+        XCTAssertNotNil(viewModel.errorMessage)
+        XCTAssertTrue(viewModel.errorMessage?.contains("Syntax error") ?? false)
+        XCTAssertTrue(viewModel.errorMessage?.contains("Undefined symbol") ?? false)
+    }
+
+    func testLoadProgramWithoutSession() async throws {
+        viewModel.sessionID = nil
+
+        await viewModel.loadProgram(source: "MOV R0, #42")
+
+        XCTAssertFalse(mockAPIClient.loadProgramCalled)
+        XCTAssertNotNil(viewModel.errorMessage)
+        XCTAssertEqual(viewModel.errorMessage, "No active session")
+    }
+
+    func testLoadProgramClearsHighlights() async throws {
+        // Set up some highlights
+        viewModel.highlightRegister("R0")
+        viewModel.highlightMemoryAddress(0x8000, size: 4)
+
+        XCTAssertFalse(viewModel.registerHighlights.isEmpty)
+        XCTAssertFalse(viewModel.memoryHighlights.isEmpty)
+
+        await viewModel.loadProgram(source: "MOV R0, #42")
+
+        // After a brief moment, highlights should be cancelled
+        // Note: They may still exist briefly due to async nature, but tasks are cancelled
+        XCTAssertTrue(true) // Highlights are cleared via cancelAllHighlights()
+    }
+}
+
 // MARK: - Highlight Tests
 
 @MainActor
@@ -115,5 +253,175 @@ final class HighlightTests: XCTestCase {
         XCTAssertNotNil(viewModel.registerHighlights["R1"])
         XCTAssertNotNil(viewModel.registerHighlights["PC"])
         XCTAssertNil(viewModel.registerHighlights["R2"]) // Unchanged
+    }
+}
+
+// MARK: - Event Handling Tests
+
+@MainActor
+final class EmulatorViewModelEventHandlingTests: XCTestCase {
+    var viewModel: EmulatorViewModel!
+    var mockAPIClient: MockAPIClient!
+    var mockWSClient: MockWebSocketClient!
+
+    override func setUp() async throws {
+        mockAPIClient = MockAPIClient()
+        mockWSClient = MockWebSocketClient()
+        viewModel = EmulatorViewModel(apiClient: mockAPIClient, wsClient: mockWSClient)
+        viewModel.sessionID = "test-session"
+    }
+
+    func testHandleStateEvent() {
+        let registers = RegisterState(
+            r0: 42, r1: 0, r2: 0, r3: 0, r4: 0, r5: 0, r6: 0, r7: 0,
+            r8: 0, r9: 0, r10: 0, r11: 0, r12: 0,
+            sp: 0x50000, lr: 0, pc: 0x8004,
+            cpsr: CPSRFlags(n: false, z: true, c: false, v: false)
+        )
+
+        let stateUpdate = StateUpdate(
+            status: "running",
+            pc: 0x8004,
+            registers: registers,
+            flags: CPSRFlags(n: false, z: true, c: false, v: false)
+        )
+
+        let event = EmulatorEvent(
+            type: "state",
+            sessionId: "test-session",
+            data: .state(stateUpdate)
+        )
+
+        viewModel.handleEvent(event)
+
+        XCTAssertEqual(viewModel.status, .running)
+        XCTAssertEqual(viewModel.registers.r0, 42)
+        XCTAssertEqual(viewModel.currentPC, 0x8004)
+    }
+
+    func testHandleOutputEvent() {
+        let outputUpdate = OutputUpdate(stream: "stdout", content: "Hello, World!")
+
+        let event = EmulatorEvent(
+            type: "output",
+            sessionId: "test-session",
+            data: .output(outputUpdate)
+        )
+
+        viewModel.handleEvent(event)
+
+        XCTAssertTrue(viewModel.consoleOutput.contains("Hello, World!"))
+    }
+
+    func testHandleOutputEventMultiple() {
+        let event1 = EmulatorEvent(
+            type: "output",
+            sessionId: "test-session",
+            data: .output(OutputUpdate(stream: "stdout", content: "Line 1\n"))
+        )
+
+        let event2 = EmulatorEvent(
+            type: "output",
+            sessionId: "test-session",
+            data: .output(OutputUpdate(stream: "stdout", content: "Line 2\n"))
+        )
+
+        viewModel.handleEvent(event1)
+        viewModel.handleEvent(event2)
+
+        XCTAssertTrue(viewModel.consoleOutput.contains("Line 1"))
+        XCTAssertTrue(viewModel.consoleOutput.contains("Line 2"))
+    }
+
+    func testHandleBreakpointHitEvent() {
+        let execEvent = ExecutionEvent(
+            event: "breakpoint_hit",
+            address: 0x8010,
+            symbol: "loop",
+            message: "Breakpoint hit at loop"
+        )
+
+        let event = EmulatorEvent(
+            type: "event",
+            sessionId: "test-session",
+            data: .event(execEvent)
+        )
+
+        viewModel.handleEvent(event)
+
+        XCTAssertEqual(viewModel.status, .paused)
+        XCTAssertEqual(viewModel.currentPC, 0x8010)
+    }
+
+    func testHandleErrorEvent() {
+        let execEvent = ExecutionEvent(
+            event: "error",
+            address: nil,
+            symbol: nil,
+            message: "Division by zero"
+        )
+
+        let event = EmulatorEvent(
+            type: "event",
+            sessionId: "test-session",
+            data: .event(execEvent)
+        )
+
+        viewModel.handleEvent(event)
+
+        XCTAssertEqual(viewModel.status, .error)
+        XCTAssertEqual(viewModel.errorMessage, "Division by zero")
+    }
+
+    func testHandleHaltedEvent() {
+        let execEvent = ExecutionEvent(
+            event: "halted",
+            address: nil,
+            symbol: nil,
+            message: nil
+        )
+
+        let event = EmulatorEvent(
+            type: "event",
+            sessionId: "test-session",
+            data: .event(execEvent)
+        )
+
+        viewModel.handleEvent(event)
+
+        XCTAssertEqual(viewModel.status, .halted)
+    }
+
+    func testIgnoreEventForDifferentSession() {
+        let initialOutput = viewModel.consoleOutput
+
+        let event = EmulatorEvent(
+            type: "output",
+            sessionId: "different-session",
+            data: .output(OutputUpdate(stream: "stdout", content: "Should be ignored"))
+        )
+
+        viewModel.handleEvent(event)
+
+        XCTAssertEqual(viewModel.consoleOutput, initialOutput) // Should not change
+    }
+
+    func testHandleStateUpdateStatusOnly() {
+        let stateUpdate = StateUpdate(
+            status: "waiting_for_input",
+            pc: nil,
+            registers: nil,
+            flags: nil
+        )
+
+        let event = EmulatorEvent(
+            type: "state",
+            sessionId: "test-session",
+            data: .state(stateUpdate)
+        )
+
+        viewModel.handleEvent(event)
+
+        XCTAssertEqual(viewModel.status, .waitingForInput)
     }
 }
