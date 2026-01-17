@@ -26,7 +26,7 @@ enum APIError: Error, LocalizedError {
     }
 }
 
-class APIClient: ObservableObject, @unchecked Sendable {
+class APIClient: APIClientProtocol, @unchecked Sendable {
     private let baseURL: URL
     private let session: URLSession
 

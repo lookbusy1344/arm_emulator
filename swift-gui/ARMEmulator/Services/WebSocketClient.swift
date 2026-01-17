@@ -1,7 +1,7 @@
 import Combine
 import Foundation
 
-class WebSocketClient: NSObject, ObservableObject, URLSessionWebSocketDelegate, @unchecked Sendable {
+class WebSocketClient: NSObject, WebSocketClientProtocol, URLSessionWebSocketDelegate, @unchecked Sendable {
     private var webSocket: URLSessionWebSocketTask?
     private let eventSubject = PassthroughSubject<EmulatorEvent, Never>()
     private var session: URLSession?
