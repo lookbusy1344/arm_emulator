@@ -90,12 +90,12 @@ struct RegistersView: View {
 struct RegisterRow: View {
     let name: String
     let value: UInt32
-    let isChanged: Bool
+    let highlightID: UUID?  // Changed from isChanged: Bool
 
-    init(name: String, value: UInt32, isChanged: Bool = false) {
+    init(name: String, value: UInt32, highlightID: UUID? = nil) {
         self.name = name
         self.value = value
-        self.isChanged = isChanged
+        self.highlightID = highlightID
     }
 
     var body: some View {
@@ -104,17 +104,20 @@ struct RegisterRow: View {
                 .font(.system(size: 10, design: .monospaced))
                 .fontWeight(.bold)
                 .frame(width: 60, alignment: .leading)
-                .foregroundColor(isChanged ? .green : .primary)
+                .foregroundColor(highlightID != nil ? .green : .primary)
+                .animation(.easeOut(duration: 1.5), value: highlightID)
 
             Text(String(format: "0x%08X", value))
                 .font(.system(size: 10, design: .monospaced))
-                .foregroundColor(isChanged ? .green : .primary)
+                .foregroundColor(highlightID != nil ? .green : .primary)
+                .animation(.easeOut(duration: 1.5), value: highlightID)
 
             Spacer()
 
             Text(String(value))
                 .font(.system(size: 10, design: .monospaced))
-                .foregroundColor(isChanged ? .green : .secondary)
+                .foregroundColor(highlightID != nil ? .green : .secondary)
+                .animation(.easeOut(duration: 1.5), value: highlightID)
         }
         .padding(.horizontal)
         .padding(.vertical, 2)
@@ -123,13 +126,16 @@ struct RegisterRow: View {
 
 struct RegistersView_Previews: PreviewProvider {
     static var previews: some View {
-        RegistersView(registers: RegisterState(
-            r0: 0x0000_0042, r1: 0x0000_0001, r2: 0x0000_0002, r3: 0x0000_0003,
-            r4: 0, r5: 0, r6: 0, r7: 0,
-            r8: 0, r9: 0, r10: 0, r11: 0,
-            r12: 0, sp: 0x0005_0000, lr: 0, pc: 0x0000_8004,
-            cpsr: CPSRFlags(n: false, z: false, c: true, v: false)
-        ))
+        RegistersView(
+            registers: RegisterState(
+                r0: 0x0000_0042, r1: 0x0000_0001, r2: 0x0000_0002, r3: 0x0000_0003,
+                r4: 0, r5: 0, r6: 0, r7: 0,
+                r8: 0, r9: 0, r10: 0, r11: 0,
+                r12: 0, sp: 0x0005_0000, lr: 0, pc: 0x0000_8004,
+                cpsr: CPSRFlags(n: false, z: false, c: true, v: false)
+            ),
+            registerHighlights: ["R0": UUID(), "PC": UUID()]  // Show R0 and PC highlighted
+        )
         .frame(width: 300, height: 500)
     }
 }
