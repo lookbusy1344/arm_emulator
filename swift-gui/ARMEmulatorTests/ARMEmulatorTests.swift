@@ -1,22 +1,6 @@
 import XCTest
 @testable import ARMEmulator
 
-// Future work: Implement comprehensive Swift UI tests for core workflows
-// - Load program workflow
-// - Run program workflow
-// - Step through program workflow
-// - Breakpoint management workflow
-//
-// Note: Full ViewModel testing requires complex mocking setup.
-// Consider integration tests with real backend instead.
-
-final class ARMEmulatorTests: XCTestCase {
-    /// Placeholder test to satisfy build system
-    func testPlaceholder() {
-        XCTAssertTrue(true, "Placeholder test")
-    }
-}
-
 // MARK: - Command-Line Argument Parsing Tests
 
 final class CommandLineArgumentParsingTests: XCTestCase {
