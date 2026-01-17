@@ -6,7 +6,6 @@ struct MemoryView: View {
     @State private var memoryData: [UInt8] = []
     @State private var baseAddress: UInt32 = 0x8000
     @State private var autoScrollEnabled = true
-    @State private var highlightedWriteAddress: UInt32?
     @State private var refreshID = UUID()
     @State private var scrollToRow: Int?
     @State private var lastScrolledRow: Int?
@@ -93,31 +92,28 @@ struct MemoryView: View {
         }
         .onChange(of: viewModel.lastMemoryWrite) {
             // Handle memory write highlighting and auto-scroll
-            // Note: We intentionally DON'T refresh on PC change - memory content
-            // only changes when there's a write, not when PC advances.
             guard let writeAddr = viewModel.lastMemoryWrite else {
                 return
             }
 
             Task {
+                // Highlight the written address (triggers 1.5s fade)
+                viewModel.highlightMemoryAddress(writeAddr, size: viewModel.lastMemoryWriteSize)
+
                 // Check if write is within currently visible range
                 let visibleEnd = baseAddress + UInt32(totalBytes)
                 let isVisible = writeAddr >= baseAddress && writeAddr < visibleEnd
 
                 if autoScrollEnabled && !isVisible {
-                    // Write is outside visible range - scroll to it (aligned to 16-byte boundary)
+                    // Write is outside visible range - scroll to it
                     let alignedAddress = writeAddr & ~UInt32(0xF)
                     await loadMemoryAsync(at: alignedAddress)
                 } else {
-                    // Write is visible (or auto-scroll disabled) - just refresh data in place
+                    // Write is visible - just refresh data in place
                     await refreshMemoryAsync()
                 }
 
-                // Set highlighting AFTER memory is loaded (critical for correct display)
-                highlightedWriteAddress = writeAddr
-
                 // Trigger scroll to the row containing the write (if auto-scroll enabled)
-                // Only scroll if the row has changed to avoid redundant animations
                 if autoScrollEnabled {
                     let rowOffset = Int((writeAddr - baseAddress) / UInt32(bytesPerRow))
                     if rowOffset >= 0 && rowOffset < rowsToShow && rowOffset != lastScrolledRow {
@@ -153,8 +149,7 @@ struct MemoryView: View {
             return
         }
 
-        // Clear any existing highlight and scroll tracking when manually navigating
-        highlightedWriteAddress = nil
+        // Clear scroll tracking when manually navigating
         lastScrolledRow = nil
         Task {
             await loadMemoryAsync(at: address)
@@ -181,7 +176,6 @@ struct MemoryView: View {
 
     /// Synchronous wrapper for button actions that start a Task
     private func loadMemory(at address: UInt32) {
-        highlightedWriteAddress = nil
         lastScrolledRow = nil
         Task {
             await loadMemoryAsync(at: address)
