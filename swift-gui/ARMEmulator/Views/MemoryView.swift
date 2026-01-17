@@ -16,62 +16,67 @@ struct MemoryView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            // Toolbar
-            HStack(spacing: 8) {
-                // Address input
-                TextField("Address", text: $addressInput)
-                    .textFieldStyle(.roundedBorder)
-                    .frame(width: 100)
-                    .font(.system(size: 10, design: .monospaced))
+            // Toolbar with responsive layout
+            GeometryReader { geometry in
+                HStack(spacing: 8) {
+                    // Address input
+                    TextField("Address", text: $addressInput)
+                        .textFieldStyle(.roundedBorder)
+                        .frame(width: 100)
+                        .font(.system(size: 10, design: .monospaced))
 
-                Button("Go") {
-                    loadMemoryFromInput()
+                    Button("Go") {
+                        loadMemoryFromInput()
+                    }
+                    .keyboardShortcut(.return, modifiers: [])
+
+                    Divider()
+
+                    // Quick access buttons
+                    Button("PC") {
+                        loadMemory(at: viewModel.currentPC)
+                    }
+                    .help("Jump to Program Counter")
+
+                    Button("SP") {
+                        loadMemory(at: viewModel.registers.sp)
+                    }
+                    .help("Jump to Stack Pointer")
+
+                    // Register buttons
+                    Button("R0") {
+                        loadMemory(at: viewModel.registers.r0)
+                    }
+                    .help("Jump to R0 value")
+
+                    Button("R1") {
+                        loadMemory(at: viewModel.registers.r1)
+                    }
+                    .help("Jump to R1 value")
+
+                    Button("R2") {
+                        loadMemory(at: viewModel.registers.r2)
+                    }
+                    .help("Jump to R2 value")
+
+                    Button("R3") {
+                        loadMemory(at: viewModel.registers.r3)
+                    }
+                    .help("Jump to R3 value")
+
+                    Spacer()
+
+                    // Auto-scroll toggle - hide when window is narrow
+                    if geometry.size.width >= 520 {
+                        Toggle("Auto-scroll", isOn: $autoScrollEnabled)
+                            .help("Auto-scroll to memory writes when stepping")
+                    }
                 }
-                .keyboardShortcut(.return, modifiers: [])
-
-                Divider()
-
-                // Quick access buttons
-                Button("PC") {
-                    loadMemory(at: viewModel.currentPC)
-                }
-                .help("Jump to Program Counter")
-
-                Button("SP") {
-                    loadMemory(at: viewModel.registers.sp)
-                }
-                .help("Jump to Stack Pointer")
-
-                // Register buttons
-                Button("R0") {
-                    loadMemory(at: viewModel.registers.r0)
-                }
-                .help("Jump to R0 value")
-
-                Button("R1") {
-                    loadMemory(at: viewModel.registers.r1)
-                }
-                .help("Jump to R1 value")
-
-                Button("R2") {
-                    loadMemory(at: viewModel.registers.r2)
-                }
-                .help("Jump to R2 value")
-
-                Button("R3") {
-                    loadMemory(at: viewModel.registers.r3)
-                }
-                .help("Jump to R3 value")
-
-                Spacer()
-
-                // Auto-scroll toggle
-                Toggle("Auto-scroll", isOn: $autoScrollEnabled)
-                    .help("Auto-scroll to memory writes when stepping")
+                .padding(8)
+                .background(Color(NSColor.controlBackgroundColor))
+                .frame(maxHeight: .infinity)
             }
-            .padding(8)
-            .background(Color(NSColor.controlBackgroundColor))
-            .fixedSize(horizontal: false, vertical: true)
+            .frame(height: 36)
 
             Divider()
 
