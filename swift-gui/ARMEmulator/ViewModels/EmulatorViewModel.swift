@@ -101,6 +101,22 @@ class EmulatorViewModel: ObservableObject {
             .store(in: &cancellables)
     }
 
+    private func cancelAllHighlights() {
+        // Cancel all pending highlight tasks
+        for task in highlightTasks.values {
+            task.cancel()
+        }
+        for task in memoryHighlightTasks.values {
+            task.cancel()
+        }
+
+        // Clear all highlights
+        highlightTasks.removeAll()
+        memoryHighlightTasks.removeAll()
+        registerHighlights.removeAll()
+        memoryHighlights.removeAll()
+    }
+
     func initialize() async {
         // Prevent concurrent initialization
         guard !isInitializing, !isConnected else { return }
@@ -122,6 +138,9 @@ class EmulatorViewModel: ObservableObject {
     func loadProgram(source: String) async {
         DebugLog.log("loadProgram() called", category: "ViewModel")
         DebugLog.log("Source length: \(source.count) chars", category: "ViewModel")
+
+        // Clear highlights when loading new program
+        cancelAllHighlights()
 
         guard let sessionID = sessionID else {
             DebugLog.error("No active session for loadProgram", category: "ViewModel")
@@ -312,6 +331,9 @@ class EmulatorViewModel: ObservableObject {
     }
 
     func reset() async {
+        // Clear highlights when restarting
+        cancelAllHighlights()
+
         guard let sessionID = sessionID else {
             errorMessage = "No active session"
             return
