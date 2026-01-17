@@ -62,6 +62,7 @@ class EmulatorViewModel: ObservableObject {
         // Schedule removal after 1.5 seconds
         highlightTasks[name] = Task { @MainActor in
             try? await Task.sleep(nanoseconds: 1_500_000_000)
+            guard !Task.isCancelled else { return }
             registerHighlights[name] = nil
             highlightTasks[name] = nil
         }
@@ -81,6 +82,7 @@ class EmulatorViewModel: ObservableObject {
             // Schedule removal after 1.5 seconds
             memoryHighlightTasks[addr] = Task { @MainActor in
                 try? await Task.sleep(nanoseconds: 1_500_000_000)
+                guard !Task.isCancelled else { return }
                 memoryHighlights[addr] = nil
                 memoryHighlightTasks[addr] = nil
             }
