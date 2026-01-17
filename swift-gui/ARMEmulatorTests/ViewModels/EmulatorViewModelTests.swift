@@ -425,3 +425,227 @@ final class EmulatorViewModelEventHandlingTests: XCTestCase {
         XCTAssertEqual(viewModel.status, .waitingForInput)
     }
 }
+
+// MARK: - Execution Control Tests
+
+@MainActor
+final class EmulatorViewModelExecutionTests: XCTestCase {
+    var viewModel: EmulatorViewModel!
+    var mockAPIClient: MockAPIClient!
+    var mockWSClient: MockWebSocketClient!
+
+    override func setUp() async throws {
+        mockAPIClient = MockAPIClient()
+        mockWSClient = MockWebSocketClient()
+        viewModel = EmulatorViewModel(apiClient: mockAPIClient, wsClient: mockWSClient)
+        viewModel.sessionID = "test-session"
+    }
+
+    func testRunSuccess() async throws {
+        await viewModel.run()
+
+        XCTAssertTrue(mockAPIClient.runCalled)
+        XCTAssertNil(viewModel.errorMessage)
+    }
+
+    func testRunFailure() async throws {
+        mockAPIClient.shouldFailRun = true
+
+        await viewModel.run()
+
+        XCTAssertTrue(mockAPIClient.runCalled)
+        XCTAssertNotNil(viewModel.errorMessage)
+        XCTAssertTrue(viewModel.errorMessage?.contains("Failed to run") ?? false)
+    }
+
+    func testRunWithoutSession() async throws {
+        viewModel.sessionID = nil
+
+        await viewModel.run()
+
+        XCTAssertFalse(mockAPIClient.runCalled)
+        XCTAssertEqual(viewModel.errorMessage, "No active session")
+    }
+
+    func testStopSuccess() async throws {
+        await viewModel.stop()
+
+        XCTAssertTrue(mockAPIClient.stopCalled)
+        XCTAssertTrue(mockAPIClient.getRegistersCalled)
+        XCTAssertTrue(mockAPIClient.getStatusCalled)
+        XCTAssertNil(viewModel.errorMessage)
+    }
+
+    func testStepSuccess() async throws {
+        await viewModel.step()
+
+        XCTAssertTrue(mockAPIClient.stepCalled)
+        XCTAssertTrue(mockAPIClient.getRegistersCalled)
+        XCTAssertTrue(mockAPIClient.getStatusCalled)
+        XCTAssertNil(viewModel.errorMessage)
+        XCTAssertNil(viewModel.lastMemoryWrite) // Cleared before step
+    }
+
+    func testStepWithProgramExit() async throws {
+        mockAPIClient.shouldFailStep = true
+        mockAPIClient.stepErrorMessage = "program exited with code 0"
+
+        await viewModel.step()
+
+        XCTAssertTrue(mockAPIClient.stepCalled)
+        XCTAssertNil(viewModel.errorMessage) // No error for normal exit
+    }
+
+    func testStepOverSuccess() async throws {
+        await viewModel.stepOver()
+
+        XCTAssertTrue(mockAPIClient.stepOverCalled)
+        XCTAssertTrue(mockAPIClient.getRegistersCalled)
+        XCTAssertTrue(mockAPIClient.getStatusCalled)
+        XCTAssertNil(viewModel.errorMessage)
+    }
+
+    func testStepOutSuccess() async throws {
+        await viewModel.stepOut()
+
+        XCTAssertTrue(mockAPIClient.stepOutCalled)
+        XCTAssertTrue(mockAPIClient.getRegistersCalled)
+        XCTAssertTrue(mockAPIClient.getStatusCalled)
+        XCTAssertNil(viewModel.errorMessage)
+    }
+
+    func testResetClearsConsoleAndHighlights() async throws {
+        viewModel.consoleOutput = "Previous output"
+        viewModel.highlightRegister("R0")
+
+        await viewModel.reset()
+
+        XCTAssertTrue(mockAPIClient.restartCalled)
+        XCTAssertEqual(viewModel.consoleOutput, "")
+        XCTAssertNil(viewModel.errorMessage)
+    }
+}
+
+// MARK: - Debug Features Tests
+
+@MainActor
+final class EmulatorViewModelDebugTests: XCTestCase {
+    var viewModel: EmulatorViewModel!
+    var mockAPIClient: MockAPIClient!
+    var mockWSClient: MockWebSocketClient!
+
+    override func setUp() async throws {
+        mockAPIClient = MockAPIClient()
+        mockWSClient = MockWebSocketClient()
+        viewModel = EmulatorViewModel(apiClient: mockAPIClient, wsClient: mockWSClient)
+        viewModel.sessionID = "test-session"
+    }
+
+    func testToggleBreakpointAdd() async throws {
+        let address: UInt32 = 0x8000
+
+        await viewModel.toggleBreakpoint(at: address)
+
+        XCTAssertTrue(mockAPIClient.addBreakpointCalled)
+        XCTAssertEqual(mockAPIClient.lastBreakpointAddress, address)
+        XCTAssertTrue(viewModel.breakpoints.contains(address))
+        XCTAssertNil(viewModel.errorMessage)
+    }
+
+    func testToggleBreakpointRemove() async throws {
+        let address: UInt32 = 0x8000
+        viewModel.breakpoints.insert(address)
+
+        await viewModel.toggleBreakpoint(at: address)
+
+        XCTAssertTrue(mockAPIClient.removeBreakpointCalled)
+        XCTAssertEqual(mockAPIClient.lastBreakpointAddress, address)
+        XCTAssertFalse(viewModel.breakpoints.contains(address))
+        XCTAssertNil(viewModel.errorMessage)
+    }
+
+    func testToggleBreakpointFailure() async throws {
+        mockAPIClient.shouldFailAddBreakpoint = true
+
+        await viewModel.toggleBreakpoint(at: 0x8000)
+
+        XCTAssertTrue(mockAPIClient.addBreakpointCalled)
+        XCTAssertNotNil(viewModel.errorMessage)
+        XCTAssertTrue(viewModel.errorMessage?.contains("Failed to toggle breakpoint") ?? false)
+    }
+
+    func testAddWatchpoint() async throws {
+        await viewModel.addWatchpoint(at: 0x8000, type: "write")
+
+        XCTAssertTrue(mockAPIClient.addWatchpointCalled)
+        XCTAssertEqual(viewModel.watchpoints.count, 1)
+        XCTAssertEqual(viewModel.watchpoints[0].address, 0x8000)
+        XCTAssertEqual(viewModel.watchpoints[0].type, "write")
+        XCTAssertNil(viewModel.errorMessage)
+    }
+
+    func testRemoveWatchpoint() async throws {
+        viewModel.watchpoints = [Watchpoint(id: 1, address: 0x8000, type: "write")]
+
+        await viewModel.removeWatchpoint(id: 1)
+
+        XCTAssertTrue(mockAPIClient.removeWatchpointCalled)
+        XCTAssertEqual(viewModel.watchpoints.count, 0)
+        XCTAssertNil(viewModel.errorMessage)
+    }
+
+    func testRefreshWatchpoints() async throws {
+        await viewModel.refreshWatchpoints()
+
+        XCTAssertTrue(mockAPIClient.getWatchpointsCalled)
+    }
+}
+
+// MARK: - Input/Output Handling Tests
+
+@MainActor
+final class EmulatorViewModelInputOutputTests: XCTestCase {
+    var viewModel: EmulatorViewModel!
+    var mockAPIClient: MockAPIClient!
+    var mockWSClient: MockWebSocketClient!
+
+    override func setUp() async throws {
+        mockAPIClient = MockAPIClient()
+        mockWSClient = MockWebSocketClient()
+        viewModel = EmulatorViewModel(apiClient: mockAPIClient, wsClient: mockWSClient)
+        viewModel.sessionID = "test-session"
+    }
+
+    func testSendInputWhenWaiting() async throws {
+        viewModel.status = .waitingForInput
+
+        await viewModel.sendInput("test input")
+
+        XCTAssertTrue(mockAPIClient.sendStdinCalled)
+        XCTAssertEqual(mockAPIClient.lastStdinData, "test input")
+        XCTAssertFalse(mockAPIClient.stepCalled) // Should NOT step when waiting
+        XCTAssertTrue(mockAPIClient.getRegistersCalled) // Should refresh state
+        XCTAssertNil(viewModel.errorMessage)
+    }
+
+    func testSendInputWhenNotWaiting() async throws {
+        viewModel.status = .paused
+
+        await viewModel.sendInput("buffered input")
+
+        XCTAssertTrue(mockAPIClient.sendStdinCalled)
+        XCTAssertEqual(mockAPIClient.lastStdinData, "buffered input")
+        XCTAssertTrue(mockAPIClient.stepCalled) // Should step to consume buffered input
+        XCTAssertTrue(mockAPIClient.getRegistersCalled)
+        XCTAssertNil(viewModel.errorMessage)
+    }
+
+    func testSendInputWithoutSession() async throws {
+        viewModel.sessionID = nil
+
+        await viewModel.sendInput("test")
+
+        XCTAssertFalse(mockAPIClient.sendStdinCalled)
+        XCTAssertEqual(viewModel.errorMessage, "No active session")
+    }
+}

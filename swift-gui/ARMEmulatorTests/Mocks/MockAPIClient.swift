@@ -12,14 +12,29 @@ final class MockAPIClient: APIClientProtocol, @unchecked Sendable {
     var runCalled = false
     var stopCalled = false
     var stepCalled = false
+    var stepOverCalled = false
+    var stepOutCalled = false
     var resetCalled = false
+    var restartCalled = false
     var getRegistersCalled = false
     var getStatusCalled = false
+    var sendStdinCalled = false
+    var lastStdinData: String?
+    var addBreakpointCalled = false
+    var removeBreakpointCalled = false
+    var lastBreakpointAddress: UInt32?
+    var addWatchpointCalled = false
+    var removeWatchpointCalled = false
+    var getWatchpointsCalled = false
 
     // Error simulation
     var shouldFailCreateSession = false
     var shouldFailLoadProgram = false
     var shouldFailRun = false
+    var shouldFailStep = false
+    var stepErrorMessage: String?
+    var shouldFailAddBreakpoint = false
+    var shouldFailRemoveBreakpoint = false
 
     // Response customization
     var mockSessionID = "mock-session-id"
@@ -66,14 +81,23 @@ final class MockAPIClient: APIClientProtocol, @unchecked Sendable {
 
     func step(sessionID: String) async throws {
         stepCalled = true
+        if shouldFailStep {
+            throw NSError(domain: "MockAPIClient", code: -1, userInfo: [NSLocalizedDescriptionKey: stepErrorMessage ?? "Mock step failed"])
+        }
     }
 
     func stepOver(sessionID: String) async throws {
-        // No-op
+        stepOverCalled = true
+        if shouldFailStep {
+            throw NSError(domain: "MockAPIClient", code: -1, userInfo: [NSLocalizedDescriptionKey: stepErrorMessage ?? "Mock step over failed"])
+        }
     }
 
     func stepOut(sessionID: String) async throws {
-        // No-op
+        stepOutCalled = true
+        if shouldFailStep {
+            throw NSError(domain: "MockAPIClient", code: -1, userInfo: [NSLocalizedDescriptionKey: stepErrorMessage ?? "Mock step out failed"])
+        }
     }
 
     func reset(sessionID: String) async throws {
@@ -81,11 +105,12 @@ final class MockAPIClient: APIClientProtocol, @unchecked Sendable {
     }
 
     func restart(sessionID: String) async throws {
-        // No-op
+        restartCalled = true
     }
 
     func sendStdin(sessionID: String, data: String) async throws {
-        // No-op
+        sendStdinCalled = true
+        lastStdinData = data
     }
 
     func getRegisters(sessionID: String) async throws -> RegisterState {
@@ -94,11 +119,19 @@ final class MockAPIClient: APIClientProtocol, @unchecked Sendable {
     }
 
     func addBreakpoint(sessionID: String, address: UInt32) async throws {
-        // No-op
+        addBreakpointCalled = true
+        lastBreakpointAddress = address
+        if shouldFailAddBreakpoint {
+            throw NSError(domain: "MockAPIClient", code: -1, userInfo: [NSLocalizedDescriptionKey: "Mock add breakpoint failed"])
+        }
     }
 
     func removeBreakpoint(sessionID: String, address: UInt32) async throws {
-        // No-op
+        removeBreakpointCalled = true
+        lastBreakpointAddress = address
+        if shouldFailRemoveBreakpoint {
+            throw NSError(domain: "MockAPIClient", code: -1, userInfo: [NSLocalizedDescriptionKey: "Mock remove breakpoint failed"])
+        }
     }
 
     func getSourceMap(sessionID: String) async throws -> [SourceMapEntry] {
@@ -114,14 +147,16 @@ final class MockAPIClient: APIClientProtocol, @unchecked Sendable {
     }
 
     func addWatchpoint(sessionID: String, address: UInt32, type: String) async throws -> Watchpoint {
+        addWatchpointCalled = true
         return Watchpoint(id: 1, address: address, type: type)
     }
 
     func removeWatchpoint(sessionID: String, watchpointID: Int) async throws {
-        // No-op
+        removeWatchpointCalled = true
     }
 
     func getWatchpoints(sessionID: String) async throws -> [Watchpoint] {
+        getWatchpointsCalled = true
         return []
     }
 
