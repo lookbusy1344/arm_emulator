@@ -3,28 +3,6 @@ import Foundation
 import XCTest
 @testable import ARMEmulator
 
-// MARK: - Mock Clients
-
-final class MockAPIClient: APIClient, @unchecked Sendable {
-    override func createSession() async throws -> String {
-        return "mock-session-id"
-    }
-
-    override func destroySession(sessionID: String) async throws {
-        // No-op
-    }
-}
-
-final class MockWebSocketClient: WebSocketClient, @unchecked Sendable {
-    override func connect(sessionID: String) {
-        // No-op
-    }
-
-    override func disconnect() {
-        // No-op
-    }
-}
-
 // MARK: - Highlight Tests
 
 @MainActor
