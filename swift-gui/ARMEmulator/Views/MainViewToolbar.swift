@@ -35,12 +35,12 @@ struct MainViewToolbar: ToolbarContent {
                 },
                 label: {
                     Label(
-                        viewModel.status == .paused ? "Continue" : "Run",
-                        systemImage: viewModel.status == .paused ? "play.circle.fill" : "play.fill"
+                        viewModel.status == .breakpoint ? "Continue" : "Run",
+                        systemImage: viewModel.status == .breakpoint ? "play.circle.fill" : "play.fill"
                     )
                 }
             )
-            .help(viewModel.status == .paused ? "Continue execution (⌘R)" : "Run program (⌘R)")
+            .help(viewModel.status == .breakpoint ? "Continue execution (⌘R)" : "Run program (⌘R)")
             .keyboardShortcut("r", modifiers: .command)
             .disabled(viewModel.status == .running || viewModel.status == .waitingForInput)
 
@@ -99,7 +99,7 @@ struct MainViewToolbar: ToolbarContent {
         switch viewModel.status {
         case .running:
             return "play.fill" // Green arrow (running)
-        case .paused:
+        case .breakpoint:
             return "pause.fill" // Pause symbol (stepping/paused)
         case .halted, .idle:
             return "stop.fill" // Red square (stopped/not executing)
@@ -114,7 +114,7 @@ struct MainViewToolbar: ToolbarContent {
         switch viewModel.status {
         case .running:
             return .green
-        case .paused:
+        case .breakpoint:
             return .orange
         case .halted, .idle:
             return .red
@@ -129,7 +129,7 @@ struct MainViewToolbar: ToolbarContent {
         switch viewModel.status {
         case .running:
             return "Running"
-        case .paused:
+        case .breakpoint:
             return "Paused"
         case .halted:
             return "Halted"

@@ -1,12 +1,14 @@
 import Foundation
 
+/// VM execution states - these match the backend's ExecutionState values
+/// and WebSocket event notifications
 enum VMState: String, Codable {
-    case idle
-    case running
-    case paused
-    case halted
-    case error
-    case waitingForInput = "waiting_for_input"
+    case idle // No execution, editor editable
+    case running // Actively executing, editor read-only
+    case breakpoint // Stopped at breakpoint (from step or run), editor read-only
+    case halted // Program finished, editor editable
+    case error // Error occurred, editor editable
+    case waitingForInput = "waiting_for_input" // Blocked on input, editor read-only
 }
 
 struct VMStatus: Codable {

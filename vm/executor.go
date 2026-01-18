@@ -282,6 +282,9 @@ func (vm *VM) Step() error {
 		regsBefore[15] = vm.CPU.PC
 	}
 
+	// Save state before execution to detect if Execute() changes it
+	stateBefore := vm.State
+
 	// Execute instruction
 	if err := vm.Execute(decoded); err != nil {
 		// Don't overwrite terminal states (Halted, Breakpoint) set by syscalls
@@ -322,6 +325,16 @@ func (vm *VM) Step() error {
 			vm.RegisterTrace.RecordWrite(vm.CPU.Cycles, currentPC, "PC", regsBefore[15], vm.CPU.PC)
 		}
 	}
+
+	// Set state to breakpoint after successful step, unless:
+	// 1. Execute() changed the state (e.g., to StateHalted from EXIT or StateBreakpoint from hitting a breakpoint)
+	// 2. We're being called from Run() (state is StateRunning - should remain running)
+	if vm.State == stateBefore && vm.State != StateRunning {
+		// State didn't change during Execute() and we're not in continuous run mode,
+		// so this was a single-step operation - set state to breakpoint
+		vm.State = StateBreakpoint
+	}
+	// else: Either Execute() changed the state, or we're in Run() mode (preserve StateRunning)
 
 	return nil
 }

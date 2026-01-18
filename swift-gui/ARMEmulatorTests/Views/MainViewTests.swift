@@ -347,7 +347,7 @@ final class MainViewTests: XCTestCase {
 
     func testStatusViewStates() {
         // Test all VM states and their corresponding colors
-        let states: [VMState] = [.idle, .running, .paused, .halted, .waitingForInput, .error]
+        let states: [VMState] = [.idle, .running, .breakpoint, .halted, .waitingForInput, .error]
 
         for state in states {
             // When/Then: State should be displayable

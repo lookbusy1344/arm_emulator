@@ -7,7 +7,7 @@ final class ProgramStateTests: XCTestCase {
     func testVMStateRawValueMapping() {
         XCTAssertEqual(VMState.idle.rawValue, "idle")
         XCTAssertEqual(VMState.running.rawValue, "running")
-        XCTAssertEqual(VMState.paused.rawValue, "paused")
+        XCTAssertEqual(VMState.breakpoint.rawValue, "breakpoint")
         XCTAssertEqual(VMState.halted.rawValue, "halted")
         XCTAssertEqual(VMState.error.rawValue, "error")
         XCTAssertEqual(VMState.waitingForInput.rawValue, "waiting_for_input")
@@ -16,7 +16,7 @@ final class ProgramStateTests: XCTestCase {
     func testVMStateFromRawValue() {
         XCTAssertEqual(VMState(rawValue: "idle"), .idle)
         XCTAssertEqual(VMState(rawValue: "running"), .running)
-        XCTAssertEqual(VMState(rawValue: "paused"), .paused)
+        XCTAssertEqual(VMState(rawValue: "breakpoint"), .breakpoint)
         XCTAssertEqual(VMState(rawValue: "halted"), .halted)
         XCTAssertEqual(VMState(rawValue: "error"), .error)
         XCTAssertEqual(VMState(rawValue: "waiting_for_input"), .waitingForInput)
@@ -29,11 +29,11 @@ final class ProgramStateTests: XCTestCase {
     }
 
     func testVMStateDecoding() throws {
-        let json = "\"paused\""
+        let json = "\"breakpoint\""
         let data = json.data(using: .utf8)!
         let state = try JSONDecoder().decode(VMState.self, from: data)
 
-        XCTAssertEqual(state, .paused)
+        XCTAssertEqual(state, .breakpoint)
     }
 
     func testVMStateEncoding() throws {

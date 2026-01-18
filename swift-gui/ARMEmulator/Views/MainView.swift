@@ -280,7 +280,7 @@ struct StatusView: View {
             return .gray
         case .running:
             return .green
-        case .paused:
+        case .breakpoint:
             return .orange
         case .halted:
             return .blue

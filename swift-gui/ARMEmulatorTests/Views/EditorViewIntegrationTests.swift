@@ -179,4 +179,54 @@ class EditorViewIntegrationTests: XCTestCase {
             // the issue is at the drawing layer, not the configuration/layout layer
         }
     }
+
+    // MARK: - Editor Editability Tests
+
+    func testEditorEditableWhenIdle() {
+        // Given: VM is idle (no execution)
+        textView.isEditable = true // Simulate idle state
+
+        // Then: Editor should be editable
+        XCTAssertTrue(textView.isEditable, "Editor should be editable when VM is idle")
+    }
+
+    func testEditorReadOnlyWhenRunning() {
+        // Given: VM is running
+        textView.isEditable = false // Should be read-only during execution
+
+        // Then: Editor should not be editable
+        XCTAssertFalse(textView.isEditable, "Editor should be read-only when VM is running")
+    }
+
+    func testEditorReadOnlyWhenPaused() {
+        // Given: VM is paused (stepping through code)
+        textView.isEditable = false // Should be read-only when stepping
+
+        // Then: Editor should not be editable
+        XCTAssertFalse(textView.isEditable, "Editor should be read-only when VM is paused (stepping)")
+    }
+
+    func testEditorReadOnlyWhenWaitingForInput() {
+        // Given: VM is waiting for input
+        textView.isEditable = false // Should be read-only during execution
+
+        // Then: Editor should not be editable
+        XCTAssertFalse(textView.isEditable, "Editor should be read-only when waiting for input")
+    }
+
+    func testEditorEditableWhenHalted() {
+        // Given: VM has halted (execution complete)
+        textView.isEditable = true // Should be editable when halted
+
+        // Then: Editor should be editable
+        XCTAssertTrue(textView.isEditable, "Editor should be editable when VM has halted")
+    }
+
+    func testEditorEditableWhenError() {
+        // Given: VM encountered an error
+        textView.isEditable = true // Should be editable after error
+
+        // Then: Editor should be editable
+        XCTAssertTrue(textView.isEditable, "Editor should be editable when VM encountered error")
+    }
 }

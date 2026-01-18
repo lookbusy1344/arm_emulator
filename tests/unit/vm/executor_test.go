@@ -603,6 +603,52 @@ func TestStepInErrorState(t *testing.T) {
 	}
 }
 
+func TestStepSetsStateToBreakpoint(t *testing.T) {
+	v := vm.NewVM()
+
+	// Load a simple NOP instruction (MOV R0, R0) at 0x8000
+	// ARM encoding: 0xE1A00000
+	v.Memory.WriteWord(0x8000, 0xE1A00000)
+	v.CPU.PC = 0x8000
+
+	// Set initial state to Halted (default after initialization)
+	v.State = vm.StateHalted
+
+	// Execute a single step
+	err := v.Step()
+	if err != nil {
+		t.Fatalf("Step failed: %v", err)
+	}
+
+	// Verify state is now StateBreakpoint (paused after step)
+	if v.State != vm.StateBreakpoint {
+		t.Errorf("Expected state to be StateBreakpoint after Step(), got %v", v.State)
+	}
+}
+
+func TestStepPreservesHaltedStateFromExit(t *testing.T) {
+	v := vm.NewVM()
+
+	// Load SWI #0 (EXIT) instruction at 0x8000
+	// ARM encoding: 0xEF000000
+	v.Memory.WriteWord(0x8000, 0xEF000000)
+	v.CPU.PC = 0x8000
+	v.State = vm.StateHalted
+
+	// Execute step (this will execute EXIT syscall which sets StateHalted)
+	err := v.Step()
+
+	// Step should return error from EXIT, but state should remain StateHalted
+	if v.State != vm.StateHalted {
+		t.Errorf("Expected state to remain StateHalted after EXIT syscall, got %v", v.State)
+	}
+
+	// EXIT syscall returns an error "program exited with code X"
+	if err == nil {
+		t.Error("Expected error from EXIT syscall")
+	}
+}
+
 // Helper function to check if string contains substring
 func contains(s, substr string) bool {
 	return len(s) >= len(substr) && (s == substr || len(s) > len(substr) && containsHelper(s, substr))

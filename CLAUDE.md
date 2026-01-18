@@ -273,6 +273,46 @@ The Swift app follows MVVM architecture and connects to the Go backend via:
 
 See `SWIFT_GUI_PLANNING.md` for detailed architecture documentation and `docs/SWIFT_CLI_AUTOMATION.md` for comprehensive CLI development guide.
 
+#### VM Execution States
+
+**CRITICAL:** The Swift frontend's `VMState` enum MUST exactly match the backend's `ExecutionState` values for proper state synchronization.
+
+**VM States (defined in `swift-gui/ARMEmulator/Models/ProgramState.swift`):**
+
+| State | Raw Value | Description | Editor Editable? | Source |
+|-------|-----------|-------------|------------------|--------|
+| `.idle` | `"idle"` | No program loaded or execution not started | ✅ Yes | Initial state |
+| `.running` | `"running"` | Actively executing instructions | ❌ No | Backend status response |
+| `.breakpoint` | `"breakpoint"` | Stopped at breakpoint (from step or continuous run) | ❌ No | Backend status response, WebSocket `breakpoint_hit` event |
+| `.halted` | `"halted"` | Program finished (SWI #0 EXIT) | ✅ Yes | Backend status response, WebSocket `halted` event |
+| `.error` | `"error"` | Error occurred during execution | ✅ Yes | Backend status response, WebSocket `error` event |
+| `.waitingForInput` | `"waiting_for_input"` | Blocked waiting for stdin | ❌ No | Backend status response |
+
+**State Sources:**
+- **REST API responses**: Return `state` field in JSON (e.g., `/api/v1/session/{id}/status`)
+- **WebSocket events**: Send `event` field (e.g., `breakpoint_hit` → mapped to `.breakpoint` state)
+
+**Editor Editability Rule:**
+- Source code is **editable** only when VM is fully stopped: `.idle`, `.halted`, `.error`
+- Source code is **read-only** during any form of execution: `.running`, `.breakpoint`, `.waitingForInput`
+
+**Important Notes:**
+- The `.breakpoint` state handles BOTH stepping (F10) AND hitting breakpoints during continuous run
+- WebSocket events use `"breakpoint_hit"` but backend status responses use `"breakpoint"` (both map to `.breakpoint`)
+- If backend sends an unknown state string, Swift defaults to `.idle` (see `ProgramState.swift:23`)
+
+**Backend State Mapping (Go → Swift):**
+```go
+// service/types.go
+const (
+    StateRunning         ExecutionState = "running"
+    StateHalted          ExecutionState = "halted"
+    StateBreakpoint      ExecutionState = "breakpoint"
+    StateError           ExecutionState = "error"
+    StateWaitingForInput ExecutionState = "waiting_for_input"
+)
+```
+
 #### Debug Logging Best Practice
 
 **IMPORTANT:** Use the `DebugLog` utility (in `swift-gui/ARMEmulator/Utilities/DebugLog.swift`) for all diagnostic logging. This provides:

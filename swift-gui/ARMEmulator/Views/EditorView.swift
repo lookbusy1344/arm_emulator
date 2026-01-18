@@ -9,6 +9,13 @@ struct EditorView: View {
     @State private var scrollView: NSScrollView?
     @EnvironmentObject var viewModel: EmulatorViewModel
 
+    // Compute editor editability based on VM state
+    // Editor is editable only when VM is completely stopped (idle, halted, error)
+    // Editor is read-only during any form of execution (running, paused, breakpoint, waitingForInput)
+    private var isEditable: Bool {
+        viewModel.status == .idle || viewModel.status == .halted || viewModel.status == .error
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             Text("Assembly Editor")
@@ -22,6 +29,7 @@ struct EditorView: View {
                 text: $text,
                 breakpoints: $breakpoints,
                 currentLine: $currentLine,
+                isEditable: isEditable,
                 onBreakpointToggle: { lineNumber in
                     toggleBreakpoint(at: lineNumber)
                 },
@@ -170,6 +178,7 @@ struct EditorWithGutterView: NSViewRepresentable {
     @Binding var text: String
     @Binding var breakpoints: Set<Int>
     @Binding var currentLine: Int?
+    let isEditable: Bool
     let onBreakpointToggle: (Int) -> Void
     let onTextViewCreated: (NSTextView) -> Void
     let onScrollViewCreated: (NSScrollView) -> Void
@@ -274,6 +283,9 @@ struct EditorWithGutterView: NSViewRepresentable {
         else {
             return
         }
+
+        // Update editability based on VM state
+        textView.isEditable = isEditable
 
         if textView.string != text {
             textView.string = text

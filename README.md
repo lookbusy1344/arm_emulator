@@ -222,9 +222,25 @@ find ~/Library/Developer/Xcode/DerivedData -name "ARMEmulator.app" -type d -exec
 **Features:**
 - Native macOS SwiftUI interface
 - Real-time register updates via WebSocket
-- Code editor with syntax awareness
+- Code editor with syntax awareness (read-only during execution, editable when stopped)
 - Console output view
 - Full MVVM architecture
+- State-driven UI with 6 execution states synchronized with backend
+
+**VM Execution States:**
+
+The GUI tracks six execution states synchronized with the Go backend:
+
+| State | Description | Editor Editable? |
+|-------|-------------|------------------|
+| `idle` | No program loaded or execution not started | ✅ Yes |
+| `running` | Actively executing instructions | ❌ No |
+| `breakpoint` | Stopped at breakpoint (from stepping or continuous run) | ❌ No |
+| `halted` | Program finished | ✅ Yes |
+| `error` | Error occurred | ✅ Yes |
+| `waiting_for_input` | Blocked waiting for stdin | ❌ No |
+
+The source code editor is editable only when the VM is fully stopped (idle, halted, error) and becomes read-only during any form of execution to prevent state inconsistencies.
 
 **Important notes:**
 - The Xcode project is generated from `project.yml` - run `xcodegen generate` after modifying it

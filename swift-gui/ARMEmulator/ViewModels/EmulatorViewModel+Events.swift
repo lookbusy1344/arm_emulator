@@ -45,7 +45,7 @@ extension EmulatorViewModel {
     func handleExecutionEvent(_ event: ExecutionEvent) {
         switch event.event {
         case "breakpoint_hit":
-            status = .paused
+            status = .breakpoint
             if let address = event.address {
                 currentPC = address
             }

@@ -350,7 +350,7 @@ final class EmulatorViewModelEventHandlingTests: XCTestCase {
 
         viewModel.handleEvent(event)
 
-        XCTAssertEqual(viewModel.status, .paused)
+        XCTAssertEqual(viewModel.status, .breakpoint)
         XCTAssertEqual(viewModel.currentPC, 0x8010)
     }
 
@@ -630,7 +630,7 @@ final class EmulatorViewModelInputOutputTests: XCTestCase {
     }
 
     func testSendInputWhenNotWaiting() async throws {
-        viewModel.status = .paused
+        viewModel.status = .breakpoint
 
         await viewModel.sendInput("buffered input")
 
