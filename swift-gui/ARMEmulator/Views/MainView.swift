@@ -138,6 +138,8 @@ struct MainView: View {
                                 StatusView(
                                     status: viewModel.status,
                                     pc: viewModel.currentPC,
+                                    cpsr: viewModel.registers.cpsr,
+                                    cpsrHighlightID: viewModel.registerHighlights["CPSR"],
                                 )
                                 .frame(height: 60)
                             }
@@ -166,6 +168,8 @@ struct MainView: View {
                                 StatusView(
                                     status: viewModel.status,
                                     pc: viewModel.currentPC,
+                                    cpsr: viewModel.registers.cpsr,
+                                    cpsrHighlightID: viewModel.registerHighlights["CPSR"],
                                 )
                                 .frame(height: 60)
                             }
@@ -242,6 +246,8 @@ struct ConnectionView: View {
 struct StatusView: View {
     let status: VMState
     let pc: UInt32
+    let cpsr: CPSRFlags
+    let cpsrHighlightID: UUID?
 
     var body: some View {
         HStack {
@@ -265,6 +271,21 @@ struct StatusView: View {
 
                 Text(String(format: "0x%08X", pc))
                     .font(.system(size: 10, design: .monospaced))
+            }
+            .padding(.horizontal)
+
+            Divider()
+
+            HStack(spacing: 4) {
+                Text("CPSR:")
+                    .font(.system(size: 10, design: .monospaced))
+                    .foregroundColor(cpsrHighlightID != nil ? .green : .secondary)
+                    .animation(.easeOut(duration: 1.5), value: cpsrHighlightID)
+
+                Text(cpsr.displayString)
+                    .font(.system(size: 10, design: .monospaced))
+                    .foregroundColor(cpsrHighlightID != nil ? .green : .primary)
+                    .animation(.easeOut(duration: 1.5), value: cpsrHighlightID)
             }
             .padding(.horizontal)
 

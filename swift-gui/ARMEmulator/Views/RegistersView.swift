@@ -144,22 +144,6 @@ struct RegistersView: View {
                             }
                         }
                         .padding(.horizontal, 8)
-
-                        Divider()
-                            .padding(.vertical, 4)
-
-                        HStack {
-                            Text("CPSR:")
-                                .font(.system(size: 10, design: .monospaced))
-                                .fontWeight(.bold)
-                                .frame(width: 60, alignment: .leading)
-
-                            Text(registers.cpsr.displayString)
-                                .font(.system(size: 10, design: .monospaced))
-                                .foregroundColor(registerHighlights["CPSR"] != nil ? .green : .primary)
-                        }
-                        .padding(.horizontal)
-                        .padding(.vertical, 2)
                     }
                     .padding(.vertical, 8)
                 }
