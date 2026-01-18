@@ -123,6 +123,28 @@ When running tests, the filesystem root is automatically set appropriately for e
 
 **Note:** The Swift app is the primary GUI for this project and automatically manages the Go HTTP API backend lifecycle - it finds, starts, and monitors the backend process. No manual backend startup required.
 
+### ⚠️ CRITICAL: ALWAYS FORMAT AND LINT SWIFT CODE ⚠️
+
+**THIS IS NON-NEGOTIABLE - DO NOT SKIP THIS STEP**
+
+After making ANY changes to Swift code, you MUST run these commands IMMEDIATELY:
+
+```bash
+cd swift-gui
+swiftformat .
+swiftlint
+```
+
+**BEFORE any commit, build verification, or marking work as complete:**
+1. Run `swiftformat .` to format all Swift files
+2. Run `swiftlint` to check for violations
+3. Fix any linting violations (use `swiftlint --fix` for auto-fixable issues)
+4. Verify 0 warnings and 0 errors
+
+**Linting must pass with 0 violations before ANY commit or PR.**
+
+This is not optional. This is not a suggestion. This MUST be done every single time.
+
 ### Platform Requirements
 
 **IMPORTANT:** This Swift project targets modern platforms only - no backward compatibility required.
@@ -215,20 +237,33 @@ xcodebuild test -project ARMEmulator.xcodeproj -scheme ARMEmulator -destination 
 
 ### Code Quality (Swift)
 
+**MANDATORY STEP - NEVER SKIP THIS:**
+
 ```bash
 cd swift-gui
 
-# Format Swift code
+# 1. Format Swift code (ALWAYS run this first)
 swiftformat .
 
-# Lint Swift code
+# 2. Lint Swift code (ALWAYS run this second)
 swiftlint
 
-# Auto-fix linting issues
+# 3. Auto-fix linting issues if needed
 swiftlint --fix
+
+# 4. Verify clean output
+swiftlint  # Must show 0 violations
 ```
 
-**IMPORTANT:** Always run `swiftformat .` and `swiftlint` after making changes and **BEFORE committing** to ensure code quality and correctness. SwiftLint and SwiftFormat configurations are in `.swiftlint.yml` and `.swiftformat` respectively. Linting must pass with 0 violations before any commit.
+**CRITICAL REQUIREMENT:** You MUST run `swiftformat .` and `swiftlint` after making ANY changes to Swift files. This is not optional:
+- Run IMMEDIATELY after editing Swift files
+- Run BEFORE committing
+- Run BEFORE marking work as complete
+- Run BEFORE creating PRs
+
+SwiftLint and SwiftFormat configurations are in `.swiftlint.yml` and `.swiftformat` respectively.
+
+**Linting must pass with 0 violations before any commit. NO EXCEPTIONS.**
 
 ### Swift App Architecture
 
