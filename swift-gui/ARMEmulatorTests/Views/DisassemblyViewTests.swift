@@ -15,7 +15,7 @@ final class DisassemblyViewTests: XCTestCase {
         mockWebSocketClient = MockWebSocketClient()
         viewModel = EmulatorViewModel(
             apiClient: mockAPIClient,
-            wsClient: mockWebSocketClient
+            wsClient: mockWebSocketClient,
         )
 
         // Initialize session
@@ -37,7 +37,7 @@ final class DisassemblyViewTests: XCTestCase {
             address: 0x8000,
             machineCode: 0xE3A0_0042,
             disassembly: "MOV R0, #66",
-            symbol: nil
+            symbol: nil,
         )
 
         // When: Format address as hex
@@ -53,7 +53,7 @@ final class DisassemblyViewTests: XCTestCase {
             address: 0x8000,
             machineCode: 0xE3A0_0042,
             disassembly: "MOV R0, #66",
-            symbol: nil
+            symbol: nil,
         )
 
         // When: Format machine code as hex
@@ -69,7 +69,7 @@ final class DisassemblyViewTests: XCTestCase {
             address: 0x8000,
             machineCode: 0xE3A0_0042,
             disassembly: "MOV R0, #66",
-            symbol: nil
+            symbol: nil,
         )
 
         // When: Access mnemonic (alias for disassembly)
@@ -143,7 +143,7 @@ final class DisassemblyViewTests: XCTestCase {
             address: address,
             machineCode: 0xE3A0_102A,
             disassembly: "MOV R1, #42",
-            symbol: nil
+            symbol: nil,
         )
 
         // When: Check both conditions
@@ -163,7 +163,7 @@ final class DisassemblyViewTests: XCTestCase {
             address: 0x8000,
             machineCode: 0xE3A0_0042,
             disassembly: "MOV R0, #66",
-            symbol: "main"
+            symbol: "main",
         )
 
         // When/Then: Symbol should be present
@@ -177,7 +177,7 @@ final class DisassemblyViewTests: XCTestCase {
             address: 0x8004,
             machineCode: 0xE3A0_102A,
             disassembly: "MOV R1, #42",
-            symbol: nil
+            symbol: nil,
         )
 
         // When/Then: Symbol should be nil
@@ -190,7 +190,7 @@ final class DisassemblyViewTests: XCTestCase {
             address: 0x8004,
             machineCode: 0xE3A0_102A,
             disassembly: "MOV R1, #42",
-            symbol: ""
+            symbol: "",
         )
 
         // When/Then: Symbol should be empty
@@ -205,7 +205,7 @@ final class DisassemblyViewTests: XCTestCase {
                 address: 0x8000,
                 machineCode: 0xE3A0_0042,
                 disassembly: "MOV R0, #66",
-                symbol: "main"
+                symbol: "main",
             ),
             DisassemblyInstruction(address: 0x8004, machineCode: 0xE3A0_102A, disassembly: "MOV R1, #42", symbol: nil),
             DisassemblyInstruction(address: 0x8008, machineCode: 0xEF00_0000, disassembly: "SWI #0", symbol: "exit"),
@@ -260,7 +260,7 @@ final class DisassemblyViewTests: XCTestCase {
             address: 0x8000,
             machineCode: 0xE3A0_0042,
             disassembly: "MOV R0, #66",
-            symbol: nil
+            symbol: nil,
         )
 
         // When: Access ID
@@ -276,14 +276,14 @@ final class DisassemblyViewTests: XCTestCase {
             address: 0x8000,
             machineCode: 0xE3A0_0042,
             disassembly: "MOV R0, #66",
-            symbol: "main"
+            symbol: "main",
         )
 
         let inst2 = DisassemblyInstruction(
             address: 0x8000,
             machineCode: 0xE3A0_0042,
             disassembly: "MOV R0, #66",
-            symbol: "main"
+            symbol: "main",
         )
 
         // When/Then: Should be equal (Hashable/Equatable)
@@ -296,14 +296,14 @@ final class DisassemblyViewTests: XCTestCase {
             address: 0x8000,
             machineCode: 0xE3A0_0042,
             disassembly: "MOV R0, #66",
-            symbol: nil
+            symbol: nil,
         )
 
         let inst2 = DisassemblyInstruction(
             address: 0x8004,
             machineCode: 0xE3A0_102A,
             disassembly: "MOV R1, #42",
-            symbol: nil
+            symbol: nil,
         )
 
         // When/Then: Should not be equal
@@ -318,7 +318,7 @@ final class DisassemblyViewTests: XCTestCase {
             address: 0x0,
             machineCode: 0xE3A0_0000,
             disassembly: "MOV R0, #0",
-            symbol: "reset"
+            symbol: "reset",
         )
 
         // When: Format address
@@ -334,7 +334,7 @@ final class DisassemblyViewTests: XCTestCase {
             address: 0xFFFF_FFFC,
             machineCode: 0xEF00_0000,
             disassembly: "SWI #0",
-            symbol: nil
+            symbol: nil,
         )
 
         // When: Format address
@@ -351,7 +351,7 @@ final class DisassemblyViewTests: XCTestCase {
             address: 0x8000,
             machineCode: 0xE3A0_0042,
             disassembly: "MOV R0, #66",
-            symbol: longSymbol
+            symbol: longSymbol,
         )
 
         // When/Then: Symbol should be preserved completely

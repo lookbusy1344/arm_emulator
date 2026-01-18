@@ -45,7 +45,7 @@ struct GeneralPreferences: View {
                 Stepper(
                     "Recent Files: \(settings.maxRecentFiles)",
                     value: $settings.maxRecentFiles,
-                    in: 5 ... 20
+                    in: 5 ... 20,
                 )
             }
         }
@@ -62,7 +62,7 @@ struct EditorPreferences: View {
                 Stepper(
                     "Font Size: \(settings.editorFontSize)",
                     value: $settings.editorFontSize,
-                    in: 10 ... 24
+                    in: 10 ... 24,
                 )
                 Text("Current size: \(settings.editorFontSize) pt")
                     .font(.system(size: 11))

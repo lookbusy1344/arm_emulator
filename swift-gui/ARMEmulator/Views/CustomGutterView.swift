@@ -27,7 +27,7 @@ class CustomGutterView: NSView {
             self,
             selector: #selector(scrollViewDidScroll),
             name: NSView.boundsDidChangeNotification,
-            object: scrollView.contentView
+            object: scrollView.contentView,
         )
 
         // Register for text changes
@@ -35,7 +35,7 @@ class CustomGutterView: NSView {
             self,
             selector: #selector(textDidChange),
             name: NSText.didChangeNotification,
-            object: textView
+            object: textView,
         )
     }
 
@@ -46,7 +46,7 @@ class CustomGutterView: NSView {
 
     // Use flipped coordinates (origin at top-left) to match text view
     override var isFlipped: Bool {
-        return true
+        true
     }
 
     func configure(onBreakpointToggle: @escaping (Int) -> Void) {
@@ -94,10 +94,10 @@ class CustomGutterView: NSView {
         separatorPath.stroke()
 
         // Draw line numbers
-        guard let textView = textView,
+        guard let textView,
               let layoutManager = textView.layoutManager,
               let textContainer = textView.textContainer,
-              let scrollView = scrollView
+              let scrollView
         else {
             return
         }
@@ -150,7 +150,7 @@ class CustomGutterView: NSView {
         _ lineNumber: Int,
         yPos: CGFloat,
         lineHeight: CGFloat,
-        attributes: [NSAttributedString.Key: Any]
+        attributes: [NSAttributedString.Key: Any],
     ) {
         let lineNumberString = "\(lineNumber)" as NSString
         let rect = NSRect(x: 5, y: yPos, width: gutterWidth - 20, height: lineHeight)
@@ -158,12 +158,12 @@ class CustomGutterView: NSView {
     }
 
     private func drawCurrentLineIndicatorIfNeeded(_ lineNumber: Int, yPos: CGFloat, lineHeight: CGFloat) {
-        guard let currentLine = currentLine, currentLine == lineNumber else { return }
+        guard let currentLine, currentLine == lineNumber else { return }
 
         #if DEBUG
             DebugLog.log(
                 "Drawing PC indicator at line \(lineNumber), yPos: \(yPos), lineHeight: \(lineHeight)",
-                category: "CustomGutterView"
+                category: "CustomGutterView",
             )
         #endif
 
@@ -189,7 +189,7 @@ class CustomGutterView: NSView {
             x: gutterWidth - breakpointMargin - breakpointSize + 5,
             y: yPos + (lineHeight - breakpointSize) / 2,
             width: breakpointSize,
-            height: breakpointSize
+            height: breakpointSize,
         )
 
         let path = NSBezierPath(ovalIn: rect)
@@ -200,10 +200,10 @@ class CustomGutterView: NSView {
     override func mouseDown(with event: NSEvent) {
         let location = convert(event.locationInWindow, from: nil)
 
-        guard let textView = textView,
+        guard let textView,
               let layoutManager = textView.layoutManager,
               let textContainer = textView.textContainer,
-              let scrollView = scrollView
+              let scrollView
         else {
             return
         }

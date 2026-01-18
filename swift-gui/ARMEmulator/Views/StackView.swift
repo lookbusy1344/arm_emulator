@@ -45,7 +45,7 @@ struct StackView: View {
                                 address: entry.address,
                                 value: entry.value,
                                 annotation: entry.annotation,
-                                isCurrent: entry.offset == 0 // Highlight current SP location
+                                isCurrent: entry.offset == 0, // Highlight current SP location
                             )
                         }
                     }
@@ -72,7 +72,7 @@ struct StackView: View {
         if currentSP >= initialSP {
             DebugLog.log(
                 "SP at or above initial value (0x\(String(format: "%08X", initialSP))), no stack data",
-                category: "StackView"
+                category: "StackView",
             )
             stackData = []
             localMemoryData = []
@@ -83,7 +83,7 @@ struct StackView: View {
         let stackSize = initialSP - currentSP
         DebugLog.log(
             "Stack size: \(stackSize) bytes (from 0x\(String(format: "%08X", currentSP)) to 0x\(String(format: "%08X", initialSP - 1)))",
-            category: "StackView"
+            category: "StackView",
         )
 
         let bytesToRead = Int(stackSize)
@@ -110,7 +110,7 @@ struct StackView: View {
     private func fetchStackMemory(startAddress: UInt32, bytesToRead: Int) async -> Bool {
         DebugLog.log(
             "Fetching actual stack contents: 0x\(String(format: "%08X", startAddress)) to 0x\(String(format: "%08X", initialSP - 1)) (\(bytesToRead) bytes)",
-            category: "StackView"
+            category: "StackView",
         )
 
         do {
@@ -178,12 +178,12 @@ struct StackView: View {
         ]
 
         for (name, regValue) in registerValues {
-            if value == regValue && regValue != 0 {
+            if value == regValue, regValue != 0 {
                 return "← \(name)?"
             }
         }
 
-        if value == viewModel.registers.lr && value != 0 {
+        if value == viewModel.registers.lr, value != 0 {
             return "← LR"
         }
 

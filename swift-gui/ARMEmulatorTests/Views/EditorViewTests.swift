@@ -15,7 +15,7 @@ final class EditorViewTests: XCTestCase {
         mockWebSocketClient = MockWebSocketClient()
         viewModel = EmulatorViewModel(
             apiClient: mockAPIClient,
-            wsClient: mockWebSocketClient
+            wsClient: mockWebSocketClient,
         )
 
         // Initialize session (required for breakpoint operations)
@@ -79,7 +79,7 @@ final class EditorViewTests: XCTestCase {
         // (In the actual UI, this is handled by EditorView.toggleBreakpoint checking validBreakpointLines)
         XCTAssertFalse(
             viewModel.validBreakpointLines.contains(lineNumber),
-            "Invalid lines should not be in validBreakpointLines"
+            "Invalid lines should not be in validBreakpointLines",
         )
     }
 

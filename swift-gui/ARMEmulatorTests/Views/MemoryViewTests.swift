@@ -139,7 +139,7 @@ final class MemoryViewRowCalculationTests: XCTestCase {
         let bytesPerRow = 16
 
         func address(for row: Int, baseAddress: UInt32) -> UInt32 {
-            return baseAddress + UInt32(row * bytesPerRow)
+            baseAddress + UInt32(row * bytesPerRow)
         }
 
         let baseAddress: UInt32 = 0x8000

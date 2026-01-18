@@ -41,7 +41,7 @@ struct ConsoleView: View {
                         }
                         .overlay(
                             RoundedRectangle(cornerRadius: 6)
-                                .stroke(isWaitingForInput ? Color.orange : Color.clear, lineWidth: 2)
+                                .stroke(isWaitingForInput ? Color.orange : Color.clear, lineWidth: 2),
                         )
 
                     Button("Send") {
@@ -71,7 +71,7 @@ struct ConsoleView_Previews: PreviewProvider {
                 isWaitingForInput: false,
                 onSendInput: { input in
                     print("Input: \(input)")
-                }
+                },
             )
             .frame(width: 600, height: 200)
 
@@ -80,7 +80,7 @@ struct ConsoleView_Previews: PreviewProvider {
                 isWaitingForInput: true,
                 onSendInput: { input in
                     print("Input: \(input)")
-                }
+                },
             )
             .frame(width: 600, height: 200)
         }

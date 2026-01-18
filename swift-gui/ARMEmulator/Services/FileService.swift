@@ -22,7 +22,7 @@ class FileService: ObservableObject {
         panel.allowsMultipleSelection = false
         panel.canChooseDirectories = false
         panel.canChooseFiles = true
-        panel.allowedContentTypes = [.init(filenameExtension: "s")].compactMap { $0 }
+        panel.allowedContentTypes = [.init(filenameExtension: "s")].compactMap(\.self)
         panel.message = "Select an ARM assembly file"
 
         let response = await panel.begin()
@@ -44,11 +44,11 @@ class FileService: ObservableObject {
     func saveFile(content: String, url: URL? = nil) async -> Bool {
         let targetURL: URL?
 
-        if let url = url {
+        if let url {
             targetURL = url
         } else {
             let panel = NSSavePanel()
-            panel.allowedContentTypes = [.init(filenameExtension: "s")].compactMap { $0 }
+            panel.allowedContentTypes = [.init(filenameExtension: "s")].compactMap(\.self)
             panel.nameFieldStringValue = currentFileURL?.lastPathComponent ?? "program.s"
             panel.message = "Save ARM assembly file"
 
@@ -118,7 +118,7 @@ class FileService: ObservableObject {
                 resolvingBookmarkData: data,
                 options: .withSecurityScope,
                 relativeTo: nil,
-                bookmarkDataIsStale: &isStale
+                bookmarkDataIsStale: &isStale,
             )
         }
     }
@@ -135,7 +135,7 @@ class FileService: ObservableObject {
               let files = try? fileManager.contentsOfDirectory(
                   at: examplesURL,
                   includingPropertiesForKeys: [.fileSizeKey],
-                  options: [.skipsHiddenFiles]
+                  options: [.skipsHiddenFiles],
               )
         else {
             return []
@@ -156,7 +156,7 @@ class FileService: ObservableObject {
                     filename: url.lastPathComponent,
                     description: description,
                     size: size,
-                    url: url
+                    url: url,
                 )
             }
             .sorted { $0.name < $1.name }

@@ -102,7 +102,7 @@ struct ExpressionEvaluatorView: View {
                 resultValue(label: "Dec", value: String(result.result))
                 resultValue(
                     label: "Bin",
-                    value: String(result.result, radix: 2).padding(toLength: 32, withPad: "0", startingAt: 0)
+                    value: String(result.result, radix: 2).padding(toLength: 32, withPad: "0", startingAt: 0),
                 )
             }
         }
@@ -136,13 +136,13 @@ struct ExpressionEvaluatorView: View {
         do {
             let result = try await viewModel.apiClient.evaluateExpression(
                 sessionID: sessionID,
-                expression: expression
+                expression: expression,
             )
 
             let evaluation = EvaluationResult(
                 expression: expression,
                 result: result,
-                timestamp: Date()
+                timestamp: Date(),
             )
             history.append(evaluation)
 

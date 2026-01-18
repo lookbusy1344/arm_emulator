@@ -103,19 +103,19 @@ struct WatchpointsView: View {
 
     private func watchpointIcon(for type: String) -> String {
         switch type {
-        case "read": return "eye"
-        case "write": return "pencil"
-        case "readwrite": return "eye.fill"
-        default: return "eye"
+        case "read": "eye"
+        case "write": "pencil"
+        case "readwrite": "eye.fill"
+        default: "eye"
         }
     }
 
     private func watchpointTypeLabel(_ type: String) -> String {
         switch type {
-        case "read": return "Read"
-        case "write": return "Write"
-        case "readwrite": return "Read/Write"
-        default: return type
+        case "read": "Read"
+        case "write": "Write"
+        case "readwrite": "Read/Write"
+        default: type
         }
     }
 

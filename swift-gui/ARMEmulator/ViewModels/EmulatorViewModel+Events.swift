@@ -21,14 +21,14 @@ extension EmulatorViewModel {
                 if status == .halted, newStatus == .breakpoint || newStatus == .running {
                     DebugLog.warning(
                         "Ignoring stale WebSocket state transition from halted to \(newStatus) at PC \(stateUpdate.pc.map { String(format: "0x%08X", $0) } ?? "nil")",
-                        category: "ViewModel"
+                        category: "ViewModel",
                     )
                     return // Exit early - don't update registers or PC
                 }
 
                 DebugLog.log(
                     "State update - status: \(stateUpdate.status), PC: \(stateUpdate.pc.map { String(format: "0x%08X", $0) } ?? "nil")",
-                    category: "ViewModel"
+                    category: "ViewModel",
                 )
 
                 // Update registers if provided (full state update)
@@ -61,7 +61,7 @@ extension EmulatorViewModel {
             if status == .halted {
                 DebugLog.warning(
                     "Ignoring stale breakpoint_hit event while halted (PC: \(event.address.map { String(format: "0x%08X", $0) } ?? "nil"))",
-                    category: "ViewModel"
+                    category: "ViewModel",
                 )
                 return
             }

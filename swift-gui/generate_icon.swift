@@ -20,7 +20,7 @@ func generateIcon(size: CGFloat, outputPath: String) {
         bitsPerComponent: 8,
         bytesPerRow: 0,
         space: colorSpace,
-        bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+        bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue,
     ) else {
         print("Failed to create context for size \(size)")
         return
@@ -37,7 +37,7 @@ func generateIcon(size: CGFloat, outputPath: String) {
             CGColor(red: 0.2, green: 0.3, blue: 0.6, alpha: 1.0), // Deep blue
             CGColor(red: 0.4, green: 0.2, blue: 0.6, alpha: 1.0), // Purple
         ] as CFArray,
-        locations: [0.0, 1.0]
+        locations: [0.0, 1.0],
     )!
 
     // Draw rounded rectangle background
@@ -46,7 +46,7 @@ func generateIcon(size: CGFloat, outputPath: String) {
         roundedRect: rect,
         cornerWidth: cornerRadius,
         cornerHeight: cornerRadius,
-        transform: nil
+        transform: nil,
     )
     context.addPath(backgroundPath)
     context.clip()
@@ -54,7 +54,7 @@ func generateIcon(size: CGFloat, outputPath: String) {
         gradient,
         start: CGPoint(x: size / 2, y: 0),
         end: CGPoint(x: size / 2, y: size),
-        options: []
+        options: [],
     )
 
     // Add subtle circuit board pattern in background
@@ -85,7 +85,7 @@ func generateIcon(size: CGFloat, outputPath: String) {
     let attributedString = CFAttributedStringCreate(
         kCFAllocatorDefault,
         text as CFString,
-        attributes as CFDictionary
+        attributes as CFDictionary,
     )!
 
     let line = CTLineCreateWithAttributedString(attributedString)
@@ -102,7 +102,7 @@ func generateIcon(size: CGFloat, outputPath: String) {
     context.setShadow(
         offset: CGSize(width: 0, height: -size * 0.02),
         blur: size * 0.05,
-        color: CGColor(red: 0, green: 0, blue: 0, alpha: 0.5)
+        color: CGColor(red: 0, green: 0, blue: 0, alpha: 0.5),
     )
 
     // Position and draw text
@@ -120,7 +120,7 @@ func generateIcon(size: CGFloat, outputPath: String) {
         radius: size * 0.45,
         startAngle: .pi * 1.1,
         endAngle: .pi * 1.9,
-        clockwise: false
+        clockwise: false,
     )
     context.strokePath()
 

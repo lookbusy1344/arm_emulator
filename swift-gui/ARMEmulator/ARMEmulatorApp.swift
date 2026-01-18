@@ -57,7 +57,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func handleFunctionKey(_ event: NSEvent) -> Bool {
-        guard let viewModel = viewModel else { return false }
+        guard let viewModel else { return false }
 
         // Handle both actual function keys (NSFxFunctionKey) AND their media key equivalents.
         // Modern Mac keyboards send different keyCodes depending on whether Fn is pressed:

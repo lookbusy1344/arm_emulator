@@ -6,7 +6,7 @@ extension EmulatorViewModel {
     func run() async {
         DebugLog.log("run() called", category: "ViewModel")
 
-        guard let sessionID = sessionID else {
+        guard let sessionID else {
             DebugLog.error("No active session", category: "ViewModel")
             errorMessage = "No active session"
             return
@@ -32,7 +32,7 @@ extension EmulatorViewModel {
     func pause() async {
         DebugLog.log("pause() called - current status: \(status), canStep: \(canStep)", category: "ViewModel")
 
-        guard let sessionID = sessionID else {
+        guard let sessionID else {
             errorMessage = "No active session"
             return
         }
@@ -55,7 +55,7 @@ extension EmulatorViewModel {
     func step() async {
         DebugLog.log("step() called - status: \(status), canStep: \(canStep)", category: "ViewModel")
 
-        guard let sessionID = sessionID else {
+        guard let sessionID else {
             errorMessage = "No active session"
             return
         }
@@ -81,7 +81,7 @@ extension EmulatorViewModel {
     }
 
     func stepOver() async {
-        guard let sessionID = sessionID else {
+        guard let sessionID else {
             errorMessage = "No active session"
             return
         }
@@ -107,7 +107,7 @@ extension EmulatorViewModel {
     }
 
     func stepOut() async {
-        guard let sessionID = sessionID else {
+        guard let sessionID else {
             errorMessage = "No active session"
             return
         }
@@ -136,7 +136,7 @@ extension EmulatorViewModel {
         // Clear highlights when restarting
         cancelAllHighlights()
 
-        guard let sessionID = sessionID else {
+        guard let sessionID else {
             errorMessage = "No active session"
             return
         }

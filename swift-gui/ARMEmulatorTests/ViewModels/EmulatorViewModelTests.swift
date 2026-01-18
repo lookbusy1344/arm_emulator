@@ -105,7 +105,7 @@ final class EmulatorViewModelProgramLoadingTests: XCTestCase {
         mockAPIClient.mockLoadProgramResponse = LoadProgramResponse(
             success: false,
             errors: ["Syntax error on line 1", "Undefined symbol"],
-            symbols: nil
+            symbols: nil,
         )
 
         await viewModel.loadProgram(source: "INVALID")
@@ -151,7 +151,7 @@ final class HighlightTests: XCTestCase {
     override func setUp() async throws {
         viewModel = EmulatorViewModel(
             apiClient: MockAPIClient(),
-            wsClient: MockWebSocketClient()
+            wsClient: MockWebSocketClient(),
         )
     }
 
@@ -236,7 +236,7 @@ final class HighlightTests: XCTestCase {
             r0: 0, r1: 0, r2: 0, r3: 0, r4: 0, r5: 0, r6: 0, r7: 0,
             r8: 0, r9: 0, r10: 0, r11: 0, r12: 0,
             sp: 0x50000, lr: 0, pc: 0x8000,
-            cpsr: CPSRFlags(n: false, z: false, c: false, v: false)
+            cpsr: CPSRFlags(n: false, z: false, c: false, v: false),
         )
         viewModel.updateRegisters(registers1)
 
@@ -245,7 +245,7 @@ final class HighlightTests: XCTestCase {
             r0: 42, r1: 100, r2: 0, r3: 0, r4: 0, r5: 0, r6: 0, r7: 0,
             r8: 0, r9: 0, r10: 0, r11: 0, r12: 0,
             sp: 0x50000, lr: 0, pc: 0x8004,
-            cpsr: CPSRFlags(n: false, z: false, c: false, v: false)
+            cpsr: CPSRFlags(n: false, z: false, c: false, v: false),
         )
         viewModel.updateRegisters(registers2)
 
@@ -277,20 +277,20 @@ final class EmulatorViewModelEventHandlingTests: XCTestCase {
             r0: 42, r1: 0, r2: 0, r3: 0, r4: 0, r5: 0, r6: 0, r7: 0,
             r8: 0, r9: 0, r10: 0, r11: 0, r12: 0,
             sp: 0x50000, lr: 0, pc: 0x8004,
-            cpsr: CPSRFlags(n: false, z: true, c: false, v: false)
+            cpsr: CPSRFlags(n: false, z: true, c: false, v: false),
         )
 
         let stateUpdate = StateUpdate(
             status: "running",
             pc: 0x8004,
             registers: registers,
-            flags: CPSRFlags(n: false, z: true, c: false, v: false)
+            flags: CPSRFlags(n: false, z: true, c: false, v: false),
         )
 
         let event = EmulatorEvent(
             type: "state",
             sessionId: "test-session",
-            data: .state(stateUpdate)
+            data: .state(stateUpdate),
         )
 
         viewModel.handleEvent(event)
@@ -306,7 +306,7 @@ final class EmulatorViewModelEventHandlingTests: XCTestCase {
         let event = EmulatorEvent(
             type: "output",
             sessionId: "test-session",
-            data: .output(outputUpdate)
+            data: .output(outputUpdate),
         )
 
         viewModel.handleEvent(event)
@@ -318,13 +318,13 @@ final class EmulatorViewModelEventHandlingTests: XCTestCase {
         let event1 = EmulatorEvent(
             type: "output",
             sessionId: "test-session",
-            data: .output(OutputUpdate(stream: "stdout", content: "Line 1\n"))
+            data: .output(OutputUpdate(stream: "stdout", content: "Line 1\n")),
         )
 
         let event2 = EmulatorEvent(
             type: "output",
             sessionId: "test-session",
-            data: .output(OutputUpdate(stream: "stdout", content: "Line 2\n"))
+            data: .output(OutputUpdate(stream: "stdout", content: "Line 2\n")),
         )
 
         viewModel.handleEvent(event1)
@@ -339,13 +339,13 @@ final class EmulatorViewModelEventHandlingTests: XCTestCase {
             event: "breakpoint_hit",
             address: 0x8010,
             symbol: "loop",
-            message: "Breakpoint hit at loop"
+            message: "Breakpoint hit at loop",
         )
 
         let event = EmulatorEvent(
             type: "event",
             sessionId: "test-session",
-            data: .event(execEvent)
+            data: .event(execEvent),
         )
 
         viewModel.handleEvent(event)
@@ -359,13 +359,13 @@ final class EmulatorViewModelEventHandlingTests: XCTestCase {
             event: "error",
             address: nil,
             symbol: nil,
-            message: "Division by zero"
+            message: "Division by zero",
         )
 
         let event = EmulatorEvent(
             type: "event",
             sessionId: "test-session",
-            data: .event(execEvent)
+            data: .event(execEvent),
         )
 
         viewModel.handleEvent(event)
@@ -379,13 +379,13 @@ final class EmulatorViewModelEventHandlingTests: XCTestCase {
             event: "halted",
             address: nil,
             symbol: nil,
-            message: nil
+            message: nil,
         )
 
         let event = EmulatorEvent(
             type: "event",
             sessionId: "test-session",
-            data: .event(execEvent)
+            data: .event(execEvent),
         )
 
         viewModel.handleEvent(event)
@@ -399,7 +399,7 @@ final class EmulatorViewModelEventHandlingTests: XCTestCase {
         let event = EmulatorEvent(
             type: "output",
             sessionId: "different-session",
-            data: .output(OutputUpdate(stream: "stdout", content: "Should be ignored"))
+            data: .output(OutputUpdate(stream: "stdout", content: "Should be ignored")),
         )
 
         viewModel.handleEvent(event)
@@ -412,13 +412,13 @@ final class EmulatorViewModelEventHandlingTests: XCTestCase {
             status: "waiting_for_input",
             pc: nil,
             registers: nil,
-            flags: nil
+            flags: nil,
         )
 
         let event = EmulatorEvent(
             type: "state",
             sessionId: "test-session",
-            data: .state(stateUpdate)
+            data: .state(stateUpdate),
         )
 
         viewModel.handleEvent(event)
@@ -680,7 +680,7 @@ final class EmulatorViewModelStateTests: XCTestCase {
         viewModel.status = .breakpoint
         XCTAssertFalse(
             viewModel.canPause,
-            "Pause button should be disabled when status is .breakpoint (already paused)"
+            "Pause button should be disabled when status is .breakpoint (already paused)",
         )
     }
 
@@ -710,7 +710,7 @@ final class EmulatorViewModelStateTests: XCTestCase {
         viewModel.status = .breakpoint
         XCTAssertTrue(
             viewModel.canStep,
-            "Step buttons should be enabled when status is .breakpoint (paused, ready to continue)"
+            "Step buttons should be enabled when status is .breakpoint (paused, ready to continue)",
         )
     }
 

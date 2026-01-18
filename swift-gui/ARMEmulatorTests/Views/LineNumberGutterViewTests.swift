@@ -60,11 +60,11 @@ class LineNumberGutterViewTests: XCTestCase {
         let firstLineRange = text.lineRange(for: NSRange(location: 0, length: 0))
         let glyphRange = layoutManager.glyphRange(
             forCharacterRange: firstLineRange,
-            actualCharacterRange: nil
+            actualCharacterRange: nil,
         )
         let lineRect = layoutManager.boundingRect(
             forGlyphRange: glyphRange,
-            in: textContainer
+            in: textContainer,
         )
 
         // Calculate yPos using new formula
@@ -75,12 +75,12 @@ class LineNumberGutterViewTests: XCTestCase {
         XCTAssertGreaterThanOrEqual(
             yPos,
             -5,
-            "First line should be near top"
+            "First line should be near top",
         )
         XCTAssertLessThanOrEqual(
             yPos,
             5,
-            "First line should be near top"
+            "First line should be near top",
         )
     }
 
@@ -100,11 +100,11 @@ class LineNumberGutterViewTests: XCTestCase {
         let firstLineRange = text.lineRange(for: NSRange(location: 0, length: 0))
         let glyphRange = layoutManager.glyphRange(
             forCharacterRange: firstLineRange,
-            actualCharacterRange: nil
+            actualCharacterRange: nil,
         )
         let lineRect = layoutManager.boundingRect(
             forGlyphRange: glyphRange,
-            in: textContainer
+            in: textContainer,
         )
 
         // Calculate yPos with scroll offset
@@ -115,7 +115,7 @@ class LineNumberGutterViewTests: XCTestCase {
         XCTAssertLessThan(
             yPos,
             0,
-            "First line should be above visible area after scroll"
+            "First line should be above visible area after scroll",
         )
     }
 
@@ -124,13 +124,13 @@ class LineNumberGutterViewTests: XCTestCase {
         textView.isHorizontallyResizable = true
         textView.maxSize = NSSize(
             width: CGFloat.greatestFiniteMagnitude,
-            height: CGFloat.greatestFiniteMagnitude
+            height: CGFloat.greatestFiniteMagnitude,
         )
 
         if let textContainer = textView.textContainer {
             textContainer.containerSize = NSSize(
                 width: CGFloat.greatestFiniteMagnitude,
-                height: CGFloat.greatestFiniteMagnitude
+                height: CGFloat.greatestFiniteMagnitude,
             )
             textContainer.widthTracksTextView = false
         }
@@ -147,11 +147,11 @@ class LineNumberGutterViewTests: XCTestCase {
         let firstLineRange = text.lineRange(for: NSRange(location: 0, length: 0))
         let glyphRange = layoutManager.glyphRange(
             forCharacterRange: firstLineRange,
-            actualCharacterRange: nil
+            actualCharacterRange: nil,
         )
         let lineRect = layoutManager.boundingRect(
             forGlyphRange: glyphRange,
-            in: textContainer
+            in: textContainer,
         )
 
         let visibleRectBefore = scrollView.documentVisibleRect
@@ -169,7 +169,7 @@ class LineNumberGutterViewTests: XCTestCase {
             yPosBefore,
             yPosAfter,
             accuracy: 1.0,
-            "Line Y position should not change with horizontal scroll"
+            "Line Y position should not change with horizontal scroll",
         )
     }
 

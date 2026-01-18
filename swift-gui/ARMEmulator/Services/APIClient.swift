@@ -11,17 +11,17 @@ enum APIError: Error, LocalizedError {
     var errorDescription: String? {
         switch self {
         case .invalidURL:
-            return "Invalid URL"
+            "Invalid URL"
         case let .networkError(error):
-            return "Network error: \(error.localizedDescription)"
+            "Network error: \(error.localizedDescription)"
         case .invalidResponse:
-            return "Invalid server response"
+            "Invalid server response"
         case let .serverError(code, message):
-            return "Server error (\(code)): \(message)"
+            "Server error (\(code)): \(message)"
         case let .decodingError(error):
-            return "Failed to decode response: \(error.localizedDescription)"
+            "Failed to decode response: \(error.localizedDescription)"
         case let .encodingError(error):
-            return "Failed to encode request: \(error.localizedDescription)"
+            "Failed to encode request: \(error.localizedDescription)"
         }
     }
 }
@@ -238,7 +238,7 @@ class APIClient: APIClientProtocol, @unchecked Sendable {
         return try await performRequest(request: request)
     }
 
-    private func post<T: Encodable, R: Decodable>(url: URL, body: T) async throws -> R {
+    private func post<R: Decodable>(url: URL, body: some Encodable) async throws -> R {
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
@@ -253,7 +253,7 @@ class APIClient: APIClientProtocol, @unchecked Sendable {
         return try await performRequest(request: request)
     }
 
-    private func post<T: Encodable>(url: URL, body: T) async throws {
+    private func post(url: URL, body: some Encodable) async throws {
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
@@ -274,7 +274,7 @@ class APIClient: APIClientProtocol, @unchecked Sendable {
         let _: EmptyResponse = try await performRequest(request: request)
     }
 
-    private func delete<T: Encodable>(url: URL, body: T) async throws {
+    private func delete(url: URL, body: some Encodable) async throws {
         var request = URLRequest(url: url)
         request.httpMethod = "DELETE"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
@@ -299,7 +299,7 @@ class APIClient: APIClientProtocol, @unchecked Sendable {
 
         var components = URLComponents(
             url: baseURL.appendingPathComponent("/api/v1/session/\(sessionID)/memory"),
-            resolvingAgainstBaseURL: false
+            resolvingAgainstBaseURL: false,
         )!
         components.queryItems = [
             URLQueryItem(name: "address", value: String(format: "0x%X", address)),
@@ -317,7 +317,7 @@ class APIClient: APIClientProtocol, @unchecked Sendable {
             throw APIError.decodingError(NSError(
                 domain: "APIClient",
                 code: -1,
-                userInfo: [NSLocalizedDescriptionKey: "Failed to decode base64 memory data"]
+                userInfo: [NSLocalizedDescriptionKey: "Failed to decode base64 memory data"],
             ))
         }
 
@@ -331,7 +331,7 @@ class APIClient: APIClientProtocol, @unchecked Sendable {
 
         var components = URLComponents(
             url: baseURL.appendingPathComponent("/api/v1/session/\(sessionID)/disassembly"),
-            resolvingAgainstBaseURL: false
+            resolvingAgainstBaseURL: false,
         )!
         components.queryItems = [
             URLQueryItem(name: "address", value: String(format: "0x%X", address)),

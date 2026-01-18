@@ -19,11 +19,11 @@ final class RegistersViewGridColumnsTests: XCTestCase {
         // Simulate the gridColumns logic
         func gridColumns(for width: CGFloat) -> Int {
             if width < 500 {
-                return 1
+                1
             } else if width < 700 {
-                return 2
+                2
             } else {
-                return 3
+                3
             }
         }
 
@@ -39,11 +39,11 @@ final class RegistersViewGridColumnsTests: XCTestCase {
         // Test boundary conditions
         func gridColumns(for width: CGFloat) -> Int {
             if width < 500 {
-                return 1
+                1
             } else if width < 700 {
-                return 2
+                2
             } else {
-                return 3
+                3
             }
         }
 
@@ -116,7 +116,7 @@ final class RegistersViewInitializationTests: XCTestCase {
         let registers = RegisterState(
             r0: 42, r1: 1, r2: 2, r3: 3, r4: 0, r5: 0, r6: 0, r7: 0,
             r8: 0, r9: 0, r10: 0, r11: 0, r12: 0, sp: 0x50000, lr: 0, pc: 0x8000,
-            cpsr: CPSRFlags(n: false, z: true, c: false, v: false)
+            cpsr: CPSRFlags(n: false, z: true, c: false, v: false),
         )
         let highlights = [
             "R0": UUID(),

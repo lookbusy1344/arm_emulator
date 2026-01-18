@@ -13,11 +13,11 @@ class AppSettings: ObservableObject {
     var preferredColorScheme: ColorScheme? {
         switch colorScheme {
         case "light":
-            return .light
+            .light
         case "dark":
-            return .dark
+            .dark
         default:
-            return nil // Auto (use system)
+            nil // Auto (use system)
         }
     }
 }

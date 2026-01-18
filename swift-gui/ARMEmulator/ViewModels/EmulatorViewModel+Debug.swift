@@ -4,14 +4,14 @@ import Foundation
 
 extension EmulatorViewModel {
     func toggleBreakpoint(at address: UInt32) async {
-        guard let sessionID = sessionID else {
+        guard let sessionID else {
             errorMessage = "No active session"
             print("toggleBreakpoint: No active session")
             return
         }
 
         print(
-            "toggleBreakpoint: sessionID=\(sessionID), address=0x\(String(format: "%X", address)), current breakpoints=\(breakpoints)"
+            "toggleBreakpoint: sessionID=\(sessionID), address=0x\(String(format: "%X", address)), current breakpoints=\(breakpoints)",
         )
 
         do {
@@ -30,7 +30,7 @@ extension EmulatorViewModel {
     }
 
     func addWatchpoint(at address: UInt32, type: String) async {
-        guard let sessionID = sessionID else {
+        guard let sessionID else {
             errorMessage = "No active session"
             return
         }
@@ -45,7 +45,7 @@ extension EmulatorViewModel {
     }
 
     func removeWatchpoint(id: Int) async {
-        guard let sessionID = sessionID else {
+        guard let sessionID else {
             errorMessage = "No active session"
             return
         }
@@ -60,7 +60,7 @@ extension EmulatorViewModel {
     }
 
     func refreshWatchpoints() async {
-        guard let sessionID = sessionID else { return }
+        guard let sessionID else { return }
 
         do {
             watchpoints = try await apiClient.getWatchpoints(sessionID: sessionID)

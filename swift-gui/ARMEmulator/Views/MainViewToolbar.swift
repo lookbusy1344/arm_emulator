@@ -21,7 +21,7 @@ struct MainViewToolbar: ToolbarContent {
 
             Button(
                 action: { Task { await viewModel.loadProgram(source: viewModel.sourceCode) } },
-                label: { Label("Load", systemImage: "doc.text") }
+                label: { Label("Load", systemImage: "doc.text") },
             )
             .help("Load program (⌘L)")
             .keyboardShortcut("l", modifiers: .command)
@@ -36,9 +36,9 @@ struct MainViewToolbar: ToolbarContent {
                 label: {
                     Label(
                         viewModel.status == .breakpoint ? "Continue" : "Run",
-                        systemImage: viewModel.status == .breakpoint ? "play.circle.fill" : "play.fill"
+                        systemImage: viewModel.status == .breakpoint ? "play.circle.fill" : "play.fill",
                     )
-                }
+                },
             )
             .help(viewModel.status == .breakpoint ? "Continue execution (⌘R)" : "Run program (⌘R)")
             .keyboardShortcut("r", modifiers: .command)
@@ -46,7 +46,7 @@ struct MainViewToolbar: ToolbarContent {
 
             Button(
                 action: { Task { await viewModel.pause() } },
-                label: { Label("Pause", systemImage: "pause.fill") }
+                label: { Label("Pause", systemImage: "pause.fill") },
             )
             .help("Pause execution (⌘.)")
             .keyboardShortcut(".", modifiers: .command)
@@ -54,7 +54,7 @@ struct MainViewToolbar: ToolbarContent {
 
             Button(
                 action: { Task { await viewModel.step() } },
-                label: { Label("Step", systemImage: "forward.frame") }
+                label: { Label("Step", systemImage: "forward.frame") },
             )
             .help("Step one instruction (⌘T)")
             .keyboardShortcut("t", modifiers: .command)
@@ -62,7 +62,7 @@ struct MainViewToolbar: ToolbarContent {
 
             Button(
                 action: { Task { await viewModel.stepOver() } },
-                label: { Label("Step Over", systemImage: "arrow.right.to.line") }
+                label: { Label("Step Over", systemImage: "arrow.right.to.line") },
             )
             .help("Step over function calls (⌘⇧T)")
             .keyboardShortcut("t", modifiers: [.command, .shift])
@@ -70,7 +70,7 @@ struct MainViewToolbar: ToolbarContent {
 
             Button(
                 action: { Task { await viewModel.stepOut() } },
-                label: { Label("Step Out", systemImage: "arrow.up.left") }
+                label: { Label("Step Out", systemImage: "arrow.up.left") },
             )
             .help("Step out of current function (⌘⌥T)")
             .keyboardShortcut("t", modifiers: [.command, .option])
@@ -78,7 +78,7 @@ struct MainViewToolbar: ToolbarContent {
 
             Button(
                 action: { Task { await viewModel.reset() } },
-                label: { Label("Reset", systemImage: "arrow.counterclockwise") }
+                label: { Label("Reset", systemImage: "arrow.counterclockwise") },
             )
             .help("Reset VM (⌘⇧R)")
             .keyboardShortcut("r", modifiers: [.command, .shift])
@@ -87,7 +87,7 @@ struct MainViewToolbar: ToolbarContent {
 
             Button(
                 action: { viewModel.scrollToCurrentPC?() },
-                label: { Label("Show PC", systemImage: "arrow.down.to.line") }
+                label: { Label("Show PC", systemImage: "arrow.down.to.line") },
             )
             .help("Scroll to current PC (⌘J)")
             .keyboardShortcut("j", modifiers: .command)
@@ -98,47 +98,47 @@ struct MainViewToolbar: ToolbarContent {
     private var statusIcon: String {
         switch viewModel.status {
         case .running:
-            return "play.fill" // Green arrow (running)
+            "play.fill" // Green arrow (running)
         case .breakpoint:
-            return "pause.fill" // Pause symbol (stepping/paused)
+            "pause.fill" // Pause symbol (stepping/paused)
         case .halted, .idle:
-            return "stop.fill" // Red square (stopped/not executing)
+            "stop.fill" // Red square (stopped/not executing)
         case .waitingForInput:
-            return "keyboard.fill" // Keyboard icon (waiting for input)
+            "keyboard.fill" // Keyboard icon (waiting for input)
         case .error:
-            return "exclamationmark.triangle.fill"
+            "exclamationmark.triangle.fill"
         }
     }
 
     private var statusColor: Color {
         switch viewModel.status {
         case .running:
-            return .green
+            .green
         case .breakpoint:
-            return .orange
+            .orange
         case .halted, .idle:
-            return .red
+            .red
         case .waitingForInput:
-            return .orange
+            .orange
         case .error:
-            return .red
+            .red
         }
     }
 
     private var statusText: String {
         switch viewModel.status {
         case .running:
-            return "Running"
+            "Running"
         case .breakpoint:
-            return "Paused"
+            "Paused"
         case .halted:
-            return "Halted"
+            "Halted"
         case .idle:
-            return "Idle"
+            "Idle"
         case .waitingForInput:
-            return "Waiting for Input"
+            "Waiting for Input"
         case .error:
-            return "Error"
+            "Error"
         }
     }
 }

@@ -7,7 +7,7 @@ extension EmulatorViewModel {
         DebugLog.log("sendInput() called with input: \(input.prefix(20))...", category: "ViewModel")
         DebugLog.log("Current status: \(status)", category: "ViewModel")
 
-        guard let sessionID = sessionID else {
+        guard let sessionID else {
             errorMessage = "No active session"
             return
         }
@@ -30,7 +30,7 @@ extension EmulatorViewModel {
                 // DO NOT call step() again or we'll execute an extra instruction!
                 DebugLog.log(
                     "VM was waiting - input will unblock existing step, skipping auto-step",
-                    category: "ViewModel"
+                    category: "ViewModel",
                 )
                 try await refreshState()
             } else {
@@ -38,7 +38,7 @@ extension EmulatorViewModel {
                 // Call step() to consume the buffered input.
                 DebugLog.log(
                     "VM was not waiting - stepping to consume buffered input...",
-                    category: "ViewModel"
+                    category: "ViewModel",
                 )
                 try await apiClient.step(sessionID: sessionID)
                 try await refreshState()

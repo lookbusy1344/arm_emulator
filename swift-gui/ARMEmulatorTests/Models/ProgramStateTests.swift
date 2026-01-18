@@ -254,7 +254,7 @@ final class ProgramStateTests: XCTestCase {
             address: 32768,
             machineCode: 3_758_096_384,
             disassembly: "MOV R0, #42",
-            symbol: nil
+            symbol: nil,
         )
 
         XCTAssertEqual(instruction.id, 32768)
@@ -265,7 +265,7 @@ final class ProgramStateTests: XCTestCase {
             address: 32768,
             machineCode: 3_758_096_384,
             disassembly: "MOV R0, #42",
-            symbol: nil
+            symbol: nil,
         )
 
         XCTAssertEqual(instruction.mnemonic, "MOV R0, #42")
@@ -277,21 +277,21 @@ final class ProgramStateTests: XCTestCase {
             address: 32768,
             machineCode: 3_758_096_384,
             disassembly: "MOV R0, #42",
-            symbol: "main"
+            symbol: "main",
         )
 
         let instruction2 = DisassemblyInstruction(
             address: 32768,
             machineCode: 3_758_096_384,
             disassembly: "MOV R0, #42",
-            symbol: "main"
+            symbol: "main",
         )
 
         let instruction3 = DisassemblyInstruction(
             address: 32772,
             machineCode: 3_758_096_384,
             disassembly: "MOV R1, #100",
-            symbol: nil
+            symbol: nil,
         )
 
         XCTAssertEqual(instruction1, instruction2) // Same address

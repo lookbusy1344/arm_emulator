@@ -34,22 +34,22 @@ class EditorViewIntegrationTests: XCTestCase {
         textView.autoresizingMask = []
         textView.maxSize = NSSize(
             width: CGFloat.greatestFiniteMagnitude,
-            height: CGFloat.greatestFiniteMagnitude
+            height: CGFloat.greatestFiniteMagnitude,
         )
         textView.minSize = NSSize(width: 0, height: scrollView.contentSize.height)
 
         XCTAssertTrue(
             textView.isHorizontallyResizable,
-            "Text view should be horizontally resizable"
+            "Text view should be horizontally resizable",
         )
         XCTAssertTrue(
             textView.isVerticallyResizable,
-            "Text view should be vertically resizable"
+            "Text view should be vertically resizable",
         )
         XCTAssertEqual(
             textView.autoresizingMask,
             [],
-            "Auto-resizing mask should be empty"
+            "Auto-resizing mask should be empty",
         )
     }
 
@@ -58,18 +58,18 @@ class EditorViewIntegrationTests: XCTestCase {
         if let textContainer = textView.textContainer {
             textContainer.containerSize = NSSize(
                 width: CGFloat.greatestFiniteMagnitude,
-                height: CGFloat.greatestFiniteMagnitude
+                height: CGFloat.greatestFiniteMagnitude,
             )
             textContainer.widthTracksTextView = false
 
             XCTAssertEqual(
                 textContainer.containerSize.width,
                 CGFloat.greatestFiniteMagnitude,
-                "Container width should be unlimited"
+                "Container width should be unlimited",
             )
             XCTAssertFalse(
                 textContainer.widthTracksTextView,
-                "Container should not track text view width"
+                "Container should not track text view width",
             )
         } else {
             XCTFail("Text container should exist")
@@ -81,13 +81,13 @@ class EditorViewIntegrationTests: XCTestCase {
         textView.isHorizontallyResizable = true
         textView.maxSize = NSSize(
             width: CGFloat.greatestFiniteMagnitude,
-            height: CGFloat.greatestFiniteMagnitude
+            height: CGFloat.greatestFiniteMagnitude,
         )
 
         if let textContainer = textView.textContainer {
             textContainer.containerSize = NSSize(
                 width: CGFloat.greatestFiniteMagnitude,
-                height: CGFloat.greatestFiniteMagnitude
+                height: CGFloat.greatestFiniteMagnitude,
             )
             textContainer.widthTracksTextView = false
         }
@@ -129,14 +129,14 @@ class EditorViewIntegrationTests: XCTestCase {
         textView.autoresizingMask = []
         textView.maxSize = NSSize(
             width: CGFloat.greatestFiniteMagnitude,
-            height: CGFloat.greatestFiniteMagnitude
+            height: CGFloat.greatestFiniteMagnitude,
         )
         textView.minSize = NSSize(width: 0, height: scrollView.contentSize.height)
 
         if let textContainer = textView.textContainer {
             textContainer.containerSize = NSSize(
                 width: CGFloat.greatestFiniteMagnitude,
-                height: CGFloat.greatestFiniteMagnitude
+                height: CGFloat.greatestFiniteMagnitude,
             )
             textContainer.widthTracksTextView = false
         }

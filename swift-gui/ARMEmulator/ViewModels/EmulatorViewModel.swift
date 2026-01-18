@@ -152,7 +152,7 @@ class EmulatorViewModel: ObservableObject {
         // Clear highlights when loading new program
         cancelAllHighlights()
 
-        guard let sessionID = sessionID else {
+        guard let sessionID else {
             DebugLog.error("No active session for loadProgram", category: "ViewModel")
             errorMessage = "No active session"
             return
@@ -195,13 +195,13 @@ class EmulatorViewModel: ObservableObject {
             sourceMap = Dictionary(uniqueKeysWithValues: sourceMapEntries.map { ($0.address, $0.line) })
 
             // Build valid breakpoint lines and bidirectional line<->address mappings
-            validBreakpointLines = Set(sourceMapEntries.map { $0.lineNumber })
+            validBreakpointLines = Set(sourceMapEntries.map(\.lineNumber))
             lineToAddress = Dictionary(uniqueKeysWithValues: sourceMapEntries.map { ($0.lineNumber, $0.address) })
             addressToLine = Dictionary(uniqueKeysWithValues: sourceMapEntries.map { ($0.address, $0.lineNumber) })
 
             DebugLog.log(
                 "Loaded source map with \(sourceMap.count) entries, \(validBreakpointLines.count) valid breakpoint lines",
-                category: "ViewModel"
+                category: "ViewModel",
             )
 
             // Force UI update now that source map is loaded
@@ -213,7 +213,7 @@ class EmulatorViewModel: ObservableObject {
 
             DebugLog.success(
                 "Program loaded successfully, PC: 0x\(String(format: "%08X", currentPC))",
-                category: "ViewModel"
+                category: "ViewModel",
             )
         } catch {
             DebugLog.error("loadProgram() failed: \(error.localizedDescription)", category: "ViewModel")
@@ -222,7 +222,7 @@ class EmulatorViewModel: ObservableObject {
     }
 
     func refreshState() async throws {
-        guard let sessionID = sessionID else { return }
+        guard let sessionID else { return }
 
         let newRegisters = try await apiClient.getRegisters(sessionID: sessionID)
         updateRegisters(newRegisters)
@@ -302,7 +302,7 @@ class EmulatorViewModel: ObservableObject {
     func cleanup() {
         wsClient.disconnect()
 
-        if let sessionID = sessionID {
+        if let sessionID {
             Task {
                 try? await apiClient.destroySession(sessionID: sessionID)
             }

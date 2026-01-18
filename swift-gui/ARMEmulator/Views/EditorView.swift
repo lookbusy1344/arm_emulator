@@ -38,7 +38,7 @@ struct EditorView: View {
                 },
                 onScrollViewCreated: { scrollView in
                     self.scrollView = scrollView
-                }
+                },
             )
             .background(Color(NSColor.textBackgroundColor))
             .border(Color.gray.opacity(0.3))
@@ -46,17 +46,17 @@ struct EditorView: View {
         .onChange(of: viewModel.breakpoints) { _, newBreakpoints in
             // Sync breakpoints from ViewModel (address-based) to line-based
             // Use addressToLine mapping from source map
-            self.breakpoints = Set(newBreakpoints.compactMap { address in
+            breakpoints = Set(newBreakpoints.compactMap { address in
                 viewModel.addressToLine[address]
             })
         }
         .onChange(of: viewModel.currentPC) { _, newPC in
             // Update current line from PC address
-            self.currentLine = viewModel.addressToLine[newPC]
+            currentLine = viewModel.addressToLine[newPC]
             #if DEBUG
                 DebugLog.log(
-                    "PC changed to 0x\(String(format: "%08X", newPC)), mapped to line \(self.currentLine?.description ?? "nil")",
-                    category: "EditorView"
+                    "PC changed to 0x\(String(format: "%08X", newPC)), mapped to line \(currentLine?.description ?? "nil")",
+                    category: "EditorView",
                 )
                 DebugLog.log("addressToLine has \(viewModel.addressToLine.count) entries", category: "EditorView")
                 if !viewModel.addressToLine.isEmpty {
@@ -126,16 +126,16 @@ struct EditorView: View {
             #if DEBUG
                 DebugLog.log(
                     "Scrolled to line \(lineNumber), rect: \(scrollRect)",
-                    category: "EditorView"
+                    category: "EditorView",
                 )
             #endif
         }
     }
 
     func scrollToCurrentLine() {
-        guard let currentLine = currentLine,
-              let textView = textView,
-              let scrollView = scrollView
+        guard let currentLine,
+              let textView,
+              let scrollView
         else {
             return
         }
@@ -241,7 +241,7 @@ struct EditorWithGutterView: NSViewRepresentable {
         textView.autoresizingMask = []
         textView.maxSize = NSSize(
             width: CGFloat.greatestFiniteMagnitude,
-            height: CGFloat.greatestFiniteMagnitude
+            height: CGFloat.greatestFiniteMagnitude,
         )
         textView.minSize = NSSize(width: 0, height: scrollView.contentSize.height)
 
@@ -249,7 +249,7 @@ struct EditorWithGutterView: NSViewRepresentable {
         if let textContainer = textView.textContainer {
             textContainer.containerSize = NSSize(
                 width: CGFloat.greatestFiniteMagnitude,
-                height: CGFloat.greatestFiniteMagnitude
+                height: CGFloat.greatestFiniteMagnitude,
             )
             textContainer.widthTracksTextView = false
         }
@@ -296,7 +296,7 @@ struct EditorWithGutterView: NSViewRepresentable {
             {
                 layoutManager.invalidateLayout(
                     forCharacterRange: NSRange(location: 0, length: text.count),
-                    actualCharacterRange: nil
+                    actualCharacterRange: nil,
                 )
                 layoutManager.ensureLayout(for: textContainer)
             }

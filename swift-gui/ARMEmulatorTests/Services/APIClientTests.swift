@@ -21,7 +21,7 @@ final class MockURLProtocol: URLProtocol {
         do {
             let (response, data) = try handler(request)
             client?.urlProtocol(self, didReceive: response, cacheStoragePolicy: .notAllowed)
-            if let data = data {
+            if let data {
                 client?.urlProtocol(self, didLoad: data)
             }
             client?.urlProtocolDidFinishLoading(self)
@@ -79,7 +79,7 @@ final class APIClientSessionTests: XCTestCase {
                 url: request.url!,
                 statusCode: 200,
                 httpVersion: nil,
-                headerFields: nil
+                headerFields: nil,
             )!
 
             return (response, responseData)
@@ -214,7 +214,7 @@ final class APIClientURLConstructionTests: XCTestCase {
 
         var components = URLComponents(
             url: baseURL.appendingPathComponent("/api/v1/session/\(sessionID)/memory"),
-            resolvingAgainstBaseURL: false
+            resolvingAgainstBaseURL: false,
         )!
         components.queryItems = [
             URLQueryItem(name: "address", value: String(format: "0x%X", address)),
@@ -235,7 +235,7 @@ final class APIClientURLConstructionTests: XCTestCase {
 
         var components = URLComponents(
             url: baseURL.appendingPathComponent("/api/v1/session/\(sessionID)/disassembly"),
-            resolvingAgainstBaseURL: false
+            resolvingAgainstBaseURL: false,
         )!
         components.queryItems = [
             URLQueryItem(name: "address", value: String(format: "0x%X", address)),

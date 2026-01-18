@@ -258,7 +258,7 @@ final class EmulatorSessionTests: XCTestCase {
         let subscription = SubscriptionMessage(
             type: "subscribe",
             sessionId: "test-session-456",
-            events: ["state", "output", "event"]
+            events: ["state", "output", "event"],
         )
 
         let data = try JSONEncoder().encode(subscription)

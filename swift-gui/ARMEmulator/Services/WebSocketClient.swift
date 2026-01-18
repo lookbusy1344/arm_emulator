@@ -39,7 +39,7 @@ class WebSocketClient: NSObject, WebSocketClientProtocol, URLSessionWebSocketDel
             let subscription = SubscriptionMessage(
                 type: "subscribe",
                 sessionId: sessionID,
-                events: ["state", "output", "event"]
+                events: ["state", "output", "event"],
             )
             send(subscription)
         }
@@ -58,24 +58,24 @@ class WebSocketClient: NSObject, WebSocketClientProtocol, URLSessionWebSocketDel
 
     private func receiveMessage() {
         webSocket?.receive { [weak self] result in
-            guard let self = self else { return }
+            guard let self else { return }
 
             switch result {
             case let .success(message):
-                self.isConnected = true
-                self.retryCount = 0
-                self.isReconnecting = false
+                isConnected = true
+                retryCount = 0
+                isReconnecting = false
 
                 if case let .string(text) = message,
                    let data = text.data(using: .utf8)
                 {
-                    self.handleMessage(data: data)
+                    handleMessage(data: data)
                 }
-                self.receiveMessage()
+                receiveMessage()
 
             case let .failure(error):
                 print("WebSocket receive error: \(error)")
-                self.handleDisconnection()
+                handleDisconnection()
             }
         }
     }
@@ -106,8 +106,8 @@ class WebSocketClient: NSObject, WebSocketClientProtocol, URLSessionWebSocketDel
         print("WebSocket disconnected. Retrying in \(delay) seconds (Attempt \(retryCount)/\(maxRetries))...")
 
         DispatchQueue.global().asyncAfter(deadline: .now() + delay) { [weak self] in
-            guard let self = self, self.currentSessionID != nil else { return }
-            self.connectInternal()
+            guard let self, currentSessionID != nil else { return }
+            connectInternal()
         }
     }
 
@@ -120,7 +120,7 @@ class WebSocketClient: NSObject, WebSocketClientProtocol, URLSessionWebSocketDel
         }
     }
 
-    private func send<T: Encodable>(_ message: T) {
+    private func send(_ message: some Encodable) {
         guard let data = try? JSONEncoder().encode(message),
               let string = String(data: data, encoding: .utf8)
         else {
@@ -128,7 +128,7 @@ class WebSocketClient: NSObject, WebSocketClientProtocol, URLSessionWebSocketDel
         }
 
         webSocket?.send(.string(string)) { error in
-            if let error = error {
+            if let error {
                 print("WebSocket send error: \(error)")
             }
         }
@@ -137,7 +137,7 @@ class WebSocketClient: NSObject, WebSocketClientProtocol, URLSessionWebSocketDel
     func urlSession(
         _ session: URLSession,
         webSocketTask: URLSessionWebSocketTask,
-        didOpenWithProtocol protocol: String?
+        didOpenWithProtocol protocol: String?,
     ) {
         print("WebSocket connected")
         isConnected = true
@@ -149,7 +149,7 @@ class WebSocketClient: NSObject, WebSocketClientProtocol, URLSessionWebSocketDel
         _ session: URLSession,
         webSocketTask: URLSessionWebSocketTask,
         didCloseWith closeCode: URLSessionWebSocketTask.CloseCode,
-        reason: Data?
+        reason: Data?,
     ) {
         print("WebSocket disconnected: \(closeCode)")
         isConnected = false

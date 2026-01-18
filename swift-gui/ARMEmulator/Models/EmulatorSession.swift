@@ -27,7 +27,7 @@ enum EventData: Codable {
         } else {
             throw DecodingError.dataCorruptedError(
                 in: container,
-                debugDescription: "Unable to decode EventData"
+                debugDescription: "Unable to decode EventData",
             )
         }
     }

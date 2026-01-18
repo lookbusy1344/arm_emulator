@@ -25,7 +25,7 @@ struct RegisterState: Codable, Equatable {
             r4: 0, r5: 0, r6: 0, r7: 0,
             r8: 0, r9: 0, r10: 0, r11: 0,
             r12: 0, sp: 0, lr: 0, pc: 0,
-            cpsr: CPSRFlags(n: false, z: false, c: false, v: false)
+            cpsr: CPSRFlags(n: false, z: false, c: false, v: false),
         )
     }
 }

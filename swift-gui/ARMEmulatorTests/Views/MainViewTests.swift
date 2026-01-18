@@ -77,7 +77,7 @@ final class MainViewTests: XCTestCase {
         let mockWebSocketClient = MockWebSocketClient()
         let viewModel = EmulatorViewModel(
             apiClient: mockAPIClient,
-            wsClient: mockWebSocketClient
+            wsClient: mockWebSocketClient,
         )
 
         await viewModel.initialize()
@@ -92,7 +92,7 @@ final class MainViewTests: XCTestCase {
             // Then: Error message should be set
             XCTAssertEqual(
                 viewModel.errorMessage,
-                "Could not load 'nonexistent-file-12345.s': File not found"
+                "Could not load 'nonexistent-file-12345.s': File not found",
             )
             return
         }
@@ -116,7 +116,7 @@ final class MainViewTests: XCTestCase {
             viewModel.errorMessage = "Could not load '\(url.lastPathComponent)': Not an assembly file (.s)"
             XCTAssertEqual(
                 viewModel.errorMessage,
-                "Could not load 'test.txt': Not an assembly file (.s)"
+                "Could not load 'test.txt': Not an assembly file (.s)",
             )
         }
     }
@@ -205,7 +205,7 @@ final class MainViewTests: XCTestCase {
         // Then: Selected tab should be within valid range
         XCTAssertTrue(
             validTabs.contains(settings.selectedTab),
-            "Selected tab should be within valid range (0-6)"
+            "Selected tab should be within valid range (0-6)",
         )
 
         // Test that we can set it to default (Registers = 0)
@@ -245,7 +245,7 @@ final class MainViewTests: XCTestCase {
             XCTAssertEqual(
                 settings.selectedTab,
                 index,
-                "\(name) tab should be selectable"
+                "\(name) tab should be selectable",
             )
         }
     }
@@ -265,11 +265,11 @@ final class MainViewTests: XCTestCase {
         // Then: Recent files should contain both URLs
         XCTAssertTrue(
             fileService.recentFiles.contains(file1),
-            "Recent files should contain test1.s"
+            "Recent files should contain test1.s",
         )
         XCTAssertTrue(
             fileService.recentFiles.contains(file2),
-            "Recent files should contain test2.s"
+            "Recent files should contain test2.s",
         )
     }
 
@@ -285,7 +285,7 @@ final class MainViewTests: XCTestCase {
         XCTAssertEqual(
             fileService.currentFileURL,
             testFile,
-            "Current file URL should be set"
+            "Current file URL should be set",
         )
     }
 
@@ -323,7 +323,7 @@ final class MainViewTests: XCTestCase {
         let mockWebSocketClient = MockWebSocketClient()
         let viewModel = EmulatorViewModel(
             apiClient: mockAPIClient,
-            wsClient: mockWebSocketClient
+            wsClient: mockWebSocketClient,
         )
 
         // Initially not connected
@@ -335,11 +335,11 @@ final class MainViewTests: XCTestCase {
         // Then: ViewModel should be connected
         XCTAssertTrue(
             viewModel.isConnected,
-            "ViewModel should be connected after initialization"
+            "ViewModel should be connected after initialization",
         )
         XCTAssertTrue(
             mockAPIClient.createSessionCalled,
-            "API client should create session"
+            "API client should create session",
         )
     }
 

@@ -51,7 +51,7 @@ final class ConsoleViewInitializationTests: XCTestCase {
         let view = ConsoleView(
             output: "Hello, World!\n",
             isWaitingForInput: false,
-            onSendInput: nil
+            onSendInput: nil,
         )
 
         // View should be created successfully
@@ -64,7 +64,7 @@ final class ConsoleViewInitializationTests: XCTestCase {
             isWaitingForInput: true,
             onSendInput: { _ in
                 // Handler provided but not executed in this test
-            }
+            },
         )
 
         XCTAssertNotNil(view)
@@ -74,7 +74,7 @@ final class ConsoleViewInitializationTests: XCTestCase {
         let view = ConsoleView(
             output: "",
             isWaitingForInput: false,
-            onSendInput: nil
+            onSendInput: nil,
         )
 
         XCTAssertNotNil(view)
@@ -90,7 +90,7 @@ final class ConsoleViewInitializationTests: XCTestCase {
         let view = ConsoleView(
             output: output,
             isWaitingForInput: false,
-            onSendInput: nil
+            onSendInput: nil,
         )
 
         XCTAssertNotNil(view)
@@ -106,14 +106,14 @@ final class ConsoleViewStateTests: XCTestCase {
         let viewNotWaiting = ConsoleView(
             output: "Output",
             isWaitingForInput: false,
-            onSendInput: { _ in }
+            onSendInput: { _ in },
         )
         XCTAssertNotNil(viewNotWaiting)
 
         let viewWaiting = ConsoleView(
             output: "Enter input:",
             isWaitingForInput: true,
-            onSendInput: { _ in }
+            onSendInput: { _ in },
         )
         XCTAssertNotNil(viewWaiting)
     }
@@ -163,7 +163,7 @@ final class ConsoleViewCallbackTests: XCTestCase {
         let view = ConsoleView(
             output: "Output",
             isWaitingForInput: false,
-            onSendInput: nil
+            onSendInput: nil,
         )
 
         XCTAssertNotNil(view)

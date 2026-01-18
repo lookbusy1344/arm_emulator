@@ -88,7 +88,7 @@ struct MemoryView: View {
                 memoryData: memoryData,
                 viewModel: viewModel,
                 scrollToRow: scrollToRow,
-                refreshID: refreshID
+                refreshID: refreshID,
             )
         }
         .task {
@@ -108,7 +108,7 @@ struct MemoryView: View {
                 let visibleEnd = baseAddress + UInt32(totalBytes)
                 let isVisible = writeAddr >= baseAddress && writeAddr < visibleEnd
 
-                if autoScrollEnabled && !isVisible {
+                if autoScrollEnabled, !isVisible {
                     // Write is outside visible range - scroll to it
                     let alignedAddress = writeAddr & ~UInt32(0xF)
                     await loadMemoryAsync(at: alignedAddress)
@@ -120,7 +120,7 @@ struct MemoryView: View {
                 // Trigger scroll to the row containing the write (if auto-scroll enabled)
                 if autoScrollEnabled {
                     let rowOffset = Int((writeAddr - baseAddress) / UInt32(bytesPerRow))
-                    if rowOffset >= 0 && rowOffset < rowsToShow && rowOffset != lastScrolledRow {
+                    if rowOffset >= 0, rowOffset < rowsToShow, rowOffset != lastScrolledRow {
                         scrollToRow = rowOffset
                         lastScrolledRow = rowOffset
                     }
@@ -281,7 +281,7 @@ struct MemoryDisplayView: View {
                             bytes: bytesForRow(row),
                             highlightAddress: viewModel.currentPC,
                             memoryHighlights: viewModel.memoryHighlights, // Pass highlights map
-                            lastWriteSize: viewModel.lastMemoryWriteSize
+                            lastWriteSize: viewModel.lastMemoryWriteSize,
                         )
                         .id("row_\(row)")
                     }

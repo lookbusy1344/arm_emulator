@@ -33,7 +33,7 @@ class LineNumberGutterView: NSRulerView {
             self,
             selector: #selector(textDidChange),
             name: NSText.didChangeNotification,
-            object: textView
+            object: textView,
         )
     }
 
@@ -48,7 +48,7 @@ class LineNumberGutterView: NSRulerView {
 
     override func drawHashMarksAndLabels(in rect: NSRect) {
         // Use the proper NSRulerView drawing method instead of overriding draw(_:)
-        guard let textView = textView,
+        guard let textView,
               let layoutManager = textView.layoutManager,
               let textContainer = textView.textContainer
         else {
@@ -76,7 +76,7 @@ class LineNumberGutterView: NSRulerView {
         guard text.length > 0 else { return }
 
         // Get the visible rect in the ruler's coordinate space
-        guard let scrollView = scrollView else { return }
+        guard let scrollView else { return }
         let visibleRect = scrollView.documentVisibleRect
 
         let glyphRange = layoutManager.glyphRange(for: textContainer)
@@ -119,7 +119,7 @@ class LineNumberGutterView: NSRulerView {
         _ lineNumber: Int,
         yPos: CGFloat,
         lineHeight: CGFloat,
-        attributes: [NSAttributedString.Key: Any]
+        attributes: [NSAttributedString.Key: Any],
     ) {
         let lineNumberString = "\(lineNumber)" as NSString
         let rect = NSRect(x: 5, y: yPos, width: gutterWidth - 20, height: lineHeight)
@@ -133,7 +133,7 @@ class LineNumberGutterView: NSRulerView {
             x: gutterWidth - breakpointMargin - breakpointSize + 5,
             y: yPos + (lineHeight - breakpointSize) / 2,
             width: breakpointSize,
-            height: breakpointSize
+            height: breakpointSize,
         )
 
         let path = NSBezierPath(ovalIn: rect)
@@ -144,7 +144,7 @@ class LineNumberGutterView: NSRulerView {
     override func mouseDown(with event: NSEvent) {
         let location = convert(event.locationInWindow, from: nil)
 
-        guard let textView = textView,
+        guard let textView,
               let layoutManager = textView.layoutManager,
               let textContainer = textView.textContainer
         else {
@@ -164,13 +164,13 @@ class LineNumberGutterView: NSRulerView {
         while glyphIndex < glyphRange.upperBound {
             let characterIndex = layoutManager.characterIndexForGlyph(at: glyphIndex)
             let lineRange = text.lineRange(
-                for: NSRange(location: characterIndex, length: 0)
+                for: NSRange(location: characterIndex, length: 0),
             )
 
             let glyphRange = layoutManager.glyphRange(forCharacterRange: lineRange, actualCharacterRange: nil)
             let lineRect = layoutManager.boundingRect(forGlyphRange: glyphRange, in: textContainer)
 
-            guard let scrollView = scrollView else { return }
+            guard let scrollView else { return }
             let yPos = lineRect.minY - scrollView.documentVisibleRect.origin.y
 
             // Check if click is within this line

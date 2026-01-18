@@ -41,7 +41,7 @@ struct MainView: View {
             },
             message: { message in
                 Text(message)
-            }
+            },
         )
         .onChange(of: viewModel.errorMessage) { _, newValue in
             showingError = newValue != nil
@@ -129,7 +129,7 @@ struct MainView: View {
                             VStack(spacing: 0) {
                                 RegistersView(
                                     registers: viewModel.registers,
-                                    registerHighlights: viewModel.registerHighlights
+                                    registerHighlights: viewModel.registerHighlights,
                                 )
                                 .frame(minHeight: 200)
 
@@ -137,7 +137,7 @@ struct MainView: View {
 
                                 StatusView(
                                     status: viewModel.status,
-                                    pc: viewModel.currentPC
+                                    pc: viewModel.currentPC,
                                 )
                                 .frame(height: 60)
                             }
@@ -157,7 +157,7 @@ struct MainView: View {
                             VStack(spacing: 0) {
                                 RegistersView(
                                     registers: viewModel.registers,
-                                    registerHighlights: viewModel.registerHighlights
+                                    registerHighlights: viewModel.registerHighlights,
                                 )
                                 .frame(minHeight: 200)
 
@@ -165,7 +165,7 @@ struct MainView: View {
 
                                 StatusView(
                                     status: viewModel.status,
-                                    pc: viewModel.currentPC
+                                    pc: viewModel.currentPC,
                                 )
                                 .frame(height: 60)
                             }
@@ -183,7 +183,7 @@ struct MainView: View {
                     Task {
                         await viewModel.sendInput(input)
                     }
-                }
+                },
             )
             .frame(minHeight: 150)
         }
@@ -277,17 +277,17 @@ struct StatusView: View {
     private var statusColor: Color {
         switch status {
         case .idle:
-            return .gray
+            .gray
         case .running:
-            return .green
+            .green
         case .breakpoint:
-            return .orange
+            .orange
         case .halted:
-            return .blue
+            .blue
         case .waitingForInput:
-            return .orange
+            .orange
         case .error:
-            return .red
+            .red
         }
     }
 }

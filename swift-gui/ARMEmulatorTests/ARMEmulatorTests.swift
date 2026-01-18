@@ -93,7 +93,7 @@ final class RegisterStateTests: XCTestCase {
         let registers = RegisterState(
             r0: 1, r1: 2, r2: 3, r3: 4, r4: 5, r5: 6, r6: 7, r7: 8,
             r8: 9, r9: 10, r10: 11, r11: 12, r12: 13, sp: 0x50000, lr: 0, pc: 0x8000,
-            cpsr: CPSRFlags(n: false, z: true, c: false, v: false)
+            cpsr: CPSRFlags(n: false, z: true, c: false, v: false),
         )
 
         XCTAssertEqual(registers.r0, 1)
@@ -133,19 +133,19 @@ final class RegisterStateTests: XCTestCase {
         let registers1 = RegisterState(
             r0: 1, r1: 2, r2: 3, r3: 4, r4: 5, r5: 6, r6: 7, r7: 8,
             r8: 9, r9: 10, r10: 11, r11: 12, r12: 13, sp: 0x50000, lr: 0, pc: 0x8000,
-            cpsr: CPSRFlags(n: false, z: true, c: false, v: false)
+            cpsr: CPSRFlags(n: false, z: true, c: false, v: false),
         )
 
         let registers2 = RegisterState(
             r0: 1, r1: 2, r2: 3, r3: 4, r4: 5, r5: 6, r6: 7, r7: 8,
             r8: 9, r9: 10, r10: 11, r11: 12, r12: 13, sp: 0x50000, lr: 0, pc: 0x8000,
-            cpsr: CPSRFlags(n: false, z: true, c: false, v: false)
+            cpsr: CPSRFlags(n: false, z: true, c: false, v: false),
         )
 
         let registers3 = RegisterState(
             r0: 42, r1: 2, r2: 3, r3: 4, r4: 5, r5: 6, r6: 7, r7: 8,
             r8: 9, r9: 10, r10: 11, r11: 12, r12: 13, sp: 0x50000, lr: 0, pc: 0x8000,
-            cpsr: CPSRFlags(n: false, z: true, c: false, v: false)
+            cpsr: CPSRFlags(n: false, z: true, c: false, v: false),
         )
 
         XCTAssertEqual(registers1, registers2)

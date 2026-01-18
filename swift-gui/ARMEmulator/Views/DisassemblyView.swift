@@ -30,7 +30,7 @@ struct DisassemblyView: View {
                         DisassemblyRowView(
                             instruction: instruction,
                             isPC: instruction.address == viewModel.currentPC,
-                            hasBreakpoint: viewModel.breakpoints.contains(instruction.address)
+                            hasBreakpoint: viewModel.breakpoints.contains(instruction.address),
                         )
                     }
                 }

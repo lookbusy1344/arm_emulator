@@ -11,7 +11,7 @@ final class ExampleProgramTests: XCTestCase {
             filename: "fibonacci.s",
             description: "Calculate Fibonacci sequence",
             size: 1234,
-            url: url
+            url: url,
         )
 
         XCTAssertEqual(program.name, "fibonacci")
@@ -27,7 +27,7 @@ final class ExampleProgramTests: XCTestCase {
             filename: "test.s",
             description: "Test",
             size: 1024,
-            url: URL(fileURLWithPath: "/test.s")
+            url: URL(fileURLWithPath: "/test.s"),
         )
 
         // ByteCountFormatter may vary by locale, so just verify it's not empty
@@ -56,14 +56,14 @@ final class ExampleProgramTests: XCTestCase {
             filename: "test.s",
             description: "Test",
             size: 100,
-            url: URL(fileURLWithPath: "/test.s")
+            url: URL(fileURLWithPath: "/test.s"),
         )
         let program2 = ExampleProgram(
             name: "test",
             filename: "test.s",
             description: "Test",
             size: 100,
-            url: URL(fileURLWithPath: "/test.s")
+            url: URL(fileURLWithPath: "/test.s"),
         )
 
         // Equality based on ID only

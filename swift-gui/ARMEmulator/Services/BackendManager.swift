@@ -10,13 +10,13 @@ enum BackendError: Error, LocalizedError {
     var errorDescription: String? {
         switch self {
         case .binaryNotFound:
-            return "ARM Emulator backend binary not found. Please rebuild the app."
+            "ARM Emulator backend binary not found. Please rebuild the app."
         case .startupTimeout:
-            return "Backend failed to start within timeout period."
+            "Backend failed to start within timeout period."
         case let .startupFailed(message):
-            return "Failed to start backend: \(message)"
+            "Failed to start backend: \(message)"
         case .alreadyRunning:
-            return "Backend is already running."
+            "Backend is already running."
         }
     }
 }
@@ -42,7 +42,7 @@ class BackendManager: ObservableObject {
         NotificationCenter.default.addObserver(
             forName: NSApplication.willTerminateNotification,
             object: nil,
-            queue: .main
+            queue: .main,
         ) { [weak self] _ in
             Task { @MainActor in
                 self?.shutdownSync()
@@ -129,7 +129,7 @@ class BackendManager: ObservableObject {
                 if let output = String(data: data, encoding: .utf8), !output.isEmpty {
                     DebugLog.log(
                         "Backend: \(output.trimmingCharacters(in: .whitespacesAndNewlines))",
-                        category: "Backend"
+                        category: "Backend",
                     )
                 }
             }
@@ -137,10 +137,9 @@ class BackendManager: ObservableObject {
 
         process.terminationHandler = { [weak self] process in
             Task { @MainActor [weak self] in
-                guard let self = self else { return }
-                if self.didStartBackend, self.backendStatus == .running {
-                    self
-                        .backendStatus =
+                guard let self else { return }
+                if didStartBackend, backendStatus == .running {
+                    backendStatus =
                         .error("Backend process terminated unexpectedly (exit code: \(process.terminationStatus))")
                 }
             }

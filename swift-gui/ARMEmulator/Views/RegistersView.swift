@@ -37,13 +37,12 @@ struct RegistersView: View {
         ]
 
         // Determine number of columns based on width
-        let columnCount: Int
-        if width < 500 {
-            columnCount = 1
+        let columnCount = if width < 500 {
+            1
         } else if width < 700 {
-            columnCount = 2
+            2
         } else {
-            columnCount = 3
+            3
         }
 
         // Calculate registers per column (distribute evenly, with extra in first columns)
@@ -71,13 +70,12 @@ struct RegistersView: View {
         ]
 
         // Determine number of columns (same logic as general registers)
-        let columnCount: Int
-        if width < 500 {
-            columnCount = 1
+        let columnCount = if width < 500 {
+            1
         } else if width < 700 {
-            columnCount = 2
+            2
         } else {
-            columnCount = 3
+            3
         }
 
         // For only 3 special registers, use fewer columns if needed
@@ -117,7 +115,7 @@ struct RegistersView: View {
                                         RegisterRow(
                                             name: regData.name,
                                             value: regData.value,
-                                            highlightID: regData.highlightID
+                                            highlightID: regData.highlightID,
                                         )
                                     }
                                 }
@@ -138,7 +136,7 @@ struct RegistersView: View {
                                         RegisterRow(
                                             name: regData.name,
                                             value: regData.value,
-                                            highlightID: regData.highlightID
+                                            highlightID: regData.highlightID,
                                         )
                                     }
                                 }
@@ -216,9 +214,9 @@ struct RegistersView_Previews: PreviewProvider {
                 r4: 0, r5: 0, r6: 0, r7: 0,
                 r8: 0, r9: 0, r10: 0, r11: 0,
                 r12: 0, sp: 0x0005_0000, lr: 0, pc: 0x0000_8004,
-                cpsr: CPSRFlags(n: false, z: false, c: true, v: false)
+                cpsr: CPSRFlags(n: false, z: false, c: true, v: false),
             ),
-            registerHighlights: ["R0": UUID(), "PC": UUID()] // Show R0 and PC highlighted
+            registerHighlights: ["R0": UUID(), "PC": UUID()], // Show R0 and PC highlighted
         )
         .frame(width: 300, height: 500)
     }

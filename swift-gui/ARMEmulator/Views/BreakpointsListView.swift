@@ -5,7 +5,7 @@ struct BreakpointsListView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            if viewModel.breakpoints.isEmpty && viewModel.watchpoints.isEmpty {
+            if viewModel.breakpoints.isEmpty, viewModel.watchpoints.isEmpty {
                 emptyStateView
             } else {
                 List {

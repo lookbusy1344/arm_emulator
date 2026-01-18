@@ -101,7 +101,7 @@ class CustomGutterViewTests: XCTestCase {
         // Simulate scroll notification
         NotificationCenter.default.post(
             name: NSView.boundsDidChangeNotification,
-            object: scrollView.contentView
+            object: scrollView.contentView,
         )
 
         // Gutter should redraw on scroll
@@ -114,7 +114,7 @@ class CustomGutterViewTests: XCTestCase {
 
         NotificationCenter.default.post(
             name: NSText.didChangeNotification,
-            object: textView
+            object: textView,
         )
 
         // Gutter should redraw on text change
