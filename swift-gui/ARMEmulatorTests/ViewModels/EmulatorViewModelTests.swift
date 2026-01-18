@@ -468,8 +468,8 @@ final class EmulatorViewModelExecutionTests: XCTestCase {
         XCTAssertEqual(viewModel.errorMessage, "No active session")
     }
 
-    func testStopSuccess() async throws {
-        await viewModel.stop()
+    func testPauseSuccess() async throws {
+        await viewModel.pause()
 
         XCTAssertTrue(mockAPIClient.stopCalled)
         XCTAssertTrue(mockAPIClient.getRegistersCalled)
@@ -666,34 +666,37 @@ final class EmulatorViewModelStateTests: XCTestCase {
         viewModel.sessionID = "test-session"
     }
 
-    func testCanStopWhenRunning() {
+    func testCanPauseWhenRunning() {
         viewModel.status = .running
-        XCTAssertTrue(viewModel.canStop, "Stop button should be enabled when status is .running")
+        XCTAssertTrue(viewModel.canPause, "Pause button should be enabled when status is .running")
     }
 
-    func testCanStopWhenWaitingForInput() {
+    func testCanPauseWhenWaitingForInput() {
         viewModel.status = .waitingForInput
-        XCTAssertTrue(viewModel.canStop, "Stop button should be enabled when status is .waitingForInput")
+        XCTAssertTrue(viewModel.canPause, "Pause button should be enabled when status is .waitingForInput")
     }
 
-    func testCanStopWhenAtBreakpoint() {
+    func testCannotPauseWhenAtBreakpoint() {
         viewModel.status = .breakpoint
-        XCTAssertTrue(viewModel.canStop, "Stop button should be enabled when status is .breakpoint (during stepping)")
+        XCTAssertFalse(
+            viewModel.canPause,
+            "Pause button should be disabled when status is .breakpoint (already paused)"
+        )
     }
 
-    func testCannotStopWhenIdle() {
+    func testCannotPauseWhenIdle() {
         viewModel.status = .idle
-        XCTAssertFalse(viewModel.canStop, "Stop button should be disabled when status is .idle")
+        XCTAssertFalse(viewModel.canPause, "Pause button should be disabled when status is .idle")
     }
 
-    func testCannotStopWhenHalted() {
+    func testCannotPauseWhenHalted() {
         viewModel.status = .halted
-        XCTAssertFalse(viewModel.canStop, "Stop button should be disabled when status is .halted")
+        XCTAssertFalse(viewModel.canPause, "Pause button should be disabled when status is .halted")
     }
 
-    func testCannotStopWhenError() {
+    func testCannotPauseWhenError() {
         viewModel.status = .error
-        XCTAssertFalse(viewModel.canStop, "Stop button should be disabled when status is .error")
+        XCTAssertFalse(viewModel.canPause, "Pause button should be disabled when status is .error")
     }
 
     // MARK: - canStep Tests

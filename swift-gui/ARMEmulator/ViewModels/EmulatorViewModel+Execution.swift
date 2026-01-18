@@ -29,8 +29,8 @@ extension EmulatorViewModel {
         DebugLog.log("run() completed", category: "ViewModel")
     }
 
-    func stop() async {
-        DebugLog.log("stop() called - current status: \(status), canStep: \(canStep)", category: "ViewModel")
+    func pause() async {
+        DebugLog.log("pause() called - current status: \(status), canStep: \(canStep)", category: "ViewModel")
 
         guard let sessionID = sessionID else {
             errorMessage = "No active session"
@@ -42,13 +42,13 @@ extension EmulatorViewModel {
             try await apiClient.stop(sessionID: sessionID)
             DebugLog.success("apiClient.stop() succeeded", category: "ViewModel")
 
-            DebugLog.log("Refreshing state after stop...", category: "ViewModel")
+            DebugLog.log("Refreshing state after pause...", category: "ViewModel")
             try await refreshState()
-            DebugLog.log("After stop - status: \(status), canStep: \(canStep)", category: "ViewModel")
+            DebugLog.log("After pause - status: \(status), canStep: \(canStep)", category: "ViewModel")
             errorMessage = nil
         } catch {
-            DebugLog.error("stop() failed: \(error.localizedDescription)", category: "ViewModel")
-            errorMessage = "Failed to stop: \(error.localizedDescription)"
+            DebugLog.error("pause() failed: \(error.localizedDescription)", category: "ViewModel")
+            errorMessage = "Failed to pause: \(error.localizedDescription)"
         }
     }
 

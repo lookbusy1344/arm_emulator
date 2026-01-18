@@ -13,12 +13,12 @@ struct DebugCommands: Commands {
             .keyboardShortcut(KeyEquivalent(Character(UnicodeScalar(NSF5FunctionKey)!)), modifiers: [])
             .disabled(viewModel?.status == .running)
 
-            Button("Stop") {
+            Button("Pause") {
                 Task {
-                    await viewModel?.stop()
+                    await viewModel?.pause()
                 }
             }
-            .disabled(!(viewModel?.canStop ?? false))
+            .disabled(!(viewModel?.canPause ?? false))
 
             Divider()
 

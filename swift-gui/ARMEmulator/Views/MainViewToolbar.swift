@@ -45,12 +45,12 @@ struct MainViewToolbar: ToolbarContent {
             .disabled(viewModel.status == .running || viewModel.status == .waitingForInput)
 
             Button(
-                action: { Task { await viewModel.stop() } },
-                label: { Label("Stop", systemImage: "stop.fill") }
+                action: { Task { await viewModel.pause() } },
+                label: { Label("Pause", systemImage: "pause.fill") }
             )
-            .help("Stop execution (⌘.)")
+            .help("Pause execution (⌘.)")
             .keyboardShortcut(".", modifiers: .command)
-            .disabled(!viewModel.canStop)
+            .disabled(!viewModel.canPause)
 
             Button(
                 action: { Task { await viewModel.step() } },

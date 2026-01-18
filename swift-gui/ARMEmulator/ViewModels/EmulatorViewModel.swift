@@ -52,9 +52,9 @@ class EmulatorViewModel: ObservableObject {
     private var cancellables = Set<AnyCancellable>()
     private var isInitializing = false
 
-    // Computed property: determines if stop button should be enabled
-    var canStop: Bool {
-        status == .running || status == .waitingForInput || status == .breakpoint
+    // Computed property: determines if pause button should be enabled
+    var canPause: Bool {
+        status == .running || status == .waitingForInput
     }
 
     // Computed property: determines if step buttons should be enabled
