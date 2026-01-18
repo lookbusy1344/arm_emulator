@@ -43,17 +43,17 @@ struct MainView: View {
                 Text(message)
             }
         )
-        .onChange(of: viewModel.errorMessage) { newValue in
+        .onChange(of: viewModel.errorMessage) { _, newValue in
             showingError = newValue != nil
         }
-        .onChange(of: backendManager.backendStatus) { newStatus in
+        .onChange(of: backendManager.backendStatus) { _, newStatus in
             if newStatus == .running, !viewModel.isConnected {
                 Task {
                     await viewModel.initialize()
                 }
             }
         }
-        .onChange(of: viewModel.isConnected) { isConnected in
+        .onChange(of: viewModel.isConnected) { _, isConnected in
             // Auto-load startup file if specified via command-line arguments
             if isConnected, !hasLoadedStartupFile {
                 hasLoadedStartupFile = true

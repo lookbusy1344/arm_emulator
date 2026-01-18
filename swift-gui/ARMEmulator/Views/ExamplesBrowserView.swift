@@ -52,7 +52,7 @@ struct ExamplesBrowserView: View {
                         .tag(example)
                 }
                 .listStyle(.sidebar)
-                .onChange(of: selectedExample) { newValue in
+                .onChange(of: selectedExample) { _, newValue in
                     if let example = newValue {
                         loadPreview(example)
                     }

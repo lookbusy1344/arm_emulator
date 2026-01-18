@@ -59,6 +59,8 @@ targets:
             echo "  DATE=\$(date -u +\"%Y-%m-%d %H:%M:%S UTC\")"
             echo "  go build -ldflags \"-X 'main.Version=\$VERSION' -X 'main.Commit=\$COMMIT' -X 'main.Date=\$DATE'\" -o arm-emulator"
           fi
+        outputFiles:
+          - $(BUILT_PRODUCTS_DIR)/$(PRODUCT_NAME).app/Contents/Resources/arm-emulator
     scheme:
       testTargets:
         - ARMEmulatorTests

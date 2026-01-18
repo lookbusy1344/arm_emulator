@@ -57,7 +57,7 @@ struct StackView: View {
         .task {
             await loadStack()
         }
-        .onChange(of: viewModel.registers.sp) { _ in
+        .onChange(of: viewModel.registers.sp) {
             Task {
                 await loadStack()
             }

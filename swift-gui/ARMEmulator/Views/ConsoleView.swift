@@ -22,7 +22,7 @@ struct ConsoleView: View {
                         .padding(8)
                         .frame(maxWidth: .infinity, alignment: .topLeading)
                         .id("bottom")
-                        .onChange(of: output) { _ in
+                        .onChange(of: output) {
                             proxy.scrollTo("bottom", anchor: .bottom)
                         }
                 }

@@ -35,14 +35,14 @@ struct EditorView: View {
             .background(Color(NSColor.textBackgroundColor))
             .border(Color.gray.opacity(0.3))
         }
-        .onChange(of: viewModel.breakpoints) { newBreakpoints in
+        .onChange(of: viewModel.breakpoints) { _, newBreakpoints in
             // Sync breakpoints from ViewModel (address-based) to line-based
             // Use addressToLine mapping from source map
             self.breakpoints = Set(newBreakpoints.compactMap { address in
                 viewModel.addressToLine[address]
             })
         }
-        .onChange(of: viewModel.currentPC) { newPC in
+        .onChange(of: viewModel.currentPC) { _, newPC in
             // Update current line from PC address
             self.currentLine = viewModel.addressToLine[newPC]
             #if DEBUG

@@ -41,7 +41,7 @@ struct DisassemblyView: View {
         .task {
             loadDisassembly()
         }
-        .onChange(of: viewModel.currentPC) { _ in
+        .onChange(of: viewModel.currentPC) {
             loadDisassembly()
         }
     }

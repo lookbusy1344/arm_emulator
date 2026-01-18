@@ -10,7 +10,7 @@ struct DebugCommands: Commands {
                     await viewModel?.run()
                 }
             }
-            .keyboardShortcut(KeyEquivalent(Character(UnicodeScalar(NSF5FunctionKey)!)), modifiers: [.function])
+            .keyboardShortcut(KeyEquivalent(Character(UnicodeScalar(NSF5FunctionKey)!)), modifiers: [])
             .disabled(viewModel?.status == .running)
 
             Button("Stop") {
@@ -27,7 +27,7 @@ struct DebugCommands: Commands {
                     await viewModel?.step()
                 }
             }
-            .keyboardShortcut(KeyEquivalent(Character(UnicodeScalar(NSF11FunctionKey)!)), modifiers: [.function])
+            .keyboardShortcut(KeyEquivalent(Character(UnicodeScalar(NSF11FunctionKey)!)), modifiers: [])
             .disabled(viewModel?.status == .running)
 
             Button("Step Over") {
@@ -35,7 +35,7 @@ struct DebugCommands: Commands {
                     await viewModel?.stepOver()
                 }
             }
-            .keyboardShortcut(KeyEquivalent(Character(UnicodeScalar(NSF10FunctionKey)!)), modifiers: [.function])
+            .keyboardShortcut(KeyEquivalent(Character(UnicodeScalar(NSF10FunctionKey)!)), modifiers: [])
             .disabled(viewModel?.status == .running)
 
             Button("Step Out") {
@@ -53,7 +53,7 @@ struct DebugCommands: Commands {
                     await vm.toggleBreakpoint(at: vm.currentPC)
                 }
             }
-            .keyboardShortcut(KeyEquivalent(Character(UnicodeScalar(NSF9FunctionKey)!)), modifiers: [.function])
+            .keyboardShortcut(KeyEquivalent(Character(UnicodeScalar(NSF9FunctionKey)!)), modifiers: [])
             .disabled(viewModel == nil)
 
             Divider()

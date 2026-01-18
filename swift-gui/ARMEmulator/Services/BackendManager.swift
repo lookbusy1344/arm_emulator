@@ -44,7 +44,9 @@ class BackendManager: ObservableObject {
             object: nil,
             queue: .main
         ) { [weak self] _ in
-            self?.shutdownSync()
+            Task { @MainActor in
+                self?.shutdownSync()
+            }
         }
     }
 
