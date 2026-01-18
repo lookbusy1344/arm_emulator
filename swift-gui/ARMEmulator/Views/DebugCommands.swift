@@ -18,7 +18,7 @@ struct DebugCommands: Commands {
                     await viewModel?.stop()
                 }
             }
-            .disabled(viewModel?.status != .running)
+            .disabled(!(viewModel?.canStop ?? false))
 
             Divider()
 
@@ -28,7 +28,7 @@ struct DebugCommands: Commands {
                 }
             }
             .keyboardShortcut(KeyEquivalent(Character(UnicodeScalar(NSF11FunctionKey)!)), modifiers: [])
-            .disabled(viewModel?.status == .running)
+            .disabled(!(viewModel?.canStep ?? false))
 
             Button("Step Over") {
                 Task {
@@ -36,14 +36,14 @@ struct DebugCommands: Commands {
                 }
             }
             .keyboardShortcut(KeyEquivalent(Character(UnicodeScalar(NSF10FunctionKey)!)), modifiers: [])
-            .disabled(viewModel?.status == .running)
+            .disabled(!(viewModel?.canStep ?? false))
 
             Button("Step Out") {
                 Task {
                     await viewModel?.stepOut()
                 }
             }
-            .disabled(viewModel?.status == .running)
+            .disabled(!(viewModel?.canStep ?? false))
 
             Divider()
 

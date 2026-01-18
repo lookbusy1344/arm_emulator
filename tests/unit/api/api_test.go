@@ -744,6 +744,97 @@ func TestStopExecution(t *testing.T) {
 	if w.Code != http.StatusOK {
 		t.Errorf("Expected status 200, got %d", w.Code)
 	}
+
+	// Verify state is now halted (not still running)
+	req = httptest.NewRequest(http.MethodGet,
+		fmt.Sprintf("/api/v1/session/%s", sessionID), nil)
+	w = httptest.NewRecorder()
+	server.Handler().ServeHTTP(w, req)
+
+	var status api.SessionStatusResponse
+	if err := json.NewDecoder(w.Body).Decode(&status); err != nil {
+		t.Fatalf("Failed to decode status response: %v", err)
+	}
+
+	if status.State != "halted" {
+		t.Errorf("Expected state 'halted' after stop, got '%s'", status.State)
+	}
+}
+
+// TestStopDuringBreakpoint tests stopping when VM is paused at a breakpoint
+func TestStopDuringBreakpoint(t *testing.T) {
+	server := testServer()
+	sessionID := createTestSession(t, server)
+
+	// Load simple program with multiple instructions
+	program := `.org 0x8000
+	MOV R0, #1
+	MOV R1, #2
+	MOV R2, #3
+	SWI #0`
+	loadProgram(t, server, sessionID, program)
+
+	// Set breakpoint at second instruction (0x8004)
+	breakpointReq := api.BreakpointRequest{Address: 0x8004}
+	reqBody, _ := json.Marshal(breakpointReq)
+	req := httptest.NewRequest(http.MethodPost,
+		fmt.Sprintf("/api/v1/session/%s/breakpoint", sessionID),
+		bytes.NewReader(reqBody))
+	w := httptest.NewRecorder()
+	server.Handler().ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("Failed to add breakpoint: %d", w.Code)
+	}
+
+	// Run until breakpoint
+	req = httptest.NewRequest(http.MethodPost,
+		fmt.Sprintf("/api/v1/session/%s/run", sessionID), nil)
+	w = httptest.NewRecorder()
+	server.Handler().ServeHTTP(w, req)
+
+	// Wait for breakpoint to be hit
+	time.Sleep(20 * time.Millisecond)
+
+	// Verify we're at breakpoint
+	req = httptest.NewRequest(http.MethodGet,
+		fmt.Sprintf("/api/v1/session/%s", sessionID), nil)
+	w = httptest.NewRecorder()
+	server.Handler().ServeHTTP(w, req)
+
+	var statusBefore api.SessionStatusResponse
+	if err := json.NewDecoder(w.Body).Decode(&statusBefore); err != nil {
+		t.Fatalf("Failed to decode status: %v", err)
+	}
+
+	if statusBefore.State != "breakpoint" {
+		t.Fatalf("Expected state 'breakpoint', got '%s'", statusBefore.State)
+	}
+
+	// Now stop the program while at breakpoint
+	req = httptest.NewRequest(http.MethodPost,
+		fmt.Sprintf("/api/v1/session/%s/stop", sessionID), nil)
+	w = httptest.NewRecorder()
+	server.Handler().ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Errorf("Expected status 200 for stop, got %d", w.Code)
+	}
+
+	// Verify state transitioned to halted (not still breakpoint)
+	req = httptest.NewRequest(http.MethodGet,
+		fmt.Sprintf("/api/v1/session/%s", sessionID), nil)
+	w = httptest.NewRecorder()
+	server.Handler().ServeHTTP(w, req)
+
+	var statusAfter api.SessionStatusResponse
+	if err := json.NewDecoder(w.Body).Decode(&statusAfter); err != nil {
+		t.Fatalf("Failed to decode status after stop: %v", err)
+	}
+
+	if statusAfter.State != "halted" {
+		t.Errorf("Expected state 'halted' after stop during breakpoint, got '%s'", statusAfter.State)
+	}
 }
 
 // TestRunExecution tests that /run actually executes the program

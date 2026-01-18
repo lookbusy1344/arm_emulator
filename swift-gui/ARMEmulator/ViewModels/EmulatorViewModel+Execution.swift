@@ -30,21 +30,31 @@ extension EmulatorViewModel {
     }
 
     func stop() async {
+        DebugLog.log("stop() called - current status: \(status), canStep: \(canStep)", category: "ViewModel")
+
         guard let sessionID = sessionID else {
             errorMessage = "No active session"
             return
         }
 
         do {
+            DebugLog.log("Calling apiClient.stop()...", category: "ViewModel")
             try await apiClient.stop(sessionID: sessionID)
+            DebugLog.success("apiClient.stop() succeeded", category: "ViewModel")
+
+            DebugLog.log("Refreshing state after stop...", category: "ViewModel")
             try await refreshState()
+            DebugLog.log("After stop - status: \(status), canStep: \(canStep)", category: "ViewModel")
             errorMessage = nil
         } catch {
+            DebugLog.error("stop() failed: \(error.localizedDescription)", category: "ViewModel")
             errorMessage = "Failed to stop: \(error.localizedDescription)"
         }
     }
 
     func step() async {
+        DebugLog.log("step() called - status: \(status), canStep: \(canStep)", category: "ViewModel")
+
         guard let sessionID = sessionID else {
             errorMessage = "No active session"
             return

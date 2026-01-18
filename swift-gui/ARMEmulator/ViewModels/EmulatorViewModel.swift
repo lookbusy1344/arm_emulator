@@ -52,6 +52,16 @@ class EmulatorViewModel: ObservableObject {
     private var cancellables = Set<AnyCancellable>()
     private var isInitializing = false
 
+    // Computed property: determines if stop button should be enabled
+    var canStop: Bool {
+        status == .running || status == .waitingForInput || status == .breakpoint
+    }
+
+    // Computed property: determines if step buttons should be enabled
+    var canStep: Bool {
+        status == .idle || status == .breakpoint
+    }
+
     func highlightRegister(_ name: String) {
         // Cancel existing fade task for this register
         highlightTasks[name]?.cancel()

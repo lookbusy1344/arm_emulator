@@ -50,7 +50,7 @@ struct MainViewToolbar: ToolbarContent {
             )
             .help("Stop execution (⌘.)")
             .keyboardShortcut(".", modifiers: .command)
-            .disabled(viewModel.status != .running && viewModel.status != .waitingForInput)
+            .disabled(!viewModel.canStop)
 
             Button(
                 action: { Task { await viewModel.step() } },
@@ -58,7 +58,7 @@ struct MainViewToolbar: ToolbarContent {
             )
             .help("Step one instruction (⌘T)")
             .keyboardShortcut("t", modifiers: .command)
-            .disabled(viewModel.status == .running || viewModel.status == .waitingForInput)
+            .disabled(!viewModel.canStep)
 
             Button(
                 action: { Task { await viewModel.stepOver() } },
@@ -66,7 +66,7 @@ struct MainViewToolbar: ToolbarContent {
             )
             .help("Step over function calls (⌘⇧T)")
             .keyboardShortcut("t", modifiers: [.command, .shift])
-            .disabled(viewModel.status == .running || viewModel.status == .waitingForInput)
+            .disabled(!viewModel.canStep)
 
             Button(
                 action: { Task { await viewModel.stepOut() } },
@@ -74,7 +74,7 @@ struct MainViewToolbar: ToolbarContent {
             )
             .help("Step out of current function (⌘⌥T)")
             .keyboardShortcut("t", modifiers: [.command, .option])
-            .disabled(viewModel.status == .running || viewModel.status == .waitingForInput)
+            .disabled(!viewModel.canStep)
 
             Button(
                 action: { Task { await viewModel.reset() } },

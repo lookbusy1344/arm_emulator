@@ -238,11 +238,12 @@ func (s *DebuggerService) Continue() error {
 	return nil
 }
 
-// Pause pauses execution
+// Pause pauses execution and sets VM state to halted
 func (s *DebuggerService) Pause() {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.debugger.Running = false
+	s.vm.State = vm.StateHalted
 }
 
 // Reset performs a complete reset to initial state

@@ -90,7 +90,7 @@ func (s *Server) Start() error {
 		IdleTimeout:  60 * time.Second,
 	}
 
-	log.Printf("API server starting on http://127.0.0.1:%d", s.port)
+	log.Printf("API server starting on http://127.0.0.1:%d (version: %s, commit: %s, built: %s)", s.port, s.version, s.commit, s.date)
 	return s.server.ListenAndServe()
 }
 

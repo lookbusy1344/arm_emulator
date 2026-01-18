@@ -14,6 +14,18 @@ extension EmulatorViewModel {
         switch event.type {
         case "state":
             if let data = event.data, case let .state(stateUpdate) = data {
+                let newStatus = VMState(rawValue: stateUpdate.status) ?? .idle
+
+                // Prevent stale WebSocket events from overriding explicit stop
+                // Check this BEFORE logging or updating anything
+                if status == .halted, newStatus == .breakpoint || newStatus == .running {
+                    DebugLog.warning(
+                        "Ignoring stale WebSocket state transition from halted to \(newStatus) at PC \(stateUpdate.pc.map { String(format: "0x%08X", $0) } ?? "nil")",
+                        category: "ViewModel"
+                    )
+                    return // Exit early - don't update registers or PC
+                }
+
                 DebugLog.log(
                     "State update - status: \(stateUpdate.status), PC: \(stateUpdate.pc.map { String(format: "0x%08X", $0) } ?? "nil")",
                     category: "ViewModel"
@@ -24,8 +36,8 @@ extension EmulatorViewModel {
                     updateRegisters(registers)
                 }
 
-                // Always update status (even for status-only updates like waiting_for_input)
-                status = VMState(rawValue: stateUpdate.status) ?? .idle
+                // Update status
+                status = newStatus
             }
         case "output":
             if let data = event.data, case let .output(outputUpdate) = data {
@@ -45,6 +57,14 @@ extension EmulatorViewModel {
     func handleExecutionEvent(_ event: ExecutionEvent) {
         switch event.event {
         case "breakpoint_hit":
+            // Prevent stale WebSocket events from overriding explicit stop
+            if status == .halted {
+                DebugLog.warning(
+                    "Ignoring stale breakpoint_hit event while halted (PC: \(event.address.map { String(format: "0x%08X", $0) } ?? "nil"))",
+                    category: "ViewModel"
+                )
+                return
+            }
             status = .breakpoint
             if let address = event.address {
                 currentPC = address
