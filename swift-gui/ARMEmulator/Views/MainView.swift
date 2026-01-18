@@ -137,7 +137,6 @@ struct MainView: View {
 
                                 StatusView(
                                     status: viewModel.status,
-                                    pc: viewModel.currentPC,
                                     cpsr: viewModel.registers.cpsr,
                                     cpsrHighlightID: viewModel.registerHighlights["CPSR"],
                                 )
@@ -167,7 +166,6 @@ struct MainView: View {
 
                                 StatusView(
                                     status: viewModel.status,
-                                    pc: viewModel.currentPC,
                                     cpsr: viewModel.registers.cpsr,
                                     cpsrHighlightID: viewModel.registerHighlights["CPSR"],
                                 )
@@ -245,7 +243,6 @@ struct ConnectionView: View {
 
 struct StatusView: View {
     let status: VMState
-    let pc: UInt32
     let cpsr: CPSRFlags
     let cpsrHighlightID: UUID?
 
@@ -259,18 +256,6 @@ struct StatusView: View {
                 Text(status.rawValue.capitalized)
                     .font(.system(size: 10, design: .monospaced))
                     .fontWeight(.medium)
-            }
-            .padding(.horizontal)
-
-            Divider()
-
-            HStack(spacing: 4) {
-                Text("PC:")
-                    .font(.system(size: 10, design: .monospaced))
-                    .foregroundColor(.secondary)
-
-                Text(String(format: "0x%08X", pc))
-                    .font(.system(size: 10, design: .monospaced))
             }
             .padding(.horizontal)
 
