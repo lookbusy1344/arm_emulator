@@ -70,7 +70,8 @@ final class ResultValueFormattingTests: XCTestCase {
     func testBinaryFormatting() {
         // Binary formatting with padding to 32 bits
         func formatBinary(_ value: UInt32) -> String {
-            String(value, radix: 2).padding(toLength: 32, withPad: "0", startingAt: 0)
+            let binary = String(value, radix: 2)
+            return String(repeating: "0", count: max(0, 32 - binary.count)) + binary
         }
 
         XCTAssertEqual(formatBinary(0), "00000000000000000000000000000000")
@@ -87,7 +88,8 @@ final class ResultValueFormattingTests: XCTestCase {
 
     func testBinaryFormattingEdgeCases() {
         func formatBinary(_ value: UInt32) -> String {
-            String(value, radix: 2).padding(toLength: 32, withPad: "0", startingAt: 0)
+            let binary = String(value, radix: 2)
+            return String(repeating: "0", count: max(0, 32 - binary.count)) + binary
         }
 
         // Min value
@@ -316,7 +318,8 @@ final class ResultDisplayTests: XCTestCase {
 
         let hex = String(format: "0x%08X", value)
         let dec = String(value)
-        let bin = String(value, radix: 2).padding(toLength: 32, withPad: "0", startingAt: 0)
+        let binary = String(value, radix: 2)
+        let bin = String(repeating: "0", count: max(0, 32 - binary.count)) + binary
 
         XCTAssertEqual(hex, "0x0000002A")
         XCTAssertEqual(dec, "42")

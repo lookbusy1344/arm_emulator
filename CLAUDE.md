@@ -138,10 +138,16 @@ swiftlint
 **BEFORE any commit, build verification, or marking work as complete:**
 1. Run `swiftformat .` to format all Swift files
 2. Run `swiftlint` to check for violations
-3. Fix any linting violations (use `swiftlint --fix` for auto-fixable issues)
-4. Verify 0 warnings and 0 errors
+3. **Fix ALL linting violations** - every warning and error must be addressed
+4. Use `swiftlint --fix` for auto-fixable issues
+5. Verify 0 warnings and 0 errors
 
-**Linting must pass with 0 violations before ANY commit or PR.**
+**ALL LINTING ISSUES MUST BE FIXED - NO EXCEPTIONS**
+
+- Linting must pass with **0 violations** (0 warnings, 0 errors) before ANY commit or PR
+- Do not ignore, skip, or defer any linting warnings
+- If a test file exceeds the file length limit (500 lines), you may add `// swiftlint:disable file_length` at the top of that specific test file only
+- All other linting rules must be followed without exception
 
 This is not optional. This is not a suggestion. This MUST be done every single time.
 
@@ -263,7 +269,12 @@ swiftlint  # Must show 0 violations
 
 SwiftLint and SwiftFormat configurations are in `.swiftlint.yml` and `.swiftformat` respectively.
 
-**Linting must pass with 0 violations before any commit. NO EXCEPTIONS.**
+**ALL LINTING ISSUES MUST BE FIXED - NO EXCEPTIONS:**
+- Linting must pass with **0 violations** (0 warnings, 0 errors) before any commit
+- Do not ignore, skip, or defer any linting warnings or errors
+- Fix every single violation - they all matter
+- **Exception:** If a test file exceeds the file length limit (500 lines), you may add `// swiftlint:disable file_length` at the top of that specific test file only
+- All other linting rules must be followed without exception
 
 ### Swift App Architecture
 

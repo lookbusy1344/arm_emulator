@@ -102,7 +102,10 @@ struct ExpressionEvaluatorView: View {
                 resultValue(label: "Dec", value: String(result.result))
                 resultValue(
                     label: "Bin",
-                    value: String(result.result, radix: 2).padding(toLength: 32, withPad: "0", startingAt: 0),
+                    value: {
+                        let binary = String(result.result, radix: 2)
+                        return String(repeating: "0", count: max(0, 32 - binary.count)) + binary
+                    }(),
                 )
             }
         }

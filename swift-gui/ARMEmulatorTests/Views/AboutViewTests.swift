@@ -1,3 +1,4 @@
+// swiftlint:disable file_length
 import SwiftUI
 import XCTest
 @testable import ARMEmulator

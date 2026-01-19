@@ -37,6 +37,6 @@ struct CPSRFlags: Codable, Equatable {
     var v: Bool // Overflow
 
     var displayString: String {
-        "\(n ? "N" : "-") \(z ? "Z" : "-") \(c ? "C" : "-") \(v ? "V" : "-")"
+        "\(n ? "N" : "-")\(z ? "Z" : "-")\(c ? "C" : "-")\(v ? "V" : "-")"
     }
 }

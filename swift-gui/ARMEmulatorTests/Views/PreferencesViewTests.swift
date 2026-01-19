@@ -90,6 +90,12 @@ final class AppSettingsValidationTests: XCTestCase {
 
 @MainActor
 final class AppSettingsDefaultsTests: XCTestCase {
+    override func setUp() {
+        super.setUp()
+        // Reset UserDefaults to ensure clean state
+        UserDefaults.standard.removeObject(forKey: "colorScheme")
+    }
+
     func testDefaultValues() {
         // Document the default values (from AppStorage defaults)
         let expectedDefaults: [String: Any] = [

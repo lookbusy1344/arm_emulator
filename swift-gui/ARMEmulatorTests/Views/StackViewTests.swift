@@ -140,7 +140,7 @@ final class StackRowFormatTests: XCTestCase {
         XCTAssertEqual(asciiRepresentation(value: 0x0100_0002), "....") // Control characters
 
         // Test mixed printable/non-printable
-        XCTAssertEqual(asciiRepresentation(value: 0x4100_0042), "B.A") // 'B', 0, 0, 'A'
+        XCTAssertEqual(asciiRepresentation(value: 0x4100_0042), "B..A") // 'B', 0, 0, 'A'
     }
 }
 
