@@ -10,6 +10,7 @@ final class MockAPIClient: APIClientProtocol, @unchecked Sendable {
     var loadProgramCalled = false
     var lastLoadedSource: String?
     var runCalled = false
+    var runCallCount = 0 // Track multiple run calls
     var stopCalled = false
     var stepCalled = false
     var stepOverCalled = false
@@ -21,6 +22,7 @@ final class MockAPIClient: APIClientProtocol, @unchecked Sendable {
     var sendStdinCalled = false
     var lastStdinData: String?
     var addBreakpointCalled = false
+    var addBreakpointCallCount = 0 // Track multiple breakpoint additions
     var removeBreakpointCalled = false
     var lastBreakpointAddress: UInt32?
     var addWatchpointCalled = false
@@ -31,18 +33,31 @@ final class MockAPIClient: APIClientProtocol, @unchecked Sendable {
     var shouldFailCreateSession = false
     var shouldFailLoadProgram = false
     var shouldFailRun = false
+    var runErrorMessage: String? // Custom error message for run failures
     var shouldFailStep = false
     var stepErrorMessage: String?
     var shouldFailAddBreakpoint = false
     var shouldFailRemoveBreakpoint = false
+    var shouldFailGetMemory = false
 
     // Response customization
     var mockSessionID = "mock-session-id"
     var mockLoadProgramResponse = LoadProgramResponse(success: true, errors: nil, symbols: ["main": 0x8000])
     var mockRegisters = RegisterState.empty
     var mockStatus = VMStatus(state: "idle", pc: 0x8000, instruction: nil, cycleCount: nil, error: nil)
+    var mockMemoryData: [UInt8]? // Custom memory data for tests
+
+    // Performance simulation
+    var simulateDelay: TimeInterval = 0 // Simulate slow API responses
+
+    // Session ID generation (for session restart testing)
+    var generateUniqueSessionIDs = false // Set to true to generate unique IDs per call
+    private var sessionIDCounter = 0
 
     func createSession() async throws -> String {
+        if simulateDelay > 0 {
+            try await Task.sleep(nanoseconds: UInt64(simulateDelay * 1_000_000_000))
+        }
         createSessionCalled = true
         if shouldFailCreateSession {
             throw NSError(
@@ -50,6 +65,11 @@ final class MockAPIClient: APIClientProtocol, @unchecked Sendable {
                 code: -1,
                 userInfo: [NSLocalizedDescriptionKey: "Mock session creation failed"],
             )
+        }
+        // Generate unique session ID for each call if requested (for session restart testing)
+        if generateUniqueSessionIDs {
+            sessionIDCounter += 1
+            return "mock-session-id-\(sessionIDCounter)"
         }
         return mockSessionID
     }
@@ -64,6 +84,9 @@ final class MockAPIClient: APIClientProtocol, @unchecked Sendable {
     }
 
     func loadProgram(sessionID: String, source: String) async throws -> LoadProgramResponse {
+        if simulateDelay > 0 {
+            try await Task.sleep(nanoseconds: UInt64(simulateDelay * 1_000_000_000))
+        }
         loadProgramCalled = true
         lastLoadedSource = source
         if shouldFailLoadProgram {
@@ -77,9 +100,14 @@ final class MockAPIClient: APIClientProtocol, @unchecked Sendable {
     }
 
     func run(sessionID: String) async throws {
+        if simulateDelay > 0 {
+            try await Task.sleep(nanoseconds: UInt64(simulateDelay * 1_000_000_000))
+        }
         runCalled = true
+        runCallCount += 1
         if shouldFailRun {
-            throw NSError(domain: "MockAPIClient", code: -1, userInfo: [NSLocalizedDescriptionKey: "Mock run failed"])
+            let message = runErrorMessage ?? "Mock run failed"
+            throw NSError(domain: "MockAPIClient", code: -1, userInfo: [NSLocalizedDescriptionKey: message])
         }
     }
 
@@ -140,6 +168,7 @@ final class MockAPIClient: APIClientProtocol, @unchecked Sendable {
 
     func addBreakpoint(sessionID: String, address: UInt32) async throws {
         addBreakpointCalled = true
+        addBreakpointCallCount += 1
         lastBreakpointAddress = address
         if shouldFailAddBreakpoint {
             throw NSError(
@@ -189,7 +218,17 @@ final class MockAPIClient: APIClientProtocol, @unchecked Sendable {
     }
 
     func getMemory(sessionID: String, address: UInt32, length: Int) async throws -> [UInt8] {
-        Array(repeating: 0, count: length)
+        if shouldFailGetMemory {
+            throw NSError(
+                domain: "MockAPIClient",
+                code: -1,
+                userInfo: [NSLocalizedDescriptionKey: "Mock get memory failed"],
+            )
+        }
+        if let customData = mockMemoryData {
+            return customData
+        }
+        return Array(repeating: 0, count: length)
     }
 
     func getDisassembly(sessionID: String, address: UInt32, count: Int) async throws -> [DisassemblyInstruction] {
