@@ -1,8 +1,8 @@
-// swiftlint:disable file_length type_body_length
+// swiftlint:disable file_length
 import XCTest
 @testable import ARMEmulator
 
-final class ProgramStateTests: XCTestCase {
+final class ProgramStateTests: XCTestCase { // swiftlint:disable:this type_body_length
     // MARK: - VMState Tests
 
     func testVMStateRawValueMapping() {

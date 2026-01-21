@@ -8,7 +8,7 @@ extension RegisterState {
     ///   - name: Register name (e.g., "R0", "R1", "SP", "PC")
     ///   - value: Expected value
     /// - Returns: True if the register matches the value
-    func hasRegister(_ name: String, value: UInt32) -> Bool {
+    func hasRegister(_ name: String, value: UInt32) -> Bool { // swiftlint:disable:this cyclomatic_complexity
         switch name.uppercased() {
         case "R0": r0 == value
         case "R1": r1 == value
@@ -33,7 +33,7 @@ extension RegisterState {
     /// Get register value by name
     /// - Parameter name: Register name (e.g., "R0", "R1", "SP", "PC")
     /// - Returns: Register value or nil if invalid name
-    func registerValue(_ name: String) -> UInt32? {
+    func registerValue(_ name: String) -> UInt32? { // swiftlint:disable:this cyclomatic_complexity
         switch name.uppercased() {
         case "R0": r0
         case "R1": r1

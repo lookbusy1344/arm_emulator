@@ -65,6 +65,14 @@ struct StackView: View {
     }
 
     private func loadStack() async {
+        // Don't load stack when no program is loaded
+        guard viewModel.status != .idle else {
+            DebugLog.log("VM is idle (no program loaded), skipping stack load", category: "StackView")
+            stackData = []
+            localMemoryData = []
+            return
+        }
+
         let currentSP = viewModel.registers.sp
         DebugLog.log("loadStack() called, SP = 0x\(String(format: "%08X", currentSP))", category: "StackView")
 
