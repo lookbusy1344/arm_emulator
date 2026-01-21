@@ -117,7 +117,8 @@ struct MainView: View {
 
                         Spacer()
                     }
-                    .padding(8)
+                    .frame(height: 40)
+                    .padding(.horizontal, 8)
                     .background(Color(NSColor.controlBackgroundColor))
 
                     Divider()

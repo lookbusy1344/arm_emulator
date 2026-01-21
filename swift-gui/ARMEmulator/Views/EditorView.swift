@@ -21,8 +21,8 @@ struct EditorView: View {
             Text("Assembly Editor")
                 .font(.system(size: 11, weight: .semibold))
                 .padding(.horizontal)
-                .padding(.vertical, 8)
                 .frame(maxWidth: .infinity, alignment: .leading)
+                .frame(height: 40)
                 .background(Color(NSColor.controlBackgroundColor))
 
             EditorWithGutterView(
