@@ -50,6 +50,9 @@ final class MockAPIClient: APIClientProtocol, @unchecked Sendable {
     // Performance simulation
     var simulateDelay: TimeInterval = 0 // Simulate slow API responses
 
+    // Stdin simulation (for interactive program testing)
+    var mockedStdinInput: String? // Simulate stdin input for interactive programs
+
     // Session ID generation (for session restart testing)
     var generateUniqueSessionIDs = false // Set to true to generate unique IDs per call
     private var sessionIDCounter = 0
