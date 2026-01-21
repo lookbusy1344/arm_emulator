@@ -27,13 +27,13 @@ extension XCTestCase {
 
     /// Waits for the backend to reach a specific status
     /// - Parameters:
-    ///   - expectedStatus: The expected BackendStatus
+    ///   - expectedStatus: The expected BackendManager.BackendStatus
     ///   - timeout: Maximum time to wait in seconds
     ///   - manager: The BackendManager to monitor
     /// - Throws: TestError.timeout if the status is not reached within timeout
     @MainActor
     func waitForBackendStatus(
-        _ expectedStatus: BackendStatus,
+        _ expectedStatus: BackendManager.BackendStatus,
         timeout: TimeInterval,
         manager: BackendManager
     ) async throws {
