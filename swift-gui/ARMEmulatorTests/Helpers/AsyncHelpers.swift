@@ -13,13 +13,14 @@ extension XCTestCase {
     func waitForStatus(
         _ status: VMState,
         timeout: TimeInterval,
-        viewModel: EmulatorViewModel
+        viewModel: EmulatorViewModel,
     ) async throws {
         let deadline = Date().addingTimeInterval(timeout)
 
         while viewModel.status != status {
             if Date() > deadline {
-                throw TestError.timeout("Status did not change to \(status) within \(timeout)s. Current: \(viewModel.status)")
+                throw TestError
+                    .timeout("Status did not change to \(status) within \(timeout)s. Current: \(viewModel.status)")
             }
             try await Task.sleep(nanoseconds: 100_000_000) // 100ms
         }
@@ -35,13 +36,16 @@ extension XCTestCase {
     func waitForBackendStatus(
         _ expectedStatus: BackendManager.BackendStatus,
         timeout: TimeInterval,
-        manager: BackendManager
+        manager: BackendManager,
     ) async throws {
         let deadline = Date().addingTimeInterval(timeout)
 
         while manager.backendStatus != expectedStatus {
             if Date() > deadline {
-                throw TestError.timeout("Backend did not reach \(expectedStatus) within \(timeout)s. Current: \(manager.backendStatus)")
+                throw TestError
+                    .timeout(
+                        "Backend did not reach \(expectedStatus) within \(timeout)s. Current: \(manager.backendStatus)",
+                    )
             }
             try await Task.sleep(nanoseconds: 100_000_000) // 100ms
         }
@@ -54,7 +58,7 @@ extension XCTestCase {
     /// - Throws: TestError.timeout if condition is not met within timeout
     func waitForCondition(
         timeout: TimeInterval,
-        condition: @escaping () -> Bool
+        condition: @escaping () -> Bool,
     ) async throws {
         let deadline = Date().addingTimeInterval(timeout)
 
@@ -75,7 +79,7 @@ extension XCTestCase {
     func waitForCondition(
         timeout: TimeInterval,
         message: String,
-        condition: @escaping () -> Bool
+        condition: @escaping () -> Bool,
     ) async throws {
         let deadline = Date().addingTimeInterval(timeout)
 
@@ -96,12 +100,12 @@ enum TestError: Error, LocalizedError {
 
     var errorDescription: String? {
         switch self {
-        case .timeout(let message):
-            return "Timeout: \(message)"
-        case .setupFailure(let message):
-            return "Setup failed: \(message)"
-        case .assertionFailure(let message):
-            return "Assertion failed: \(message)"
+        case let .timeout(message):
+            "Timeout: \(message)"
+        case let .setupFailure(message):
+            "Setup failed: \(message)"
+        case let .assertionFailure(message):
+            "Assertion failed: \(message)"
         }
     }
 }
