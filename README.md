@@ -65,27 +65,21 @@ As a rough guide to the size of the project, the Go code on 13 Jan 2026 is aroun
 
 ## Features
 
-- **Complete ARM2 instruction set implementation** with 1,024 passing tests (100% pass rate, 75% code coverage)
-  - All 16 data processing instructions (AND, EOR, SUB, RSB, ADD, ADC, SBC, RSC, TST, TEQ, CMP, CMN, ORR, MOV, BIC, MVN)
-  - All memory operations (LDR/STR/LDRB/STRB/LDM/STM + halfword extensions)
-  - All branch instructions (B/BL/BX)
-  - Multiply instructions (MUL/MLA)
-  - All ARM2 addressing modes (immediate, register, shifted, pre/post-indexed)
-  - Software interrupts with 35+ syscalls (console I/O, file operations, memory management, system information, debugging support)
-- Assembly parser for ARM assembly programs with macros and preprocessor
-- **Dynamic literal pool sizing**: Smart allocation based on actual literal usage, not fixed estimates
-  - Counts LDR pseudo-instructions per `.ltorg` directive
-  - Adjusts pool addresses for optimal space utilization
-  - Validation warnings for pools exceeding capacity
-  - Support for 20+ literals per pool (tested up to 33)
-- Machine code encoder/decoder for binary ARM instruction formats
-- Interactive debugger with TUI (Text User Interface)
-- Virtual machine execution environment
-- Cross-platform configuration management (TOML)
-- Execution and memory tracing with filtering
+**Core Emulation:**
+- Complete ARM2 instruction set (16 data processing, all memory ops, branch, multiply)
+- All ARM2 addressing modes (immediate, register, shifted, pre/post-indexed)
+- 35+ syscalls (console I/O, file operations, memory management, system info, debugging)
+- ARMv3M extensions: long multiply (UMULL/UMLAL/SMULL/SMLAL), PSR transfer (MRS/MSR)
+
+**Development Tools:**
+- Interactive TUI debugger with visual panels, breakpoints, watchpoints
+- Assembly parser with macros and preprocessor
+- Dynamic literal pool sizing (20+ literals per pool, tested up to 33)
+- Machine code encoder/decoder
+- Diagnostic modes: code coverage, stack trace, flag trace, register access analysis
 - Performance statistics (JSON/CSV/HTML export)
-- **Diagnostic modes: code coverage, stack trace, flag trace, register access pattern analysis**
-- Development tools (linter, formatter, cross-reference generator)
+- Execution and memory tracing with filtering
+- Development tools: linter, formatter, cross-reference generator
 
 ## Prerequisites
 
@@ -176,125 +170,39 @@ For complete debugger documentation including conditional breakpoints, watchpoin
 
 ### GUI Mode (Graphical Interface)
 
-**Two GUI options available:**
+#### Swift Native macOS App (Primary)
 
-#### Option 1: Swift Native macOS App (Recommended)
+Native SwiftUI app that automatically manages the Go backend lifecycle:
 
-A native macOS app built with SwiftUI that connects to the Go backend API:
-
-**Prerequisites:**
+**Quick start:**
 ```bash
-# Install required tools
+# Install prerequisites
 brew install xcodegen swiftlint swiftformat xcbeautify
-```
 
-**Generate and open Xcode project:**
-```bash
+# Generate and open project
 cd swift-gui
-xcodegen generate      # Generate Xcode project from project.yml
-open ARMEmulator.xcodeproj
-```
-
-**Run the app:**
-```bash
-# Open and run from Xcode (backend starts automatically)
-cd swift-gui
+xcodegen generate
 open ARMEmulator.xcodeproj
 # Press Cmd+R to build and run
 ```
 
-The Swift app automatically manages the Go backend lifecycle - it will find, start, and monitor the backend process. No manual backend startup required.
-
-**Build from command line:**
-```bash
-cd swift-gui
-xcodebuild -project ARMEmulator.xcodeproj -scheme ARMEmulator build | xcbeautify
-```
-
-Built app location: `~/Library/Developer/Xcode/DerivedData/ARMEmulator-*/Build/Products/Debug/ARMEmulator.app`
-
-To run the built app:
-```bash
-# Find and open the built app
-find ~/Library/Developer/Xcode/DerivedData -name "ARMEmulator.app" -type d -exec open {} \; -quit
-```
-
 **Features:**
-- Native macOS SwiftUI interface
+- Native SwiftUI interface with MVVM architecture
 - Real-time register updates via WebSocket
-- Code editor with syntax awareness (read-only during execution, editable when stopped)
-- Console output view
-- Full MVVM architecture
-- State-driven UI with 6 execution states synchronized with backend
+- Code editor (editable when stopped, read-only during execution)
+- 6 execution states: idle, running, breakpoint, halted, error, waiting_for_input
+- Console output view with state-driven UI
 
-**VM Execution States:**
-
-The GUI tracks six execution states synchronized with the Go backend:
-
-| State | Description | Editor Editable? |
-|-------|-------------|------------------|
-| `idle` | No program loaded or execution not started | ✅ Yes |
-| `running` | Actively executing instructions | ❌ No |
-| `breakpoint` | Stopped at breakpoint (from stepping or continuous run) | ❌ No |
-| `halted` | Program finished | ✅ Yes |
-| `error` | Error occurred | ✅ Yes |
-| `waiting_for_input` | Blocked waiting for stdin | ❌ No |
-
-The source code editor is editable only when the VM is fully stopped (idle, halted, error) and becomes read-only during any form of execution to prevent state inconsistencies.
-
-**Important notes:**
-- The Xcode project is generated from `project.yml` - run `xcodegen generate` after modifying it
-- Requires the Go API backend running on port 8080
-- Full Xcode IDE support (debugging, previews, breakpoints)
-- Code quality enforced with SwiftLint and SwiftFormat (0 violations policy)
+**Requirements:** macOS 26.2, Swift 6.2, Xcode 26.2. Enforces 0 SwiftLint violations.
 
 **Documentation:**
-- [docs/SWIFT_APP.md](docs/SWIFT_APP.md) - Complete Swift app guide (architecture, building, development)
-- [SWIFT_GUI_PLANNING.md](SWIFT_GUI_PLANNING.md) - Implementation roadmap and technical planning
-- [docs/SWIFT_CLI_AUTOMATION.md](docs/SWIFT_CLI_AUTOMATION.md) - General Swift CLI development guide
+- [docs/SWIFT_APP.md](docs/SWIFT_APP.md) - Complete guide
 - [docs/HTTP_API.md](docs/HTTP_API.md) - REST API and WebSocket reference
-- [API_VERSION_SUMMARY.md](API_VERSION_SUMMARY.md) - Version endpoint implementation
 - [openapi.yaml](openapi.yaml) - OpenAPI 3.0 specification
 
-#### Option 2: Wails Cross-Platform GUI (⚠️ Deprecated)
+#### Wails Cross-Platform GUI (Deprecated)
 
-> **Note:** The Wails GUI is deprecated in favor of the native Swift app. It remains available for reference and cross-platform testing, but is no longer actively developed. See [Wails.md](Wails.md) for complete Wails documentation.
-
-Run programs in GUI mode with code editor, register view, and memory inspector:
-
-```bash
-cd gui
-wails dev  # Development mode
-```
-
-Or build for production:
-
-```bash
-cd gui
-wails build
-./build/bin/arm-emulator
-```
-
-**Documentation:**
-- [Wails.md](Wails.md) - Quick reference and development guide
-- [docs/GUI.md](docs/GUI.md) - Complete architecture and implementation details
-- [gui/frontend/e2e/README.md](gui/frontend/e2e/README.md) - E2E testing guide
-
-**E2E Testing:**
-
-End-to-end tests for the GUI require the Wails backend running in a separate terminal:
-
-```bash
-# Terminal 1: Start Wails backend
-cd gui
-wails dev -nocolour
-
-# Terminal 2: Run E2E tests (after backend is ready)
-cd gui/frontend
-npm run test:e2e -- --project=chromium
-```
-
-See [gui/frontend/e2e/README.md](gui/frontend/e2e/README.md) for complete testing documentation.
+Web-based GUI available for reference. See [Wails.md](Wails.md) and [docs/GUI.md](docs/GUI.md).
 
 ### Symbol Table Dump
 
@@ -336,97 +244,38 @@ The emulator includes built-in tracing and statistics capabilities:
 
 ### Diagnostic Modes
 
-Advanced debugging tools to help identify and fix issues:
+Advanced debugging tools with symbol-aware output:
 
 ```bash
-# Code coverage - track which instructions were executed
+# Code coverage - track executed/unexecuted instructions, show dead code
 ./arm-emulator --coverage program.s
 
-# Stack trace - monitor stack operations and detect overflow/underflow
+# Stack trace - monitor stack operations, detect overflow/underflow
 ./arm-emulator --stack-trace program.s
 
-# Flag trace - track CPSR flag changes for debugging conditional logic
+# Flag trace - track CPSR flag changes (N, Z, C, V)
 ./arm-emulator --flag-trace program.s
 
-# Register trace - analyze register access patterns
+# Register trace - analyze access patterns, detect unused registers, flag read-before-write issues
 ./arm-emulator --register-trace program.s
 
-# Combine multiple diagnostic modes with verbose output
+# Combine multiple modes
 ./arm-emulator --coverage --stack-trace --flag-trace --register-trace --verbose program.s
 ```
 
-**Diagnostic features:**
-
-**Code Coverage:**
-- Tracks executed vs unexecuted instructions with symbol names
-- Reports coverage percentage
-- Shows execution counts for each address
-- Records first and last execution cycle
-- Identifies dead code and untested paths
-- Symbol-aware output (e.g., `0x00008000: executed 1 times [main]`)
-
-**Stack Trace:**
-- Monitors all stack operations (PUSH, POP, SP modifications)
-- Tracks stack depth and maximum usage
-- **Detects and warns on stack overflow/underflow**
-- Detailed trace with addresses and values
-- Symbol-aware output showing function names (e.g., `[000005] nested_call : MOVE SP: 0x00050000 -> 0x0004FFEC`)
-- Helps identify stack-related bugs
-
-**Flag Trace:**
-- Tracks CPSR flag changes (N, Z, C, V)
-- Only records actual changes for efficiency
-- Shows before/after states with highlights
-- Statistics on flag change frequency
-- Symbol-aware output showing labels (e.g., `[000012] loop : 0xE355000C ---- -> N*---`)
-- Helps debug conditional logic issues
-
-**Register Access Pattern Analysis:**
-- Tracks read/write patterns for all registers
-- Identifies "hot" registers (most frequently accessed)
-- Detects unused registers
-- Flags read-before-write issues (potential uninitialized use)
-- Shows unique value counts and access sequences
-- Helps optimize register allocation and find bugs
-
-All diagnostic modes support both text and JSON output formats:
-```bash
-# JSON output for programmatic analysis
-./arm-emulator --coverage --coverage-format json program.s
-./arm-emulator --stack-trace --stack-trace-format json program.s
-./arm-emulator --flag-trace --flag-trace-format json program.s
-./arm-emulator --register-trace --register-trace-format json program.s
-```
+All modes support text and JSON formats (`--coverage-format json`). Output includes function/label names instead of raw addresses.
 
 ### Example Programs
 
-The `examples/` directory contains 49 sample ARM assembly programs that demonstrate various features (100% working):
+49 fully functional ARM assembly programs demonstrating various features:
 
-**Basic Examples:**
-- **hello.s** - Hello World program
-- **arithmetic.s** - Basic arithmetic operations
+- **Basic:** hello.s, arithmetic.s, loops.s, conditionals.s, functions.s
+- **Algorithms:** fibonacci.s, factorial.s, bubble_sort.s, binary_search.s, quicksort.s, gcd.s
+- **Data Structures:** arrays.s, linked_list.s, hash_table.s, stack.s, strings.s
+- **Advanced:** addressing_modes.s, add_128bit.s (128-bit arithmetic), literal pools, syscall tests
+- **Interactive:** bubble_sort.s, calculator.s, fibonacci.s (require stdin input)
 
-**Algorithm Examples:**
-- **fibonacci.s** - Fibonacci sequence generator
-- **factorial.s** - Recursive factorial calculator
-- **bubble_sort.s** - Bubble sort algorithm
-- **binary_search.s** - Binary search implementation
-- **gcd.s** - Greatest common divisor
-
-**Data Structure Examples:**
-- **arrays.s** - Array operations
-- **linked_list.s** - Linked list implementation
-- **stack.s** - Stack implementation
-- **strings.s** - String manipulation
-
-**Advanced Examples:**
-- **functions.s** - Function calling conventions
-- **conditionals.s** - If/else, switch/case patterns
-- **loops.s** - For, while, do-while loops
-- **addressing_modes.s** - ARM2 addressing modes demonstration
-- **add_128bit.s** - 128-bit integer addition with carry propagation
-
-And more! See [examples/README.md](examples/README.md) for detailed descriptions and usage instructions.
+See [examples/README.md](examples/README.md) for complete descriptions and usage instructions.
 
 ## Development
 
@@ -459,68 +308,24 @@ go mod verify
 
 ### Release Builds
 
-Create optimized release builds for distribution:
-
-**Using Make (recommended):**
+**Quick build with version info:**
 ```bash
-make build
+make build  # Embeds git tag, commit hash, and build timestamp
 ```
 
-This automatically embeds version information from git tags:
-- Version number from git tag (e.g., `v1.0.1`)
-- Git commit hash
-- Build timestamp
-
-**Manual build with version info:**
+**Optimized local build:**
 ```bash
-VERSION=$(git describe --tags --always --dirty)
-COMMIT=$(git rev-parse --short HEAD)
-DATE=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
-go build -ldflags "-X main.Version=$VERSION -X main.Commit=$COMMIT -X main.Date=$DATE" -o arm-emulator
+go build -ldflags="-s -w" -o arm-emulator  # ~30-40% smaller
 ```
 
-**Local optimized build:**
-```bash
-go build -ldflags="-s -w" -o arm-emulator
-```
-
-The `-ldflags="-s -w"` flags strip symbol tables and debug information, producing smaller, faster-loading binaries suitable for distribution (~30-40% size reduction).
-
-**Automated release builds:**
-
-The project includes automated GitHub Actions workflows that create optimized release builds for multiple platforms:
-
+**Automated releases:**
+Push a git tag to trigger GitHub Actions building binaries for linux-amd64, macos-arm64, windows-amd64, windows-arm64:
 ```bash
 git tag v1.0.0
 git push origin v1.0.0
 ```
 
-This triggers the `Build Release` workflow which:
-- Builds optimized binaries for **linux-amd64**, **macos-arm64**, **windows-amd64**, and **windows-arm64**
-- Generates SHA256 checksums for each binary
-- Creates a GitHub Release with pre-built binaries, individual checksums, and a combined SHA256SUMS file
-- Users can download platform-specific binaries directly from the [Releases](https://github.com/lookbusy1344/arm_emulator/releases) page
-
-**Verifying downloads:**
-
-To verify the integrity of a downloaded binary, use the SHA256 checksums provided in the release:
-
-```bash
-# On Linux/macOS - verify using the combined SHA256SUMS file
-sha256sum -c SHA256SUMS --ignore-missing
-
-# On Linux/macOS - verify a specific binary
-sha256sum arm-emulator-linux-amd64
-# Compare the output with the checksum in the .sha256 file
-
-# On Windows (PowerShell)
-Get-FileHash arm-emulator-windows-amd64.exe -Algorithm SHA256
-# Compare the output with the checksum in the .sha256 file
-```
-
-Each release includes:
-- Individual `.sha256` files for each binary (e.g., `arm-emulator-linux-amd64.sha256`)
-- A combined `SHA256SUMS` file containing all checksums for easy verification
+Download pre-built binaries with SHA256 checksums from [Releases](https://github.com/lookbusy1344/arm_emulator/releases).
 
 ## Project Structure
 
@@ -545,57 +350,44 @@ Each release includes:
 
 ## Instruction Set Completeness
 
-This emulator provides **complete ARM2 instruction set coverage** as implemented in the original 1986 Acorn ARM2 processor. All core ARM2 instructions and addressing modes are fully functional and tested.
+Complete ARM2 instruction set (1986) plus ARMv3M/ARMv3 extensions:
 
-**Beyond ARM2 - Additional instructions implemented:**
-- **Long multiply instructions (UMULL/UMLAL/SMULL/SMLAL)** - introduced in ARMv3M (ARM6), fully implemented with 64-bit results
-- **PSR transfer instructions (MRS/MSR)** - introduced in ARMv3, implemented for CPSR flag manipulation
+**Implemented:**
+- All core ARM2 instructions and addressing modes
+- Long multiply (UMULL/UMLAL/SMULL/SMLAL) from ARMv3M
+- PSR transfer (MRS/MSR) from ARMv3
 
-**What's NOT implemented:**
-- Atomic swap instructions (SWP/SWPB) - introduced in ARMv2a (ARM3), not original ARM2
-- Coprocessor instructions (CDP/LDC/STC/MCR/MRC) - optional in ARMv2, rarely used
+**Not implemented:**
+- Atomic swap (SWP/SWPB) - ARMv2a/ARM3 only
+- Coprocessor instructions - rarely used
 
 ## Security
 
-This project has undergone a comprehensive security audit. Key findings:
+Security audit summary:
+- ✅ No network connectivity or download capability
+- ✅ Only operates on user-specified files
+- ✅ Legitimate, well-known dependencies
+- ✅ Full source code available for inspection
 
-- ✅ **NO network connectivity** - No code to connect to remote servers
-- ✅ **NO downloads** - No capability to download external content
-- ✅ **NO system file modifications** - Only operates on user-specified files
-- ✅ **Legitimate dependencies** - All third-party libraries are well-known and safe
-- ✅ **Open source** - Full source code available for inspection
+**Anti-Virus False Positives:** Windows binaries may be flagged as `Program:Win32/Wacapew.C!ml` due to heuristic detection of emulator behaviors. This is a false positive. See [docs/SECURITY.md](docs/SECURITY.md).
 
-**Anti-Virus False Positives:** Some anti-virus software may flag the Windows binary as `Program:Win32/Wacapew.C!ml` due to heuristic detection of legitimate emulator behaviors (memory management, file I/O, code execution patterns). This is a **false positive** - the software contains no malicious code.
+### Filesystem Sandboxing
 
-### ⚠️ Important: Filesystem Access
-
-**The ARM emulator restricts guest program file access to a specified directory for security.**
-
-By default, file operations are restricted to the current working directory. Use the `-fsroot` flag to specify a different allowed directory:
+Guest programs are restricted to a specified directory (current directory by default):
 
 ```bash
-# Restrict to current directory (default)
-./arm-emulator program.s
-
-# Restrict to specific sandbox directory
-./arm-emulator -fsroot /tmp/sandbox program.s
+./arm-emulator program.s                    # Restrict to current directory
+./arm-emulator -fsroot /tmp/sandbox program.s  # Custom sandbox
 ```
 
 **Security guarantees:**
-- ✅ Guest programs can only access files within the specified root directory
-- ✅ Path traversal attempts (using `..`) are blocked and halt the VM
-- ✅ Symlink escapes outside the root are blocked and halt the VM
-- ✅ Absolute paths are treated as relative to the filesystem root
-- ✅ Filesystem sandboxing is always enforced - no unrestricted access mode
+- Path traversal (`..`) and symlink escapes are blocked
+- Absolute paths treated as relative to sandbox root
+- No unrestricted access mode
 
-**Still treat assembly code with caution.** Within the allowed directory, programs can:
-- Read, write, or delete any accessible file
-- Create new files
-- Consume system resources (memory, disk space, CPU up to configured limits)
+**Note:** Programs can still read/write/delete files within the sandbox and consume resources. Use a dedicated sandbox directory for maximum isolation.
 
-**Recommendation:** Create a dedicated sandbox directory with only necessary files for maximum isolation.
-
-For a detailed security analysis, see **[docs/SECURITY.md](docs/SECURITY.md)**.
+See [docs/SECURITY.md](docs/SECURITY.md) for detailed analysis.
 
 ## License
 

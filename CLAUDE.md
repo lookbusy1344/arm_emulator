@@ -121,35 +121,11 @@ When running tests, the filesystem root is automatically set appropriately for e
 
 ## Swift Native macOS App Commands (Primary GUI)
 
-**Note:** The Swift app is the primary GUI for this project and automatically manages the Go HTTP API backend lifecycle - it finds, starts, and monitors the backend process. No manual backend startup required.
+**Note:** The Swift app automatically manages the Go backend lifecycle - no manual startup required.
 
 ### ⚠️ CRITICAL: ALWAYS FORMAT AND LINT SWIFT CODE ⚠️
 
-**THIS IS NON-NEGOTIABLE - DO NOT SKIP THIS STEP**
-
-After making ANY changes to Swift code, you MUST run these commands IMMEDIATELY:
-
-```bash
-cd swift-gui
-swiftformat .
-swiftlint
-```
-
-**BEFORE any commit, build verification, or marking work as complete:**
-1. Run `swiftformat .` to format all Swift files
-2. Run `swiftlint` to check for violations
-3. **Fix ALL linting violations** - every warning and error must be addressed
-4. Use `swiftlint --fix` for auto-fixable issues
-5. Verify 0 warnings and 0 errors
-
-**ALL LINTING ISSUES MUST BE FIXED - NO EXCEPTIONS**
-
-- Linting must pass with **0 violations** (0 warnings, 0 errors) before ANY commit or PR
-- Do not ignore, skip, or defer any linting warnings
-- If a test file exceeds the file length limit (500 lines), you may add `// swiftlint:disable file_length` at the top of that specific test file only
-- All other linting rules must be followed without exception
-
-This is not optional. This is not a suggestion. This MUST be done every single time.
+After ANY Swift code changes, run `swiftformat .` and `swiftlint` immediately. See [Code Quality (Swift)](#code-quality-swift) section below for details. **0 violations required before any commit.**
 
 ### Platform Requirements
 
@@ -243,38 +219,20 @@ xcodebuild test -project ARMEmulator.xcodeproj -scheme ARMEmulator -destination 
 
 ### Code Quality (Swift)
 
-**MANDATORY STEP - NEVER SKIP THIS:**
+**MANDATORY - Run after ANY Swift code changes:**
 
 ```bash
 cd swift-gui
-
-# 1. Format Swift code (ALWAYS run this first)
-swiftformat .
-
-# 2. Lint Swift code (ALWAYS run this second)
-swiftlint
-
-# 3. Auto-fix linting issues if needed
-swiftlint --fix
-
-# 4. Verify clean output
-swiftlint  # Must show 0 violations
+swiftformat .        # Format code
+swiftlint            # Check violations
+swiftlint --fix      # Auto-fix if needed
+swiftlint            # Verify 0 violations
 ```
 
-**CRITICAL REQUIREMENT:** You MUST run `swiftformat .` and `swiftlint` after making ANY changes to Swift files. This is not optional:
-- Run IMMEDIATELY after editing Swift files
-- Run BEFORE committing
-- Run BEFORE marking work as complete
-- Run BEFORE creating PRs
-
-SwiftLint and SwiftFormat configurations are in `.swiftlint.yml` and `.swiftformat` respectively.
-
-**ALL LINTING ISSUES MUST BE FIXED - NO EXCEPTIONS:**
-- Linting must pass with **0 violations** (0 warnings, 0 errors) before any commit
-- Do not ignore, skip, or defer any linting warnings or errors
-- Fix every single violation - they all matter
-- **Exception:** If a test file exceeds the file length limit (500 lines), you may add `// swiftlint:disable file_length` at the top of that specific test file only
-- All other linting rules must be followed without exception
+**Requirements:**
+- 0 violations (0 warnings, 0 errors) before any commit
+- Run IMMEDIATELY after editing, BEFORE committing/completing work
+- Exception: Test files >500 lines may use `// swiftlint:disable file_length`
 
 ### Swift App Architecture
 
@@ -286,428 +244,83 @@ See `SWIFT_GUI_PLANNING.md` for detailed architecture documentation and `docs/SW
 
 #### VM Execution States
 
-**CRITICAL:** The Swift frontend's `VMState` enum MUST exactly match the backend's `ExecutionState` values for proper state synchronization.
+Swift `VMState` enum must match backend `ExecutionState` values (see `swift-gui/ARMEmulator/Models/ProgramState.swift`):
 
-**VM States (defined in `swift-gui/ARMEmulator/Models/ProgramState.swift`):**
+| State | Description | Editor Editable? |
+|-------|-------------|------------------|
+| `idle` | No program loaded | ✅ Yes |
+| `running` | Executing | ❌ No |
+| `breakpoint` | Stopped at breakpoint/step | ❌ No |
+| `halted` | Program finished | ✅ Yes |
+| `error` | Error occurred | ✅ Yes |
+| `waiting_for_input` | Blocked on stdin | ❌ No |
 
-| State | Raw Value | Description | Editor Editable? | Source |
-|-------|-----------|-------------|------------------|--------|
-| `.idle` | `"idle"` | No program loaded or execution not started | ✅ Yes | Initial state |
-| `.running` | `"running"` | Actively executing instructions | ❌ No | Backend status response |
-| `.breakpoint` | `"breakpoint"` | Stopped at breakpoint (from step or continuous run) | ❌ No | Backend status response, WebSocket `breakpoint_hit` event |
-| `.halted` | `"halted"` | Program finished (SWI #0 EXIT) | ✅ Yes | Backend status response, WebSocket `halted` event |
-| `.error` | `"error"` | Error occurred during execution | ✅ Yes | Backend status response, WebSocket `error` event |
-| `.waitingForInput` | `"waiting_for_input"` | Blocked waiting for stdin | ❌ No | Backend status response |
+**Editor rule:** Editable only when fully stopped (idle/halted/error), read-only during execution.
 
-**State Sources:**
-- **REST API responses**: Return `state` field in JSON (e.g., `/api/v1/session/{id}/status`)
-- **WebSocket events**: Send `event` field (e.g., `breakpoint_hit` → mapped to `.breakpoint` state)
+**Note:** WebSocket events use `"breakpoint_hit"` but status responses use `"breakpoint"` (both map to `.breakpoint`).
 
-**Editor Editability Rule:**
-- Source code is **editable** only when VM is fully stopped: `.idle`, `.halted`, `.error`
-- Source code is **read-only** during any form of execution: `.running`, `.breakpoint`, `.waitingForInput`
+#### Debug Logging
 
-**Important Notes:**
-- The `.breakpoint` state handles BOTH stepping (F10) AND hitting breakpoints during continuous run
-- WebSocket events use `"breakpoint_hit"` but backend status responses use `"breakpoint"` (both map to `.breakpoint`)
-- If backend sends an unknown state string, Swift defaults to `.idle` (see `ProgramState.swift:23`)
+Use `DebugLog` utility (conditionally compiled, zero overhead in RELEASE):
 
-**Backend State Mapping (Go → Swift):**
-```go
-// service/types.go
-const (
-    StateRunning         ExecutionState = "running"
-    StateHalted          ExecutionState = "halted"
-    StateBreakpoint      ExecutionState = "breakpoint"
-    StateError           ExecutionState = "error"
-    StateWaitingForInput ExecutionState = "waiting_for_input"
-)
-```
-
-#### Debug Logging Best Practice
-
-**IMPORTANT:** Use the `DebugLog` utility (in `swift-gui/ARMEmulator/Utilities/DebugLog.swift`) for all diagnostic logging. This provides:
-
-- **Conditional compilation**: Logs are completely removed in RELEASE builds (no runtime overhead)
-- **Runtime toggle**: Set `DebugLog.enabled = false` to silence logs without rebuilding
-- **Categorized output**: Different log levels (log, success, error, warning, network, ui) with emoji icons
-
-Example usage:
 ```swift
 DebugLog.log("Loading program", category: "ViewModel")
 DebugLog.network("POST /api/v1/session/\(sessionID)/run")
-DebugLog.success("Program loaded successfully", category: "ViewModel")
-DebugLog.error("Failed to connect: \(error)", category: "ViewModel")
-DebugLog.ui("Run button clicked")
+DebugLog.error("Failed: \(error)", category: "ViewModel")
 ```
 
-**Benefits:**
-- Debug logs appear in Xcode console during development
-- Zero overhead in production builds (code is stripped out)
-- Easy to toggle on/off for specific debugging sessions
-- Consistent formatting across the codebase
-
-**When DebugLog Doesn't Work (Terminal Output)**
-- `DebugLog` uses `print()` which writes to stdout
-- When running macOS GUI apps from the terminal, stdout may not be captured
-- **For debugging GUI apps from terminal, use `NSLog()`** - it writes to stderr and system log
-- Example: `NSLog("🔵 [Category] Message: %@", value)`
-- `NSLog()` output appears in Console.app and terminal stderr
-- Once debugging is complete, remove `NSLog()` calls - they bypass Swift's type system
-- For production code, use `DebugLog` (works in Xcode) or `os_log` for system-level logging
+**For terminal debugging:** Use `NSLog()` (writes to stderr/system log) instead of `DebugLog.print()`. Remove after debugging.
 
 ### Common Pitfalls
 
-1. **"No such module 'SwiftUI'" error**: Ensure Xcode Command Line Tools are installed: `xcode-select --install`
-2. **Xcode project out of sync**: Run `xcodegen generate` after modifying `project.yml`
-3. **App can't find backend binary**: Ensure `arm-emulator` is built in the project root: `go build -o arm-emulator`
-4. **SwiftLint/SwiftFormat not found**: Install via Homebrew: `brew install swiftlint swiftformat`
-5. **Code signing errors**: The project uses automatic code signing (ad-hoc for development)
-6. **DerivedData issues**: Clean with `rm -rf ~/Library/Developer/Xcode/DerivedData` if builds behave strangely
-7. **Git tracking Xcode user files**: The `swift-gui/.gitignore` excludes user-specific files like `*.xcuserstate`, `xcuserdata/`, and build artifacts. These should never be committed.
-8. **SwiftUI/AppKit rendering issues**: When NSViewRepresentable views don't render content (blank view despite data being present), use divide-and-conquer debugging: comment out complex custom components (ruler views, overlays, custom drawing) to isolate the issue. Get the basic AppKit view working first, then add complexity back incrementally. Example: NSTextView not displaying text may be caused by NSRulerView interference.
+1. **Xcode project out of sync**: Run `xcodegen generate` after modifying `project.yml`
+2. **App can't find backend**: Build backend first: `make build`
+3. **Tools not found**: `brew install xcodegen swiftlint swiftformat xcbeautify`
+4. **DerivedData issues**: Clean with `rm -rf ~/Library/Developer/Xcode/DerivedData`
+5. **NSViewRepresentable blank view**: Use divide-and-conquer - comment out complex components (rulers, overlays) and add back incrementally
 
 ### Debugging with MCP Servers
 
-The XcodeBuild and Playwright MCP servers enable automated debugging and testing of both native macOS apps and web UIs. For comprehensive documentation, see [docs/MCP_UI_DEBUGGING.md](docs/MCP_UI_DEBUGGING.md).
-
-#### MCP Setup
-
-**XcodeBuild MCP** (iOS/macOS automation):
+**Setup:**
 ```bash
-# Correct installation command
+# XcodeBuild MCP (macOS/iOS automation)
 claude mcp add --transport stdio XcodeBuildMCP -- npx -y xcodebuildmcp@latest
-
-# Install AXe for UI automation
 brew install cameroncooke/axe/axe
-```
 
-**Playwright MCP** (web UI automation):
-```bash
-# Installation
+# Playwright MCP (web UI automation)
 claude mcp add playwright npx @playwright/mcp@latest
 ```
 
-#### Critical Prerequisite: Check Schema First
-
-**MANDATORY**: Always check tool schema using `mcp-cli info <server>/<tool>` before any `mcp-cli call` command. This is non-negotiable.
-
-```bash
-# ALWAYS do this first
-mcp-cli info XcodeBuildMCP/build_macos
-
-# Then make the call
-mcp-cli call XcodeBuildMCP/build_macos '{}'
-```
-
-#### XcodeBuild MCP Workflows
-
-**1. Set Session Defaults (Critical First Step)**
-
-Set defaults once to avoid repeating parameters in every call:
-
-```bash
-# For macOS app
-mcp-cli call XcodeBuildMCP/session_set_defaults '{
-  "projectPath": "/path/to/ARMEmulator.xcodeproj",
-  "scheme": "ARMEmulator"
-}'
-
-# For iOS app with simulator
-mcp-cli call XcodeBuildMCP/session_set_defaults '{
-  "projectPath": "/path/to/MyApp.xcodeproj",
-  "scheme": "MyApp",
-  "simulatorName": "iPhone 16"
-}'
-```
-
-**2. Build and Launch**
-
-```bash
-# Build the app
-mcp-cli call XcodeBuildMCP/build_macos '{}'
-
-# Get app bundle path
-mcp-cli call XcodeBuildMCP/get_mac_app_path '{}'
-
-# Launch with arguments
-mcp-cli call XcodeBuildMCP/launch_mac_app '{
-  "appPath": "/path/to/ARMEmulator.app",
-  "args": ["examples/fibonacci.s"]
-}'
-```
-
-**3. Log Capture (Programmatic Debug Access)**
-
-Capture app logs programmatically for automated debugging:
-
-```bash
-# Start log capture with console output (captures print/NSLog/DebugLog)
-mcp-cli call XcodeBuildMCP/start_sim_log_cap '{
-  "bundleId": "com.example.ARMEmulator",
-  "captureConsole": true
-}'
-# Returns: { "sessionId": "abc123" }
-
-# Interact with app (trigger the bug, etc.)
-# ...
-
-# Stop capture and retrieve logs
-mcp-cli call XcodeBuildMCP/stop_sim_log_cap '{
-  "logSessionId": "abc123"
-}'
-# Returns logs with all debug output
-```
-
-**IMPORTANT:** Use `captureConsole: true` to capture `print()`, `NSLog()`, and custom debug utilities like `DebugLog`. Without it, you only get structured `os_log` entries.
-
-**4. UI Automation with AXe**
-
-```bash
-# Get UI hierarchy (critical - don't guess coordinates!)
-mcp-cli call XcodeBuildMCP/describe_ui '{}'
-
-# Tap at coordinates
-mcp-cli call XcodeBuildMCP/tap '{"x": 100, "y": 200}'
-
-# Tap by accessibility label
-mcp-cli call XcodeBuildMCP/tap '{"accessibilityId": "RunButton"}'
-
-# Type text
-mcp-cli call XcodeBuildMCP/type_text '{"text": "hello"}'
-
-# Gesture presets
-mcp-cli call XcodeBuildMCP/gesture '{"gesture": "scroll-down"}'
-
-# Screenshot for verification
-mcp-cli call XcodeBuildMCP/screenshot '{}'
-```
-
-**5. Direct AXe CLI Usage**
-
-AXe can be used directly for shell scripts and CI pipelines:
-
-```bash
-# Get simulator UDID
-UDID=$(xcrun simctl list devices booted -j | jq -r '.devices[][] | select(.state=="Booted") | .udid' | head -1)
-
-# Tap at coordinates
-axe tap -x 100 -y 200 --udid $UDID
-
-# Gesture presets (easier than custom swipes!)
-axe gesture scroll-up --udid $UDID
-axe gesture swipe-from-left-edge --udid $UDID  # Back navigation
-
-# Type text
-echo "user@example.com" | axe type --stdin --udid $UDID
-
-# Get UI hierarchy
-axe describe-ui --udid $UDID
-
-# Screenshot
-axe screenshot --output ~/Desktop/test.png --udid $UDID
-```
-
-#### Playwright MCP Workflows (Wails GUI)
-
-**1. Navigate and Capture Snapshot**
-
-Key workflow: **navigate → snapshot → interact using refs**
-
-```bash
-# Navigate to page
-mcp-cli call playwright/browser_navigate '{"url": "http://localhost:34115"}'
-
-# Get accessibility tree (provides element refs)
-mcp-cli call playwright/browser_snapshot '{}'
-# Returns: - button "Run" [ref=e5]
-#          - textbox "Code" [ref=e4]
-
-# Click using ref
-mcp-cli call playwright/browser_click '{"element": "Run button", "ref": "e5"}'
-```
-
-**2. Inspect Network & Console**
-
-```bash
-# Get console errors
-mcp-cli call playwright/browser_console_messages '{"level": "error"}'
-
-# List network requests
-mcp-cli call playwright/browser_network_requests '{}'
-
-# Execute JavaScript
-mcp-cli call playwright/browser_evaluate '{
-  "function": "() => document.querySelector(\"#result\").textContent"
-}'
-```
-
-**3. Screenshots and Testing**
-
-```bash
-# Viewport screenshot
-mcp-cli call playwright/browser_take_screenshot '{}'
-
-# Full page screenshot
-mcp-cli call playwright/browser_take_screenshot '{"fullPage": true}'
-
-# Element screenshot
-mcp-cli call playwright/browser_take_screenshot '{
-  "element": "Chart",
-  "ref": "e8"
-}'
-```
-
-#### Automated Debugging Workflow Example
-
-Complete automation for reproducing Swift GUI bugs:
-
-```bash
-#!/bin/bash
-# debug_swift_gui.sh - Automated build-launch-debug cycle
-
-set -e
-
-echo "=== Building Swift GUI ==="
-mcp-cli call XcodeBuildMCP/build_macos '{}'
-
-echo "=== Stopping old instances ==="
-killall ARMEmulator 2>/dev/null || true
-sleep 1
-
-echo "=== Launching app with test file ==="
-APP_PATH=$(mcp-cli call XcodeBuildMCP/get_mac_app_path '{}' | jq -r '.appPath')
-mcp-cli call XcodeBuildMCP/launch_mac_app "{
-  \"appPath\": \"$APP_PATH\",
-  \"args\": [\"$(pwd)/examples/fibonacci.s\"]
-}"
-
-# Wait for backend to start
-sleep 3
-
-echo "=== Starting log capture ==="
-SESSION=$(mcp-cli call XcodeBuildMCP/start_sim_log_cap '{
-  "bundleId": "com.example.ARMEmulator",
-  "captureConsole": true
-}' | jq -r '.sessionId')
-
-echo "=== Testing via API ==="
-# Create API session and trigger bug
-# ...
-
-echo "=== Retrieving logs ==="
-LOGS=$(mcp-cli call XcodeBuildMCP/stop_sim_log_cap "{\"logSessionId\": \"$SESSION\"}")
-echo "$LOGS" | jq -r '.logs' > debug.log
-
-echo "=== Analyzing errors ==="
-grep -E "❌|Error" debug.log
-```
-
-**Benefits of Automation:**
-- Reproducibility: Exact same steps every time
-- Speed: Full cycle takes ~10 seconds vs 2+ minutes manually
-- Isolation: Test GUI and backend independently
-- Documentation: Script serves as executable documentation
-
-#### Best Practices
-
-1. **Always check schema first** - Use `mcp-cli info` before any `mcp-cli call`
-2. **Set session defaults early** - Call `session_set_defaults` once at start
-3. **Use describe_ui before interactions** - Never guess coordinates from screenshots
-4. **Capture logs with console output** - Use `captureConsole: true` for debug logs
-5. **Start with snapshots** - Get current state before interacting (both Playwright and XcodeBuild)
-6. **Clean builds for fresh state** - Use `clean` when debugging build issues
-
-#### When to Use MCP Debugging
-
-**Use Automation When:**
-- Reproducing specific bug scenarios repeatedly
-- Testing multiple edge cases quickly
-- Verifying fixes across different inputs
-- Running regression tests
-- CI/CD integration
-
-**Use Manual Debugging When:**
-- Exploring unknown behavior
-- UI layout/visual issues
-- Initial bug triage
-
-#### Troubleshooting
-
-**Problem:** App doesn't launch
-- Check backend binary built: `ls -la arm-emulator`
-- Fix: `make build`
-
-**Problem:** API connection refused
-- Check backend started (look for "API server starting")
-- Fix: Add `sleep 3` after launch
-
-**Problem:** No debug logs appear
-- Check building in Debug configuration (Release strips DebugLog)
-- Fix: `mcp-cli call XcodeBuildMCP/build_macos '{"configuration": "Debug"}'`
-
-**Problem:** "Element not found" (Playwright)
-- Capture fresh snapshot to get updated refs
-- Ensure page has loaded completely
-
-**Problem:** UI automation not working
-- Install AXe: `brew install cameroncooke/axe/axe`
-- Ensure simulator is booted and app is running
-
-See [docs/MCP_UI_DEBUGGING.md](docs/MCP_UI_DEBUGGING.md) for complete documentation with detailed examples, advanced techniques, and comprehensive troubleshooting.
+**MANDATORY:** Always check schema first: `mcp-cli info <server>/<tool>` before any `mcp-cli call`.
+
+**Quick workflow:**
+1. Set session defaults: `mcp-cli call XcodeBuildMCP/session_set_defaults`
+2. Build: `mcp-cli call XcodeBuildMCP/build_macos '{}'`
+3. Launch: `mcp-cli call XcodeBuildMCP/launch_mac_app`
+4. Capture logs: `mcp-cli call XcodeBuildMCP/start_sim_log_cap` (use `captureConsole: true`)
+5. UI automation: `mcp-cli call XcodeBuildMCP/describe_ui`, then tap/type/gesture
+
+See [docs/MCP_UI_DEBUGGING.md](docs/MCP_UI_DEBUGGING.md) for comprehensive documentation, examples, and troubleshooting.
 
 ## GUI Commands (Wails) - ⚠️ DEPRECATED
 
-> **IMPORTANT:** The Wails GUI is deprecated in favor of the native Swift app. It remains available for reference and cross-platform testing, but is no longer actively developed. Use the Swift GUI (above) for all new development.
+> **DEPRECATED:** Use the native Swift app for all development. Wails GUI remains for reference only.
 
-**IMPORTANT:** Always use the `-nocolour` flag with `wails build` and `wails dev` to prevent ANSI escape codes in output.
-
-### Build GUI
-
+**Quick commands:**
 ```bash
+# Development
+cd gui
+wails dev -nocolour
+
+# Build
 wails build -nocolour
-```
 
-### Run GUI in Development Mode
-
-```bash
-wails dev -nocolour
-```
-
-### Run GUI with a File Pre-loaded
-
-To launch the GUI with a specific assembly file already loaded:
-
-```bash
-cd gui
-wails dev -nocolour -appargs "../examples/stack.s"
-```
-
-The window title will show "ARM Emulator - filename.s" when a file is loaded.
-
-### Check Wails Environment
-
-```bash
-wails doctor
-```
-
-### E2E Testing
-
-**IMPORTANT:** E2E tests require the Wails dev server to be running first. Tests will hang indefinitely if the backend is not available.
-
-```bash
-# Terminal 1: Start Wails dev server
-cd gui
-wails dev -nocolour
-
-# Terminal 2: Run E2E tests
+# E2E tests (requires running dev server)
 cd gui/frontend
-npm run test:e2e                    # Run all tests
-npm run test:e2e -- --project=chromium  # Run chromium only
-npm run test:e2e:headed             # Run with visible browser
+npm run test:e2e -- --project=chromium
 ```
 
-The Wails backend must be running on http://localhost:34115 before any E2E tests can execute.
+Always use `-nocolour` flag to prevent ANSI escape codes.
 
 ## Project Structure
 
@@ -752,37 +365,24 @@ For the complete syscall reference including file operations, memory management,
 
 ### Test-Driven Development (TDD)
 
-**CRITICAL:** This project follows strict Test-Driven Development (TDD) practices. All development must follow the red-green-refactor cycle:
+**CRITICAL:** Follow strict TDD practices (red-green-refactor cycle):
 
-1. **Red**: Write a failing test that defines the desired behavior
-2. **Green**: Write the minimal code to make the test pass
-3. **Refactor**: Clean up the code while keeping tests passing
+1. **Red**: Write failing test first
+2. **Green**: Write minimal code to pass
+3. **Refactor**: Clean up while keeping tests passing
 
-**TDD Requirements:**
-- **Write tests FIRST**: Before implementing any feature or fix, write the test that validates the expected behavior
-- **Comprehensive coverage**: All new code must be covered by tests
-- **Test types**:
-  - Unit tests for individual functions and components (in `tests/unit/`)
-  - Integration tests for complete workflows and programs (in `tests/integration/`)
-- **Tests as documentation**: Tests should clearly demonstrate how the code is intended to be used
-- **Run tests frequently**: Execute tests after each small change to catch regressions immediately
-- **Test quality**: Tests should be clear, focused, and test one thing at a time
+**Requirements:**
+- Write tests FIRST before implementing
+- All new code must be covered by tests (unit in `tests/unit/`, integration in `tests/integration/`)
+- Tests serve as both validation and documentation
+- Run tests frequently: `go build -o arm-emulator && go clean -testcache && go test ./...`
 
-**IMPORTANT:** Do not delete tests without explicit instructions. Do not simplify tests because they fail. If you think a test is malfunctioning, think about it carefully and ask me before making any changes to the tests.
-
-**IMPORTANT:** Tests serve as both validation and documentation. When reviewing code, always check that corresponding tests exist and properly validate the intended behavior.
-
-**IMPORTANT:** Do not modify example programs just to make them work without explicit permission, unless they are actually broken. Instead, fix the emulator to run the programs properly. Example programs are test cases that demonstrate expected behavior.
-
-**IMPORTANT:** To ensure tests are up to date, recompile and clear the test cache before running tests `go build -o arm-emulator && go clean -testcache && go test ./...`
-
-**IMPORTANT:** This emulator implements the classic ARM2 architecture. Do NOT implement Linux-style syscalls (using `SVC #0` with syscall number in R7 register). The emulator uses only traditional ARM2 syscall convention: `SWI #immediate_value` where the syscall number is encoded directly in the instruction. R7 is just a general-purpose register with no special meaning for syscalls.
-
-**IMPORTANT:** All tests belong in the `tests/` directory structure, not in the main package directories. TUI tests use `tcell.SimulationScreen` to avoid terminal initialization issues. The `debugger.NewTUIWithScreen()` function accepts an optional screen parameter for testing while production code uses `debugger.NewTUI()` with the default screen.
-
-**IMPORTANT:** Avoid embedding magic numbers directly in the code. Use named constants or enums for clarity and maintainability.
-
-**IMPORTANT:** When doing code reviews, look at it with fresh eyes. Assume the engineer implemented it suspiciously quickly and is not to be trusted.
+**Rules:**
+- Do NOT delete or simplify failing tests without permission - ask first
+- Do NOT modify example programs to make them work - fix the emulator instead
+- Use traditional ARM2 syscalls (`SWI #immediate`) NOT Linux-style (`SVC #0` with R7)
+- Avoid magic numbers - use named constants
+- Code reviews: assume suspicious implementation, verify thoroughly
 
 ## Additional Features
 
@@ -847,22 +447,6 @@ Example symbol-aware output:
 
 ### Example Programs Status
 
-#### All Example Programs Working! (49 total, 100%) ✅
-
-All 49 example programs execute successfully:
-
-**Non-Interactive Programs (46):**
-- hello.s, loops.s, arithmetic.s, conditionals.s, functions.s
-- factorial.s, recursive_fib.s, recursive_factorial.s
-- string operations: strings.s, string_reverse.s (with stdin)
-- data structures: arrays.s, linked_list.s, hash_table.s
-- sorting algorithms: quicksort.s, bubble_sort.s
-- literal pools: test_ltorg.s, test_org_0_with_ltorg.s
-- multi-precision: add_128bit.s (128-bit integer addition with carry propagation)
-- And 27+ more fully functional examples
-
-**Interactive Programs (3):**
-These programs work correctly when provided with stdin input:
-- **bubble_sort.s** - Prompts for array size and elements (fully working)
-- **calculator.s** - Interactive calculator with +, -, *, / operations (fully working)
-- **fibonacci.s** - Prompts for count of Fibonacci numbers (fully working)
+All 49 example programs working (100%):
+- **46 non-interactive:** hello.s, loops.s, arithmetic.s, factorial.s, sorting algorithms, data structures, literal pools, add_128bit.s, etc.
+- **3 interactive:** bubble_sort.s, calculator.s, fibonacci.s (require stdin)
