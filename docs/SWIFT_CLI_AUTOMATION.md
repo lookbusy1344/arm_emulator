@@ -2,6 +2,16 @@
 
 A comprehensive guide for automating Swift macOS project development using command-line tools, avoiding Xcode GUI and maximizing automation with Claude CLI and other tools.
 
+## Platform Requirements
+
+**IMPORTANT:** This Swift project targets modern platforms only - no backward compatibility required.
+
+- **macOS:** 26.2
+- **Swift:** 6.2
+- **Xcode:** 26.2
+
+The project uses the latest SwiftUI APIs and Swift language features. Always use modern Swift/SwiftUI capabilities without concern for older OS versions. Target Apple Silicon only.
+
 ## Table of Contents
 
 - [Quick Reference](#quick-reference)
