@@ -146,6 +146,87 @@ ARMEmulator.Tests/
 - **Static factory methods** over constructors for complex creation
 - **Prefer composition** over inheritance
 
+### Exception Handling Philosophy
+
+Exceptions in .NET are designed to propagate up the call stack until caught by code that can meaningfully handle them. Follow these principles:
+
+**Let exceptions propagate freely:**
+```csharp
+// GOOD: Let the exception bubble up naturally
+public async Task<RegisterState> StepAsync(string sessionId, CancellationToken ct)
+{
+    var response = await _http.PostAsync($"/api/v1/session/{sessionId}/step", null, ct);
+    return await ParseResponseOrThrowAsync<RegisterState>(response, ct, sessionId);
+}
+
+// BAD: Catching just to log and rethrow adds noise
+public async Task<RegisterState> StepAsync(string sessionId, CancellationToken ct)
+{
+    try
+    {
+        var response = await _http.PostAsync($"/api/v1/session/{sessionId}/step", null, ct);
+        return await ParseResponseOrThrowAsync<RegisterState>(response, ct, sessionId);
+    }
+    catch (Exception ex)
+    {
+        _logger.LogError(ex, "Step failed");  // Noise - the UI layer will log this
+        throw;  // Pointless rethrow
+    }
+}
+```
+
+**Catch only at boundaries where you can act:**
+```csharp
+// ViewModel: The UI boundary where we display errors to users
+public async Task ExecuteStepCommand()
+{
+    try
+    {
+        var registers = await _api.StepAsync(SessionId, _cts.Token);
+        UpdateRegisters(registers);
+    }
+    catch (SessionNotFoundException)
+    {
+        await ReconnectSessionAsync();  // Meaningful recovery action
+    }
+    catch (ApiException ex)
+    {
+        ErrorMessage = ex.Message;  // Display to user - this is the boundary
+    }
+}
+```
+
+**Don't catch-and-wrap without adding information:**
+```csharp
+// BAD: Wrapping adds nothing useful
+catch (HttpRequestException ex)
+{
+    throw new ApiException("HTTP error occurred", ex);  // "HTTP error" is less useful than the original
+}
+
+// GOOD: Wrap only when adding domain context
+catch (HttpRequestException ex)
+{
+    throw new BackendUnavailableException(
+        $"Cannot reach backend at {_baseUrl} - is the emulator running?", ex);
+}
+```
+
+**Where to catch exceptions:**
+
+| Layer | Catch? | Action |
+|-------|--------|--------|
+| **ApiClient** | Selective | Only to translate HTTP errors into domain exceptions |
+| **Services** | Rarely | Only for retry logic or resource cleanup |
+| **ViewModels** | Yes | Display errors, trigger recovery, update UI state |
+| **Views** | No | Let ViewModels handle it |
+
+**Anti-patterns to avoid:**
+- `catch (Exception) { return null; }` — Hides failures, causes NullReferenceException elsewhere
+- `catch (Exception ex) { Log(ex); throw; }` — Noise; the eventual handler will log it
+- `catch (Exception) { throw new Exception("Error"); }` — Destroys stack trace and original message
+- Pokemon exception handling (`catch 'em all`) at low levels — Masks bugs
+
 ---
 
 ## Phase 0: Project Setup & Infrastructure
