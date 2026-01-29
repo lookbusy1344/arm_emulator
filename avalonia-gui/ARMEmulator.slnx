@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="ARMEmulator.Tests/ARMEmulator.Tests.csproj" />
+  <Project Path="ARMEmulator/ARMEmulator.csproj" />
+</Solution>

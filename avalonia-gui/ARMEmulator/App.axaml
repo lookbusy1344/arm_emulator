@@ -1,0 +1,12 @@
+<Application xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="ARMEmulator.App"
+             RequestedThemeVariant="Default">
+
+    <Application.Styles>
+        <FluentTheme />
+
+        <!-- Custom theme resources can be added here -->
+        <StyleInclude Source="avares://ARMEmulator/Themes/CustomStyles.axaml" />
+    </Application.Styles>
+</Application>
