@@ -1,0 +1,7 @@
+bin/
+obj/
+.vs/
+*.csproj.user
+.DS_Store
+copilotDiffState.xml
+copilot.data.*.xml
