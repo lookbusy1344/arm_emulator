@@ -25,7 +25,7 @@ class EmulatorViewModel: ObservableObject {
     @Published var errorMessage: String?
     @Published var isConnected = false
 
-    // Callback for scrolling editor to current PC
+    /// Callback for scrolling editor to current PC
     var scrollToCurrentPC: (() -> Void)?
 
     // Memory state
@@ -34,16 +34,16 @@ class EmulatorViewModel: ObservableObject {
     @Published var lastMemoryWrite: UInt32?
     @Published var lastMemoryWriteSize: UInt32 = 4 // Size in bytes (1, 2, or 4)
 
-    // Disassembly state
+    /// Disassembly state
     @Published var disassembly: [DisassemblyInstruction] = []
 
-    // Source map: address -> source line (for display)
+    /// Source map: address -> source line (for display)
     @Published var sourceMap: [UInt32: String] = [:]
-    // Valid breakpoint lines (1-based line numbers that can have breakpoints)
+    /// Valid breakpoint lines (1-based line numbers that can have breakpoints)
     @Published var validBreakpointLines: Set<Int> = []
-    // Line number to address mapping for breakpoint setting
+    /// Line number to address mapping for breakpoint setting
     @Published var lineToAddress: [Int: UInt32] = [:]
-    // Address to line number mapping for breakpoint display
+    /// Address to line number mapping for breakpoint display
     @Published var addressToLine: [UInt32: Int] = [:]
 
     let apiClient: any APIClientProtocol
@@ -52,12 +52,12 @@ class EmulatorViewModel: ObservableObject {
     private var cancellables = Set<AnyCancellable>()
     private var isInitializing = false
 
-    // Computed property: determines if pause button should be enabled
+    /// Computed property: determines if pause button should be enabled
     var canPause: Bool {
         status == .running || status == .waitingForInput
     }
 
-    // Computed property: determines if step buttons should be enabled
+    /// Computed property: determines if step buttons should be enabled
     var canStep: Bool {
         status == .idle || status == .breakpoint
     }

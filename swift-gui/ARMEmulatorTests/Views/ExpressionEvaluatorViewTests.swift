@@ -373,7 +373,7 @@ final class ExpressionPlaceholderTests: XCTestCase {
 
 @MainActor
 final class ExpressionEvaluatorInitTests: XCTestCase {
-    func testInitWithEmptyHistory() async {
+    func testInitWithEmptyHistory() {
         let viewModel = EmulatorViewModel()
 
         let view = ExpressionEvaluatorView(viewModel: viewModel)
@@ -382,7 +382,7 @@ final class ExpressionEvaluatorInitTests: XCTestCase {
         XCTAssertNotNil(view)
     }
 
-    func testInitWithViewModel() async {
+    func testInitWithViewModel() {
         let viewModel = EmulatorViewModel()
 
         let view = ExpressionEvaluatorView(viewModel: viewModel)

@@ -12,7 +12,9 @@ struct MemoryView: View {
 
     private let bytesPerRow = 16
     private let rowsToShow = 16
-    private var totalBytes: Int { bytesPerRow * rowsToShow }
+    private var totalBytes: Int {
+        bytesPerRow * rowsToShow
+    }
 
     var body: some View {
         VStack(spacing: 0) {

@@ -98,7 +98,7 @@ final class WebSocketMessageParsingTests: XCTestCase {
         }
         """
 
-        let data = json.data(using: .utf8)!
+        let data = try XCTUnwrap(json.data(using: .utf8))
         let event = try JSONDecoder().decode(EmulatorEvent.self, from: data)
 
         XCTAssertEqual(event.type, "state")
@@ -125,7 +125,7 @@ final class WebSocketMessageParsingTests: XCTestCase {
         }
         """
 
-        let data = json.data(using: .utf8)!
+        let data = try XCTUnwrap(json.data(using: .utf8))
         let event = try JSONDecoder().decode(EmulatorEvent.self, from: data)
 
         XCTAssertEqual(event.type, "output")
@@ -152,7 +152,7 @@ final class WebSocketMessageParsingTests: XCTestCase {
         }
         """
 
-        let data = json.data(using: .utf8)!
+        let data = try XCTUnwrap(json.data(using: .utf8))
         let event = try JSONDecoder().decode(EmulatorEvent.self, from: data)
 
         XCTAssertEqual(event.type, "event")
@@ -179,7 +179,7 @@ final class WebSocketMessageParsingTests: XCTestCase {
         }
         """
 
-        let data = json.data(using: .utf8)!
+        let data = try XCTUnwrap(json.data(using: .utf8))
         let event = try JSONDecoder().decode(EmulatorEvent.self, from: data)
 
         XCTAssertEqual(event.type, "event")
@@ -204,7 +204,7 @@ final class WebSocketMessageParsingTests: XCTestCase {
         }
         """
 
-        let data = json.data(using: .utf8)!
+        let data = try XCTUnwrap(json.data(using: .utf8))
         let event = try JSONDecoder().decode(EmulatorEvent.self, from: data)
 
         if case let .event(executionEvent) = event.data {
@@ -265,22 +265,22 @@ final class WebSocketErrorHandlingTests: XCTestCase {
         super.tearDown()
     }
 
-    func testInvalidJSONDoesNotCrash() {
+    func testInvalidJSONDoesNotCrash() throws {
         let invalidJSON = "{ this is not valid JSON }"
-        let data = invalidJSON.data(using: .utf8)!
+        let data = try XCTUnwrap(invalidJSON.data(using: .utf8))
 
         // Attempting to decode invalid JSON should throw error, not crash
         XCTAssertThrowsError(try JSONDecoder().decode(EmulatorEvent.self, from: data))
     }
 
-    func testMissingRequiredFieldsThrowsError() {
+    func testMissingRequiredFieldsThrowsError() throws {
         let incompleteJSON = """
         {
             "type": "state"
         }
         """
 
-        let data = incompleteJSON.data(using: .utf8)!
+        let data = try XCTUnwrap(incompleteJSON.data(using: .utf8))
 
         // Missing sessionId should cause decoding error
         XCTAssertThrowsError(try JSONDecoder().decode(EmulatorEvent.self, from: data))
@@ -294,7 +294,7 @@ final class WebSocketErrorHandlingTests: XCTestCase {
         }
         """
 
-        let data = unknownTypeJSON.data(using: .utf8)!
+        let data = try XCTUnwrap(unknownTypeJSON.data(using: .utf8))
 
         // Unknown event types should decode without data field
         let event = try JSONDecoder().decode(EmulatorEvent.self, from: data)
@@ -339,7 +339,7 @@ final class WebSocketMessageOrderingTests: XCTestCase {
         XCTAssertNotNil(client.events)
     }
 
-    func testStaleEventsFromOldSession() {
+    func testStaleEventsFromOldSession() throws {
         // When a new session is created, events from the old session should be ignored
         // This is handled by sessionId matching in the ViewModel layer
         // WebSocketClient simply forwards all events it receives
@@ -361,11 +361,11 @@ final class WebSocketMessageOrderingTests: XCTestCase {
         // Both events should decode successfully
         XCTAssertNoThrow(
             try JSONDecoder()
-                .decode(EmulatorEvent.self, from: oldSessionEvent.data(using: .utf8)!),
+                .decode(EmulatorEvent.self, from: XCTUnwrap(oldSessionEvent.data(using: .utf8))),
         )
         XCTAssertNoThrow(
             try JSONDecoder()
-                .decode(EmulatorEvent.self, from: newSessionEvent.data(using: .utf8)!),
+                .decode(EmulatorEvent.self, from: XCTUnwrap(newSessionEvent.data(using: .utf8))),
         )
     }
 }
@@ -381,7 +381,7 @@ final class WebSocketSubscriptionTests: XCTestCase {
         )
 
         let data = try JSONEncoder().encode(subscription)
-        let json = String(data: data, encoding: .utf8)!
+        let json = try XCTUnwrap(String(data: data, encoding: .utf8))
 
         XCTAssertTrue(json.contains("\"type\":\"subscribe\""))
         XCTAssertTrue(json.contains("\"sessionId\":\"test-session-789\""))
@@ -400,7 +400,7 @@ final class WebSocketSubscriptionTests: XCTestCase {
         }
         """
 
-        let data = json.data(using: .utf8)!
+        let data = try XCTUnwrap(json.data(using: .utf8))
         let subscription = try JSONDecoder().decode(SubscriptionMessage.self, from: data)
 
         XCTAssertEqual(subscription.type, "subscribe")

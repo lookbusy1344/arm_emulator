@@ -7,7 +7,7 @@ struct AboutView: View {
     @State private var errorMessage: String?
     private let apiClient = APIClient()
 
-    // Cache version info to avoid repeated API calls
+    /// Cache version info to avoid repeated API calls
     private static var cachedVersion: BackendVersion?
 
     var body: some View {
@@ -80,7 +80,8 @@ struct AboutView: View {
         }
     }
 
-    private func loadVersionAsync() async { isLoading = true
+    private func loadVersionAsync() async {
+        isLoading = true
         errorMessage = nil
 
         do {

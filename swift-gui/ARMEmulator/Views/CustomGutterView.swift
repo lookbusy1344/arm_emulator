@@ -44,7 +44,7 @@ class CustomGutterView: NSView {
         fatalError("init(coder:) not implemented")
     }
 
-    // Use flipped coordinates (origin at top-left) to match text view
+    /// Use flipped coordinates (origin at top-left) to match text view
     override var isFlipped: Bool {
         true
     }

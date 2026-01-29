@@ -42,10 +42,14 @@ struct DisassemblyInstruction: Codable, Identifiable, Hashable {
     var disassembly: String
     var symbol: String?
 
-    var id: UInt32 { address }
+    var id: UInt32 {
+        address
+    }
 
-    // Alias for compatibility with code expecting 'mnemonic'
-    var mnemonic: String { disassembly }
+    /// Alias for compatibility with code expecting 'mnemonic'
+    var mnemonic: String {
+        disassembly
+    }
 
     func hash(into hasher: inout Hasher) {
         hasher.combine(address)

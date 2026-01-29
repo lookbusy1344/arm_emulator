@@ -14,7 +14,7 @@ struct StackView: View {
     @State private var localMemoryData: [UInt8] = []
     @State private var loadCount = 0 // Debug: track load attempts
 
-    // Stack configuration (from vm/constants.go)
+    /// Stack configuration (from vm/constants.go)
     private let initialSP: UInt32 = 0x0005_0000 // Initial stack pointer (StackSegmentStart + StackSegmentSize)
 
     var body: some View {

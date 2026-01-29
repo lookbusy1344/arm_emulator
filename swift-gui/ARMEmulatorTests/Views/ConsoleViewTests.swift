@@ -17,7 +17,7 @@ final class ConsoleViewInputTests: XCTestCase {
         XCTAssertEqual(processInput(" "), " \n") // Single space is not empty
     }
 
-    func testInputNewlineAppending() {
+    func testInputNewlineAppending() throws {
         // Verify newline is always appended
         func processInput(_ input: String) -> String? {
             guard !input.isEmpty else { return nil }
@@ -28,7 +28,7 @@ final class ConsoleViewInputTests: XCTestCase {
         for input in inputs {
             let processed = processInput(input)
             XCTAssertNotNil(processed)
-            XCTAssertTrue(processed!.hasSuffix("\n"), "Input '\(input)' should have newline appended")
+            XCTAssertTrue(try XCTUnwrap(processed?.hasSuffix("\n")), "Input '\(input)' should have newline appended")
         }
     }
 

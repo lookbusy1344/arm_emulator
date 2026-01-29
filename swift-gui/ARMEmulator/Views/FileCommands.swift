@@ -75,12 +75,12 @@ struct FileCommands: Commands {
     }
 }
 
-// Notification for showing examples browser
+/// Notification for showing examples browser
 extension Notification.Name {
     static let showExamplesBrowser = Notification.Name("showExamplesBrowser")
 }
 
-// FocusedValue key for accessing ViewModel from commands
+/// FocusedValue key for accessing ViewModel from commands
 struct ViewModelKey: FocusedValueKey {
     typealias Value = EmulatorViewModel
 }

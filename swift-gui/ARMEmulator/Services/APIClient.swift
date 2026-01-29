@@ -209,8 +209,7 @@ class APIClient: APIClientProtocol, @unchecked Sendable {
         }
 
         let url = baseURL.appendingPathComponent("/api/v1/session/\(sessionID)/watchpoint")
-        let watchpoint: Watchpoint = try await post(url: url, body: WatchpointRequest(address: address, type: type))
-        return watchpoint
+        return try await post(url: url, body: WatchpointRequest(address: address, type: type))
     }
 
     func removeWatchpoint(sessionID: String, watchpointID: Int) async throws {

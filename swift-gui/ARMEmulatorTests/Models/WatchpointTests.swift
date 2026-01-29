@@ -13,7 +13,7 @@ final class WatchpointTests: XCTestCase {
         }
         """
 
-        let data = json.data(using: .utf8)!
+        let data = try XCTUnwrap(json.data(using: .utf8))
         let watchpoint = try JSONDecoder().decode(Watchpoint.self, from: data)
 
         XCTAssertEqual(watchpoint.id, 1)
@@ -30,7 +30,7 @@ final class WatchpointTests: XCTestCase {
         }
         """
 
-        let data = json.data(using: .utf8)!
+        let data = try XCTUnwrap(json.data(using: .utf8))
         let watchpoint = try JSONDecoder().decode(Watchpoint.self, from: data)
 
         XCTAssertEqual(watchpoint.id, 2)
@@ -47,7 +47,7 @@ final class WatchpointTests: XCTestCase {
         }
         """
 
-        let data = json.data(using: .utf8)!
+        let data = try XCTUnwrap(json.data(using: .utf8))
         let watchpoint = try JSONDecoder().decode(Watchpoint.self, from: data)
 
         XCTAssertEqual(watchpoint.id, 3)

@@ -18,7 +18,7 @@ final class EmulatorViewModelInitializationTests: XCTestCase {
         viewModel = EmulatorViewModel(apiClient: mockAPIClient, wsClient: mockWSClient)
     }
 
-    func testInitialize() async throws {
+    func testInitialize() async {
         await viewModel.initialize()
 
         XCTAssertTrue(mockAPIClient.createSessionCalled)
@@ -27,7 +27,7 @@ final class EmulatorViewModelInitializationTests: XCTestCase {
         XCTAssertNil(viewModel.errorMessage)
     }
 
-    func testInitializeFailure() async throws {
+    func testInitializeFailure() async {
         mockAPIClient.shouldFailCreateSession = true
 
         await viewModel.initialize()
@@ -39,7 +39,7 @@ final class EmulatorViewModelInitializationTests: XCTestCase {
         XCTAssertTrue(viewModel.errorMessage?.contains("Failed to initialize") ?? false)
     }
 
-    func testInitializeSkipsWhenAlreadyConnected() async throws {
+    func testInitializeSkipsWhenAlreadyConnected() async {
         await viewModel.initialize()
         mockAPIClient.createSessionCalled = false // Reset
 
@@ -78,7 +78,7 @@ final class EmulatorViewModelProgramLoadingTests: XCTestCase {
         viewModel.sessionID = "test-session" // Set session ID for testing
     }
 
-    func testLoadProgramSuccess() async throws {
+    func testLoadProgramSuccess() async {
         let sourceCode = "MOV R0, #42\nSWI #0"
 
         await viewModel.loadProgram(source: sourceCode)
@@ -91,7 +91,7 @@ final class EmulatorViewModelProgramLoadingTests: XCTestCase {
         XCTAssertTrue(mockAPIClient.getStatusCalled)
     }
 
-    func testLoadProgramFailureFromAPI() async throws {
+    func testLoadProgramFailureFromAPI() async {
         mockAPIClient.shouldFailLoadProgram = true
 
         await viewModel.loadProgram(source: "MOV R0, #42")
@@ -101,7 +101,7 @@ final class EmulatorViewModelProgramLoadingTests: XCTestCase {
         XCTAssertTrue(viewModel.errorMessage?.contains("Failed to load program") ?? false)
     }
 
-    func testLoadProgramFailureFromResponse() async throws {
+    func testLoadProgramFailureFromResponse() async {
         mockAPIClient.mockLoadProgramResponse = LoadProgramResponse(
             success: false,
             errors: ["Syntax error on line 1", "Undefined symbol"],
@@ -116,7 +116,7 @@ final class EmulatorViewModelProgramLoadingTests: XCTestCase {
         XCTAssertTrue(viewModel.errorMessage?.contains("Undefined symbol") ?? false)
     }
 
-    func testLoadProgramWithoutSession() async throws {
+    func testLoadProgramWithoutSession() async {
         viewModel.sessionID = nil
 
         await viewModel.loadProgram(source: "MOV R0, #42")
@@ -126,7 +126,7 @@ final class EmulatorViewModelProgramLoadingTests: XCTestCase {
         XCTAssertEqual(viewModel.errorMessage, "No active session")
     }
 
-    func testLoadProgramClearsHighlights() async throws {
+    func testLoadProgramClearsHighlights() async {
         // Set up some highlights
         viewModel.highlightRegister("R0")
         viewModel.highlightMemoryAddress(0x8000, size: 4)
@@ -230,7 +230,7 @@ final class HighlightTests: XCTestCase {
         XCTAssertNil(viewModel.memoryHighlights[0x8004]) // 5th byte not written
     }
 
-    func testUpdateRegistersTriggersHighlights() async throws {
+    func testUpdateRegistersTriggersHighlights() {
         // Simulate first state
         let registers1 = RegisterState(
             r0: 0, r1: 0, r2: 0, r3: 0, r4: 0, r5: 0, r6: 0, r7: 0,
@@ -442,14 +442,14 @@ final class EmulatorViewModelExecutionTests: XCTestCase {
         viewModel.sessionID = "test-session"
     }
 
-    func testRunSuccess() async throws {
+    func testRunSuccess() async {
         await viewModel.run()
 
         XCTAssertTrue(mockAPIClient.runCalled)
         XCTAssertNil(viewModel.errorMessage)
     }
 
-    func testRunFailure() async throws {
+    func testRunFailure() async {
         mockAPIClient.shouldFailRun = true
 
         await viewModel.run()
@@ -459,7 +459,7 @@ final class EmulatorViewModelExecutionTests: XCTestCase {
         XCTAssertTrue(viewModel.errorMessage?.contains("Failed to run") ?? false)
     }
 
-    func testRunWithoutSession() async throws {
+    func testRunWithoutSession() async {
         viewModel.sessionID = nil
 
         await viewModel.run()
@@ -468,7 +468,7 @@ final class EmulatorViewModelExecutionTests: XCTestCase {
         XCTAssertEqual(viewModel.errorMessage, "No active session")
     }
 
-    func testPauseSuccess() async throws {
+    func testPauseSuccess() async {
         await viewModel.pause()
 
         XCTAssertTrue(mockAPIClient.stopCalled)
@@ -477,7 +477,7 @@ final class EmulatorViewModelExecutionTests: XCTestCase {
         XCTAssertNil(viewModel.errorMessage)
     }
 
-    func testStepSuccess() async throws {
+    func testStepSuccess() async {
         await viewModel.step()
 
         XCTAssertTrue(mockAPIClient.stepCalled)
@@ -487,7 +487,7 @@ final class EmulatorViewModelExecutionTests: XCTestCase {
         XCTAssertNil(viewModel.lastMemoryWrite) // Cleared before step
     }
 
-    func testStepWithProgramExit() async throws {
+    func testStepWithProgramExit() async {
         mockAPIClient.shouldFailStep = true
         mockAPIClient.stepErrorMessage = "program exited with code 0"
 
@@ -497,7 +497,7 @@ final class EmulatorViewModelExecutionTests: XCTestCase {
         XCTAssertNil(viewModel.errorMessage) // No error for normal exit
     }
 
-    func testStepOverSuccess() async throws {
+    func testStepOverSuccess() async {
         await viewModel.stepOver()
 
         XCTAssertTrue(mockAPIClient.stepOverCalled)
@@ -506,7 +506,7 @@ final class EmulatorViewModelExecutionTests: XCTestCase {
         XCTAssertNil(viewModel.errorMessage)
     }
 
-    func testStepOutSuccess() async throws {
+    func testStepOutSuccess() async {
         await viewModel.stepOut()
 
         XCTAssertTrue(mockAPIClient.stepOutCalled)
@@ -515,7 +515,7 @@ final class EmulatorViewModelExecutionTests: XCTestCase {
         XCTAssertNil(viewModel.errorMessage)
     }
 
-    func testResetClearsConsoleAndHighlights() async throws {
+    func testResetClearsConsoleAndHighlights() async {
         viewModel.consoleOutput = "Previous output"
         viewModel.highlightRegister("R0")
 
@@ -542,7 +542,7 @@ final class EmulatorViewModelDebugTests: XCTestCase {
         viewModel.sessionID = "test-session"
     }
 
-    func testToggleBreakpointAdd() async throws {
+    func testToggleBreakpointAdd() async {
         let address: UInt32 = 0x8000
 
         await viewModel.toggleBreakpoint(at: address)
@@ -553,7 +553,7 @@ final class EmulatorViewModelDebugTests: XCTestCase {
         XCTAssertNil(viewModel.errorMessage)
     }
 
-    func testToggleBreakpointRemove() async throws {
+    func testToggleBreakpointRemove() async {
         let address: UInt32 = 0x8000
         viewModel.breakpoints.insert(address)
 
@@ -565,7 +565,7 @@ final class EmulatorViewModelDebugTests: XCTestCase {
         XCTAssertNil(viewModel.errorMessage)
     }
 
-    func testToggleBreakpointFailure() async throws {
+    func testToggleBreakpointFailure() async {
         mockAPIClient.shouldFailAddBreakpoint = true
 
         await viewModel.toggleBreakpoint(at: 0x8000)
@@ -575,7 +575,7 @@ final class EmulatorViewModelDebugTests: XCTestCase {
         XCTAssertTrue(viewModel.errorMessage?.contains("Failed to toggle breakpoint") ?? false)
     }
 
-    func testAddWatchpoint() async throws {
+    func testAddWatchpoint() async {
         await viewModel.addWatchpoint(at: 0x8000, type: "write")
 
         XCTAssertTrue(mockAPIClient.addWatchpointCalled)
@@ -585,7 +585,7 @@ final class EmulatorViewModelDebugTests: XCTestCase {
         XCTAssertNil(viewModel.errorMessage)
     }
 
-    func testRemoveWatchpoint() async throws {
+    func testRemoveWatchpoint() async {
         viewModel.watchpoints = [Watchpoint(id: 1, address: 0x8000, type: "write")]
 
         await viewModel.removeWatchpoint(id: 1)
@@ -595,7 +595,7 @@ final class EmulatorViewModelDebugTests: XCTestCase {
         XCTAssertNil(viewModel.errorMessage)
     }
 
-    func testRefreshWatchpoints() async throws {
+    func testRefreshWatchpoints() async {
         await viewModel.refreshWatchpoints()
 
         XCTAssertTrue(mockAPIClient.getWatchpointsCalled)
@@ -617,7 +617,7 @@ final class EmulatorViewModelInputOutputTests: XCTestCase {
         viewModel.sessionID = "test-session"
     }
 
-    func testSendInputWhenWaiting() async throws {
+    func testSendInputWhenWaiting() async {
         viewModel.status = .waitingForInput
 
         await viewModel.sendInput("test input")
@@ -629,7 +629,7 @@ final class EmulatorViewModelInputOutputTests: XCTestCase {
         XCTAssertNil(viewModel.errorMessage)
     }
 
-    func testSendInputWhenNotWaiting() async throws {
+    func testSendInputWhenNotWaiting() async {
         viewModel.status = .breakpoint
 
         await viewModel.sendInput("buffered input")
@@ -641,7 +641,7 @@ final class EmulatorViewModelInputOutputTests: XCTestCase {
         XCTAssertNil(viewModel.errorMessage)
     }
 
-    func testSendInputWithoutSession() async throws {
+    func testSendInputWithoutSession() async {
         viewModel.sessionID = nil
 
         await viewModel.sendInput("test")
@@ -800,7 +800,7 @@ final class EmulatorViewModelConcurrencyTests: XCTestCase {
         XCTAssertNil(viewModel.memoryHighlights[0x8003])
     }
 
-    func testConcurrentRegisterUpdatesHighlightCorrectly() async throws {
+    func testConcurrentRegisterUpdatesHighlightCorrectly() {
         // Simulate rapid register state updates (as would happen during fast execution)
 
         let baseRegisters = RegisterState(
@@ -872,7 +872,7 @@ final class EmulatorViewModelMemoryPressureTests: XCTestCase {
         viewModel.sessionID = "test-session"
     }
 
-    func testLoadLargeMemoryChunk() async throws {
+    func testLoadLargeMemoryChunk() async {
         // Test loading 10MB of memory (extreme case)
         let largeSize = 10 * 1024 * 1024 // 10MB
 
@@ -887,7 +887,7 @@ final class EmulatorViewModelMemoryPressureTests: XCTestCase {
         XCTAssertTrue(viewModel.memoryData.allSatisfy { $0 == 0xAB }, "All bytes should match mock data")
     }
 
-    func testRapidConsecutiveMemoryLoads() async throws {
+    func testRapidConsecutiveMemoryLoads() async {
         // Simulate rapid memory view scrolling (100 loads in quick succession)
         let loadCount = 100
 
@@ -907,7 +907,7 @@ final class EmulatorViewModelMemoryPressureTests: XCTestCase {
         XCTAssertEqual(viewModel.memoryData.count, 256)
     }
 
-    func testRapidConsoleOutputUpdates() async throws {
+    func testRapidConsoleOutputUpdates() {
         // Simulate program printing 10,000 lines rapidly
         let lineCount = 10000
 
@@ -935,7 +935,7 @@ final class EmulatorViewModelMemoryPressureTests: XCTestCase {
         )
     }
 
-    func testThousandsOfMemoryHighlights() async throws {
+    func testThousandsOfMemoryHighlights() {
         // Test highlighting 1000 different memory addresses
         // (Simulates intensive memory operations)
 
@@ -957,7 +957,7 @@ final class EmulatorViewModelMemoryPressureTests: XCTestCase {
         }
     }
 
-    func testLargeNumberOfBreakpoints() async throws {
+    func testLargeNumberOfBreakpoints() async {
         // Test adding 1000 breakpoints
         let breakpointCount = 1000
 
@@ -975,7 +975,7 @@ final class EmulatorViewModelMemoryPressureTests: XCTestCase {
         XCTAssertTrue(viewModel.breakpoints.contains(0x8000 + UInt32((breakpointCount - 1) * 4)))
     }
 
-    func testMemoryLoadAfterFailure() async throws {
+    func testMemoryLoadAfterFailure() async {
         // Test that memory loads can recover after API failures
 
         // First load fails
@@ -1019,9 +1019,9 @@ final class VMWebSocketReconnectionTests: XCTestCase {
         XCTAssertTrue(viewModel.isConnected, "Should be connected after initialization")
 
         // First, verify that events work before disconnect
-        let testEvent1 = EmulatorEvent(
+        let testEvent1 = try EmulatorEvent(
             type: "output",
-            sessionId: viewModel.sessionID!,
+            sessionId: XCTUnwrap(viewModel.sessionID),
             data: .output(OutputUpdate(stream: "stdout", content: "Before disconnect")),
         )
         mockWSClient.simulateEvent(testEvent1)
@@ -1033,13 +1033,13 @@ final class VMWebSocketReconnectionTests: XCTestCase {
         try await Task.sleep(nanoseconds: 100_000_000)
 
         // Simulate reconnection
-        mockWSClient.simulateReconnect(sessionID: viewModel.sessionID!)
+        try mockWSClient.simulateReconnect(sessionID: XCTUnwrap(viewModel.sessionID))
         try await Task.sleep(nanoseconds: 100_000_000)
 
         // Should still be able to receive events after reconnection
-        let event = EmulatorEvent(
+        let event = try EmulatorEvent(
             type: "output",
-            sessionId: viewModel.sessionID!,
+            sessionId: XCTUnwrap(viewModel.sessionID),
             data: .output(OutputUpdate(stream: "stdout", content: "After reconnect")),
         )
 
@@ -1055,7 +1055,7 @@ final class VMWebSocketReconnectionTests: XCTestCase {
         )
     }
 
-    func testStaleEventsIgnoredAfterSessionChange() async throws {
+    func testStaleEventsIgnoredAfterSessionChange() {
         // Start with old session
         viewModel.sessionID = "old-session-id"
 
@@ -1166,7 +1166,7 @@ final class EmulatorViewModelBackendRestartTests: XCTestCase {
         viewModel = EmulatorViewModel(apiClient: mockAPIClient, wsClient: mockWSClient)
     }
 
-    func testRecoverFromBackendRestartDuringInitialization() async throws {
+    func testRecoverFromBackendRestartDuringInitialization() async {
         // First initialization fails (backend not ready)
         mockAPIClient.shouldFailCreateSession = true
 
@@ -1187,7 +1187,7 @@ final class EmulatorViewModelBackendRestartTests: XCTestCase {
         XCTAssertNil(viewModel.errorMessage, "Error should be cleared after successful recovery")
     }
 
-    func testSessionRecoveryAfterBackendRestart() async throws {
+    func testSessionRecoveryAfterBackendRestart() async {
         // Enable unique session ID generation for this test
         mockAPIClient.generateUniqueSessionIDs = true
 
@@ -1223,7 +1223,7 @@ final class EmulatorViewModelBackendRestartTests: XCTestCase {
         XCTAssertTrue(viewModel.isConnected, "Should be connected with new session")
     }
 
-    func testStatePreservationAcrossSessionRecreation() async throws {
+    func testStatePreservationAcrossSessionRecreation() async {
         // Test that UI state (breakpoints, watchpoints) can be restored after backend restart
 
         // Set up initial session with breakpoints
@@ -1254,7 +1254,7 @@ final class EmulatorViewModelBackendRestartTests: XCTestCase {
         // (This tests that the ViewModel preserves the UI state for re-application)
     }
 
-    func testGracefulHandlingOfAPITimeoutDuringBackendRestart() async throws {
+    func testGracefulHandlingOfAPITimeoutDuringBackendRestart() async {
         // Simulate API timeout during backend restart (slow to respond)
 
         mockAPIClient.simulateDelay = 5.0 // Very slow response
@@ -1356,7 +1356,7 @@ final class VMLongRunningExecutionTests: XCTestCase {
         XCTAssertGreaterThanOrEqual(lineCount, 1000, "Should have at least 1000 lines")
     }
 
-    func testPauseAndResumeDuringLongExecution() async throws {
+    func testPauseAndResumeDuringLongExecution() async {
         // Test that pause/resume works correctly during long execution
 
         // Start execution
@@ -1405,7 +1405,7 @@ final class VMLongRunningExecutionTests: XCTestCase {
         )
     }
 
-    func testErrorHandlingDuringLongExecution() async throws {
+    func testErrorHandlingDuringLongExecution() async {
         // Test that errors during long execution are handled gracefully
 
         // Start execution

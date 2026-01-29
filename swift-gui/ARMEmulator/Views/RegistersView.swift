@@ -9,7 +9,7 @@ struct RegistersView: View {
         self.registerHighlights = registerHighlights
     }
 
-    // Helper struct to hold register data for column layout
+    /// Helper struct to hold register data for column layout
     private struct RegisterData: Identifiable {
         let id = UUID()
         let name: String
@@ -17,7 +17,7 @@ struct RegistersView: View {
         let highlightID: UUID?
     }
 
-    // Split registers into vertical columns based on available width
+    /// Split registers into vertical columns based on available width
     private func verticalColumns(for width: CGFloat) -> [[RegisterData]] {
         // Create array of all general-purpose registers (R0-R12)
         let allRegisters = [
@@ -61,7 +61,7 @@ struct RegistersView: View {
         return columns
     }
 
-    // Create special registers column array
+    /// Create special registers column array
     private func specialRegistersColumns(for width: CGFloat) -> [[RegisterData]] {
         let specialRegisters = [
             RegisterData(name: "SP", value: registers.sp, highlightID: registerHighlights["SP"]),

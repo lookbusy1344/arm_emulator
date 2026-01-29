@@ -12,7 +12,7 @@ final class EmulatorSessionTests: XCTestCase {
         }
         """
 
-        let data = json.data(using: .utf8)!
+        let data = try XCTUnwrap(json.data(using: .utf8))
         let event = try JSONDecoder().decode(EmulatorEvent.self, from: data)
 
         XCTAssertEqual(event.type, "state")
@@ -32,7 +32,7 @@ final class EmulatorSessionTests: XCTestCase {
         }
         """
 
-        let data = json.data(using: .utf8)!
+        let data = try XCTUnwrap(json.data(using: .utf8))
         let event = try JSONDecoder().decode(EmulatorEvent.self, from: data)
 
         XCTAssertEqual(event.type, "state")
@@ -57,7 +57,7 @@ final class EmulatorSessionTests: XCTestCase {
         }
         """
 
-        let data = json.data(using: .utf8)!
+        let data = try XCTUnwrap(json.data(using: .utf8))
         let eventData = try JSONDecoder().decode(EventData.self, from: data)
 
         if case let .state(stateUpdate) = eventData {
@@ -86,7 +86,7 @@ final class EmulatorSessionTests: XCTestCase {
         }
         """
 
-        let data = json.data(using: .utf8)!
+        let data = try XCTUnwrap(json.data(using: .utf8))
         let eventData = try JSONDecoder().decode(EventData.self, from: data)
 
         if case let .state(stateUpdate) = eventData {
@@ -112,7 +112,7 @@ final class EmulatorSessionTests: XCTestCase {
         }
         """
 
-        let data = json.data(using: .utf8)!
+        let data = try XCTUnwrap(json.data(using: .utf8))
         let eventData = try JSONDecoder().decode(EventData.self, from: data)
 
         if case let .output(outputUpdate) = eventData {
@@ -131,7 +131,7 @@ final class EmulatorSessionTests: XCTestCase {
         }
         """
 
-        let data = json.data(using: .utf8)!
+        let data = try XCTUnwrap(json.data(using: .utf8))
         let eventData = try JSONDecoder().decode(EventData.self, from: data)
 
         if case let .output(outputUpdate) = eventData {
@@ -154,7 +154,7 @@ final class EmulatorSessionTests: XCTestCase {
         }
         """
 
-        let data = json.data(using: .utf8)!
+        let data = try XCTUnwrap(json.data(using: .utf8))
         let eventData = try JSONDecoder().decode(EventData.self, from: data)
 
         if case let .event(executionEvent) = eventData {
@@ -174,7 +174,7 @@ final class EmulatorSessionTests: XCTestCase {
         }
         """
 
-        let data = json.data(using: .utf8)!
+        let data = try XCTUnwrap(json.data(using: .utf8))
         let eventData = try JSONDecoder().decode(EventData.self, from: data)
 
         if case let .event(executionEvent) = eventData {
@@ -189,14 +189,14 @@ final class EmulatorSessionTests: XCTestCase {
 
     // MARK: - EventData Error Handling
 
-    func testEventDataInvalidJSONThrowsError() {
+    func testEventDataInvalidJSONThrowsError() throws {
         let json = """
         {
             "unknown_field": "value"
         }
         """
 
-        let data = json.data(using: .utf8)!
+        let data = try XCTUnwrap(json.data(using: .utf8))
 
         XCTAssertThrowsError(try JSONDecoder().decode(EventData.self, from: data)) { error in
             guard case DecodingError.dataCorrupted = error else {
@@ -216,7 +216,7 @@ final class EmulatorSessionTests: XCTestCase {
         }
         """
 
-        let data = json.data(using: .utf8)!
+        let data = try XCTUnwrap(json.data(using: .utf8))
         let eventData = try JSONDecoder().decode(EventData.self, from: data)
 
         if case let .state(stateUpdate) = eventData {
@@ -237,7 +237,7 @@ final class EmulatorSessionTests: XCTestCase {
         }
         """
 
-        let data = json.data(using: .utf8)!
+        let data = try XCTUnwrap(json.data(using: .utf8))
         let eventData = try JSONDecoder().decode(EventData.self, from: data)
 
         if case let .state(stateUpdate) = eventData {
@@ -262,7 +262,7 @@ final class EmulatorSessionTests: XCTestCase {
         )
 
         let data = try JSONEncoder().encode(subscription)
-        let json = String(data: data, encoding: .utf8)!
+        let json = try XCTUnwrap(String(data: data, encoding: .utf8))
 
         XCTAssertTrue(json.contains("\"type\":\"subscribe\""))
         XCTAssertTrue(json.contains("\"sessionId\":\"test-session-456\""))
@@ -278,7 +278,7 @@ final class EmulatorSessionTests: XCTestCase {
         }
         """
 
-        let data = json.data(using: .utf8)!
+        let data = try XCTUnwrap(json.data(using: .utf8))
         let subscription = try JSONDecoder().decode(SubscriptionMessage.self, from: data)
 
         XCTAssertEqual(subscription.type, "subscribe")

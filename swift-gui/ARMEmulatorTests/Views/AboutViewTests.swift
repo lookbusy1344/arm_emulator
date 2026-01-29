@@ -18,7 +18,7 @@ final class BackendVersionTests: XCTestCase {
         XCTAssertEqual(version.date, "2026-01-17")
     }
 
-    func testBackendVersionCodable() {
+    func testBackendVersionCodable() throws {
         // Verify BackendVersion can be decoded from JSON
         let json = """
         {
@@ -28,7 +28,7 @@ final class BackendVersionTests: XCTestCase {
         }
         """
 
-        let data = json.data(using: .utf8)!
+        let data = try XCTUnwrap(json.data(using: .utf8))
         let decoder = JSONDecoder()
 
         do {

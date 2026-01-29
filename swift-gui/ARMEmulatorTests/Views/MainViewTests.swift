@@ -132,7 +132,7 @@ final class MainViewTests: XCTestCase {
         XCTAssertTrue(isValidExtension, "File should have valid .s extension")
     }
 
-    func testStartupFileLoadingSuccess() async throws {
+    func testStartupFileLoadingSuccess() throws {
         // Given: Temporary test file
         let tempDir = FileManager.default.temporaryDirectory
         let testFileURL = tempDir.appendingPathComponent("test-program.s")

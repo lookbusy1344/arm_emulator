@@ -59,7 +59,7 @@ final class RegisterStateTests: XCTestCase {
         }
         """
 
-        let data = json.data(using: .utf8)!
+        let data = try XCTUnwrap(json.data(using: .utf8))
         let state = try JSONDecoder().decode(RegisterState.self, from: data)
 
         XCTAssertEqual(state.r0, 42)
@@ -297,7 +297,7 @@ final class RegisterStateTests: XCTestCase {
         }
         """
 
-        let data = json.data(using: .utf8)!
+        let data = try XCTUnwrap(json.data(using: .utf8))
         let flags = try JSONDecoder().decode(CPSRFlags.self, from: data)
 
         XCTAssertTrue(flags.n)

@@ -9,9 +9,9 @@ struct EditorView: View {
     @State private var scrollView: NSScrollView?
     @EnvironmentObject var viewModel: EmulatorViewModel
 
-    // Compute editor editability based on VM state
-    // Editor is editable only when VM is completely stopped (idle, halted, error)
-    // Editor is read-only during any form of execution (running, paused, breakpoint, waitingForInput)
+    /// Compute editor editability based on VM state
+    /// Editor is editable only when VM is completely stopped (idle, halted, error)
+    /// Editor is read-only during any form of execution (running, paused, breakpoint, waitingForInput)
     private var isEditable: Bool {
         viewModel.status == .idle || viewModel.status == .halted || viewModel.status == .error
     }
@@ -173,7 +173,7 @@ struct EditorView: View {
     }
 }
 
-// Custom text view wrapper for editor
+/// Custom text view wrapper for editor
 struct EditorWithGutterView: NSViewRepresentable {
     @Binding var text: String
     @Binding var breakpoints: Set<Int>

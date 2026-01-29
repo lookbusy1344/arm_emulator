@@ -31,7 +31,7 @@ final class ProgramStateTests: XCTestCase { // swiftlint:disable:this type_body_
 
     func testVMStateDecoding() throws {
         let json = "\"breakpoint\""
-        let data = json.data(using: .utf8)!
+        let data = try XCTUnwrap(json.data(using: .utf8))
         let state = try JSONDecoder().decode(VMState.self, from: data)
 
         XCTAssertEqual(state, .breakpoint)
@@ -40,7 +40,7 @@ final class ProgramStateTests: XCTestCase { // swiftlint:disable:this type_body_
     func testVMStateEncoding() throws {
         let state = VMState.running
         let data = try JSONEncoder().encode(state)
-        let json = String(data: data, encoding: .utf8)!
+        let json = try XCTUnwrap(String(data: data, encoding: .utf8))
 
         XCTAssertEqual(json, "\"running\"")
     }
@@ -55,7 +55,7 @@ final class ProgramStateTests: XCTestCase { // swiftlint:disable:this type_body_
         }
         """
 
-        let data = json.data(using: .utf8)!
+        let data = try XCTUnwrap(json.data(using: .utf8))
         let status = try JSONDecoder().decode(VMStatus.self, from: data)
 
         XCTAssertEqual(status.state, "running")
@@ -79,7 +79,7 @@ final class ProgramStateTests: XCTestCase { // swiftlint:disable:this type_body_
         }
         """
 
-        let data = json.data(using: .utf8)!
+        let data = try XCTUnwrap(json.data(using: .utf8))
         let status = try JSONDecoder().decode(VMStatus.self, from: data)
 
         XCTAssertEqual(status.state, "paused")
@@ -101,7 +101,7 @@ final class ProgramStateTests: XCTestCase { // swiftlint:disable:this type_body_
         }
         """
 
-        let data = json.data(using: .utf8)!
+        let data = try XCTUnwrap(json.data(using: .utf8))
         let status = try JSONDecoder().decode(VMStatus.self, from: data)
 
         XCTAssertEqual(status.state, "error")
@@ -119,7 +119,7 @@ final class ProgramStateTests: XCTestCase { // swiftlint:disable:this type_body_
         }
         """
 
-        let data = json.data(using: .utf8)!
+        let data = try XCTUnwrap(json.data(using: .utf8))
         let status = try JSONDecoder().decode(VMStatus.self, from: data)
 
         XCTAssertEqual(status.vmState, .idle)
@@ -133,7 +133,7 @@ final class ProgramStateTests: XCTestCase { // swiftlint:disable:this type_body_
         }
         """
 
-        let data = json.data(using: .utf8)!
+        let data = try XCTUnwrap(json.data(using: .utf8))
         let status = try JSONDecoder().decode(VMStatus.self, from: data)
 
         XCTAssertEqual(status.vmState, .running)
@@ -147,7 +147,7 @@ final class ProgramStateTests: XCTestCase { // swiftlint:disable:this type_body_
         }
         """
 
-        let data = json.data(using: .utf8)!
+        let data = try XCTUnwrap(json.data(using: .utf8))
         let status = try JSONDecoder().decode(VMStatus.self, from: data)
 
         XCTAssertEqual(status.vmState, .waitingForInput)
@@ -161,7 +161,7 @@ final class ProgramStateTests: XCTestCase { // swiftlint:disable:this type_body_
         }
         """
 
-        let data = json.data(using: .utf8)!
+        let data = try XCTUnwrap(json.data(using: .utf8))
         let status = try JSONDecoder().decode(VMStatus.self, from: data)
 
         XCTAssertEqual(status.state, "unknown_state")
@@ -178,7 +178,7 @@ final class ProgramStateTests: XCTestCase { // swiftlint:disable:this type_body_
         }
         """
 
-        let data = json.data(using: .utf8)!
+        let data = try XCTUnwrap(json.data(using: .utf8))
         let memoryData = try JSONDecoder().decode(MemoryData.self, from: data)
 
         XCTAssertEqual(memoryData.address, 32768)
@@ -194,7 +194,7 @@ final class ProgramStateTests: XCTestCase { // swiftlint:disable:this type_body_
         }
         """
 
-        let data = json.data(using: .utf8)!
+        let data = try XCTUnwrap(json.data(using: .utf8))
         let memoryData = try JSONDecoder().decode(MemoryData.self, from: data)
 
         XCTAssertEqual(memoryData.address, 0)
@@ -222,7 +222,7 @@ final class ProgramStateTests: XCTestCase { // swiftlint:disable:this type_body_
         }
         """
 
-        let data = json.data(using: .utf8)!
+        let data = try XCTUnwrap(json.data(using: .utf8))
         let instruction = try JSONDecoder().decode(DisassemblyInstruction.self, from: data)
 
         XCTAssertEqual(instruction.address, 32768)
@@ -241,7 +241,7 @@ final class ProgramStateTests: XCTestCase { // swiftlint:disable:this type_body_
         }
         """
 
-        let data = json.data(using: .utf8)!
+        let data = try XCTUnwrap(json.data(using: .utf8))
         let instruction = try JSONDecoder().decode(DisassemblyInstruction.self, from: data)
 
         XCTAssertEqual(instruction.address, 32768)
@@ -315,7 +315,7 @@ final class ProgramStateTests: XCTestCase { // swiftlint:disable:this type_body_
         }
         """
 
-        let data = json.data(using: .utf8)!
+        let data = try XCTUnwrap(json.data(using: .utf8))
         let sessionInfo = try JSONDecoder().decode(SessionInfo.self, from: data)
 
         XCTAssertEqual(sessionInfo.sessionId, "test-session-123")
@@ -329,7 +329,7 @@ final class ProgramStateTests: XCTestCase { // swiftlint:disable:this type_body_
         }
         """
 
-        let data = json.data(using: .utf8)!
+        let data = try XCTUnwrap(json.data(using: .utf8))
         let sessionInfo = try JSONDecoder().decode(SessionInfo.self, from: data)
 
         XCTAssertEqual(sessionInfo.sessionId, "test-session-456")
@@ -463,7 +463,7 @@ final class ProgramStateTests: XCTestCase { // swiftlint:disable:this type_body_
         }
         """
 
-        let data = json.data(using: .utf8)!
+        let data = try XCTUnwrap(json.data(using: .utf8))
         let status = try JSONDecoder().decode(VMStatus.self, from: data)
 
         XCTAssertEqual(status.pc, 0)
@@ -477,7 +477,7 @@ final class ProgramStateTests: XCTestCase { // swiftlint:disable:this type_body_
         }
         """
 
-        let data = json.data(using: .utf8)!
+        let data = try XCTUnwrap(json.data(using: .utf8))
         let status = try JSONDecoder().decode(VMStatus.self, from: data)
 
         XCTAssertEqual(status.pc, UInt32.max)
@@ -492,7 +492,7 @@ final class ProgramStateTests: XCTestCase { // swiftlint:disable:this type_body_
         }
         """
 
-        let data = json.data(using: .utf8)!
+        let data = try XCTUnwrap(json.data(using: .utf8))
         let status = try JSONDecoder().decode(VMStatus.self, from: data)
 
         XCTAssertNil(status.error)
@@ -507,7 +507,7 @@ final class ProgramStateTests: XCTestCase { // swiftlint:disable:this type_body_
         }
         """
 
-        let data = json.data(using: .utf8)!
+        let data = try XCTUnwrap(json.data(using: .utf8))
         let status = try JSONDecoder().decode(VMStatus.self, from: data)
 
         XCTAssertEqual(status.error, "")
@@ -523,7 +523,7 @@ final class ProgramStateTests: XCTestCase { // swiftlint:disable:this type_body_
         }
         """
 
-        let data = json.data(using: .utf8)!
+        let data = try XCTUnwrap(json.data(using: .utf8))
         let status = try JSONDecoder().decode(VMStatus.self, from: data)
 
         XCTAssertEqual(status.error?.count, 1000)
@@ -538,7 +538,7 @@ final class ProgramStateTests: XCTestCase { // swiftlint:disable:this type_body_
         }
         """
 
-        let data = json.data(using: .utf8)!
+        let data = try XCTUnwrap(json.data(using: .utf8))
         let status = try JSONDecoder().decode(VMStatus.self, from: data)
 
         XCTAssertEqual(status.cycleCount, 0)
@@ -553,7 +553,7 @@ final class ProgramStateTests: XCTestCase { // swiftlint:disable:this type_body_
         }
         """
 
-        let data = json.data(using: .utf8)!
+        let data = try XCTUnwrap(json.data(using: .utf8))
         let status = try JSONDecoder().decode(VMStatus.self, from: data)
 
         XCTAssertEqual(status.cycleCount, 1_000_000)
@@ -569,7 +569,7 @@ final class ProgramStateTests: XCTestCase { // swiftlint:disable:this type_body_
         }
         """
 
-        let data = json.data(using: .utf8)!
+        let data = try XCTUnwrap(json.data(using: .utf8))
         let memoryData = try JSONDecoder().decode(MemoryData.self, from: data)
 
         XCTAssertEqual(memoryData.address, 0)
@@ -584,7 +584,7 @@ final class ProgramStateTests: XCTestCase { // swiftlint:disable:this type_body_
         }
         """
 
-        let data = json.data(using: .utf8)!
+        let data = try XCTUnwrap(json.data(using: .utf8))
         let memoryData = try JSONDecoder().decode(MemoryData.self, from: data)
 
         XCTAssertEqual(memoryData.address, UInt32.max)
@@ -601,7 +601,7 @@ final class ProgramStateTests: XCTestCase { // swiftlint:disable:this type_body_
         }
         """
 
-        let data = json.data(using: .utf8)!
+        let data = try XCTUnwrap(json.data(using: .utf8))
         let memoryData = try JSONDecoder().decode(MemoryData.self, from: data)
 
         XCTAssertEqual(memoryData.data.count, 4096)
@@ -669,7 +669,7 @@ final class ProgramStateTests: XCTestCase { // swiftlint:disable:this type_body_
         }
         """
 
-        let data = json.data(using: .utf8)!
+        let data = try XCTUnwrap(json.data(using: .utf8))
         let instruction = try JSONDecoder().decode(DisassemblyInstruction.self, from: data)
 
         XCTAssertEqual(instruction.symbol, "main+4_loop.inner$1")
@@ -684,7 +684,7 @@ final class ProgramStateTests: XCTestCase { // swiftlint:disable:this type_body_
         }
         """
 
-        let data = json.data(using: .utf8)!
+        let data = try XCTUnwrap(json.data(using: .utf8))
         let sessionInfo = try JSONDecoder().decode(SessionInfo.self, from: data)
 
         XCTAssertEqual(sessionInfo.sessionId, "")
@@ -698,7 +698,7 @@ final class ProgramStateTests: XCTestCase { // swiftlint:disable:this type_body_
         }
         """
 
-        let data = json.data(using: .utf8)!
+        let data = try XCTUnwrap(json.data(using: .utf8))
         let sessionInfo = try JSONDecoder().decode(SessionInfo.self, from: data)
 
         XCTAssertEqual(sessionInfo.sessionId.count, 1000)
@@ -713,7 +713,7 @@ final class ProgramStateTests: XCTestCase { // swiftlint:disable:this type_body_
         }
         """
 
-        let data = json.data(using: .utf8)!
+        let data = try XCTUnwrap(json.data(using: .utf8))
         let sessionInfo = try JSONDecoder().decode(SessionInfo.self, from: data)
 
         XCTAssertEqual(sessionInfo.createdAt, "2026-01-21T10:30:00.123Z")

@@ -84,7 +84,6 @@ struct ExpressionEvaluatorView: View {
         .navigationTitle("Expression Evaluator")
     }
 
-    @ViewBuilder
     private func resultRow(_ result: EvaluationResult) -> some View {
         VStack(alignment: .leading, spacing: 4) {
             HStack {
@@ -114,7 +113,6 @@ struct ExpressionEvaluatorView: View {
         .cornerRadius(8)
     }
 
-    @ViewBuilder
     private func resultValue(label: String, value: String) -> some View {
         VStack(alignment: .leading, spacing: 2) {
             Text(label)

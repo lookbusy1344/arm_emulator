@@ -1,15 +1,7 @@
 import SwiftUI
 
-// Environment key for accessing AppDelegate
-private struct AppDelegateKey: EnvironmentKey {
-    static let defaultValue: AppDelegate? = nil
-}
-
 extension EnvironmentValues {
-    var appDelegate: AppDelegate? {
-        get { self[AppDelegateKey.self] }
-        set { self[AppDelegateKey.self] = newValue }
-    }
+    @Entry var appDelegate: AppDelegate?
 }
 
 @MainActor
@@ -19,7 +11,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     let settings = AppSettings.shared
     weak var viewModel: EmulatorViewModel?
 
-    // Startup file path from command-line arguments (parsed once on first access)
+    /// Startup file path from command-line arguments (parsed once on first access)
     private(set) lazy var startupFilePath: String? = {
         let args = CommandLine.arguments
 

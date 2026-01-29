@@ -47,10 +47,10 @@ final class MockAPIClient: APIClientProtocol, @unchecked Sendable {
     var mockStatus = VMStatus(state: "idle", pc: 0x8000, instruction: nil, cycleCount: nil, error: nil)
     var mockMemoryData: [UInt8]? // Custom memory data for tests
 
-    // Performance simulation
+    /// Performance simulation
     var simulateDelay: TimeInterval = 0 // Simulate slow API responses
 
-    // Stdin simulation (for interactive program testing)
+    /// Stdin simulation (for interactive program testing)
     var mockedStdinInput: String? // Simulate stdin input for interactive programs
 
     // Session ID generation (for session restart testing)

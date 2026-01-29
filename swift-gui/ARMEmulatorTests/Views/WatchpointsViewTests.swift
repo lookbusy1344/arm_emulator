@@ -288,7 +288,7 @@ final class WatchpointsEmptyStateTests: XCTestCase {
 
 @MainActor
 final class WatchpointsViewInitializationTests: XCTestCase {
-    func testInitWithEmptyState() async {
+    func testInitWithEmptyState() {
         let viewModel = EmulatorViewModel()
 
         let view = WatchpointsView(viewModel: viewModel)
@@ -298,7 +298,7 @@ final class WatchpointsViewInitializationTests: XCTestCase {
         XCTAssertTrue(viewModel.watchpoints.isEmpty)
     }
 
-    func testInitWithExistingWatchpoints() async {
+    func testInitWithExistingWatchpoints() {
         let viewModel = EmulatorViewModel()
         viewModel.watchpoints = [
             Watchpoint(id: 1, address: 0x8000, type: "read"),

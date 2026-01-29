@@ -138,7 +138,7 @@ final class WatchpointTypeDisplayTests: XCTestCase {
 
 @MainActor
 final class BreakpointsListViewInitializationTests: XCTestCase {
-    func testInitWithEmptyState() async {
+    func testInitWithEmptyState() {
         let viewModel = EmulatorViewModel()
 
         let view = BreakpointsListView(viewModel: viewModel)
@@ -149,7 +149,7 @@ final class BreakpointsListViewInitializationTests: XCTestCase {
         XCTAssertTrue(viewModel.watchpoints.isEmpty)
     }
 
-    func testInitWithBreakpoints() async {
+    func testInitWithBreakpoints() {
         let viewModel = EmulatorViewModel()
         viewModel.breakpoints = [0x8000, 0x8100, 0x8200]
 
@@ -159,7 +159,7 @@ final class BreakpointsListViewInitializationTests: XCTestCase {
         XCTAssertEqual(viewModel.breakpoints.count, 3)
     }
 
-    func testInitWithWatchpoints() async {
+    func testInitWithWatchpoints() {
         let viewModel = EmulatorViewModel()
         viewModel.watchpoints = [
             Watchpoint(id: 1, address: 0x8000, type: "read"),
@@ -172,7 +172,7 @@ final class BreakpointsListViewInitializationTests: XCTestCase {
         XCTAssertEqual(viewModel.watchpoints.count, 2)
     }
 
-    func testInitWithMixedBreakpointsAndWatchpoints() async {
+    func testInitWithMixedBreakpointsAndWatchpoints() {
         let viewModel = EmulatorViewModel()
         viewModel.breakpoints = [0x8000, 0x8100]
         viewModel.watchpoints = [

@@ -62,7 +62,7 @@ final class APIClientSessionTests: XCTestCase {
         super.tearDown()
     }
 
-    func testCreateSessionSuccess() async throws {
+    func testCreateSessionSuccess() {
         MockURLProtocol.requestHandler = { request in
             // Verify request method and URL
             XCTAssertEqual(request.httpMethod, "POST")
@@ -104,13 +104,13 @@ final class APIClientSessionTests: XCTestCase {
 // MARK: - APIClient Error Handling Tests
 
 final class APIClientErrorTests: XCTestCase {
-    func testAPIErrorDescriptions() {
+    func testAPIErrorDescriptions() throws {
         let invalidURLError = APIError.invalidURL
         XCTAssertEqual(invalidURLError.errorDescription, "Invalid URL")
 
         let networkError = APIError.networkError(NSError(domain: "test", code: -1))
         XCTAssertNotNil(networkError.errorDescription)
-        XCTAssertTrue(networkError.errorDescription!.contains("Network error"))
+        XCTAssertTrue(try XCTUnwrap(networkError.errorDescription?.contains("Network error")))
 
         let invalidResponseError = APIError.invalidResponse
         XCTAssertEqual(invalidResponseError.errorDescription, "Invalid server response")
@@ -120,11 +120,11 @@ final class APIClientErrorTests: XCTestCase {
 
         let decodingError = APIError.decodingError(NSError(domain: "test", code: -1))
         XCTAssertNotNil(decodingError.errorDescription)
-        XCTAssertTrue(decodingError.errorDescription!.contains("Failed to decode"))
+        XCTAssertTrue(try XCTUnwrap(decodingError.errorDescription?.contains("Failed to decode")))
 
         let encodingError = APIError.encodingError(NSError(domain: "test", code: -1))
         XCTAssertNotNil(encodingError.errorDescription)
-        XCTAssertTrue(encodingError.errorDescription!.contains("Failed to encode"))
+        XCTAssertTrue(try XCTUnwrap(encodingError.errorDescription?.contains("Failed to encode")))
     }
 }
 
@@ -140,7 +140,7 @@ final class APIClientModelTests: XCTestCase {
         }
         """
 
-        let data = json.data(using: .utf8)!
+        let data = try XCTUnwrap(json.data(using: .utf8))
         let response = try JSONDecoder().decode(LoadProgramResponse.self, from: data)
 
         XCTAssertTrue(response.success)
@@ -158,7 +158,7 @@ final class APIClientModelTests: XCTestCase {
         }
         """
 
-        let data = json.data(using: .utf8)!
+        let data = try XCTUnwrap(json.data(using: .utf8))
         let response = try JSONDecoder().decode(LoadProgramResponse.self, from: data)
 
         XCTAssertFalse(response.success)
@@ -177,7 +177,7 @@ final class APIClientModelTests: XCTestCase {
         }
         """
 
-        let data = json.data(using: .utf8)!
+        let data = try XCTUnwrap(json.data(using: .utf8))
         let version = try JSONDecoder().decode(BackendVersion.self, from: data)
 
         XCTAssertEqual(version.version, "1.0.0")
@@ -194,7 +194,7 @@ final class APIClientModelTests: XCTestCase {
         }
         """
 
-        let data = json.data(using: .utf8)!
+        let data = try XCTUnwrap(json.data(using: .utf8))
         let entry = try JSONDecoder().decode(SourceMapEntry.self, from: data)
 
         XCTAssertEqual(entry.address, 32768)
@@ -207,15 +207,15 @@ final class APIClientModelTests: XCTestCase {
 
 final class APIClientURLConstructionTests: XCTestCase {
     func testMemoryURLConstruction() throws {
-        let baseURL = URL(string: "http://localhost:8080")!
+        let baseURL = try XCTUnwrap(URL(string: "http://localhost:8080"))
         let sessionID = "test-session"
         let address: UInt32 = 0x8000
         let length = 256
 
-        var components = URLComponents(
+        var components = try XCTUnwrap(URLComponents(
             url: baseURL.appendingPathComponent("/api/v1/session/\(sessionID)/memory"),
             resolvingAgainstBaseURL: false,
-        )!
+        ))
         components.queryItems = [
             URLQueryItem(name: "address", value: String(format: "0x%X", address)),
             URLQueryItem(name: "length", value: String(length)),
@@ -223,20 +223,20 @@ final class APIClientURLConstructionTests: XCTestCase {
 
         let url = try XCTUnwrap(components.url)
         XCTAssertEqual(url.path, "/api/v1/session/test-session/memory")
-        XCTAssertTrue(url.query!.contains("address=0x8000"))
-        XCTAssertTrue(url.query!.contains("length=256"))
+        XCTAssertTrue(try XCTUnwrap(url.query?.contains("address=0x8000")))
+        XCTAssertTrue(try XCTUnwrap(url.query?.contains("length=256")))
     }
 
     func testDisassemblyURLConstruction() throws {
-        let baseURL = URL(string: "http://localhost:8080")!
+        let baseURL = try XCTUnwrap(URL(string: "http://localhost:8080"))
         let sessionID = "test-session"
         let address: UInt32 = 0x8000
         let count = 10
 
-        var components = URLComponents(
+        var components = try XCTUnwrap(URLComponents(
             url: baseURL.appendingPathComponent("/api/v1/session/\(sessionID)/disassembly"),
             resolvingAgainstBaseURL: false,
-        )!
+        ))
         components.queryItems = [
             URLQueryItem(name: "address", value: String(format: "0x%X", address)),
             URLQueryItem(name: "count", value: String(count)),
@@ -244,8 +244,8 @@ final class APIClientURLConstructionTests: XCTestCase {
 
         let url = try XCTUnwrap(components.url)
         XCTAssertEqual(url.path, "/api/v1/session/test-session/disassembly")
-        XCTAssertTrue(url.query!.contains("address=0x8000"))
-        XCTAssertTrue(url.query!.contains("count=10"))
+        XCTAssertTrue(try XCTUnwrap(url.query?.contains("address=0x8000")))
+        XCTAssertTrue(try XCTUnwrap(url.query?.contains("count=10")))
     }
 
     func testHexAddressFormatting() {

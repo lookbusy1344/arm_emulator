@@ -22,7 +22,7 @@ final class BackendProcessLifecycleTests: XCTestCase {
         XCTAssertEqual(backendManager.backendStatus, .unknown)
     }
 
-    func testBackendStatusTransitionsToStarting() async {
+    func testBackendStatusTransitionsToStarting() {
         // Note: This test requires the Go backend binary to be built
         // It will transition through: unknown -> starting -> running (or error)
 
@@ -139,7 +139,7 @@ final class BackendRestartLogicTests: XCTestCase {
         XCTAssertNotNil(backendManager)
     }
 
-    func testRestartBackendIncludesDelay() async {
+    func testRestartBackendIncludesDelay() {
         // Restart should include a 500ms delay between shutdown and startup
         // to allow cleanup to complete
         let expectedDelay: UInt64 = 500_000_000 // 500ms in nanoseconds
@@ -319,7 +319,7 @@ final class BackendStartupTimeoutTests: XCTestCase {
         XCTAssertEqual(checkIntervalSeconds, 0.2, accuracy: 0.01)
     }
 
-    func testStartupTimeoutThrowsError() async {
+    func testStartupTimeoutThrowsError() {
         // If backend doesn't become healthy within timeout, should throw BackendError.startupTimeout
         // This is tested conceptually as we can't control real backend startup timing
 

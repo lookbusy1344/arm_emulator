@@ -68,7 +68,6 @@ struct WatchpointsView: View {
         }
     }
 
-    @ViewBuilder
     private func watchpointRow(_ watchpoint: Watchpoint) -> some View {
         HStack {
             Image(systemName: watchpointIcon(for: watchpoint.type))
