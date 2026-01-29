@@ -134,10 +134,10 @@ ARMEmulator.Tests/
 - **Immutable data models** using records with `with` expressions
 - **Pure functions** where possible (no side effects)
 - **Pipeline-style composition** using LINQ and extension methods
-- **Option types** via nullable reference types (`T?`) with exhaustive handling
-- **Result types** for operations that can fail (custom `Result<T, E>`)
+- **Nullable reference types** (`T?`) with exhaustive handling for optional values
+- **Exceptions** for error handling (idiomatic .NET) with domain-specific exception types
 - **Higher-order functions** for callbacks and event handling
-- **Discriminated unions** via abstract records with sealed derived types
+- **Discriminated unions** via abstract records with sealed derived types (for domain events, not errors)
 
 ### Code Organization
 
@@ -251,8 +251,8 @@ avalonia-gui/
 <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.*" />
 <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="10.*" />
 
-<!-- Functional helpers (optional but recommended) -->
-<PackageReference Include="LanguageExt.Core" Version="5.*" />
+<!-- Functional helpers (optional - for advanced patterns like Seq, Option beyond T?) -->
+<!-- <PackageReference Include="LanguageExt.Core" Version="5.*" /> -->
 
 <!-- Testing -->
 <PackageReference Include="xunit" Version="2.*" />
@@ -261,7 +261,7 @@ avalonia-gui/
 <PackageReference Include="Avalonia.Headless.XUnit" Version="11.3.*" />
 ```
 
-> **Note:** We use `NSubstitute` instead of `Moq` for a more functional mocking syntax. `LanguageExt.Core` provides `Option<T>`, `Either<L, R>`, and other functional primitives if desired.
+> **Note:** We use `NSubstitute` instead of `Moq` for a more functional mocking syntax. Error handling uses idiomatic .NET exceptions with domain-specific exception types rather than Result/Either monads.
 
 ### 0.3 Build Configuration
 
@@ -505,95 +505,151 @@ public enum ExecutionEventType { BreakpointHit, Halted, Error }
 public sealed record Watchpoint(int Id, uint Address, WatchpointType Type);
 
 public enum WatchpointType { Read, Write, ReadWrite }
-
-// Result type for operations that can fail
-public abstract record Result<T>;
-public sealed record Ok<T>(T Value) : Result<T>;
-public sealed record Err<T>(string Error) : Result<T>;
-
-public static class ResultExtensions
-{
-    public static Result<U> Map<T, U>(this Result<T> result, Func<T, U> f) =>
-        result switch
-        {
-            Ok<T>(var v) => new Ok<U>(f(v)),
-            Err<T>(var e) => new Err<U>(e),
-            _ => throw new InvalidOperationException()
-        };
-
-    public static async Task<Result<U>> MapAsync<T, U>(
-        this Result<T> result,
-        Func<T, Task<U>> f
-    ) => result switch
-    {
-        Ok<T>(var v) => new Ok<U>(await f(v)),
-        Err<T>(var e) => new Err<U>(e),
-        _ => throw new InvalidOperationException()
-    };
-}
 ```
 
-### 1.2 API Client
+### 1.2 Domain Exceptions
 
-Implement `IApiClient` interface using Result types for error handling and source-generated JSON:
+Define domain-specific exceptions for clear error handling:
 
 ```csharp
 namespace ARMEmulator.Services;
 
-// Use Result<T> for operations that can fail (no exceptions for expected errors)
+/// <summary>Base exception for all API-related errors.</summary>
+public class ApiException : Exception
+{
+    public HttpStatusCode? StatusCode { get; }
+
+    public ApiException(string message, HttpStatusCode? statusCode = null, Exception? inner = null)
+        : base(message, inner) => StatusCode = statusCode;
+}
+
+/// <summary>Thrown when a session is not found or has expired.</summary>
+public class SessionNotFoundException(string sessionId)
+    : ApiException($"Session '{sessionId}' not found or expired", HttpStatusCode.NotFound);
+
+/// <summary>Thrown when program loading fails due to parse/assembly errors.</summary>
+public class ProgramLoadException : ApiException
+{
+    public IReadOnlyList<ParseError> Errors { get; }
+
+    public ProgramLoadException(IReadOnlyList<ParseError> errors)
+        : base($"Program failed to load: {errors.Count} error(s)") => Errors = errors;
+}
+
+/// <summary>Thrown when the backend is unreachable.</summary>
+public class BackendUnavailableException(string message, Exception? inner = null)
+    : ApiException(message, null, inner);
+
+/// <summary>Thrown when an expression evaluation fails.</summary>
+public class ExpressionEvaluationException(string expression, string error)
+    : ApiException($"Failed to evaluate '{expression}': {error}");
+
+/// <summary>Parse error details from the assembler.</summary>
+public sealed record ParseError(int Line, int Column, string Message);
+```
+
+### 1.3 API Client
+
+Implement `IApiClient` interface using idiomatic .NET exception-based error handling:
+
+```csharp
+namespace ARMEmulator.Services;
+
+/// <summary>
+/// Client for the ARM Emulator REST API.
+/// All methods throw <see cref="ApiException"/> or derived types on failure.
+/// </summary>
 public interface IApiClient
 {
     // Session Management
-    Task<Result<SessionInfo>> CreateSessionAsync(CancellationToken ct = default);
-    Task<Result<VMStatus>> GetStatusAsync(string sessionId, CancellationToken ct = default);
-    Task<Result<Unit>> DestroySessionAsync(string sessionId, CancellationToken ct = default);
+    /// <exception cref="BackendUnavailableException">Backend not reachable</exception>
+    /// <exception cref="ApiException">Request failed</exception>
+    Task<SessionInfo> CreateSessionAsync(CancellationToken ct = default);
 
-    // Program Loading - returns parse errors in Result
-    Task<Result<LoadProgramResponse>> LoadProgramAsync(string sessionId, string source, CancellationToken ct = default);
+    /// <exception cref="SessionNotFoundException">Session not found</exception>
+    Task<VMStatus> GetStatusAsync(string sessionId, CancellationToken ct = default);
+
+    /// <exception cref="SessionNotFoundException">Session not found</exception>
+    Task DestroySessionAsync(string sessionId, CancellationToken ct = default);
+
+    // Program Loading
+    /// <exception cref="SessionNotFoundException">Session not found</exception>
+    /// <exception cref="ProgramLoadException">Assembly/parse errors</exception>
+    Task<LoadProgramResponse> LoadProgramAsync(string sessionId, string source, CancellationToken ct = default);
 
     // Execution Control
-    Task<Result<Unit>> RunAsync(string sessionId, CancellationToken ct = default);
-    Task<Result<Unit>> StopAsync(string sessionId, CancellationToken ct = default);
-    Task<Result<RegisterState>> StepAsync(string sessionId, CancellationToken ct = default);
-    Task<Result<RegisterState>> StepOverAsync(string sessionId, CancellationToken ct = default);
-    Task<Result<RegisterState>> StepOutAsync(string sessionId, CancellationToken ct = default);
-    Task<Result<Unit>> ResetAsync(string sessionId, CancellationToken ct = default);
-    Task<Result<Unit>> RestartAsync(string sessionId, CancellationToken ct = default);
+    /// <exception cref="SessionNotFoundException">Session not found</exception>
+    Task RunAsync(string sessionId, CancellationToken ct = default);
+
+    /// <exception cref="SessionNotFoundException">Session not found</exception>
+    Task StopAsync(string sessionId, CancellationToken ct = default);
+
+    /// <exception cref="SessionNotFoundException">Session not found</exception>
+    Task<RegisterState> StepAsync(string sessionId, CancellationToken ct = default);
+
+    /// <exception cref="SessionNotFoundException">Session not found</exception>
+    Task<RegisterState> StepOverAsync(string sessionId, CancellationToken ct = default);
+
+    /// <exception cref="SessionNotFoundException">Session not found</exception>
+    Task<RegisterState> StepOutAsync(string sessionId, CancellationToken ct = default);
+
+    /// <exception cref="SessionNotFoundException">Session not found</exception>
+    Task ResetAsync(string sessionId, CancellationToken ct = default);
+
+    /// <exception cref="SessionNotFoundException">Session not found</exception>
+    Task RestartAsync(string sessionId, CancellationToken ct = default);
 
     // State Inspection
-    Task<Result<RegisterState>> GetRegistersAsync(string sessionId, CancellationToken ct = default);
-    Task<Result<ImmutableArray<byte>>> GetMemoryAsync(string sessionId, uint address, int length, CancellationToken ct = default);
-    Task<Result<ImmutableArray<DisassemblyInstruction>>> GetDisassemblyAsync(string sessionId, uint address, int count, CancellationToken ct = default);
-    Task<Result<ImmutableArray<SourceMapEntry>>> GetSourceMapAsync(string sessionId, CancellationToken ct = default);
+    /// <exception cref="SessionNotFoundException">Session not found</exception>
+    Task<RegisterState> GetRegistersAsync(string sessionId, CancellationToken ct = default);
+
+    /// <exception cref="SessionNotFoundException">Session not found</exception>
+    Task<ImmutableArray<byte>> GetMemoryAsync(string sessionId, uint address, int length, CancellationToken ct = default);
+
+    /// <exception cref="SessionNotFoundException">Session not found</exception>
+    Task<ImmutableArray<DisassemblyInstruction>> GetDisassemblyAsync(string sessionId, uint address, int count, CancellationToken ct = default);
+
+    /// <exception cref="SessionNotFoundException">Session not found</exception>
+    Task<ImmutableArray<SourceMapEntry>> GetSourceMapAsync(string sessionId, CancellationToken ct = default);
 
     // Breakpoints
-    Task<Result<Unit>> AddBreakpointAsync(string sessionId, uint address, CancellationToken ct = default);
-    Task<Result<Unit>> RemoveBreakpointAsync(string sessionId, uint address, CancellationToken ct = default);
-    Task<Result<ImmutableArray<uint>>> GetBreakpointsAsync(string sessionId, CancellationToken ct = default);
+    /// <exception cref="SessionNotFoundException">Session not found</exception>
+    Task AddBreakpointAsync(string sessionId, uint address, CancellationToken ct = default);
+
+    /// <exception cref="SessionNotFoundException">Session not found</exception>
+    Task RemoveBreakpointAsync(string sessionId, uint address, CancellationToken ct = default);
+
+    /// <exception cref="SessionNotFoundException">Session not found</exception>
+    Task<ImmutableArray<uint>> GetBreakpointsAsync(string sessionId, CancellationToken ct = default);
 
     // Watchpoints
-    Task<Result<Watchpoint>> AddWatchpointAsync(string sessionId, uint address, WatchpointType type, CancellationToken ct = default);
-    Task<Result<Unit>> RemoveWatchpointAsync(string sessionId, int watchpointId, CancellationToken ct = default);
-    Task<Result<ImmutableArray<Watchpoint>>> GetWatchpointsAsync(string sessionId, CancellationToken ct = default);
+    /// <exception cref="SessionNotFoundException">Session not found</exception>
+    Task<Watchpoint> AddWatchpointAsync(string sessionId, uint address, WatchpointType type, CancellationToken ct = default);
+
+    /// <exception cref="SessionNotFoundException">Session not found</exception>
+    Task RemoveWatchpointAsync(string sessionId, int watchpointId, CancellationToken ct = default);
+
+    /// <exception cref="SessionNotFoundException">Session not found</exception>
+    Task<ImmutableArray<Watchpoint>> GetWatchpointsAsync(string sessionId, CancellationToken ct = default);
 
     // Expression Evaluation
-    Task<Result<uint>> EvaluateExpressionAsync(string sessionId, string expression, CancellationToken ct = default);
+    /// <exception cref="SessionNotFoundException">Session not found</exception>
+    /// <exception cref="ExpressionEvaluationException">Invalid expression</exception>
+    Task<uint> EvaluateExpressionAsync(string sessionId, string expression, CancellationToken ct = default);
 
     // Input
-    Task<Result<Unit>> SendStdinAsync(string sessionId, string data, CancellationToken ct = default);
+    /// <exception cref="SessionNotFoundException">Session not found</exception>
+    Task SendStdinAsync(string sessionId, string data, CancellationToken ct = default);
 
     // Version
-    Task<Result<BackendVersion>> GetVersionAsync(CancellationToken ct = default);
+    /// <exception cref="BackendUnavailableException">Backend not reachable</exception>
+    Task<BackendVersion> GetVersionAsync(CancellationToken ct = default);
 
     // Examples
-    Task<Result<ImmutableArray<ExampleInfo>>> GetExamplesAsync(CancellationToken ct = default);
-    Task<Result<string>> GetExampleContentAsync(string name, CancellationToken ct = default);
-}
+    Task<ImmutableArray<ExampleInfo>> GetExamplesAsync(CancellationToken ct = default);
 
-// Unit type for void-returning operations
-public readonly struct Unit
-{
-    public static readonly Unit Value = new();
+    /// <exception cref="ApiException">Example not found</exception>
+    Task<string> GetExampleContentAsync(string name, CancellationToken ct = default);
 }
 
 // Source-generated JSON context for AOT compatibility
@@ -610,7 +666,11 @@ public readonly struct Unit
 [JsonSerializable(typeof(ExampleInfo))]
 [JsonSerializable(typeof(DisassemblyInstruction))]
 [JsonSerializable(typeof(SourceMapEntry))]
+[JsonSerializable(typeof(ApiErrorResponse))]
 internal partial class ApiJsonContext : JsonSerializerContext { }
+
+/// <summary>Standard error response from the backend.</summary>
+internal sealed record ApiErrorResponse(string Error, IReadOnlyList<ParseError>? ParseErrors = null);
 
 // Implementation using primary constructor
 public sealed class ApiClient(HttpClient http, ILogger<ApiClient> logger) : IApiClient
@@ -620,36 +680,73 @@ public sealed class ApiClient(HttpClient http, ILogger<ApiClient> logger) : IApi
         TypeInfoResolver = ApiJsonContext.Default
     };
 
-    public async Task<Result<SessionInfo>> CreateSessionAsync(CancellationToken ct = default)
+    public async Task<SessionInfo> CreateSessionAsync(CancellationToken ct = default)
     {
         try
         {
             var response = await http.PostAsync("/api/v1/session", null, ct);
-            return await ParseResponse<SessionInfo>(response, ct);
+            return await ParseResponseOrThrowAsync<SessionInfo>(response, ct);
         }
-        catch (Exception ex)
+        catch (HttpRequestException ex)
         {
-            logger.LogError(ex, "Failed to create session");
-            return new Err<SessionInfo>(ex.Message);
+            logger.LogError(ex, "Failed to connect to backend");
+            throw new BackendUnavailableException("Cannot connect to backend", ex);
         }
     }
 
-    // Helper for consistent response parsing
-    private async Task<Result<T>> ParseResponse<T>(HttpResponseMessage response, CancellationToken ct)
+    public async Task<LoadProgramResponse> LoadProgramAsync(string sessionId, string source, CancellationToken ct = default)
     {
+        var content = new StringContent(source, Encoding.UTF8, "text/plain");
+        var response = await http.PostAsync($"/api/v1/session/{sessionId}/load", content, ct);
+
+        // Special handling for parse errors (400 with error details)
+        if (response.StatusCode == HttpStatusCode.BadRequest)
+        {
+            var errorResponse = await response.Content.ReadFromJsonAsync<ApiErrorResponse>(_jsonOptions, ct);
+            if (errorResponse?.ParseErrors is { Count: > 0 } errors)
+                throw new ProgramLoadException(errors);
+        }
+
+        return await ParseResponseOrThrowAsync<LoadProgramResponse>(response, ct, sessionId);
+    }
+
+    public async Task<uint> EvaluateExpressionAsync(string sessionId, string expression, CancellationToken ct = default)
+    {
+        var response = await http.PostAsJsonAsync(
+            $"/api/v1/session/{sessionId}/evaluate",
+            new { expression },
+            _jsonOptions,
+            ct);
+
+        if (response.StatusCode == HttpStatusCode.BadRequest)
+        {
+            var errorResponse = await response.Content.ReadFromJsonAsync<ApiErrorResponse>(_jsonOptions, ct);
+            throw new ExpressionEvaluationException(expression, errorResponse?.Error ?? "Unknown error");
+        }
+
+        return await ParseResponseOrThrowAsync<uint>(response, ct, sessionId);
+    }
+
+    // Helper for consistent response parsing with appropriate exceptions
+    private async Task<T> ParseResponseOrThrowAsync<T>(
+        HttpResponseMessage response,
+        CancellationToken ct,
+        string? sessionId = null)
+    {
+        if (response.StatusCode == HttpStatusCode.NotFound && sessionId is not null)
+            throw new SessionNotFoundException(sessionId);
+
         if (!response.IsSuccessStatusCode)
         {
             var error = await response.Content.ReadAsStringAsync(ct);
-            return new Err<T>($"{response.StatusCode}: {error}");
+            throw new ApiException($"API error: {error}", response.StatusCode);
         }
 
         var content = await response.Content.ReadFromJsonAsync<T>(_jsonOptions, ct);
-        return content is not null
-            ? new Ok<T>(content)
-            : new Err<T>("Response deserialized to null");
+        return content ?? throw new ApiException("Response deserialized to null");
     }
 
-    // ... other methods follow same pattern
+    // ... other methods follow same pattern: call API, throw on failure
 }
 ```
 
@@ -1709,7 +1806,6 @@ The Go backend binary must be bundled with the app:
 | **WebSocket** | ClientWebSocket (System.Net.WebSockets) |
 | **Reactive Extensions** | System.Reactive 6.x |
 | **JSON Serialization** | System.Text.Json (source-generated) |
-| **Functional Helpers** | LanguageExt.Core 5.x (optional) |
 | **Dependency Injection** | Microsoft.Extensions.DependencyInjection 10.x |
 | **Testing** | xUnit 2.x, NSubstitute 5.x, FluentAssertions 7.x |
 | **UI Testing** | Avalonia.Headless.XUnit |
@@ -1782,8 +1878,8 @@ DoSomething([1, 2, 3]);
 // Class with primary constructor (captures parameters as fields)
 public class ApiClient(HttpClient http, ILogger logger) : IApiClient
 {
-    public async Task<Result<T>> GetAsync<T>(string path) =>
-        await http.GetFromJsonAsync<T>(path);
+    public async Task<T> GetAsync<T>(string path) =>
+        await http.GetFromJsonAsync<T>(path) ?? throw new ApiException("Null response");
 }
 
 // Record with primary constructor (auto-generates properties)
@@ -1831,12 +1927,18 @@ public static class ObservableExtensions
 ### Async/Await with LINQ
 
 ```csharp
-// Process items concurrently with controlled parallelism
+// Process items concurrently, collecting results (exceptions propagate naturally)
 var results = await addresses
     .ToAsyncEnumerable()
     .SelectAwaitWithCancellation(async (addr, ct) =>
         await _api.GetMemoryAsync(sessionId, addr, 16, ct))
-    .Where(r => r is Ok<ImmutableArray<byte>>)
-    .Select(r => ((Ok<ImmutableArray<byte>>)r).Value)
     .ToListAsync(ct);
+
+// Or with exception handling per item (when partial failure is acceptable)
+var partialResults = new List<ImmutableArray<byte>>();
+foreach (var addr in addresses)
+{
+    try { partialResults.Add(await _api.GetMemoryAsync(sessionId, addr, 16, ct)); }
+    catch (ApiException ex) { logger.LogWarning(ex, "Skipping address {Address}", addr); }
+}
 ```
