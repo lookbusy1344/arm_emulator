@@ -28,7 +28,7 @@ public sealed class ApiClientTests : IDisposable
 	public async Task CreateSessionAsync_WithSuccessResponse_ReturnsSessionInfo()
 	{
 		var sessionInfo = new SessionInfo("session-123");
-		_handler.SetResponse(HttpStatusCode.OK, JsonSerializer.Serialize(sessionInfo));
+		_handler.SetResponse(HttpStatusCode.OK, JsonSerializer.Serialize(sessionInfo, ApiJsonContext.Default.SessionInfo));
 
 		var result = await _apiClient.CreateSessionAsync();
 
@@ -52,7 +52,7 @@ public sealed class ApiClientTests : IDisposable
 	public async Task GetStatusAsync_WithValidSession_ReturnsStatus()
 	{
 		var status = new VMStatus(VMState.Idle, 0x8000, 0);
-		_handler.SetResponse(HttpStatusCode.OK, JsonSerializer.Serialize(status));
+		_handler.SetResponse(HttpStatusCode.OK, JsonSerializer.Serialize(status, ApiJsonContext.Default.VMStatus));
 
 		var result = await _apiClient.GetStatusAsync("session-123");
 
@@ -75,7 +75,7 @@ public sealed class ApiClientTests : IDisposable
 	public async Task LoadProgramAsync_WithValidProgram_ReturnsLoadResponse()
 	{
 		var response = new LoadProgramResponse(true, [], 0x8000);
-		_handler.SetResponse(HttpStatusCode.OK, JsonSerializer.Serialize(response));
+		_handler.SetResponse(HttpStatusCode.OK, JsonSerializer.Serialize(response, ApiJsonContext.Default.LoadProgramResponse));
 
 		var result = await _apiClient.LoadProgramAsync("session-123", "MOV R0, #1");
 
@@ -87,16 +87,14 @@ public sealed class ApiClientTests : IDisposable
 	[Fact]
 	public async Task LoadProgramAsync_WithParseErrors_ThrowsProgramLoadException()
 	{
-		var errorResponse = new
-		{
-			error = "Parse error",
-			parseErrors = new[]
-			{
-				new { line = 1, column = 5, message = "Invalid instruction" },
-				new { line = 2, column = 10, message = "Unknown register" }
-			}
-		};
-		_handler.SetResponse(HttpStatusCode.BadRequest, JsonSerializer.Serialize(errorResponse));
+		var errorResponse = new ApiErrorResponse(
+			"Parse error",
+			[
+				new ParseError(1, 5, "Invalid instruction"),
+				new ParseError(2, 10, "Unknown register")
+			]
+		);
+		_handler.SetResponse(HttpStatusCode.BadRequest, JsonSerializer.Serialize(errorResponse, ApiJsonContext.Default.ApiErrorResponse));
 
 		var act = async () => await _apiClient.LoadProgramAsync("session-123", "INVALID");
 
@@ -110,7 +108,7 @@ public sealed class ApiClientTests : IDisposable
 	public async Task StepAsync_WithValidSession_ReturnsRegisters()
 	{
 		var registers = RegisterState.Create(r0: 42);
-		_handler.SetResponse(HttpStatusCode.OK, JsonSerializer.Serialize(registers));
+		_handler.SetResponse(HttpStatusCode.OK, JsonSerializer.Serialize(registers, ApiJsonContext.Default.RegisterState));
 
 		var result = await _apiClient.StepAsync("session-123");
 
@@ -122,8 +120,8 @@ public sealed class ApiClientTests : IDisposable
 	[Fact]
 	public async Task EvaluateExpressionAsync_WithValidExpression_ReturnsValue()
 	{
-		var response = new { value = 42u };
-		_handler.SetResponse(HttpStatusCode.OK, JsonSerializer.Serialize(response));
+		var response = new EvaluationResponse(42u);
+		_handler.SetResponse(HttpStatusCode.OK, JsonSerializer.Serialize(response, ApiJsonContext.Default.EvaluationResponse));
 
 		var result = await _apiClient.EvaluateExpressionAsync("session-123", "r0 + r1");
 
@@ -133,8 +131,8 @@ public sealed class ApiClientTests : IDisposable
 	[Fact]
 	public async Task EvaluateExpressionAsync_WithInvalidExpression_ThrowsExpressionEvaluationException()
 	{
-		var errorResponse = new { error = "Invalid syntax" };
-		_handler.SetResponse(HttpStatusCode.BadRequest, JsonSerializer.Serialize(errorResponse));
+		var errorResponse = new ApiErrorResponse("Invalid syntax");
+		_handler.SetResponse(HttpStatusCode.BadRequest, JsonSerializer.Serialize(errorResponse, ApiJsonContext.Default.ApiErrorResponse));
 
 		var act = async () => await _apiClient.EvaluateExpressionAsync("session-123", "invalid");
 
@@ -146,8 +144,8 @@ public sealed class ApiClientTests : IDisposable
 	public async Task GetMemoryAsync_ReturnsMemoryData()
 	{
 		var memory = new byte[] { 0x01, 0x02, 0x03, 0x04 };
-		var response = new { data = memory };
-		_handler.SetResponse(HttpStatusCode.OK, JsonSerializer.Serialize(response));
+		var response = new MemoryResponse(memory);
+		_handler.SetResponse(HttpStatusCode.OK, JsonSerializer.Serialize(response, ApiJsonContext.Default.MemoryResponse));
 
 		var result = await _apiClient.GetMemoryAsync("session-123", 0x10000, 4);
 
@@ -169,7 +167,7 @@ public sealed class ApiClientTests : IDisposable
 	public async Task AddWatchpointAsync_ReturnsWatchpoint()
 	{
 		var watchpoint = new Watchpoint(1, 0x10000, WatchpointType.Write);
-		_handler.SetResponse(HttpStatusCode.OK, JsonSerializer.Serialize(watchpoint));
+		_handler.SetResponse(HttpStatusCode.OK, JsonSerializer.Serialize(watchpoint, ApiJsonContext.Default.Watchpoint));
 
 		var result = await _apiClient.AddWatchpointAsync("session-123", 0x10000, WatchpointType.Write);
 

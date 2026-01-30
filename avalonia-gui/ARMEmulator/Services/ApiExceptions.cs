@@ -31,16 +31,11 @@ public sealed class SessionNotFoundException(string sessionId)
 /// <summary>
 /// Thrown when program loading fails due to parse or assembly errors.
 /// </summary>
-public sealed class ProgramLoadException : ApiException
+public sealed class ProgramLoadException(ImmutableArray<ParseError> errors)
+	: ApiException($"Program failed to load: {errors.Length} error(s)", HttpStatusCode.BadRequest)
 {
 	/// <summary>List of parse errors from the assembler.</summary>
-	public ImmutableArray<ParseError> Errors { get; }
-
-	public ProgramLoadException(ImmutableArray<ParseError> errors)
-		: base($"Program failed to load: {errors.Length} error(s)", HttpStatusCode.BadRequest)
-	{
-		Errors = errors;
-	}
+	public ImmutableArray<ParseError> Errors => errors;
 }
 
 /// <summary>
@@ -52,14 +47,9 @@ public sealed class BackendUnavailableException(string message, Exception? inner
 /// <summary>
 /// Thrown when an expression evaluation fails.
 /// </summary>
-public sealed class ExpressionEvaluationException : ApiException
+public sealed class ExpressionEvaluationException(string expression, string error)
+	: ApiException($"Failed to evaluate '{expression}': {error}", HttpStatusCode.BadRequest)
 {
 	/// <summary>The expression that failed to evaluate.</summary>
-	public string Expression { get; }
-
-	public ExpressionEvaluationException(string expression, string error)
-		: base($"Failed to evaluate '{expression}': {error}", HttpStatusCode.BadRequest)
-	{
-		Expression = expression;
-	}
+	public string Expression => expression;
 }

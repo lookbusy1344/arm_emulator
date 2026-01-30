@@ -16,6 +16,10 @@
 	<Nullable>enable</Nullable>
   </PropertyGroup>
 
+  <ItemGroup>
+    <InternalsVisibleTo Include="ARMEmulator.Tests" />
+  </ItemGroup>
+
   <PropertyGroup>
 	<EnforceCodeStyleInBuild>True</EnforceCodeStyleInBuild>
 	<AnalysisModeDesign>All</AnalysisModeDesign>
