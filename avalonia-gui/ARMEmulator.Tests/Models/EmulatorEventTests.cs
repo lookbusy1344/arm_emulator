@@ -12,9 +12,9 @@ public sealed class EmulatorEventTests
 		var registers = RegisterState.Create(r0: 42);
 		var evt = new StateEvent("session-123", status, registers);
 
-		evt.SessionId.Should().Be("session-123");
-		evt.Status.Should().Be(status);
-		evt.Registers.Should().Be(registers);
+		_ = evt.SessionId.Should().Be("session-123");
+		_ = evt.Status.Should().Be(status);
+		_ = evt.Registers.Should().Be(registers);
 	}
 
 	[Fact]
@@ -22,9 +22,9 @@ public sealed class EmulatorEventTests
 	{
 		var evt = new OutputEvent("session-123", OutputStreamType.Stdout, "Hello, World!\n");
 
-		evt.SessionId.Should().Be("session-123");
-		evt.Stream.Should().Be(OutputStreamType.Stdout);
-		evt.Content.Should().Be("Hello, World!\n");
+		_ = evt.SessionId.Should().Be("session-123");
+		_ = evt.Stream.Should().Be(OutputStreamType.Stdout);
+		_ = evt.Content.Should().Be("Hello, World!\n");
 	}
 
 	[Fact]
@@ -32,7 +32,7 @@ public sealed class EmulatorEventTests
 	{
 		var evt = new OutputEvent("session-123", OutputStreamType.Stderr, "Error occurred\n");
 
-		evt.Stream.Should().Be(OutputStreamType.Stderr);
+		_ = evt.Stream.Should().Be(OutputStreamType.Stderr);
 	}
 
 	[Fact]
@@ -44,11 +44,11 @@ public sealed class EmulatorEventTests
 			Address: 0x8000
 		);
 
-		evt.SessionId.Should().Be("session-123");
-		evt.EventType.Should().Be(ExecutionEventType.BreakpointHit);
-		evt.Address.Should().Be(0x8000u);
-		evt.Symbol.Should().BeNull();
-		evt.Message.Should().BeNull();
+		_ = evt.SessionId.Should().Be("session-123");
+		_ = evt.EventType.Should().Be(ExecutionEventType.BreakpointHit);
+		_ = evt.Address.Should().Be(0x8000u);
+		_ = evt.Symbol.Should().BeNull();
+		_ = evt.Message.Should().BeNull();
 	}
 
 	[Fact]
@@ -60,9 +60,9 @@ public sealed class EmulatorEventTests
 			Message: "Program completed successfully"
 		);
 
-		evt.EventType.Should().Be(ExecutionEventType.Halted);
-		evt.Message.Should().Be("Program completed successfully");
-		evt.Address.Should().BeNull();
+		_ = evt.EventType.Should().Be(ExecutionEventType.Halted);
+		_ = evt.Message.Should().Be("Program completed successfully");
+		_ = evt.Address.Should().BeNull();
 	}
 
 	[Fact]
@@ -74,8 +74,8 @@ public sealed class EmulatorEventTests
 			Message: "Invalid instruction"
 		);
 
-		evt.EventType.Should().Be(ExecutionEventType.Error);
-		evt.Message.Should().Be("Invalid instruction");
+		_ = evt.EventType.Should().Be(ExecutionEventType.Error);
+		_ = evt.Message.Should().Be("Invalid instruction");
 	}
 
 	[Fact]
@@ -94,7 +94,7 @@ public sealed class EmulatorEventTests
 			_ => "Unknown"
 		};
 
-		result.Should().Be("State: Running");
+		_ = result.Should().Be("State: Running");
 	}
 
 	[Fact]
@@ -102,7 +102,7 @@ public sealed class EmulatorEventTests
 	{
 		EmulatorEvent evt = new OutputEvent("session-456", OutputStreamType.Stdout, "test");
 
-		evt.SessionId.Should().Be("session-456");
+		_ = evt.SessionId.Should().Be("session-456");
 	}
 
 	[Theory]
@@ -112,7 +112,7 @@ public sealed class EmulatorEventTests
 	public void ExecutionEventType_HasAllValues(ExecutionEventType type)
 	{
 		// Verify enum values exist
-		type.Should().BeOneOf(
+		_ = type.Should().BeOneOf(
 			ExecutionEventType.BreakpointHit,
 			ExecutionEventType.Halted,
 			ExecutionEventType.Error
@@ -125,6 +125,6 @@ public sealed class EmulatorEventTests
 	public void OutputStreamType_HasAllValues(OutputStreamType stream)
 	{
 		// Verify enum values exist
-		stream.Should().BeOneOf(OutputStreamType.Stdout, OutputStreamType.Stderr);
+		_ = stream.Should().BeOneOf(OutputStreamType.Stdout, OutputStreamType.Stderr);
 	}
 }

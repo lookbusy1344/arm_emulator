@@ -37,7 +37,7 @@ public sealed class ApiClient(HttpClient http) : IApiClient
 	public async Task DestroySessionAsync(string sessionId, CancellationToken ct = default)
 	{
 		var response = await http.DeleteAsync($"/api/v1/session/{sessionId}", ct);
-		await ParseResponseOrThrowAsync<object>(response, (JsonTypeInfo<object>)null!, ct, sessionId);
+		_ = await ParseResponseOrThrowAsync<object>(response, (JsonTypeInfo<object>)null!, ct, sessionId);
 	}
 
 	// Program Loading
@@ -64,13 +64,13 @@ public sealed class ApiClient(HttpClient http) : IApiClient
 	public async Task RunAsync(string sessionId, CancellationToken ct = default)
 	{
 		var response = await http.PostAsync($"/api/v1/session/{sessionId}/run", null, ct);
-		await ParseResponseOrThrowAsync<object>(response, (JsonTypeInfo<object>)null!, ct, sessionId);
+		_ = await ParseResponseOrThrowAsync<object>(response, (JsonTypeInfo<object>)null!, ct, sessionId);
 	}
 
 	public async Task StopAsync(string sessionId, CancellationToken ct = default)
 	{
 		var response = await http.PostAsync($"/api/v1/session/{sessionId}/stop", null, ct);
-		await ParseResponseOrThrowAsync<object>(response, (JsonTypeInfo<object>)null!, ct, sessionId);
+		_ = await ParseResponseOrThrowAsync<object>(response, (JsonTypeInfo<object>)null!, ct, sessionId);
 	}
 
 	public async Task<RegisterState> StepAsync(string sessionId, CancellationToken ct = default)
@@ -94,13 +94,13 @@ public sealed class ApiClient(HttpClient http) : IApiClient
 	public async Task ResetAsync(string sessionId, CancellationToken ct = default)
 	{
 		var response = await http.PostAsync($"/api/v1/session/{sessionId}/reset", null, ct);
-		await ParseResponseOrThrowAsync<object>(response, (JsonTypeInfo<object>)null!, ct, sessionId);
+		_ = await ParseResponseOrThrowAsync<object>(response, (JsonTypeInfo<object>)null!, ct, sessionId);
 	}
 
 	public async Task RestartAsync(string sessionId, CancellationToken ct = default)
 	{
 		var response = await http.PostAsync($"/api/v1/session/{sessionId}/restart", null, ct);
-		await ParseResponseOrThrowAsync<object>(response, (JsonTypeInfo<object>)null!, ct, sessionId);
+		_ = await ParseResponseOrThrowAsync<object>(response, (JsonTypeInfo<object>)null!, ct, sessionId);
 	}
 
 	// State Inspection
@@ -141,13 +141,13 @@ public sealed class ApiClient(HttpClient http) : IApiClient
 		var content = new ByteArrayContent(json);
 		content.Headers.ContentType = new("application/json");
 		var response = await http.PostAsync($"/api/v1/session/{sessionId}/breakpoint", content, ct);
-		await ParseResponseOrThrowAsync<object>(response, (JsonTypeInfo<object>)null!, ct, sessionId);
+		_ = await ParseResponseOrThrowAsync<object>(response, (JsonTypeInfo<object>)null!, ct, sessionId);
 	}
 
 	public async Task RemoveBreakpointAsync(string sessionId, uint address, CancellationToken ct = default)
 	{
 		var response = await http.DeleteAsync($"/api/v1/session/{sessionId}/breakpoint/{address}", ct);
-		await ParseResponseOrThrowAsync<object>(response, (JsonTypeInfo<object>)null!, ct, sessionId);
+		_ = await ParseResponseOrThrowAsync<object>(response, (JsonTypeInfo<object>)null!, ct, sessionId);
 	}
 
 	public async Task<ImmutableArray<uint>> GetBreakpointsAsync(string sessionId, CancellationToken ct = default)
@@ -172,7 +172,7 @@ public sealed class ApiClient(HttpClient http) : IApiClient
 	public async Task RemoveWatchpointAsync(string sessionId, int watchpointId, CancellationToken ct = default)
 	{
 		var response = await http.DeleteAsync($"/api/v1/session/{sessionId}/watchpoint/{watchpointId}", ct);
-		await ParseResponseOrThrowAsync<object>(response, (JsonTypeInfo<object>)null!, ct, sessionId);
+		_ = await ParseResponseOrThrowAsync<object>(response, (JsonTypeInfo<object>)null!, ct, sessionId);
 	}
 
 	public async Task<ImmutableArray<Watchpoint>> GetWatchpointsAsync(string sessionId, CancellationToken ct = default)
@@ -208,7 +208,7 @@ public sealed class ApiClient(HttpClient http) : IApiClient
 	{
 		var content = new StringContent(data, Encoding.UTF8, "text/plain");
 		var response = await http.PostAsync($"/api/v1/session/{sessionId}/stdin", content, ct);
-		await ParseResponseOrThrowAsync<object>(response, (JsonTypeInfo<object>)null!, ct, sessionId);
+		_ = await ParseResponseOrThrowAsync<object>(response, (JsonTypeInfo<object>)null!, ct, sessionId);
 	}
 
 	// Version

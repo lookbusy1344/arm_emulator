@@ -10,13 +10,13 @@ public sealed class RegisterStateTests
 	{
 		var state = RegisterState.Create();
 
-		state.R0.Should().Be(0u);
-		state.R12.Should().Be(0u);
-		state.PC.Should().Be(0u);
-		state.SP.Should().Be(0u);
-		state.LR.Should().Be(0u);
-		state.Registers.Should().HaveCount(16);
-		state.Registers.Should().AllSatisfy(r => r.Should().Be(0u));
+		_ = state.R0.Should().Be(0u);
+		_ = state.R12.Should().Be(0u);
+		_ = state.PC.Should().Be(0u);
+		_ = state.SP.Should().Be(0u);
+		_ = state.LR.Should().Be(0u);
+		_ = state.Registers.Should().HaveCount(16);
+		_ = state.Registers.Should().AllSatisfy(r => r.Should().Be(0u));
 	}
 
 	[Fact]
@@ -30,11 +30,11 @@ public sealed class RegisterStateTests
 			pc: 0x8000
 		);
 
-		state.R0.Should().Be(0x100u);
-		state.R1.Should().Be(0x200u);
-		state.SP.Should().Be(0x50000u);
-		state.LR.Should().Be(0x8004u);
-		state.PC.Should().Be(0x8000u);
+		_ = state.R0.Should().Be(0x100u);
+		_ = state.R1.Should().Be(0x200u);
+		_ = state.SP.Should().Be(0x50000u);
+		_ = state.LR.Should().Be(0x8004u);
+		_ = state.PC.Should().Be(0x8000u);
 	}
 
 	[Fact]
@@ -45,7 +45,7 @@ public sealed class RegisterStateTests
 
 		var diff = state1.Diff(state2);
 
-		diff.Should().BeEmpty();
+		_ = diff.Should().BeEmpty();
 	}
 
 	[Fact]
@@ -56,7 +56,7 @@ public sealed class RegisterStateTests
 
 		var diff = after.Diff(before);
 
-		diff.Should().BeEquivalentTo(new[] { "R0" });
+		_ = diff.Should().BeEquivalentTo(new[] { "R0" });
 	}
 
 	[Fact]
@@ -67,7 +67,7 @@ public sealed class RegisterStateTests
 
 		var diff = after.Diff(before);
 
-		diff.Should().BeEquivalentTo(new[] { "R0", "R1" });
+		_ = diff.Should().BeEquivalentTo(new[] { "R0", "R1" });
 	}
 
 	[Fact]
@@ -78,7 +78,7 @@ public sealed class RegisterStateTests
 
 		var diff = after.Diff(before);
 
-		diff.Should().Contain("CPSR");
+		_ = diff.Should().Contain("CPSR");
 	}
 
 	[Fact]
@@ -89,7 +89,7 @@ public sealed class RegisterStateTests
 
 		var diff = after.Diff(before);
 
-		diff.Should().BeEquivalentTo(new[] { "SP", "LR", "PC" });
+		_ = diff.Should().BeEquivalentTo(new[] { "SP", "LR", "PC" });
 	}
 
 	[Fact]
@@ -97,11 +97,11 @@ public sealed class RegisterStateTests
 	{
 		var state = RegisterState.Create(r0: 42, r5: 100, sp: 0x50000);
 
-		state["R0"].Should().Be(42u);
-		state["r0"].Should().Be(42u); // Case insensitive
-		state["R5"].Should().Be(100u);
-		state["SP"].Should().Be(0x50000u);
-		state["R13"].Should().Be(0x50000u); // SP alias
+		_ = state["R0"].Should().Be(42u);
+		_ = state["r0"].Should().Be(42u); // Case insensitive
+		_ = state["R5"].Should().Be(100u);
+		_ = state["SP"].Should().Be(0x50000u);
+		_ = state["R13"].Should().Be(0x50000u); // SP alias
 	}
 
 	[Fact]
@@ -109,8 +109,8 @@ public sealed class RegisterStateTests
 	{
 		var state = RegisterState.Create(lr: 0x8004);
 
-		state["LR"].Should().Be(0x8004u);
-		state["R14"].Should().Be(0x8004u);
+		_ = state["LR"].Should().Be(0x8004u);
+		_ = state["R14"].Should().Be(0x8004u);
 	}
 
 	[Fact]
@@ -118,8 +118,8 @@ public sealed class RegisterStateTests
 	{
 		var state = RegisterState.Create(pc: 0x8000);
 
-		state["PC"].Should().Be(0x8000u);
-		state["R15"].Should().Be(0x8000u);
+		_ = state["PC"].Should().Be(0x8000u);
+		_ = state["R15"].Should().Be(0x8000u);
 	}
 
 	[Fact]
@@ -129,7 +129,7 @@ public sealed class RegisterStateTests
 
 		var act = () => state["R16"];
 
-		act.Should().Throw<ArgumentException>()
+		_ = act.Should().Throw<ArgumentException>()
 			.WithMessage("*Unknown register*");
 	}
 
@@ -140,7 +140,7 @@ public sealed class RegisterStateTests
 
 		var act = () => state["FOO"];
 
-		act.Should().Throw<ArgumentException>()
+		_ = act.Should().Throw<ArgumentException>()
 			.WithMessage("*Unknown register*");
 	}
 
@@ -154,22 +154,22 @@ public sealed class RegisterStateTests
 			r12: 13, sp: 14, lr: 15, pc: 16
 		);
 
-		state.R0.Should().Be(1u);
-		state.R1.Should().Be(2u);
-		state.R2.Should().Be(3u);
-		state.R3.Should().Be(4u);
-		state.R4.Should().Be(5u);
-		state.R5.Should().Be(6u);
-		state.R6.Should().Be(7u);
-		state.R7.Should().Be(8u);
-		state.R8.Should().Be(9u);
-		state.R9.Should().Be(10u);
-		state.R10.Should().Be(11u);
-		state.R11.Should().Be(12u);
-		state.R12.Should().Be(13u);
-		state.SP.Should().Be(14u);
-		state.LR.Should().Be(15u);
-		state.PC.Should().Be(16u);
+		_ = state.R0.Should().Be(1u);
+		_ = state.R1.Should().Be(2u);
+		_ = state.R2.Should().Be(3u);
+		_ = state.R3.Should().Be(4u);
+		_ = state.R4.Should().Be(5u);
+		_ = state.R5.Should().Be(6u);
+		_ = state.R6.Should().Be(7u);
+		_ = state.R7.Should().Be(8u);
+		_ = state.R8.Should().Be(9u);
+		_ = state.R9.Should().Be(10u);
+		_ = state.R10.Should().Be(11u);
+		_ = state.R11.Should().Be(12u);
+		_ = state.R12.Should().Be(13u);
+		_ = state.SP.Should().Be(14u);
+		_ = state.LR.Should().Be(15u);
+		_ = state.PC.Should().Be(16u);
 	}
 
 	[Fact]
@@ -179,9 +179,9 @@ public sealed class RegisterStateTests
 		var allClear = new CPSRFlags(N: false, Z: false, C: false, V: false);
 		var mixed = new CPSRFlags(N: true, Z: false, C: true, V: false);
 
-		allSet.DisplayString.Should().Be("NZCV");
-		allClear.DisplayString.Should().Be("----");
-		mixed.DisplayString.Should().Be("N-C-");
+		_ = allSet.DisplayString.Should().Be("NZCV");
+		_ = allClear.DisplayString.Should().Be("----");
+		_ = mixed.DisplayString.Should().Be("N-C-");
 	}
 
 	[Fact]
@@ -191,8 +191,8 @@ public sealed class RegisterStateTests
 		var registers = state.Registers;
 
 		// ImmutableArray prevents mutation
-		registers.Should().BeOfType<ImmutableArray<uint>>();
-		state.R0.Should().Be(42u);
+		_ = registers.Should().BeOfType<ImmutableArray<uint>>();
+		_ = state.R0.Should().Be(42u);
 	}
 
 	[Fact]
@@ -201,8 +201,8 @@ public sealed class RegisterStateTests
 		var original = RegisterState.Create(r0: 42);
 		var modified = original with { CPSR = new CPSRFlags(N: true, Z: false, C: false, V: false) };
 
-		original.CPSR.N.Should().BeFalse();
-		modified.CPSR.N.Should().BeTrue();
-		modified.R0.Should().Be(42u);
+		_ = original.CPSR.N.Should().BeFalse();
+		_ = modified.CPSR.N.Should().BeTrue();
+		_ = modified.R0.Should().Be(42u);
 	}
 }

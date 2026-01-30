@@ -32,9 +32,9 @@ public sealed class ApiClientTests : IDisposable
 
 		var result = await _apiClient.CreateSessionAsync();
 
-		result.SessionId.Should().Be("session-123");
-		_handler.LastRequest!.RequestUri!.PathAndQuery.Should().Be("/api/v1/session");
-		_handler.LastRequest.Method.Should().Be(HttpMethod.Post);
+		_ = result.SessionId.Should().Be("session-123");
+		_ = _handler.LastRequest!.RequestUri!.PathAndQuery.Should().Be("/api/v1/session");
+		_ = _handler.LastRequest.Method.Should().Be(HttpMethod.Post);
 	}
 
 	[Fact]
@@ -44,7 +44,7 @@ public sealed class ApiClientTests : IDisposable
 
 		var act = async () => await _apiClient.CreateSessionAsync();
 
-		await act.Should().ThrowAsync<BackendUnavailableException>()
+		_ = await act.Should().ThrowAsync<BackendUnavailableException>()
 			.WithMessage("*Cannot connect to backend*");
 	}
 
@@ -56,8 +56,8 @@ public sealed class ApiClientTests : IDisposable
 
 		var result = await _apiClient.GetStatusAsync("session-123");
 
-		result.State.Should().Be(VMState.Idle);
-		result.PC.Should().Be(0x8000u);
+		_ = result.State.Should().Be(VMState.Idle);
+		_ = result.PC.Should().Be(0x8000u);
 	}
 
 	[Fact]
@@ -67,7 +67,7 @@ public sealed class ApiClientTests : IDisposable
 
 		var act = async () => await _apiClient.GetStatusAsync("invalid-session");
 
-		await act.Should().ThrowAsync<SessionNotFoundException>()
+		_ = await act.Should().ThrowAsync<SessionNotFoundException>()
 			.Where(ex => ex.SessionId == "invalid-session");
 	}
 
@@ -79,9 +79,9 @@ public sealed class ApiClientTests : IDisposable
 
 		var result = await _apiClient.LoadProgramAsync("session-123", "MOV R0, #1");
 
-		result.Success.Should().BeTrue();
-		result.EntryPoint.Should().Be(0x8000u);
-		_handler.LastRequest!.Content.Should().NotBeNull();
+		_ = result.Success.Should().BeTrue();
+		_ = result.EntryPoint.Should().Be(0x8000u);
+		_ = _handler.LastRequest!.Content.Should().NotBeNull();
 	}
 
 	[Fact]
@@ -99,9 +99,9 @@ public sealed class ApiClientTests : IDisposable
 		var act = async () => await _apiClient.LoadProgramAsync("session-123", "INVALID");
 
 		var exception = await act.Should().ThrowAsync<ProgramLoadException>();
-		exception.Which.Errors.Should().HaveCount(2);
-		exception.Which.Errors[0].Line.Should().Be(1);
-		exception.Which.Errors[0].Message.Should().Be("Invalid instruction");
+		_ = exception.Which.Errors.Should().HaveCount(2);
+		_ = exception.Which.Errors[0].Line.Should().Be(1);
+		_ = exception.Which.Errors[0].Message.Should().Be("Invalid instruction");
 	}
 
 	[Fact]
@@ -112,9 +112,9 @@ public sealed class ApiClientTests : IDisposable
 
 		var result = await _apiClient.StepAsync("session-123");
 
-		result.R0.Should().Be(42u);
-		_handler.LastRequest!.RequestUri!.PathAndQuery.Should().Be("/api/v1/session/session-123/step");
-		_handler.LastRequest.Method.Should().Be(HttpMethod.Post);
+		_ = result.R0.Should().Be(42u);
+		_ = _handler.LastRequest!.RequestUri!.PathAndQuery.Should().Be("/api/v1/session/session-123/step");
+		_ = _handler.LastRequest.Method.Should().Be(HttpMethod.Post);
 	}
 
 	[Fact]
@@ -125,7 +125,7 @@ public sealed class ApiClientTests : IDisposable
 
 		var result = await _apiClient.EvaluateExpressionAsync("session-123", "r0 + r1");
 
-		result.Should().Be(42u);
+		_ = result.Should().Be(42u);
 	}
 
 	[Fact]
@@ -137,7 +137,7 @@ public sealed class ApiClientTests : IDisposable
 		var act = async () => await _apiClient.EvaluateExpressionAsync("session-123", "invalid");
 
 		var exception = await act.Should().ThrowAsync<ExpressionEvaluationException>();
-		exception.Which.Expression.Should().Be("invalid");
+		_ = exception.Which.Expression.Should().Be("invalid");
 	}
 
 	[Fact]
@@ -149,7 +149,7 @@ public sealed class ApiClientTests : IDisposable
 
 		var result = await _apiClient.GetMemoryAsync("session-123", 0x10000, 4);
 
-		result.Should().Equal(memory);
+		_ = result.Should().Equal(memory);
 	}
 
 	[Fact]
@@ -159,8 +159,8 @@ public sealed class ApiClientTests : IDisposable
 
 		await _apiClient.AddBreakpointAsync("session-123", 0x8000);
 
-		_handler.LastRequest!.RequestUri!.PathAndQuery.Should().Contain("/breakpoint");
-		_handler.LastRequest.Method.Should().Be(HttpMethod.Post);
+		_ = _handler.LastRequest!.RequestUri!.PathAndQuery.Should().Contain("/breakpoint");
+		_ = _handler.LastRequest.Method.Should().Be(HttpMethod.Post);
 	}
 
 	[Fact]
@@ -171,9 +171,9 @@ public sealed class ApiClientTests : IDisposable
 
 		var result = await _apiClient.AddWatchpointAsync("session-123", 0x10000, WatchpointType.Write);
 
-		result.Id.Should().Be(1);
-		result.Address.Should().Be(0x10000u);
-		result.Type.Should().Be(WatchpointType.Write);
+		_ = result.Id.Should().Be(1);
+		_ = result.Address.Should().Be(0x10000u);
+		_ = result.Type.Should().Be(WatchpointType.Write);
 	}
 
 	public void Dispose()

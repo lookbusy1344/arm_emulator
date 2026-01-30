@@ -14,7 +14,7 @@ public sealed class VMStateTests
 	[InlineData(VMState.WaitingForInput, false)]
 	public void IsEditorEditable_ReturnsCorrectValue(VMState state, bool expected)
 	{
-		state.IsEditorEditable().Should().Be(expected);
+		_ = state.IsEditorEditable().Should().Be(expected);
 	}
 
 	[Theory]
@@ -26,7 +26,7 @@ public sealed class VMStateTests
 	[InlineData(VMState.WaitingForInput, false)]
 	public void CanStep_ReturnsCorrectValue(VMState state, bool expected)
 	{
-		state.CanStep().Should().Be(expected);
+		_ = state.CanStep().Should().Be(expected);
 	}
 
 	[Theory]
@@ -38,6 +38,6 @@ public sealed class VMStateTests
 	[InlineData(VMState.Error, false)]
 	public void CanPause_ReturnsCorrectValue(VMState state, bool expected)
 	{
-		state.CanPause().Should().Be(expected);
+		_ = state.CanPause().Should().Be(expected);
 	}
 }

@@ -14,11 +14,11 @@ public sealed class VMStatusTests
 			Cycles: 0
 		);
 
-		status.State.Should().Be(VMState.Idle);
-		status.PC.Should().Be(0x8000u);
-		status.Cycles.Should().Be(0ul);
-		status.Error.Should().BeNull();
-		status.LastWrite.Should().BeNull();
+		_ = status.State.Should().Be(VMState.Idle);
+		_ = status.PC.Should().Be(0x8000u);
+		_ = status.Cycles.Should().Be(0ul);
+		_ = status.Error.Should().BeNull();
+		_ = status.LastWrite.Should().BeNull();
 	}
 
 	[Fact]
@@ -31,8 +31,8 @@ public sealed class VMStatusTests
 			Error: "Division by zero"
 		);
 
-		status.State.Should().Be(VMState.Error);
-		status.Error.Should().Be("Division by zero");
+		_ = status.State.Should().Be(VMState.Error);
+		_ = status.Error.Should().Be("Division by zero");
 	}
 
 	[Fact]
@@ -46,9 +46,9 @@ public sealed class VMStatusTests
 			LastWrite: write
 		);
 
-		status.LastWrite.Should().NotBeNull();
-		status.LastWrite!.Address.Should().Be(0x10000u);
-		status.LastWrite.Size.Should().Be(4u);
+		_ = status.LastWrite.Should().NotBeNull();
+		_ = status.LastWrite!.Address.Should().Be(0x10000u);
+		_ = status.LastWrite.Size.Should().Be(4u);
 	}
 
 	[Fact]
@@ -57,11 +57,11 @@ public sealed class VMStatusTests
 		var original = new VMStatus(VMState.Idle, 0x8000, 0);
 		var modified = original with { State = VMState.Running, Cycles = 10 };
 
-		original.State.Should().Be(VMState.Idle);
-		original.Cycles.Should().Be(0ul);
-		modified.State.Should().Be(VMState.Running);
-		modified.Cycles.Should().Be(10ul);
-		modified.PC.Should().Be(0x8000u);
+		_ = original.State.Should().Be(VMState.Idle);
+		_ = original.Cycles.Should().Be(0ul);
+		_ = modified.State.Should().Be(VMState.Running);
+		_ = modified.Cycles.Should().Be(10ul);
+		_ = modified.PC.Should().Be(0x8000u);
 	}
 
 	[Fact]
@@ -70,7 +70,7 @@ public sealed class VMStatusTests
 		var status1 = new VMStatus(VMState.Idle, 0x8000, 100);
 		var status2 = new VMStatus(VMState.Idle, 0x8000, 100);
 
-		status1.Should().Be(status2);
+		_ = status1.Should().Be(status2);
 	}
 
 	[Fact]
@@ -79,7 +79,7 @@ public sealed class VMStatusTests
 		var status1 = new VMStatus(VMState.Idle, 0x8000, 100);
 		var status2 = new VMStatus(VMState.Running, 0x8000, 100);
 
-		status1.Should().NotBe(status2);
+		_ = status1.Should().NotBe(status2);
 	}
 }
 
@@ -90,8 +90,8 @@ public sealed class MemoryWriteTests
 	{
 		var write = new MemoryWrite(0x10000, 4);
 
-		write.Address.Should().Be(0x10000u);
-		write.Size.Should().Be(4u);
+		_ = write.Address.Should().Be(0x10000u);
+		_ = write.Size.Should().Be(4u);
 	}
 
 	[Fact]
@@ -100,6 +100,6 @@ public sealed class MemoryWriteTests
 		var write1 = new MemoryWrite(0x10000, 4);
 		var write2 = new MemoryWrite(0x10000, 4);
 
-		write1.Should().Be(write2);
+		_ = write1.Should().Be(write2);
 	}
 }
