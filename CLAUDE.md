@@ -302,6 +302,71 @@ claude mcp add playwright npx @playwright/mcp@latest
 
 See [docs/MCP_UI_DEBUGGING.md](docs/MCP_UI_DEBUGGING.md) for comprehensive documentation, examples, and troubleshooting.
 
+## Avalonia .NET Cross-Platform App
+
+**Note:** Cross-platform frontend (Windows/macOS/Linux) using Avalonia UI and modern .NET. Connects to the same Go backend API as Swift GUI - **API compatibility must be maintained**.
+
+### Prerequisites
+
+Install .NET SDK 10.0+ from [https://dot.net](https://dot.net)
+
+### Build Commands
+
+```bash
+cd avalonia-gui
+
+# Build
+dotnet build
+
+# Run
+dotnet run --project ARMEmulator
+
+# Build release
+dotnet build -c Release
+```
+
+### Test Commands
+
+```bash
+cd avalonia-gui
+
+# Run all tests
+dotnet test
+
+# Run with coverage
+dotnet test --collect:"XPlat Code Coverage"
+```
+
+### ⚠️ CRITICAL: ALWAYS FORMAT .NET CODE ⚠️
+
+**MANDATORY before ANY commit:**
+
+```bash
+cd avalonia-gui
+dotnet format               # Format all code
+dotnet build                # Verify builds
+dotnet test                 # Verify tests pass
+```
+
+**Requirements:**
+- Code must build without errors
+- All tests must pass
+- Code must be formatted via `dotnet format`
+- Run IMMEDIATELY after editing, BEFORE committing
+
+### Development Guidelines
+
+**IMPORTANT:** Use latest C# 13 features and functional programming style:
+- Primary constructors, collection expressions `[1, 2, 3]`, records
+- Pattern matching with exhaustive switch expressions
+- Immutable data models using records and `ImmutableArray`/`ImmutableHashSet`
+- Expression-bodied members, `required` properties, file-scoped namespaces
+- Functional composition using LINQ and Reactive Extensions (Rx.NET)
+
+**API Compatibility:** The Go backend API is shared with Swift GUI. **Do NOT make breaking changes to the API.** Additive changes only. Both frontends must work together with the same backend.
+
+See [docs/AVALONIA_IMPLEMENTATION_PLAN.md](docs/AVALONIA_IMPLEMENTATION_PLAN.md) for architecture, TDD requirements, and phased implementation plan.
+
 ## GUI Commands (Wails) - ⚠️ DEPRECATED
 
 > **DEPRECATED:** Use the native Swift app for all development. Wails GUI remains for reference only.
