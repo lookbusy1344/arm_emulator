@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Text.Json.Serialization;
 using ARMEmulator.Models;
 
@@ -39,11 +40,19 @@ internal sealed record AddWatchpointRequest(uint Address, string Type);
 internal sealed record EvaluateExpressionRequest(string Expression);
 
 // Internal response wrapper types (moved from ApiClient.cs for source generator visibility)
+[SuppressMessage("Design", "JSV01:Member does not have value semantics", Justification = "Internal wrapper for JSON deserialization, immediately converted to ImmutableArray")]
 internal sealed record ApiErrorResponse(string Error, ParseError[]? ParseErrors = null);
+[SuppressMessage("Design", "JSV01:Member does not have value semantics", Justification = "Internal wrapper for JSON deserialization, immediately converted to ImmutableArray")]
 internal sealed record MemoryResponse(byte[] Data);
+[SuppressMessage("Design", "JSV01:Member does not have value semantics", Justification = "Internal wrapper for JSON deserialization, immediately converted to ImmutableArray")]
 internal sealed record DisassemblyResponse(DisassemblyInstruction[] Instructions);
+[SuppressMessage("Design", "JSV01:Member does not have value semantics", Justification = "Internal wrapper for JSON deserialization, immediately converted to ImmutableArray")]
 internal sealed record SourceMapResponse(SourceMapEntry[] Entries);
+[SuppressMessage("Design", "JSV01:Member does not have value semantics", Justification = "Internal wrapper for JSON deserialization, immediately converted to ImmutableArray")]
 internal sealed record BreakpointsResponse(uint[] Breakpoints);
+[SuppressMessage("Design", "JSV01:Member does not have value semantics", Justification = "Internal wrapper for JSON deserialization, immediately converted to ImmutableArray")]
 internal sealed record WatchpointsResponse(Watchpoint[] Watchpoints);
+[SuppressMessage("Design", "JSV01:Member does not have value semantics", Justification = "Internal wrapper for JSON deserialization, immediately converted to ImmutableArray")]
 internal sealed record EvaluationResponse(uint Value);
+[SuppressMessage("Design", "JSV01:Member does not have value semantics", Justification = "Internal wrapper for JSON deserialization, immediately converted to ImmutableArray")]
 internal sealed record ExamplesResponse(ExampleInfo[] Examples);

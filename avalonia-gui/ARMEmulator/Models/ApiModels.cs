@@ -1,3 +1,5 @@
+using System.Diagnostics.CodeAnalysis;
+
 namespace ARMEmulator.Models;
 
 /// <summary>
@@ -8,6 +10,7 @@ public sealed record SessionInfo(string SessionId);
 /// <summary>
 /// Response from loading a program.
 /// </summary>
+[SuppressMessage("Design", "JSV01:Member does not have value semantics", Justification = "ImmutableArray acceptable for small API response collections")]
 public sealed record LoadProgramResponse(
 	bool Success,
 	ImmutableArray<ParseError> Errors,

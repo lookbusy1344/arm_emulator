@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Net;
 using System.Net.Http.Json;
 using System.Text;
@@ -42,6 +43,7 @@ public sealed class ApiClient(HttpClient http) : IApiClient
 
 	// Program Loading
 
+	[SuppressMessage("Reliability", "CA2000:Dispose objects before losing scope", Justification = "HttpClient takes ownership and disposes content")]
 	public async Task<LoadProgramResponse> LoadProgramAsync(string sessionId, string source, CancellationToken ct = default)
 	{
 		var content = new StringContent(source, Encoding.UTF8, "text/plain");
@@ -134,6 +136,7 @@ public sealed class ApiClient(HttpClient http) : IApiClient
 
 	// Breakpoints
 
+	[SuppressMessage("Reliability", "CA2000:Dispose objects before losing scope", Justification = "HttpClient takes ownership and disposes content")]
 	public async Task AddBreakpointAsync(string sessionId, uint address, CancellationToken ct = default)
 	{
 		var request = new AddBreakpointRequest(address);
@@ -159,6 +162,7 @@ public sealed class ApiClient(HttpClient http) : IApiClient
 
 	// Watchpoints
 
+	[SuppressMessage("Reliability", "CA2000:Dispose objects before losing scope", Justification = "HttpClient takes ownership and disposes content")]
 	public async Task<Watchpoint> AddWatchpointAsync(string sessionId, uint address, WatchpointType type, CancellationToken ct = default)
 	{
 		var request = new AddWatchpointRequest(address, type.ToString().ToLowerInvariant());
@@ -184,6 +188,7 @@ public sealed class ApiClient(HttpClient http) : IApiClient
 
 	// Expression Evaluation
 
+	[SuppressMessage("Reliability", "CA2000:Dispose objects before losing scope", Justification = "HttpClient takes ownership and disposes content")]
 	public async Task<uint> EvaluateExpressionAsync(string sessionId, string expression, CancellationToken ct = default)
 	{
 		var request = new EvaluateExpressionRequest(expression);
@@ -204,6 +209,7 @@ public sealed class ApiClient(HttpClient http) : IApiClient
 
 	// Input
 
+	[SuppressMessage("Reliability", "CA2000:Dispose objects before losing scope", Justification = "HttpClient takes ownership and disposes content")]
 	public async Task SendStdinAsync(string sessionId, string data, CancellationToken ct = default)
 	{
 		var content = new StringContent(data, Encoding.UTF8, "text/plain");
