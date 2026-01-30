@@ -10,12 +10,12 @@ public sealed record Watchpoint(int Id, uint Address, WatchpointType Type);
 /// </summary>
 public enum WatchpointType
 {
-    /// <summary>Break on memory reads.</summary>
-    Read,
+	/// <summary>Break on memory reads.</summary>
+	Read,
 
-    /// <summary>Break on memory writes.</summary>
-    Write,
+	/// <summary>Break on memory writes.</summary>
+	Write,
 
-    /// <summary>Break on both reads and writes.</summary>
-    ReadWrite
+	/// <summary>Break on both reads and writes.</summary>
+	ReadWrite
 }

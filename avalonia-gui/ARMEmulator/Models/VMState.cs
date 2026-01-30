@@ -5,23 +5,23 @@ namespace ARMEmulator.Models;
 /// </summary>
 public enum VMState
 {
-    /// <summary>VM is idle, ready to execute.</summary>
-    Idle,
+	/// <summary>VM is idle, ready to execute.</summary>
+	Idle,
 
-    /// <summary>VM is currently running.</summary>
-    Running,
+	/// <summary>VM is currently running.</summary>
+	Running,
 
-    /// <summary>VM has hit a breakpoint.</summary>
-    Breakpoint,
+	/// <summary>VM has hit a breakpoint.</summary>
+	Breakpoint,
 
-    /// <summary>VM has halted (program completed).</summary>
-    Halted,
+	/// <summary>VM has halted (program completed).</summary>
+	Halted,
 
-    /// <summary>VM encountered an error.</summary>
-    Error,
+	/// <summary>VM encountered an error.</summary>
+	Error,
 
-    /// <summary>VM is waiting for user input.</summary>
-    WaitingForInput
+	/// <summary>VM is waiting for user input.</summary>
+	WaitingForInput
 }
 
 /// <summary>
@@ -29,21 +29,21 @@ public enum VMState
 /// </summary>
 public static class VMStateExtensions
 {
-    /// <summary>
-    /// Determines if the editor should be editable in this state.
-    /// </summary>
-    public static bool IsEditorEditable(this VMState state) =>
-        state is VMState.Idle or VMState.Halted or VMState.Error;
+	/// <summary>
+	/// Determines if the editor should be editable in this state.
+	/// </summary>
+	public static bool IsEditorEditable(this VMState state) =>
+		state is VMState.Idle or VMState.Halted or VMState.Error;
 
-    /// <summary>
-    /// Determines if step commands can be executed in this state.
-    /// </summary>
-    public static bool CanStep(this VMState state) =>
-        state is VMState.Idle or VMState.Breakpoint;
+	/// <summary>
+	/// Determines if step commands can be executed in this state.
+	/// </summary>
+	public static bool CanStep(this VMState state) =>
+		state is VMState.Idle or VMState.Breakpoint;
 
-    /// <summary>
-    /// Determines if the pause command can be executed in this state.
-    /// </summary>
-    public static bool CanPause(this VMState state) =>
-        state is VMState.Running or VMState.WaitingForInput;
+	/// <summary>
+	/// Determines if the pause command can be executed in this state.
+	/// </summary>
+	public static bool CanPause(this VMState state) =>
+		state is VMState.Running or VMState.WaitingForInput;
 }

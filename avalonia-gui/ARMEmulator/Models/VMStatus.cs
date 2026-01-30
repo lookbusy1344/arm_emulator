@@ -4,11 +4,11 @@ namespace ARMEmulator.Models;
 /// Immutable snapshot of virtual machine status.
 /// </summary>
 public sealed record VMStatus(
-    VMState State,
-    uint PC,
-    ulong Cycles,
-    string? Error = null,
-    MemoryWrite? LastWrite = null
+	VMState State,
+	uint PC,
+	ulong Cycles,
+	string? Error = null,
+	MemoryWrite? LastWrite = null
 );
 
 /// <summary>
