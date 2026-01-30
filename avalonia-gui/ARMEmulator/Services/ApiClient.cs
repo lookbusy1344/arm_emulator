@@ -13,8 +13,7 @@ namespace ARMEmulator.Services;
 /// </summary>
 public sealed class ApiClient(HttpClient http) : IApiClient
 {
-	private readonly JsonSerializerOptions _jsonOptions = new()
-	{
+	private readonly JsonSerializerOptions _jsonOptions = new() {
 		PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
 		PropertyNameCaseInsensitive = true
 	};
@@ -23,13 +22,11 @@ public sealed class ApiClient(HttpClient http) : IApiClient
 
 	public async Task<SessionInfo> CreateSessionAsync(CancellationToken ct = default)
 	{
-		try
-		{
+		try {
 			var response = await http.PostAsync("/api/v1/session", null, ct);
 			return await ParseResponseOrThrowAsync<SessionInfo>(response, ct);
 		}
-		catch (HttpRequestException ex)
-		{
+		catch (HttpRequestException ex) {
 			throw new BackendUnavailableException("Cannot connect to backend - is the emulator running?", ex);
 		}
 	}
@@ -54,11 +51,9 @@ public sealed class ApiClient(HttpClient http) : IApiClient
 		var response = await http.PostAsync($"/api/v1/session/{sessionId}/load", content, ct);
 
 		// Special handling for parse errors (400 with error details)
-		if (response.StatusCode == HttpStatusCode.BadRequest)
-		{
+		if (response.StatusCode == HttpStatusCode.BadRequest) {
 			var errorResponse = await response.Content.ReadFromJsonAsync<ApiErrorResponse>(_jsonOptions, ct);
-			if (errorResponse?.ParseErrors is { Length: > 0 } errors)
-			{
+			if (errorResponse?.ParseErrors is { Length: > 0 } errors) {
 				throw new ProgramLoadException([.. errors]);
 			}
 		}
@@ -190,8 +185,7 @@ public sealed class ApiClient(HttpClient http) : IApiClient
 		var request = new { expression };
 		var response = await http.PostAsJsonAsync($"/api/v1/session/{sessionId}/evaluate", request, _jsonOptions, ct);
 
-		if (response.StatusCode == HttpStatusCode.BadRequest)
-		{
+		if (response.StatusCode == HttpStatusCode.BadRequest) {
 			var errorResponse = await response.Content.ReadFromJsonAsync<ApiErrorResponse>(_jsonOptions, ct);
 			throw new ExpressionEvaluationException(expression, errorResponse?.Error ?? "Unknown error");
 		}
@@ -213,13 +207,11 @@ public sealed class ApiClient(HttpClient http) : IApiClient
 
 	public async Task<BackendVersion> GetVersionAsync(CancellationToken ct = default)
 	{
-		try
-		{
+		try {
 			var response = await http.GetAsync("/api/v1/version", ct);
 			return await ParseResponseOrThrowAsync<BackendVersion>(response, ct);
 		}
-		catch (HttpRequestException ex)
-		{
+		catch (HttpRequestException ex) {
 			throw new BackendUnavailableException("Cannot reach backend", ex);
 		}
 	}
@@ -236,8 +228,7 @@ public sealed class ApiClient(HttpClient http) : IApiClient
 	public async Task<string> GetExampleContentAsync(string name, CancellationToken ct = default)
 	{
 		var response = await http.GetAsync($"/api/v1/examples/{name}", ct);
-		if (!response.IsSuccessStatusCode)
-		{
+		if (!response.IsSuccessStatusCode) {
 			throw new ApiException($"Example '{name}' not found", response.StatusCode);
 		}
 
@@ -251,20 +242,17 @@ public sealed class ApiClient(HttpClient http) : IApiClient
 		CancellationToken ct,
 		string? sessionId = null)
 	{
-		if (response.StatusCode == HttpStatusCode.NotFound && sessionId is not null)
-		{
+		if (response.StatusCode == HttpStatusCode.NotFound && sessionId is not null) {
 			throw new SessionNotFoundException(sessionId);
 		}
 
-		if (!response.IsSuccessStatusCode)
-		{
+		if (!response.IsSuccessStatusCode) {
 			var error = await response.Content.ReadAsStringAsync(ct);
 			throw new ApiException($"API error: {error}", response.StatusCode);
 		}
 
 		// For void methods, return default
-		if (typeof(T) == typeof(object))
-		{
+		if (typeof(T) == typeof(object)) {
 			return default!;
 		}
 
