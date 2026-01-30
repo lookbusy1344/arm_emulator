@@ -13,7 +13,7 @@ public sealed class ApiClientTests : IDisposable
 {
 	private readonly HttpClient _httpClient;
 	private readonly TestHttpMessageHandler _handler;
-	private readonly IApiClient _apiClient;
+	private readonly ApiClient _apiClient;
 
 	public ApiClientTests()
 	{
@@ -25,7 +25,6 @@ public sealed class ApiClientTests : IDisposable
 	}
 
 	[Fact]
-	[RequiresUnreferencedCode()]
 	public async Task CreateSessionAsync_WithSuccessResponse_ReturnsSessionInfo()
 	{
 		var sessionInfo = new SessionInfo("session-123");
@@ -50,7 +49,6 @@ public sealed class ApiClientTests : IDisposable
 	}
 
 	[Fact]
-	[RequiresUnreferencedCode()]
 	public async Task GetStatusAsync_WithValidSession_ReturnsStatus()
 	{
 		var status = new VMStatus(VMState.Idle, 0x8000, 0);
@@ -182,14 +180,15 @@ public sealed class ApiClientTests : IDisposable
 
 	public void Dispose()
 	{
-		throw new NotImplementedException();
+		_httpClient.Dispose();
+		_handler.Dispose();
 	}
 }
 
 /// <summary>
 /// Test HTTP message handler that allows setting responses and exceptions.
 /// </summary>
-file sealed class TestHttpMessageHandler : HttpMessageHandler
+internal sealed class TestHttpMessageHandler : HttpMessageHandler
 {
 	private HttpStatusCode _statusCode = HttpStatusCode.OK;
 	private string _content = "{}";

@@ -74,12 +74,15 @@ dotnet run --project ARMEmulator
 dotnet test
 
 # Format (MANDATORY before commit - must build and pass tests)
+# Note: dotnet format is run automatically after every file change
 dotnet format
 dotnet build
 dotnet test
 ```
 
 **Architecture:** MVVM with ReactiveUI. Connects via HTTP REST API + WebSocket to Go backend. Uses C# 13 features (primary constructors, collection expressions, records, pattern matching, immutable collections).
+
+**Note:** `dotnet format` runs automatically after every change to the Avalonia project.
 
 **Docs:** `docs/AVALONIA_IMPLEMENTATION_PLAN.md`
 
