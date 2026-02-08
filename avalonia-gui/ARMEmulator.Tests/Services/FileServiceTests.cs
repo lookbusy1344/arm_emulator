@@ -60,8 +60,7 @@ public sealed class FileServiceTests
 		var service = new FileService();
 
 		// Add more than the maximum
-		for (int i = 0; i < 15; i++)
-		{
+		for (int i = 0; i < 15; i++) {
 			service.AddRecentFile($"/path/file{i}.s");
 		}
 

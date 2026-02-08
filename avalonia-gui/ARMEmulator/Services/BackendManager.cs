@@ -29,26 +29,21 @@ public sealed class BackendManager : IBackendManager
 
 	public async Task StartAsync(CancellationToken ct = default)
 	{
-		if (_process is not null && !_process.HasExited)
-		{
+		if (_process is not null && !_process.HasExited) {
 			return; // Already running
 		}
 
 		_statusSubject.OnNext(BackendStatus.Starting);
 
-		try
-		{
+		try {
 			var binaryPath = FindBackendBinary();
-			if (binaryPath is null)
-			{
+			if (binaryPath is null) {
 				_statusSubject.OnNext(BackendStatus.Error);
 				throw new BackendStartException("Backend binary not found");
 			}
 
-			_process = new Process
-			{
-				StartInfo = new ProcessStartInfo
-				{
+			_process = new Process {
+				StartInfo = new ProcessStartInfo {
 					FileName = binaryPath,
 					UseShellExecute = false,
 					RedirectStandardOutput = true,
@@ -57,8 +52,7 @@ public sealed class BackendManager : IBackendManager
 				}
 			};
 
-			if (!_process.Start())
-			{
+			if (!_process.Start()) {
 				_statusSubject.OnNext(BackendStatus.Error);
 				throw new BackendStartException("Failed to start backend process");
 			}
@@ -66,8 +60,7 @@ public sealed class BackendManager : IBackendManager
 			// Wait for backend to be ready
 			for (int i = 0; i < 30; i++) // 3 second timeout
 			{
-				if (await HealthCheckAsync(ct))
-				{
+				if (await HealthCheckAsync(ct)) {
 					_statusSubject.OnNext(BackendStatus.Running);
 					return;
 				}
@@ -77,8 +70,7 @@ public sealed class BackendManager : IBackendManager
 			_statusSubject.OnNext(BackendStatus.Error);
 			throw new BackendStartException("Backend started but health check failed");
 		}
-		catch (Exception ex) when (ex is not BackendStartException)
-		{
+		catch (Exception ex) when (ex is not BackendStartException) {
 			_statusSubject.OnNext(BackendStatus.Error);
 			throw new BackendStartException("Failed to start backend", ex);
 		}
@@ -86,22 +78,19 @@ public sealed class BackendManager : IBackendManager
 
 	public async Task StopAsync()
 	{
-		if (_process is null || _process.HasExited)
-		{
+		if (_process is null || _process.HasExited) {
 			_statusSubject.OnNext(BackendStatus.Stopped);
 			return;
 		}
 
-		try
-		{
+		try {
 			_process.Kill(entireProcessTree: true);
 			await _process.WaitForExitAsync();
 			_process.Dispose();
 			_process = null;
 			_statusSubject.OnNext(BackendStatus.Stopped);
 		}
-		catch
-		{
+		catch {
 			// Ignore stop errors
 			_statusSubject.OnNext(BackendStatus.Stopped);
 		}
@@ -109,16 +98,14 @@ public sealed class BackendManager : IBackendManager
 
 	public async Task<bool> HealthCheckAsync(CancellationToken ct = default)
 	{
-		try
-		{
+		try {
 			using var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
 			cts.CancelAfter(TimeSpan.FromSeconds(1));
 
 			var response = await _http.GetAsync($"{_baseUrl}/health", cts.Token);
 			return response.IsSuccessStatusCode;
 		}
-		catch
-		{
+		catch {
 			return false;
 		}
 	}
@@ -134,16 +121,11 @@ public sealed class BackendManager : IBackendManager
 	private static string? FindBackendBinary()
 	{
 		// Platform-specific binary discovery
-		if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-		{
+		if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {
 			return FindBinaryWindows();
-		}
-		else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
-		{
+		} else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX)) {
 			return FindBinaryMacOS();
-		}
-		else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
-		{
+		} else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux)) {
 			return FindBinaryLinux();
 		}
 
@@ -155,18 +137,15 @@ public sealed class BackendManager : IBackendManager
 		// Check app directory
 		var appDir = AppContext.BaseDirectory;
 		var binaryPath = Path.Combine(appDir, "arm-emulator.exe");
-		if (File.Exists(binaryPath))
-		{
+		if (File.Exists(binaryPath)) {
 			return binaryPath;
 		}
 
 		// Check parent directory (for development)
 		var parentDir = Directory.GetParent(appDir)?.FullName;
-		if (parentDir is not null)
-		{
+		if (parentDir is not null) {
 			binaryPath = Path.Combine(parentDir, "arm-emulator.exe");
-			if (File.Exists(binaryPath))
-			{
+			if (File.Exists(binaryPath)) {
 				return binaryPath;
 			}
 		}
@@ -178,31 +157,26 @@ public sealed class BackendManager : IBackendManager
 	{
 		// Check if running from .app bundle
 		var appDir = AppContext.BaseDirectory;
-		if (appDir.Contains(".app/Contents/"))
-		{
+		if (appDir.Contains(".app/Contents/")) {
 			// Running from .app bundle - check Contents/Resources
 			var bundleContents = appDir[..appDir.IndexOf(".app/Contents/", StringComparison.Ordinal)] + ".app/Contents";
 			var resourcesPath = Path.Combine(bundleContents, "Resources", "arm-emulator");
-			if (File.Exists(resourcesPath))
-			{
+			if (File.Exists(resourcesPath)) {
 				return resourcesPath;
 			}
 		}
 
 		// Check app directory
 		var binaryPath = Path.Combine(appDir, "arm-emulator");
-		if (File.Exists(binaryPath))
-		{
+		if (File.Exists(binaryPath)) {
 			return binaryPath;
 		}
 
 		// Check parent directory (for development)
 		var parentDir = Directory.GetParent(appDir)?.FullName;
-		if (parentDir is not null)
-		{
+		if (parentDir is not null) {
 			binaryPath = Path.Combine(parentDir, "arm-emulator");
-			if (File.Exists(binaryPath))
-			{
+			if (File.Exists(binaryPath)) {
 				return binaryPath;
 			}
 		}
@@ -215,22 +189,19 @@ public sealed class BackendManager : IBackendManager
 		// Check app directory
 		var appDir = AppContext.BaseDirectory;
 		var binaryPath = Path.Combine(appDir, "arm-emulator");
-		if (File.Exists(binaryPath))
-		{
+		if (File.Exists(binaryPath)) {
 			return binaryPath;
 		}
 
 		// Check /usr/local/bin
 		binaryPath = "/usr/local/bin/arm-emulator";
-		if (File.Exists(binaryPath))
-		{
+		if (File.Exists(binaryPath)) {
 			return binaryPath;
 		}
 
 		// Check /usr/share/arm-emulator
 		binaryPath = "/usr/share/arm-emulator/arm-emulator";
-		if (File.Exists(binaryPath))
-		{
+		if (File.Exists(binaryPath)) {
 			return binaryPath;
 		}
 

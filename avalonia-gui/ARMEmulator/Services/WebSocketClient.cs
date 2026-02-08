@@ -44,19 +44,16 @@ public sealed class WebSocketClient : IWebSocketClient
 
 	public async Task ConnectAsync(string sessionId, CancellationToken ct = default)
 	{
-		if (IsConnected)
-		{
+		if (IsConnected) {
 			await DisconnectAsync();
 		}
 
 		_currentSessionId = sessionId;
 
-		try
-		{
+		try {
 			_ws = _factory.CreateWebSocket();
 
-			if (_ws is ClientWebSocket clientWs)
-			{
+			if (_ws is ClientWebSocket clientWs) {
 				await clientWs.ConnectAsync(new Uri(_wsUrl), ct);
 			}
 
@@ -68,8 +65,7 @@ public sealed class WebSocketClient : IWebSocketClient
 			// Start receive loop
 			_receiveTask = Task.Run(() => ReceiveLoopAsync(_disposeCts.Token), _disposeCts.Token);
 		}
-		catch (Exception ex)
-		{
+		catch (Exception ex) {
 			_connectionStateSubject.OnNext(false);
 			throw new WebSocketConnectionException($"Failed to connect to {_wsUrl}", ex);
 		}
@@ -77,15 +73,12 @@ public sealed class WebSocketClient : IWebSocketClient
 
 	public async Task DisconnectAsync()
 	{
-		if (_ws is null)
-		{
+		if (_ws is null) {
 			return;
 		}
 
-		try
-		{
-			if (_ws.State == WebSocketState.Open)
-			{
+		try {
+			if (_ws.State == WebSocketState.Open) {
 				await _ws.CloseAsync(
 					WebSocketCloseStatus.NormalClosure,
 					"Client disconnecting",
@@ -97,14 +90,12 @@ public sealed class WebSocketClient : IWebSocketClient
 
 			_connectionStateSubject.OnNext(false);
 
-			if (_receiveTask is not null)
-			{
+			if (_receiveTask is not null) {
 				await _receiveTask.ConfigureAwait(false);
 				_receiveTask = null;
 			}
 		}
-		catch
-		{
+		catch {
 			// Ignore disconnect errors
 		}
 	}
@@ -113,12 +104,10 @@ public sealed class WebSocketClient : IWebSocketClient
 	public void Dispose()
 	{
 		_disposeCts.Cancel();
-		try
-		{
+		try {
 			DisconnectAsync().ConfigureAwait(false).GetAwaiter().GetResult();
 		}
-		catch
-		{
+		catch {
 			// Ignore dispose errors - may occur if connection already closed
 		}
 		_disposeCts.Dispose();
@@ -142,31 +131,25 @@ public sealed class WebSocketClient : IWebSocketClient
 	{
 		var buffer = new byte[8192];
 
-		try
-		{
-			while (!ct.IsCancellationRequested && _ws?.State == WebSocketState.Open)
-			{
+		try {
+			while (!ct.IsCancellationRequested && _ws?.State == WebSocketState.Open) {
 				var result = await _ws.ReceiveAsync(new ArraySegment<byte>(buffer), ct);
 
-				if (result.MessageType == WebSocketMessageType.Close)
-				{
+				if (result.MessageType == WebSocketMessageType.Close) {
 					_connectionStateSubject.OnNext(false);
 					break;
 				}
 
-				if (result.MessageType == WebSocketMessageType.Text)
-				{
+				if (result.MessageType == WebSocketMessageType.Text) {
 					var message = Encoding.UTF8.GetString(buffer, 0, result.Count);
 					ProcessMessage(message);
 				}
 			}
 		}
-		catch (OperationCanceledException)
-		{
+		catch (OperationCanceledException) {
 			// Normal cancellation
 		}
-		catch (WebSocketException ex)
-		{
+		catch (WebSocketException ex) {
 			_eventsSubject.OnError(new WebSocketConnectionException("WebSocket error", ex));
 			_connectionStateSubject.OnNext(false);
 		}
@@ -174,11 +157,9 @@ public sealed class WebSocketClient : IWebSocketClient
 
 	private void ProcessMessage(string message)
 	{
-		try
-		{
+		try {
 			var json = JsonNode.Parse(message);
-			if (json is null)
-			{
+			if (json is null) {
 				return;
 			}
 
@@ -186,31 +167,26 @@ public sealed class WebSocketClient : IWebSocketClient
 			var sessionId = json["sessionId"]?.GetValue<string>() ?? string.Empty;
 			var data = json["data"];
 
-			if (data is null)
-			{
+			if (data is null) {
 				return;
 			}
 
-			EmulatorEvent? evt = eventType switch
-			{
+			EmulatorEvent? evt = eventType switch {
 				"state" => ParseStateEvent(sessionId, data),
 				"output" => ParseOutputEvent(sessionId, data),
 				"event" => ParseExecutionEvent(sessionId, data),
 				_ => null
 			};
 
-			if (evt is not null)
-			{
+			if (evt is not null) {
 				_eventsSubject.OnNext(evt);
 			}
 		}
-		catch (JsonException ex)
-		{
+		catch (JsonException ex) {
 			// Ignore malformed JSON - backend may send invalid data during development
 			System.Diagnostics.Debug.WriteLine($"JSON parse error: {ex.Message}");
 		}
-		catch (Exception ex)
-		{
+		catch (Exception ex) {
 			// Ignore parsing errors - prevent crash from unexpected payloads
 			System.Diagnostics.Debug.WriteLine($"Event parse error: {ex.Message}");
 		}
@@ -218,11 +194,9 @@ public sealed class WebSocketClient : IWebSocketClient
 
 	private static StateEvent? ParseStateEvent(string sessionId, JsonNode data)
 	{
-		try
-		{
+		try {
 			var stateStr = data["state"]?.GetValue<string>() ?? "idle";
-			var state = stateStr.ToLowerInvariant() switch
-			{
+			var state = stateStr.ToLowerInvariant() switch {
 				"idle" => VMState.Idle,
 				"running" => VMState.Running,
 				"breakpoint" => VMState.Breakpoint,
@@ -238,8 +212,7 @@ public sealed class WebSocketClient : IWebSocketClient
 
 			var hasWrite = data["hasWrite"]?.GetValue<bool>() ?? false;
 			MemoryWrite? memWrite = null;
-			if (hasWrite)
-			{
+			if (hasWrite) {
 				var writeAddr = data["writeAddr"]?.GetValue<uint>() ?? 0;
 				var writeSize = data["writeSize"]?.GetValue<uint>() ?? 0;
 				memWrite = new MemoryWrite(writeAddr, writeSize);
@@ -255,8 +228,7 @@ public sealed class WebSocketClient : IWebSocketClient
 
 			return new StateEvent(sessionId, status, registers);
 		}
-		catch
-		{
+		catch {
 			return null;
 		}
 	}
@@ -294,8 +266,7 @@ public sealed class WebSocketClient : IWebSocketClient
 
 	private static OutputEvent? ParseOutputEvent(string sessionId, JsonNode data)
 	{
-		try
-		{
+		try {
 			var streamStr = data["stream"]?.GetValue<string>() ?? "stdout";
 			var stream = streamStr.Equals("stderr", StringComparison.OrdinalIgnoreCase)
 				? OutputStreamType.Stderr
@@ -305,19 +276,16 @@ public sealed class WebSocketClient : IWebSocketClient
 
 			return new OutputEvent(sessionId, stream, content);
 		}
-		catch
-		{
+		catch {
 			return null;
 		}
 	}
 
 	private static ExecutionEvent? ParseExecutionEvent(string sessionId, JsonNode data)
 	{
-		try
-		{
+		try {
 			var eventStr = data["event"]?.GetValue<string>() ?? string.Empty;
-			var eventType = eventStr.ToLowerInvariant() switch
-			{
+			var eventType = eventStr.ToLowerInvariant() switch {
 				"breakpointhit" => ExecutionEventType.BreakpointHit,
 				"halted" => ExecutionEventType.Halted,
 				"error" => ExecutionEventType.Error,
@@ -330,8 +298,7 @@ public sealed class WebSocketClient : IWebSocketClient
 
 			return new ExecutionEvent(sessionId, eventType, address, symbol, message);
 		}
-		catch
-		{
+		catch {
 			return null;
 		}
 	}

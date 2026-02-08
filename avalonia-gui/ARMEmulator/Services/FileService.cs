@@ -21,8 +21,7 @@ public sealed class FileService : IFileService
 
 	public async Task<string?> SaveFileAsync(string content, string? currentPath)
 	{
-		if (currentPath is not null)
-		{
+		if (currentPath is not null) {
 			// Save to existing file
 			await File.WriteAllTextAsync(currentPath, content);
 			return currentPath;
@@ -41,8 +40,7 @@ public sealed class FileService : IFileService
 		_recentFiles.Insert(0, new RecentFile(path, DateTime.Now));
 
 		// Trim to max
-		if (_recentFiles.Count > MaxRecentFiles)
-		{
+		if (_recentFiles.Count > MaxRecentFiles) {
 			_recentFiles.RemoveRange(MaxRecentFiles, _recentFiles.Count - MaxRecentFiles);
 		}
 	}
