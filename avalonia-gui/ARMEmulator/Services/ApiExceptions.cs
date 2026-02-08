@@ -59,3 +59,10 @@ public sealed class ExpressionEvaluationException(string expression, string erro
 	/// <summary>The expression that failed to evaluate.</summary>
 	public string Expression => expression;
 }
+
+/// <summary>
+/// Thrown when WebSocket connection fails or is terminated unexpectedly.
+/// </summary>
+[SuppressMessage("Design", "RCS1194:Implement exception constructors", Justification = "Uses primary constructor with domain-specific parameters")]
+public sealed class WebSocketConnectionException(string message, Exception? inner = null)
+	: ApiException(message, null, inner);

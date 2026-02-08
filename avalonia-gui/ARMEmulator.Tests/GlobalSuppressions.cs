@@ -8,3 +8,9 @@ using System.Diagnostics.CodeAnalysis;
 
 // Trimming warnings not relevant for tests
 [assembly: SuppressMessage("Trimming", "IL2026:Members annotated with 'RequiresUnreferencedCodeAttribute' require dynamic access", Justification = "Not using trimming in tests", Scope = "namespaceanddescendants", Target = "~N:ARMEmulator.Tests")]
+
+// Expression values don't need to be used in tests (FluentAssertions returns values for chaining)
+[assembly: SuppressMessage("Style", "IDE0058:Expression value is never used", Justification = "Test assertions return values for chaining but we don't always chain them", Scope = "namespaceanddescendants", Target = "~N:ARMEmulator.Tests")]
+
+// Single-line if statements are acceptable in tests for brevity
+[assembly: SuppressMessage("Style", "IDE0011:Add braces", Justification = "Test code readability", Scope = "namespaceanddescendants", Target = "~N:ARMEmulator.Tests")]
