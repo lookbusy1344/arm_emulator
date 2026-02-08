@@ -30,22 +30,12 @@ go clean -testcache && go test ./...
 ## Swift GUI (macOS, Primary GUI)
 
 **Prerequisites:** macOS 26.2, Swift 6.2, Xcode 26.2
-```bash
-brew install xcodegen swiftlint swiftformat xcbeautify
-```
-
-### Build & Test
 
 ```bash
 cd swift-gui
 
-# Generate Xcode project (after modifying project.yml)
-xcodegen generate
-
-# Build (requires Go backend: make build)
+# Build & test
 xcodebuild -project ARMEmulator.xcodeproj -scheme ARMEmulator build | xcbeautify
-
-# Test
 xcodebuild test -project ARMEmulator.xcodeproj -scheme ARMEmulator -destination 'platform=macOS' | xcbeautify
 
 # Format & lint (MANDATORY before commit - 0 violations required)
@@ -53,9 +43,7 @@ swiftformat .
 swiftlint
 ```
 
-**Architecture:** MVVM with SwiftUI. Connects via HTTP REST API + WebSocket to Go backend. Uses modern Swift 6.2 features.
-
-**Docs:** `SWIFT_GUI_PLANNING.md`, `docs/SWIFT_CLI_AUTOMATION.md`, `docs/MCP_UI_DEBUGGING.md`
+**See `swift-gui/CLAUDE.md` for complete Swift development guide.**
 
 ## Avalonia GUI (Cross-Platform: Windows/macOS/Linux)
 
