@@ -227,6 +227,21 @@ public partial class MainWindowViewModel : ReactiveObject, IDisposable
 	private Task ResetAsync(CancellationToken ct) => Task.CompletedTask;
 	private Task LoadProgramAsync(CancellationToken ct) => Task.CompletedTask;
 
+	/// <summary>
+	/// Updates the register state and tracks which registers changed for highlighting.
+	/// </summary>
+	public void UpdateRegisters(RegisterState newRegisters)
+	{
+		if (PreviousRegisters is not null) {
+			// Compute diff between new and CURRENT registers (not previous!)
+			var changes = newRegisters.Diff(Registers);
+			ChangedRegisters = changes;
+		}
+
+		PreviousRegisters = Registers;
+		Registers = newRegisters;
+	}
+
 	public void Dispose()
 	{
 		_disposables.Dispose();
