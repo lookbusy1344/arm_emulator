@@ -18,9 +18,7 @@
                 <views:StackView />
             </TabItem>
             <TabItem Header="Disassembly">
-                <TextBlock Text="Disassembly View Placeholder"
-                           VerticalAlignment="Center"
-                           HorizontalAlignment="Center" />
+                <views:DisassemblyView />
             </TabItem>
             <TabItem Header="Eval">
                 <TextBlock Text="Expression Evaluator Placeholder"

@@ -1,0 +1,124 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:ARMEmulator.ViewModels"
+             xmlns:converters="using:ARMEmulator.Converters"
+             x:Class="ARMEmulator.Views.DisassemblyView"
+             x:DataType="vm:DisassemblyViewModel">
+    <UserControl.Resources>
+        <converters:BoolToHighlightConverter x:Key="HighlightConverter" />
+        <converters:BoolToBreakpointConverter x:Key="BoolToBreakpointConverter" />
+        <converters:BoolToPCIndicatorConverter x:Key="BoolToPCIndicatorConverter" />
+    </UserControl.Resources>
+
+    <DockPanel>
+        <!-- Header with Refresh Button -->
+        <Border DockPanel.Dock="Top"
+                Background="{DynamicResource SystemControlBackgroundAltHighBrush}"
+                Padding="8"
+                BorderThickness="0,0,0,1"
+                BorderBrush="{DynamicResource SystemControlForegroundBaseLowBrush}">
+            <Grid ColumnDefinitions="*,Auto">
+                <TextBlock Grid.Column="0"
+                           Text="Disassembly (±32 instructions around PC)"
+                           VerticalAlignment="Center"
+                           FontWeight="SemiBold" />
+                <Button Grid.Column="1"
+                        Content="🔄 Refresh"
+                        Command="{Binding RefreshCommand}"
+                        ToolTip.Tip="Refresh disassembly" />
+            </Grid>
+        </Border>
+
+        <!-- Error Message -->
+        <Border DockPanel.Dock="Top"
+                Background="#FFDDDD"
+                Padding="8"
+                IsVisible="{Binding ErrorMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+            <TextBlock Text="{Binding ErrorMessage}"
+                       Foreground="#CC0000"
+                       FontWeight="SemiBold" />
+        </Border>
+
+        <!-- Disassembly Table -->
+        <ScrollViewer>
+            <Grid>
+                <!-- Header Row -->
+                <Border Background="{DynamicResource SystemControlBackgroundAltMediumBrush}"
+                        BorderThickness="0,0,0,1"
+                        BorderBrush="{DynamicResource SystemControlForegroundBaseLowBrush}"
+                        VerticalAlignment="Top"
+                        Height="28">
+                    <Grid ColumnDefinitions="Auto,12,Auto,12,Auto,12,*" Margin="8,4">
+                        <TextBlock Grid.Column="0" Text="BP" FontWeight="SemiBold" Width="25" />
+                        <TextBlock Grid.Column="2" Text="PC" FontWeight="SemiBold" Width="25" />
+                        <TextBlock Grid.Column="4" Text="Address" FontWeight="SemiBold" />
+                        <TextBlock Grid.Column="6" Text="Instruction" FontWeight="SemiBold" />
+                    </Grid>
+                </Border>
+
+                <!-- Data Rows -->
+                <ItemsControl ItemsSource="{Binding FormattedInstructions}" Margin="0,28,0,0">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Border Background="{Binding IsCurrentPC, Converter={StaticResource HighlightConverter}}"
+                                    Padding="8,4"
+                                    BorderThickness="0,0,0,1"
+                                    BorderBrush="{DynamicResource SystemControlForegroundBaseLowBrush}">
+                                <Grid ColumnDefinitions="Auto,12,Auto,12,Auto,12,*">
+                                    <!-- Breakpoint Indicator -->
+                                    <TextBlock Grid.Column="0"
+                                               Text="{Binding HasBreakpoint, Converter={StaticResource BoolToBreakpointConverter}}"
+                                               Foreground="Red"
+                                               FontWeight="Bold"
+                                               FontSize="16"
+                                               Width="25"
+                                               HorizontalAlignment="Center" />
+
+                                    <!-- PC Indicator -->
+                                    <TextBlock Grid.Column="2"
+                                               Text="{Binding IsCurrentPC, Converter={StaticResource BoolToPCIndicatorConverter}}"
+                                               Foreground="DodgerBlue"
+                                               FontWeight="Bold"
+                                               FontSize="14"
+                                               Width="25"
+                                               HorizontalAlignment="Center" />
+
+                                    <!-- Address -->
+                                    <TextBlock Grid.Column="4"
+                                               Text="{Binding Address}"
+                                               FontFamily="JetBrains Mono,Consolas,Courier New,monospace"
+                                               FontSize="12"
+                                               Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"
+                                               Width="80" />
+
+                                    <!-- Instruction -->
+                                    <StackPanel Grid.Column="6" Orientation="Horizontal" Spacing="12">
+                                        <!-- Machine Code -->
+                                        <TextBlock Text="{Binding MachineCode}"
+                                                   FontFamily="JetBrains Mono,Consolas,Courier New,monospace"
+                                                   FontSize="12"
+                                                   Foreground="{DynamicResource SystemControlForegroundBaseMediumHighBrush}"
+                                                   Width="90" />
+
+                                        <!-- Mnemonic -->
+                                        <TextBlock Text="{Binding Mnemonic}"
+                                                   FontFamily="JetBrains Mono,Consolas,Courier New,monospace"
+                                                   FontSize="12"
+                                                   MinWidth="200" />
+
+                                        <!-- Symbol (if any) -->
+                                        <TextBlock Text="{Binding Symbol}"
+                                                   FontSize="11"
+                                                   FontStyle="Italic"
+                                                   Foreground="{DynamicResource SystemControlForegroundBaseHighBrush}"
+                                                   IsVisible="{Binding Symbol, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                                    </StackPanel>
+                                </Grid>
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </Grid>
+        </ScrollViewer>
+    </DockPanel>
+</UserControl>
