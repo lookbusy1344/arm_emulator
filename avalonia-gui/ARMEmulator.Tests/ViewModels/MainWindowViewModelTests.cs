@@ -159,4 +159,57 @@ public class MainWindowViewModelTests
 		viewModel.PreviousRegisters.Should().NotBeNull();  // Now holds the default RegisterState
 		viewModel.Registers.Should().Be(registers);
 	}
+
+	[Fact]
+	public async Task UpdateRegisters_HighlightRemoval_RemovesAfter1500ms()
+	{
+		// Arrange
+		using var viewModel = new MainWindowViewModel(_mockApi, _mockWs);
+		var initialRegisters = RegisterState.Create(r0: 0);
+		var updatedRegisters = RegisterState.Create(r0: 42);
+
+		// Act
+		viewModel.UpdateRegisters(initialRegisters);
+		viewModel.UpdateRegisters(updatedRegisters);
+
+		// Assert - highlight is immediately added
+		viewModel.ChangedRegisters.Should().Contain("R0");
+
+		// Wait for highlight to be removed (1.5s + buffer)
+		await Task.Delay(1700);
+
+		// Assert - highlight should be automatically removed
+		viewModel.ChangedRegisters.Should().NotContain("R0");
+	}
+
+	[Fact]
+	public async Task UpdateRegisters_MultipleChanges_EachHighlightTimedIndependently()
+	{
+		// Arrange
+		using var viewModel = new MainWindowViewModel(_mockApi, _mockWs);
+		viewModel.UpdateRegisters(RegisterState.Create(r0: 0, r1: 0));
+
+		// Act - change R0 first
+		viewModel.UpdateRegisters(RegisterState.Create(r0: 10, r1: 0));
+		viewModel.ChangedRegisters.Should().Contain("R0");
+
+		// Wait 800ms, then change R1
+		await Task.Delay(800);
+		viewModel.UpdateRegisters(RegisterState.Create(r0: 10, r1: 20));
+
+		// Assert - both should be highlighted now
+		viewModel.ChangedRegisters.Should().Contain("R0");
+		viewModel.ChangedRegisters.Should().Contain("R1");
+
+		// Wait 800ms more (R0 should expire at ~1600ms total, R1 at ~2400ms)
+		await Task.Delay(800);
+
+		// R0 should be gone, R1 should still be visible
+		viewModel.ChangedRegisters.Should().NotContain("R0");
+		viewModel.ChangedRegisters.Should().Contain("R1");
+
+		// Wait another 700ms for R1 to expire
+		await Task.Delay(700);
+		viewModel.ChangedRegisters.Should().NotContain("R1");
+	}
 }

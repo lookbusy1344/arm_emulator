@@ -2,6 +2,7 @@ using System.Collections.Immutable;
 using System.Reactive;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
+using System.Reactive.Subjects;
 using ARMEmulator.Models;
 using ARMEmulator.Services;
 using ReactiveUI;
@@ -21,6 +22,8 @@ public partial class MainWindowViewModel : ReactiveObject, IDisposable
 	private readonly IApiClient _api;
 	private readonly IWebSocketClient _ws;
 	private readonly CompositeDisposable _disposables = new();
+	private readonly Subject<string> _registerHighlightTrigger = new();
+	private static readonly TimeSpan HighlightDuration = TimeSpan.FromSeconds(1.5);
 
 	/// <summary>
 	/// Initializes a new instance of the MainWindowViewModel with required services.
@@ -54,6 +57,9 @@ public partial class MainWindowViewModel : ReactiveObject, IDisposable
 			.Select(s => s.IsEditorEditable())
 			.ToProperty(this, x => x.IsEditorEditable)
 			.DisposeWith(_disposables);
+
+		// Set up timed highlight removal pipeline
+		SetupHighlightPipeline();
 	}
 
 	// Reactive properties (manual implementation)
@@ -228,14 +234,41 @@ public partial class MainWindowViewModel : ReactiveObject, IDisposable
 	private Task LoadProgramAsync(CancellationToken ct) => Task.CompletedTask;
 
 	/// <summary>
+	/// Sets up the Rx.NET pipeline for timed register highlight removal.
+	/// Each register gets its own debounced removal stream using GroupBy and Throttle.
+	/// </summary>
+	private void SetupHighlightPipeline()
+	{
+		_ = _registerHighlightTrigger
+			.GroupBy(register => register)
+			.SelectMany(group =>
+				group.Select(register => (register, action: "add"))
+					.Merge(group
+						.Throttle(HighlightDuration)
+						.Select(register => (register, action: "remove"))
+					)
+			)
+			.ObserveOn(RxApp.MainThreadScheduler)
+			.Subscribe(x => {
+				ChangedRegisters = x.action == "add"
+					? ChangedRegisters.Add(x.register)
+					: ChangedRegisters.Remove(x.register);
+			})
+			.DisposeWith(_disposables);
+	}
+
+	/// <summary>
 	/// Updates the register state and tracks which registers changed for highlighting.
+	/// Changes trigger the timed highlight removal pipeline.
 	/// </summary>
 	public void UpdateRegisters(RegisterState newRegisters)
 	{
 		if (PreviousRegisters is not null) {
-			// Compute diff between new and CURRENT registers (not previous!)
+			// Compute diff and trigger highlights for each changed register
 			var changes = newRegisters.Diff(Registers);
-			ChangedRegisters = changes;
+			foreach (var register in changes) {
+				_registerHighlightTrigger.OnNext(register);
+			}
 		}
 
 		PreviousRegisters = Registers;
@@ -244,6 +277,7 @@ public partial class MainWindowViewModel : ReactiveObject, IDisposable
 
 	public void Dispose()
 	{
+		_registerHighlightTrigger.Dispose();
 		_disposables.Dispose();
 		GC.SuppressFinalize(this);
 	}
