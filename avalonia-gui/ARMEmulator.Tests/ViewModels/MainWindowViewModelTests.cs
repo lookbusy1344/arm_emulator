@@ -74,7 +74,7 @@ public class MainWindowViewModelTests : IDisposable
 		viewModel.StepOutCommand.Should().NotBeNull();
 		viewModel.ResetCommand.Should().NotBeNull();
 		viewModel.LoadProgramCommand.Should().NotBeNull();
-		viewModel.ShowPCCommand.Should().NotBeNull();
+		viewModel.ShowPcCommand.Should().NotBeNull();
 	}
 
 	[Fact]
@@ -592,6 +592,6 @@ public class MainWindowViewModelTests : IDisposable
 		using var viewModel = new MainWindowViewModel(_mockApi, _mockWs);
 
 		// Act & Assert - should not throw
-		await viewModel.ShowPCCommand.Execute();
+		await viewModel.ShowPcCommand.Execute();
 	}
 }

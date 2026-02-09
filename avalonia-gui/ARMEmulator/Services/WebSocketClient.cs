@@ -1,6 +1,5 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Net.WebSockets;
-using System.Reactive.Linq;
 using System.Reactive.Subjects;
 using System.Text;
 using System.Text.Json;
@@ -15,15 +14,15 @@ namespace ARMEmulator.Services;
 /// </summary>
 public sealed class WebSocketClient : IWebSocketClient
 {
-	private readonly string _wsUrl;
-	private readonly IWebSocketFactory _factory;
-	private readonly Subject<EmulatorEvent> _eventsSubject = new();
-	private readonly BehaviorSubject<bool> _connectionStateSubject = new(false);
-	private readonly CancellationTokenSource _disposeCts = new();
+	private readonly string wsUrl;
+	private readonly IWebSocketFactory factory;
+	private readonly Subject<EmulatorEvent> eventsSubject = new();
+	private readonly BehaviorSubject<bool> connectionStateSubject = new(false);
+	private readonly CancellationTokenSource disposeCts = new();
 
-	private WebSocket? _ws;
-	private Task? _receiveTask;
-	private string _currentSessionId = string.Empty;
+	private WebSocket? ws;
+	private Task? receiveTask;
+	private string currentSessionId = string.Empty;
 
 	/// <summary>
 	/// Creates a new WebSocket client.
@@ -32,15 +31,15 @@ public sealed class WebSocketClient : IWebSocketClient
 	/// <param name="factory">Factory for creating WebSocket instances (injectable for testing)</param>
 	public WebSocketClient(string wsUrl, IWebSocketFactory? factory = null)
 	{
-		_wsUrl = wsUrl;
-		_factory = factory ?? new DefaultWebSocketFactory();
+		this.wsUrl = wsUrl;
+		this.factory = factory ?? new DefaultWebSocketFactory();
 	}
 
-	public IObservable<EmulatorEvent> Events => _eventsSubject.AsObservable();
+	public IObservable<EmulatorEvent> Events => eventsSubject.AsObservable();
 
-	public bool IsConnected => _ws?.State == WebSocketState.Open;
+	public bool IsConnected => ws?.State == WebSocketState.Open;
 
-	public IObservable<bool> ConnectionState => _connectionStateSubject.AsObservable();
+	public IObservable<bool> ConnectionState => connectionStateSubject.AsObservable();
 
 	public async Task ConnectAsync(string sessionId, CancellationToken ct = default)
 	{
@@ -48,51 +47,51 @@ public sealed class WebSocketClient : IWebSocketClient
 			await DisconnectAsync();
 		}
 
-		_currentSessionId = sessionId;
+		currentSessionId = sessionId;
 
 		try {
-			_ws = _factory.CreateWebSocket();
+			ws = factory.CreateWebSocket();
 
-			if (_ws is ClientWebSocket clientWs) {
-				await clientWs.ConnectAsync(new Uri(_wsUrl), ct);
+			if (ws is ClientWebSocket clientWs) {
+				await clientWs.ConnectAsync(new Uri(wsUrl), ct);
 			}
 
-			_connectionStateSubject.OnNext(true);
+			connectionStateSubject.OnNext(true);
 
 			// Send subscription message
 			await SendSubscriptionAsync(sessionId, ct);
 
 			// Start receive loop
-			_receiveTask = Task.Run(() => ReceiveLoopAsync(_disposeCts.Token), _disposeCts.Token);
+			receiveTask = Task.Run(() => ReceiveLoopAsync(disposeCts.Token), disposeCts.Token);
 		}
 		catch (Exception ex) {
-			_connectionStateSubject.OnNext(false);
-			throw new WebSocketConnectionException($"Failed to connect to {_wsUrl}", ex);
+			connectionStateSubject.OnNext(false);
+			throw new WebSocketConnectionException($"Failed to connect to {wsUrl}", ex);
 		}
 	}
 
 	public async Task DisconnectAsync()
 	{
-		if (_ws is null) {
+		if (ws is null) {
 			return;
 		}
 
 		try {
-			if (_ws.State == WebSocketState.Open) {
-				await _ws.CloseAsync(
+			if (ws.State == WebSocketState.Open) {
+				await ws.CloseAsync(
 					WebSocketCloseStatus.NormalClosure,
 					"Client disconnecting",
 					CancellationToken.None);
 			}
 
-			_ws.Dispose();
-			_ws = null;
+			ws.Dispose();
+			ws = null;
 
-			_connectionStateSubject.OnNext(false);
+			connectionStateSubject.OnNext(false);
 
-			if (_receiveTask is not null) {
-				await _receiveTask.ConfigureAwait(false);
-				_receiveTask = null;
+			if (receiveTask is not null) {
+				await receiveTask.ConfigureAwait(false);
+				receiveTask = null;
 			}
 		}
 		catch {
@@ -103,16 +102,16 @@ public sealed class WebSocketClient : IWebSocketClient
 	[SuppressMessage("Usage", "VSTHRD002:Avoid problematic synchronous waits", Justification = "Dispose must be synchronous; ConfigureAwait(false) prevents deadlock")]
 	public void Dispose()
 	{
-		_disposeCts.Cancel();
+		disposeCts.Cancel();
 		try {
 			DisconnectAsync().ConfigureAwait(false).GetAwaiter().GetResult();
 		}
 		catch {
 			// Ignore dispose errors - may occur if connection already closed
 		}
-		_disposeCts.Dispose();
-		_eventsSubject.Dispose();
-		_connectionStateSubject.Dispose();
+		disposeCts.Dispose();
+		eventsSubject.Dispose();
+		connectionStateSubject.Dispose();
 	}
 
 	private async Task SendSubscriptionAsync(string sessionId, CancellationToken ct)
@@ -120,7 +119,7 @@ public sealed class WebSocketClient : IWebSocketClient
 		// Manual JSON construction to avoid reflection
 		var json = $$"""{"type":"subscribe","sessionId":"{{sessionId}}","events":[]}""";
 		var bytes = Encoding.UTF8.GetBytes(json);
-		await _ws!.SendAsync(
+		await ws!.SendAsync(
 			new ArraySegment<byte>(bytes),
 			WebSocketMessageType.Text,
 			endOfMessage: true,
@@ -132,11 +131,11 @@ public sealed class WebSocketClient : IWebSocketClient
 		var buffer = new byte[8192];
 
 		try {
-			while (!ct.IsCancellationRequested && _ws?.State == WebSocketState.Open) {
-				var result = await _ws.ReceiveAsync(new ArraySegment<byte>(buffer), ct);
+			while (!ct.IsCancellationRequested && ws?.State == WebSocketState.Open) {
+				var result = await ws.ReceiveAsync(new ArraySegment<byte>(buffer), ct);
 
 				if (result.MessageType == WebSocketMessageType.Close) {
-					_connectionStateSubject.OnNext(false);
+					connectionStateSubject.OnNext(false);
 					break;
 				}
 
@@ -150,8 +149,8 @@ public sealed class WebSocketClient : IWebSocketClient
 			// Normal cancellation
 		}
 		catch (WebSocketException ex) {
-			_eventsSubject.OnError(new WebSocketConnectionException("WebSocket error", ex));
-			_connectionStateSubject.OnNext(false);
+			eventsSubject.OnError(new WebSocketConnectionException("WebSocket error", ex));
+			connectionStateSubject.OnNext(false);
 		}
 	}
 
@@ -179,7 +178,7 @@ public sealed class WebSocketClient : IWebSocketClient
 			};
 
 			if (evt is not null) {
-				_eventsSubject.OnNext(evt);
+				eventsSubject.OnNext(evt);
 			}
 		}
 		catch (JsonException ex) {

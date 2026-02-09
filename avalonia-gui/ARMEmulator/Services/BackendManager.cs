@@ -11,38 +11,38 @@ namespace ARMEmulator.Services;
 /// </summary>
 public sealed class BackendManager : IBackendManager
 {
-	private readonly BehaviorSubject<BackendStatus> _statusSubject = new(BackendStatus.Stopped);
-	private readonly string _baseUrl;
-	private readonly HttpClient _http = new();
-	private Process? _process;
+	private readonly BehaviorSubject<BackendStatus> statusSubject = new(BackendStatus.Stopped);
+	private readonly string baseUrl;
+	private readonly HttpClient http = new();
+	private Process? process;
 
 	public BackendManager(string baseUrl = "http://localhost:8080")
 	{
-		_baseUrl = baseUrl;
+		this.baseUrl = baseUrl;
 	}
 
-	public BackendStatus Status => _statusSubject.Value;
+	public BackendStatus Status => statusSubject.Value;
 
-	public IObservable<BackendStatus> StatusChanged => _statusSubject;
+	public IObservable<BackendStatus> StatusChanged => statusSubject;
 
-	public string BaseUrl => _baseUrl;
+	public string BaseUrl => baseUrl;
 
 	public async Task StartAsync(CancellationToken ct = default)
 	{
-		if (_process is not null && !_process.HasExited) {
+		if (process is not null && !process.HasExited) {
 			return; // Already running
 		}
 
-		_statusSubject.OnNext(BackendStatus.Starting);
+		statusSubject.OnNext(BackendStatus.Starting);
 
 		try {
 			var binaryPath = FindBackendBinary();
 			if (binaryPath is null) {
-				_statusSubject.OnNext(BackendStatus.Error);
+				statusSubject.OnNext(BackendStatus.Error);
 				throw new BackendStartException("Backend binary not found");
 			}
 
-			_process = new Process {
+			process = new Process {
 				StartInfo = new ProcessStartInfo {
 					FileName = binaryPath,
 					UseShellExecute = false,
@@ -52,8 +52,8 @@ public sealed class BackendManager : IBackendManager
 				}
 			};
 
-			if (!_process.Start()) {
-				_statusSubject.OnNext(BackendStatus.Error);
+			if (!process.Start()) {
+				statusSubject.OnNext(BackendStatus.Error);
 				throw new BackendStartException("Failed to start backend process");
 			}
 
@@ -61,38 +61,39 @@ public sealed class BackendManager : IBackendManager
 			for (int i = 0; i < 30; i++) // 3 second timeout
 			{
 				if (await HealthCheckAsync(ct)) {
-					_statusSubject.OnNext(BackendStatus.Running);
+					statusSubject.OnNext(BackendStatus.Running);
 					return;
 				}
+
 				await Task.Delay(100, ct);
 			}
 
-			_statusSubject.OnNext(BackendStatus.Error);
+			statusSubject.OnNext(BackendStatus.Error);
 			throw new BackendStartException("Backend started but health check failed");
 		}
 		catch (Exception ex) when (ex is not BackendStartException) {
-			_statusSubject.OnNext(BackendStatus.Error);
+			statusSubject.OnNext(BackendStatus.Error);
 			throw new BackendStartException("Failed to start backend", ex);
 		}
 	}
 
 	public async Task StopAsync()
 	{
-		if (_process is null || _process.HasExited) {
-			_statusSubject.OnNext(BackendStatus.Stopped);
+		if (process is null || process.HasExited) {
+			statusSubject.OnNext(BackendStatus.Stopped);
 			return;
 		}
 
 		try {
-			_process.Kill(entireProcessTree: true);
-			await _process.WaitForExitAsync();
-			_process.Dispose();
-			_process = null;
-			_statusSubject.OnNext(BackendStatus.Stopped);
+			process.Kill(entireProcessTree: true);
+			await process.WaitForExitAsync();
+			process.Dispose();
+			process = null;
+			statusSubject.OnNext(BackendStatus.Stopped);
 		}
 		catch {
 			// Ignore stop errors
-			_statusSubject.OnNext(BackendStatus.Stopped);
+			statusSubject.OnNext(BackendStatus.Stopped);
 		}
 	}
 
@@ -102,7 +103,7 @@ public sealed class BackendManager : IBackendManager
 			using var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
 			cts.CancelAfter(TimeSpan.FromSeconds(1));
 
-			var response = await _http.GetAsync($"{_baseUrl}/health", cts.Token);
+			var response = await http.GetAsync($"{baseUrl}/health", cts.Token);
 			return response.IsSuccessStatusCode;
 		}
 		catch {
@@ -110,12 +111,13 @@ public sealed class BackendManager : IBackendManager
 		}
 	}
 
-	[SuppressMessage("Usage", "VSTHRD002:Avoid problematic synchronous waits", Justification = "Dispose must be synchronous; ConfigureAwait(false) prevents deadlock")]
+	[SuppressMessage("Usage", "VSTHRD002:Avoid problematic synchronous waits",
+		Justification = "Dispose must be synchronous; ConfigureAwait(false) prevents deadlock")]
 	public void Dispose()
 	{
 		StopAsync().ConfigureAwait(false).GetAwaiter().GetResult();
-		_http.Dispose();
-		_statusSubject.Dispose();
+		http.Dispose();
+		statusSubject.Dispose();
 	}
 
 	private static string? FindBackendBinary()

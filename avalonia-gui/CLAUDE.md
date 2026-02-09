@@ -57,7 +57,11 @@ dotnet test
 ### Modern C# 13 Features (Use These)
 
 - **Primary constructors** for dependency injection
-- **Collection expressions** `[item1, item2]` instead of `new List<T> { ... }`
+- **Collection expressions** - modern initialization syntax:
+  - Empty: `[]` instead of `new List<T>()` or `Array.Empty<T>()`
+  - With items: `[item1, item2]` instead of `new List<T> { item1, item2 }`
+  - Spread: `[..existingCollection, newItem]`
+  - Works with arrays, lists, immutable collections, and any collection type
 - **Records** for immutable data models
 - **Pattern matching** (switch expressions, property patterns)
 - **Immutable collections** (`ImmutableArray<T>`, `ImmutableList<T>`)
@@ -91,7 +95,7 @@ Use **idiomatic .NET exception-based error handling** (not Result/Either monads)
 ### Naming Conventions
 
 - **Public properties/methods:** PascalCase
-- **Private fields:** _camelCase with underscore
+- **Private fields:** camelCase (no underscore prefix)
 - **Local variables:** camelCase
 - **Constants:** PascalCase
 - **Interfaces:** IPrefixed

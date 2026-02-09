@@ -40,7 +40,7 @@
         <KeyBinding Gesture="Ctrl+Shift+R" Command="{Binding ResetCommand}" />
 
         <!-- Show PC: Ctrl+J -->
-        <KeyBinding Gesture="Ctrl+J" Command="{Binding ShowPCCommand}" />
+        <KeyBinding Gesture="Ctrl+J" Command="{Binding ShowPcCommand}" />
     </Window.KeyBindings>
 
     <DockPanel>

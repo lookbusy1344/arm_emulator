@@ -46,7 +46,7 @@
                     Command="{Binding ResetCommand}"
                     ToolTip.Tip="Reset (Ctrl+Shift+R)" />
             <Button Content="📍 Show PC"
-                    Command="{Binding ShowPCCommand}"
+                    Command="{Binding ShowPcCommand}"
                     ToolTip.Tip="Show PC (Ctrl+J)" />
         </StackPanel>
     </Border>

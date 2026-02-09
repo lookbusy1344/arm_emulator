@@ -1,7 +1,5 @@
-using System.Collections.Immutable;
 using System.Reactive;
 using System.Reactive.Disposables;
-using System.Reactive.Linq;
 using System.Reactive.Subjects;
 using ARMEmulator.Models;
 using ARMEmulator.Services;
@@ -19,10 +17,10 @@ namespace ARMEmulator.ViewModels;
 /// </summary>
 public partial class MainWindowViewModel : ReactiveObject, IDisposable
 {
-	private readonly IApiClient _api;
-	private readonly IWebSocketClient _ws;
-	private readonly CompositeDisposable _disposables = new();
-	private readonly Subject<string> _registerHighlightTrigger = new();
+	private readonly IApiClient api;
+	private readonly IWebSocketClient ws;
+	private readonly CompositeDisposable disposables = [];
+	private readonly Subject<string> registerHighlightTrigger = new();
 	private static readonly TimeSpan HighlightDuration = TimeSpan.FromSeconds(1.5);
 
 	/// <summary>
@@ -30,8 +28,8 @@ public partial class MainWindowViewModel : ReactiveObject, IDisposable
 	/// </summary>
 	public MainWindowViewModel(IApiClient api, IWebSocketClient ws)
 	{
-		_api = api;
-		_ws = ws;
+		this.api = api;
+		this.ws = ws;
 
 		// Initialize commands with can-execute observables
 		RunCommand = CreateCommand(RunAsync, this.WhenAnyValue(x => x.Status).Select(s => !s.CanPause()));
@@ -41,192 +39,210 @@ public partial class MainWindowViewModel : ReactiveObject, IDisposable
 		StepOutCommand = CreateCommand(StepOutAsync, this.WhenAnyValue(x => x.Status).Select(s => s.CanStep()));
 		ResetCommand = CreateCommand(ResetAsync);
 		LoadProgramCommand = CreateCommand(LoadProgramAsync);
-		ShowPCCommand = CreateCommand(ShowPCAsync);
+		ShowPcCommand = CreateCommand(ShowPcAsync);
 
 		// Set up computed properties using WhenAnyValue
-		_canPauseHelper = this.WhenAnyValue(x => x.Status)
+		canPauseHelper = this.WhenAnyValue(x => x.Status)
 			.Select(s => s.CanPause())
 			.ToProperty(this, x => x.CanPause)
-			.DisposeWith(_disposables);
+			.DisposeWith(disposables);
 
-		_canStepHelper = this.WhenAnyValue(x => x.Status)
+		canStepHelper = this.WhenAnyValue(x => x.Status)
 			.Select(s => s.CanStep())
 			.ToProperty(this, x => x.CanStep)
-			.DisposeWith(_disposables);
+			.DisposeWith(disposables);
 
-		_isEditorEditableHelper = this.WhenAnyValue(x => x.Status)
+		isEditorEditableHelper = this.WhenAnyValue(x => x.Status)
 			.Select(s => s.IsEditorEditable())
 			.ToProperty(this, x => x.IsEditorEditable)
-			.DisposeWith(_disposables);
+			.DisposeWith(disposables);
 
 		// Set up status indicator properties
-		_statusColorHelper = this.WhenAnyValue(x => x.Status, x => x.IsConnected)
+		statusColorHelper = this.WhenAnyValue(x => x.Status, x => x.IsConnected)
 			.Select(tuple => GetStatusColor(tuple.Item1, tuple.Item2))
 			.ToProperty(this, x => x.StatusColor)
-			.DisposeWith(_disposables);
+			.DisposeWith(disposables);
 
-		_statusTextHelper = this.WhenAnyValue(x => x.Status, x => x.IsConnected)
+		statusTextHelper = this.WhenAnyValue(x => x.Status, x => x.IsConnected)
 			.Select(tuple => GetStatusText(tuple.Item1, tuple.Item2))
 			.ToProperty(this, x => x.StatusText)
-			.DisposeWith(_disposables);
+			.DisposeWith(disposables);
 
 		// Set up timed highlight removal pipeline
 		SetupHighlightPipeline();
 
 		// Subscribe to WebSocket events
-		_ = _ws.Events
+		_ = this.ws.Events
 			.ObserveOn(RxApp.MainThreadScheduler)
 			.Subscribe(HandleEvent)
-			.DisposeWith(_disposables);
+			.DisposeWith(disposables);
 	}
 
 	// Reactive properties (manual implementation)
-	private RegisterState _registers = RegisterState.Create();
+	private RegisterState registers = RegisterState.Create();
+
 	public RegisterState Registers
 	{
-		get => _registers;
-		set => this.RaiseAndSetIfChanged(ref _registers, value);
+		get => registers;
+		set => this.RaiseAndSetIfChanged(ref registers, value);
 	}
 
-	private RegisterState? _previousRegisters;
+	private RegisterState? previousRegisters;
+
 	public RegisterState? PreviousRegisters
 	{
-		get => _previousRegisters;
-		set => this.RaiseAndSetIfChanged(ref _previousRegisters, value);
+		get => previousRegisters;
+		set => this.RaiseAndSetIfChanged(ref previousRegisters, value);
 	}
 
-	private ImmutableHashSet<string> _changedRegisters = [];
+	private ImmutableHashSet<string> changedRegisters = [];
+
 	public ImmutableHashSet<string> ChangedRegisters
 	{
-		get => _changedRegisters;
-		set => this.RaiseAndSetIfChanged(ref _changedRegisters, value);
+		get => changedRegisters;
+		set => this.RaiseAndSetIfChanged(ref changedRegisters, value);
 	}
 
-	private VMState _status = VMState.Idle;
+	private VMState status = VMState.Idle;
+
 	public VMState Status
 	{
-		get => _status;
-		set => this.RaiseAndSetIfChanged(ref _status, value);
+		get => status;
+		set => this.RaiseAndSetIfChanged(ref status, value);
 	}
 
-	private string _consoleOutput = "";
+	private string consoleOutput = "";
+
 	public string ConsoleOutput
 	{
-		get => _consoleOutput;
-		set => this.RaiseAndSetIfChanged(ref _consoleOutput, value);
+		get => consoleOutput;
+		set => this.RaiseAndSetIfChanged(ref consoleOutput, value);
 	}
 
-	private string? _errorMessage;
+	private string? errorMessage;
+
 	public string? ErrorMessage
 	{
-		get => _errorMessage;
-		set => this.RaiseAndSetIfChanged(ref _errorMessage, value);
+		get => errorMessage;
+		set => this.RaiseAndSetIfChanged(ref errorMessage, value);
 	}
 
 	// Debugging state
-	private ImmutableHashSet<uint> _breakpoints = [];
+	private ImmutableHashSet<uint> breakpoints = [];
+
 	public ImmutableHashSet<uint> Breakpoints
 	{
-		get => _breakpoints;
-		set => this.RaiseAndSetIfChanged(ref _breakpoints, value);
+		get => breakpoints;
+		set => this.RaiseAndSetIfChanged(ref breakpoints, value);
 	}
 
-	private ImmutableArray<Watchpoint> _watchpoints = [];
+	private ImmutableArray<Watchpoint> watchpoints = [];
+
 	public ImmutableArray<Watchpoint> Watchpoints
 	{
-		get => _watchpoints;
-		set => this.RaiseAndSetIfChanged(ref _watchpoints, value);
+		get => watchpoints;
+		set => this.RaiseAndSetIfChanged(ref watchpoints, value);
 	}
 
 	// Source mapping
-	private string _sourceCode = "";
+	private string sourceCode = "";
+
 	public string SourceCode
 	{
-		get => _sourceCode;
-		set => this.RaiseAndSetIfChanged(ref _sourceCode, value);
+		get => sourceCode;
+		set => this.RaiseAndSetIfChanged(ref sourceCode, value);
 	}
 
-	private ImmutableDictionary<uint, int> _addressToLine = ImmutableDictionary<uint, int>.Empty;
+	private ImmutableDictionary<uint, int> addressToLine = ImmutableDictionary<uint, int>.Empty;
+
 	public ImmutableDictionary<uint, int> AddressToLine
 	{
-		get => _addressToLine;
-		set => this.RaiseAndSetIfChanged(ref _addressToLine, value);
+		get => addressToLine;
+		set => this.RaiseAndSetIfChanged(ref addressToLine, value);
 	}
 
-	private ImmutableDictionary<int, uint> _lineToAddress = ImmutableDictionary<int, uint>.Empty;
+	private ImmutableDictionary<int, uint> lineToAddress = ImmutableDictionary<int, uint>.Empty;
+
 	public ImmutableDictionary<int, uint> LineToAddress
 	{
-		get => _lineToAddress;
-		set => this.RaiseAndSetIfChanged(ref _lineToAddress, value);
+		get => lineToAddress;
+		set => this.RaiseAndSetIfChanged(ref lineToAddress, value);
 	}
 
-	private ImmutableHashSet<int> _validBreakpointLines = [];
+	private ImmutableHashSet<int> validBreakpointLines = [];
+
 	public ImmutableHashSet<int> ValidBreakpointLines
 	{
-		get => _validBreakpointLines;
-		set => this.RaiseAndSetIfChanged(ref _validBreakpointLines, value);
+		get => validBreakpointLines;
+		set => this.RaiseAndSetIfChanged(ref validBreakpointLines, value);
 	}
 
 	// Memory state
-	private ImmutableArray<byte> _memoryData = [];
+	private ImmutableArray<byte> memoryData = [];
+
 	public ImmutableArray<byte> MemoryData
 	{
-		get => _memoryData;
-		set => this.RaiseAndSetIfChanged(ref _memoryData, value);
+		get => memoryData;
+		set => this.RaiseAndSetIfChanged(ref memoryData, value);
 	}
 
-	private uint _memoryAddress;
+	private uint memoryAddress;
+
 	public uint MemoryAddress
 	{
-		get => _memoryAddress;
-		set => this.RaiseAndSetIfChanged(ref _memoryAddress, value);
+		get => memoryAddress;
+		set => this.RaiseAndSetIfChanged(ref memoryAddress, value);
 	}
 
-	private MemoryWrite? _lastMemoryWrite;
+	private MemoryWrite? lastMemoryWrite;
+
 	public MemoryWrite? LastMemoryWrite
 	{
-		get => _lastMemoryWrite;
-		set => this.RaiseAndSetIfChanged(ref _lastMemoryWrite, value);
+		get => lastMemoryWrite;
+		set => this.RaiseAndSetIfChanged(ref lastMemoryWrite, value);
 	}
 
 	// Disassembly
-	private ImmutableArray<DisassemblyInstruction> _disassembly = [];
+	private ImmutableArray<DisassemblyInstruction> disassembly = [];
+
 	public ImmutableArray<DisassemblyInstruction> Disassembly
 	{
-		get => _disassembly;
-		set => this.RaiseAndSetIfChanged(ref _disassembly, value);
+		get => disassembly;
+		set => this.RaiseAndSetIfChanged(ref disassembly, value);
 	}
 
 	// Connection state
-	private bool _isConnected;
+	private bool isConnected;
+
 	public bool IsConnected
 	{
-		get => _isConnected;
-		set => this.RaiseAndSetIfChanged(ref _isConnected, value);
+		get => isConnected;
+		set => this.RaiseAndSetIfChanged(ref isConnected, value);
 	}
 
-	private string? _sessionId;
+	private string? sessionId;
+
 	public string? SessionId
 	{
-		get => _sessionId;
-		internal set => this.RaiseAndSetIfChanged(ref _sessionId, value);
+		get => sessionId;
+		internal set => this.RaiseAndSetIfChanged(ref sessionId, value);
 	}
 
 	// Computed properties via ObservableAsPropertyHelper
 	// These are disposed via _disposables.Dispose()
 #pragma warning disable CA2213 // Disposable fields should be disposed - disposed via DisposeWith(_disposables)
-	private readonly ObservableAsPropertyHelper<bool> _canPauseHelper;
-	private readonly ObservableAsPropertyHelper<bool> _canStepHelper;
-	private readonly ObservableAsPropertyHelper<bool> _isEditorEditableHelper;
-	private readonly ObservableAsPropertyHelper<string> _statusColorHelper;
-	private readonly ObservableAsPropertyHelper<string> _statusTextHelper;
+	private readonly ObservableAsPropertyHelper<bool> canPauseHelper;
+	private readonly ObservableAsPropertyHelper<bool> canStepHelper;
+	private readonly ObservableAsPropertyHelper<bool> isEditorEditableHelper;
+	private readonly ObservableAsPropertyHelper<string> statusColorHelper;
+	private readonly ObservableAsPropertyHelper<string> statusTextHelper;
 #pragma warning restore CA2213
 
-	public bool CanPause => _canPauseHelper.Value;
-	public bool CanStep => _canStepHelper.Value;
-	public bool IsEditorEditable => _isEditorEditableHelper.Value;
-	public string StatusColor => _statusColorHelper.Value;
-	public string StatusText => _statusTextHelper.Value;
+	public bool CanPause => canPauseHelper.Value;
+	public bool CanStep => canStepHelper.Value;
+	public bool IsEditorEditable => isEditorEditableHelper.Value;
+	public string StatusColor => statusColorHelper.Value;
+	public string StatusText => statusTextHelper.Value;
 
 	// Commands
 	public ReactiveCommand<Unit, Unit> RunCommand { get; }
@@ -236,7 +252,7 @@ public partial class MainWindowViewModel : ReactiveObject, IDisposable
 	public ReactiveCommand<Unit, Unit> StepOutCommand { get; }
 	public ReactiveCommand<Unit, Unit> ResetCommand { get; }
 	public ReactiveCommand<Unit, Unit> LoadProgramCommand { get; }
-	public ReactiveCommand<Unit, Unit> ShowPCCommand { get; }
+	public ReactiveCommand<Unit, Unit> ShowPcCommand { get; }
 
 	/// <summary>
 	/// Helper to create commands with consistent error handling and scheduling.
@@ -249,7 +265,7 @@ public partial class MainWindowViewModel : ReactiveObject, IDisposable
 		execute,
 		canExecute,
 		outputScheduler: RxApp.MainThreadScheduler
-	).DisposeWith(_disposables);
+	).DisposeWith(disposables);
 #pragma warning restore CA2000
 
 	/// <summary>
@@ -264,11 +280,11 @@ public partial class MainWindowViewModel : ReactiveObject, IDisposable
 		}
 
 		// Create new session
-		var sessionInfo = await _api.CreateSessionAsync(ct);
+		var sessionInfo = await api.CreateSessionAsync(ct);
 		SessionId = sessionInfo.SessionId;
 
 		// Connect WebSocket
-		await _ws.ConnectAsync(sessionInfo.SessionId, ct);
+		await ws.ConnectAsync(sessionInfo.SessionId, ct);
 		IsConnected = true;
 	}
 
@@ -283,10 +299,10 @@ public partial class MainWindowViewModel : ReactiveObject, IDisposable
 
 		try {
 			// Disconnect WebSocket first
-			await _ws.DisconnectAsync();
+			await ws.DisconnectAsync();
 
 			// Destroy session on backend
-			await _api.DestroySessionAsync(SessionId, ct);
+			await api.DestroySessionAsync(SessionId, ct);
 		}
 		finally {
 			// Always clear local state
@@ -302,7 +318,7 @@ public partial class MainWindowViewModel : ReactiveObject, IDisposable
 			return;
 		}
 
-		await _api.RunAsync(SessionId, ct);
+		await api.RunAsync(SessionId, ct);
 	}
 
 	private async Task PauseAsync(CancellationToken ct)
@@ -311,7 +327,7 @@ public partial class MainWindowViewModel : ReactiveObject, IDisposable
 			return;
 		}
 
-		await _api.StopAsync(SessionId, ct);
+		await api.StopAsync(SessionId, ct);
 	}
 
 	private async Task StepAsync(CancellationToken ct)
@@ -320,7 +336,7 @@ public partial class MainWindowViewModel : ReactiveObject, IDisposable
 			return;
 		}
 
-		var newRegisters = await _api.StepAsync(SessionId, ct);
+		var newRegisters = await api.StepAsync(SessionId, ct);
 		UpdateRegisters(newRegisters);
 	}
 
@@ -330,7 +346,7 @@ public partial class MainWindowViewModel : ReactiveObject, IDisposable
 			return;
 		}
 
-		var newRegisters = await _api.StepOverAsync(SessionId, ct);
+		var newRegisters = await api.StepOverAsync(SessionId, ct);
 		UpdateRegisters(newRegisters);
 	}
 
@@ -340,7 +356,7 @@ public partial class MainWindowViewModel : ReactiveObject, IDisposable
 			return;
 		}
 
-		var newRegisters = await _api.StepOutAsync(SessionId, ct);
+		var newRegisters = await api.StepOutAsync(SessionId, ct);
 		UpdateRegisters(newRegisters);
 	}
 
@@ -350,7 +366,7 @@ public partial class MainWindowViewModel : ReactiveObject, IDisposable
 			return;
 		}
 
-		await _api.ResetAsync(SessionId, ct);
+		await api.ResetAsync(SessionId, ct);
 	}
 
 	private Task LoadProgramAsync(CancellationToken ct)
@@ -359,7 +375,7 @@ public partial class MainWindowViewModel : ReactiveObject, IDisposable
 		return Task.CompletedTask;
 	}
 
-	private Task ShowPCAsync(CancellationToken ct)
+	private Task ShowPcAsync(CancellationToken ct)
 	{
 		// TODO: Implement scroll-to-PC logic (will be handled by EditorView)
 		return Task.CompletedTask;
@@ -374,7 +390,7 @@ public partial class MainWindowViewModel : ReactiveObject, IDisposable
 			return;
 		}
 
-		await _api.AddBreakpointAsync(SessionId, address, ct);
+		await api.AddBreakpointAsync(SessionId, address, ct);
 		Breakpoints = Breakpoints.Add(address);
 	}
 
@@ -387,7 +403,7 @@ public partial class MainWindowViewModel : ReactiveObject, IDisposable
 			return;
 		}
 
-		await _api.RemoveBreakpointAsync(SessionId, address, ct);
+		await api.RemoveBreakpointAsync(SessionId, address, ct);
 		Breakpoints = Breakpoints.Remove(address);
 	}
 
@@ -437,7 +453,7 @@ public partial class MainWindowViewModel : ReactiveObject, IDisposable
 	/// </summary>
 	private void SetupHighlightPipeline()
 	{
-		_ = _registerHighlightTrigger
+		_ = registerHighlightTrigger
 			.GroupBy(register => register)
 			.SelectMany(group =>
 				group.Select(register => (register, action: "add"))
@@ -452,7 +468,7 @@ public partial class MainWindowViewModel : ReactiveObject, IDisposable
 					? ChangedRegisters.Add(x.register)
 					: ChangedRegisters.Remove(x.register);
 			})
-			.DisposeWith(_disposables);
+			.DisposeWith(disposables);
 	}
 
 	/// <summary>
@@ -465,7 +481,7 @@ public partial class MainWindowViewModel : ReactiveObject, IDisposable
 			// Compute diff and trigger highlights for each changed register
 			var changes = newRegisters.Diff(Registers);
 			foreach (var register in changes) {
-				_registerHighlightTrigger.OnNext(register);
+				registerHighlightTrigger.OnNext(register);
 			}
 		}
 
@@ -535,8 +551,8 @@ public partial class MainWindowViewModel : ReactiveObject, IDisposable
 
 	public void Dispose()
 	{
-		_registerHighlightTrigger.Dispose();
-		_disposables.Dispose();
+		registerHighlightTrigger.Dispose();
+		disposables.Dispose();
 		GC.SuppressFinalize(this);
 	}
 }
