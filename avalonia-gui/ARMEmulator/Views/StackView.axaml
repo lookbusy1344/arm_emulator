@@ -1,0 +1,120 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:ARMEmulator.ViewModels"
+             xmlns:converters="using:ARMEmulator.Converters"
+             x:Class="ARMEmulator.Views.StackView"
+             x:DataType="vm:StackViewModel">
+    <UserControl.Resources>
+        <converters:BoolToHighlightConverter x:Key="HighlightConverter" />
+    </UserControl.Resources>
+
+    <DockPanel>
+        <!-- Header with Stack Info and Refresh Button -->
+        <Border DockPanel.Dock="Top"
+                Background="{DynamicResource SystemControlBackgroundAltHighBrush}"
+                Padding="8"
+                BorderThickness="0,0,0,1"
+                BorderBrush="{DynamicResource SystemControlForegroundBaseLowBrush}">
+            <Grid ColumnDefinitions="*,Auto">
+                <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="16">
+                    <TextBlock>
+                        <Run Text="Stack Pointer: 0x" />
+                        <Run Text="{Binding StackPointer, StringFormat=X8}" FontWeight="SemiBold" />
+                    </TextBlock>
+                    <TextBlock>
+                        <Run Text="Stack Size: " />
+                        <Run Text="{Binding StackSize}" FontWeight="SemiBold" />
+                        <Run Text=" bytes" />
+                    </TextBlock>
+                </StackPanel>
+                <Button Grid.Column="1"
+                        Content="🔄 Refresh"
+                        Command="{Binding RefreshCommand}"
+                        ToolTip.Tip="Refresh stack view" />
+            </Grid>
+        </Border>
+
+        <!-- Error Message -->
+        <Border DockPanel.Dock="Top"
+                Background="#FFDDDD"
+                Padding="8"
+                IsVisible="{Binding ErrorMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+            <TextBlock Text="{Binding ErrorMessage}"
+                       Foreground="#CC0000"
+                       FontWeight="SemiBold" />
+        </Border>
+
+        <!-- Stack Entries Table -->
+        <ScrollViewer>
+            <Grid>
+                <!-- Header Row -->
+                <Border Background="{DynamicResource SystemControlBackgroundAltMediumBrush}"
+                        BorderThickness="0,0,0,1"
+                        BorderBrush="{DynamicResource SystemControlForegroundBaseLowBrush}"
+                        VerticalAlignment="Top"
+                        Height="28">
+                    <Grid ColumnDefinitions="Auto,12,Auto,12,Auto,12,Auto,12,*" Margin="8,4">
+                        <TextBlock Grid.Column="0" Text="Offset" FontWeight="SemiBold" />
+                        <TextBlock Grid.Column="2" Text="Address" FontWeight="SemiBold" />
+                        <TextBlock Grid.Column="4" Text="Value" FontWeight="SemiBold" />
+                        <TextBlock Grid.Column="6" Text="ASCII" FontWeight="SemiBold" />
+                        <TextBlock Grid.Column="8" Text="Annotation" FontWeight="SemiBold" />
+                    </Grid>
+                </Border>
+
+                <!-- Data Rows -->
+                <ItemsControl ItemsSource="{Binding StackEntries}" Margin="0,28,0,0">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Border Background="{Binding IsCurrentSP, Converter={StaticResource HighlightConverter}}"
+                                    Padding="8,4"
+                                    BorderThickness="0,0,0,1"
+                                    BorderBrush="{DynamicResource SystemControlForegroundBaseLowBrush}">
+                                <Grid ColumnDefinitions="Auto,12,Auto,12,Auto,12,Auto,12,*">
+                                    <!-- Offset -->
+                                    <TextBlock Grid.Column="0"
+                                               Text="{Binding Offset}"
+                                               FontFamily="JetBrains Mono,Consolas,Courier New,monospace"
+                                               FontSize="12"
+                                               Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"
+                                               Width="60" />
+
+                                    <!-- Address -->
+                                    <TextBlock Grid.Column="2"
+                                               Text="{Binding Address}"
+                                               FontFamily="JetBrains Mono,Consolas,Courier New,monospace"
+                                               FontSize="12"
+                                               Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"
+                                               Width="80" />
+
+                                    <!-- Value -->
+                                    <TextBlock Grid.Column="4"
+                                               Text="{Binding Value}"
+                                               FontFamily="JetBrains Mono,Consolas,Courier New,monospace"
+                                               FontSize="12"
+                                               FontWeight="SemiBold"
+                                               Width="90" />
+
+                                    <!-- ASCII -->
+                                    <TextBlock Grid.Column="6"
+                                               Text="{Binding Ascii}"
+                                               FontFamily="JetBrains Mono,Consolas,Courier New,monospace"
+                                               FontSize="12"
+                                               Foreground="{DynamicResource SystemControlForegroundBaseMediumHighBrush}"
+                                               Width="40" />
+
+                                    <!-- Annotation -->
+                                    <TextBlock Grid.Column="8"
+                                               Text="{Binding Annotation}"
+                                               FontSize="11"
+                                               FontStyle="Italic"
+                                               Foreground="{DynamicResource SystemControlForegroundBaseHighBrush}" />
+                                </Grid>
+                            </Border>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </Grid>
+        </ScrollViewer>
+    </DockPanel>
+</UserControl>

@@ -15,9 +15,7 @@
                 <views:MemoryView />
             </TabItem>
             <TabItem Header="Stack">
-                <TextBlock Text="Stack View Placeholder"
-                           VerticalAlignment="Center"
-                           HorizontalAlignment="Center" />
+                <views:StackView />
             </TabItem>
             <TabItem Header="Disassembly">
                 <TextBlock Text="Disassembly View Placeholder"
