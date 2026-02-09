@@ -60,6 +60,12 @@ public partial class MainWindowViewModel : ReactiveObject, IDisposable
 
 		// Set up timed highlight removal pipeline
 		SetupHighlightPipeline();
+
+		// Subscribe to WebSocket events
+		_ = _ws.Events
+			.ObserveOn(RxApp.MainThreadScheduler)
+			.Subscribe(HandleEvent)
+			.DisposeWith(_disposables);
 	}
 
 	// Reactive properties (manual implementation)
@@ -273,6 +279,66 @@ public partial class MainWindowViewModel : ReactiveObject, IDisposable
 
 		PreviousRegisters = Registers;
 		Registers = newRegisters;
+	}
+
+	/// <summary>
+	/// Handles WebSocket events with exhaustive pattern matching.
+	/// Guards against stale state updates when already halted.
+	/// </summary>
+	private void HandleEvent(EmulatorEvent evt)
+	{
+		// Guard against stale events when already halted
+		if (Status == VMState.Halted && evt is StateEvent) {
+			return;
+		}
+
+		_ = evt switch {
+			StateEvent { Status: var status, Registers: var regs } =>
+				ApplyStateUpdate(status, regs),
+
+			OutputEvent { Content: var content } =>
+				AppendOutput(content),
+
+			ExecutionEvent { EventType: var type, Message: var msg } =>
+				ApplyExecutionEvent(type, msg),
+
+			_ => false // Unreachable with sealed record hierarchy
+		};
+	}
+
+	private bool ApplyStateUpdate(VMStatus status, RegisterState registers)
+	{
+		UpdateRegisters(registers);
+		Status = status.State;
+		LastMemoryWrite = status.LastWrite;
+		return true;
+	}
+
+	private bool AppendOutput(string content)
+	{
+		ConsoleOutput += content;
+		return true;
+	}
+
+	private bool ApplyExecutionEvent(ExecutionEventType type, string? message) =>
+		type switch {
+			ExecutionEventType.BreakpointHit => SetStatus(VMState.Breakpoint),
+			ExecutionEventType.Halted => SetStatus(VMState.Halted),
+			ExecutionEventType.Error => SetStatusWithError(VMState.Error, message),
+			_ => throw new ArgumentOutOfRangeException(nameof(type), type, "Unknown execution event type")
+		};
+
+	private bool SetStatus(VMState state)
+	{
+		Status = state;
+		return true;
+	}
+
+	private bool SetStatusWithError(VMState state, string? msg)
+	{
+		Status = state;
+		ErrorMessage = msg;
+		return true;
 	}
 
 	public void Dispose()

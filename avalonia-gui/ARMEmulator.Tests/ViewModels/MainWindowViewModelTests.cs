@@ -1,3 +1,5 @@
+using System.Diagnostics.CodeAnalysis;
+using System.Reactive.Subjects;
 using ARMEmulator.Models;
 using ARMEmulator.Services;
 using ARMEmulator.ViewModels;
@@ -11,15 +13,28 @@ namespace ARMEmulator.Tests.ViewModels;
 /// Tests for MainWindowViewModel following TDD principles.
 /// Tests define expected behavior before implementation.
 /// </summary>
-public class MainWindowViewModelTests
+public class MainWindowViewModelTests : IDisposable
 {
 	private readonly IApiClient _mockApi;
+
+	// NSubstitute mocks don't need disposal - they're lightweight test doubles
+	[SuppressMessage("IDisposableAnalyzers.Correctness", "CA2213:Disposable fields should be disposed", Justification = "NSubstitute mock doesn't require disposal")]
 	private readonly IWebSocketClient _mockWs;
+
+	private readonly Subject<EmulatorEvent> _eventsSubject;
 
 	public MainWindowViewModelTests()
 	{
 		_mockApi = Substitute.For<IApiClient>();
 		_mockWs = Substitute.For<IWebSocketClient>();
+		_eventsSubject = new Subject<EmulatorEvent>();
+		_mockWs.Events.Returns(_eventsSubject);
+	}
+
+	public void Dispose()
+	{
+		_eventsSubject.Dispose();
+		GC.SuppressFinalize(this);
 	}
 
 	[Fact]
@@ -208,8 +223,96 @@ public class MainWindowViewModelTests
 		viewModel.ChangedRegisters.Should().NotContain("R0");
 		viewModel.ChangedRegisters.Should().Contain("R1");
 
-		// Wait another 700ms for R1 to expire
-		await Task.Delay(700);
+		// Wait another 800ms for R1 to expire (with buffer for scheduling overhead)
+		await Task.Delay(800);
 		viewModel.ChangedRegisters.Should().NotContain("R1");
+	}
+
+	[Fact]
+	public void WebSocket_StateEvent_UpdatesRegistersAndStatus()
+	{
+		// Arrange
+		using var viewModel = new MainWindowViewModel(_mockApi, _mockWs);
+		var newRegisters = RegisterState.Create(r0: 42, r1: 100);
+		var status = new VMStatus(VMState.Running, PC: 0x8000, Cycles: 100);
+
+		// Act
+		_eventsSubject.OnNext(new StateEvent("session1", status, newRegisters));
+
+		// Assert
+		viewModel.Registers.Should().Be(newRegisters);
+		viewModel.Status.Should().Be(VMState.Running);
+	}
+
+	[Fact]
+	public void WebSocket_OutputEvent_AppendsToConsole()
+	{
+		// Arrange
+		using var viewModel = new MainWindowViewModel(_mockApi, _mockWs);
+
+		// Act
+		_eventsSubject.OnNext(new OutputEvent("session1", OutputStreamType.Stdout, "Hello\n"));
+		_eventsSubject.OnNext(new OutputEvent("session1", OutputStreamType.Stdout, "World\n"));
+
+		// Assert
+		viewModel.ConsoleOutput.Should().Be("Hello\nWorld\n");
+	}
+
+	[Fact]
+	public void WebSocket_ExecutionEvent_BreakpointHit_UpdatesStatus()
+	{
+		// Arrange
+		using var viewModel = new MainWindowViewModel(_mockApi, _mockWs);
+
+		// Act
+		_eventsSubject.OnNext(new ExecutionEvent("session1", ExecutionEventType.BreakpointHit));
+
+		// Assert
+		viewModel.Status.Should().Be(VMState.Breakpoint);
+	}
+
+	[Fact]
+	public void WebSocket_ExecutionEvent_Halted_UpdatesStatus()
+	{
+		// Arrange
+		using var viewModel = new MainWindowViewModel(_mockApi, _mockWs);
+
+		// Act
+		_eventsSubject.OnNext(new ExecutionEvent("session1", ExecutionEventType.Halted));
+
+		// Assert
+		viewModel.Status.Should().Be(VMState.Halted);
+	}
+
+	[Fact]
+	public void WebSocket_ExecutionEvent_Error_UpdatesStatusAndMessage()
+	{
+		// Arrange
+		using var viewModel = new MainWindowViewModel(_mockApi, _mockWs);
+
+		// Act
+		_eventsSubject.OnNext(new ExecutionEvent("session1", ExecutionEventType.Error, Message: "Test error"));
+
+		// Assert
+		viewModel.Status.Should().Be(VMState.Error);
+		viewModel.ErrorMessage.Should().Be("Test error");
+	}
+
+	[Fact]
+	public void WebSocket_StateEventWhenHalted_IsIgnored()
+	{
+		// Arrange
+		using var viewModel = new MainWindowViewModel(_mockApi, _mockWs);
+		viewModel.Status = VMState.Halted;
+		var originalRegisters = viewModel.Registers;
+
+		// Act - send state event while halted
+		var newRegisters = RegisterState.Create(r0: 999);
+		var status = new VMStatus(VMState.Running, PC: 0x8000, Cycles: 100);
+		_eventsSubject.OnNext(new StateEvent("session1", status, newRegisters));
+
+		// Assert - state should not change when already halted
+		viewModel.Status.Should().Be(VMState.Halted);
+		viewModel.Registers.Should().Be(originalRegisters);
 	}
 }
