@@ -1,0 +1,47 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:ARMEmulator.ViewModels"
+             x:Class="ARMEmulator.Views.RightPanelView">
+    <Border BorderBrush="{DynamicResource SystemControlForegroundBaseMediumBrush}"
+            BorderThickness="1"
+            CornerRadius="4"
+            Padding="8">
+        <TabControl>
+            <TabItem Header="Registers">
+                <TextBlock Text="Registers View Placeholder"
+                           VerticalAlignment="Center"
+                           HorizontalAlignment="Center" />
+            </TabItem>
+            <TabItem Header="Memory">
+                <TextBlock Text="Memory View Placeholder"
+                           VerticalAlignment="Center"
+                           HorizontalAlignment="Center" />
+            </TabItem>
+            <TabItem Header="Stack">
+                <TextBlock Text="Stack View Placeholder"
+                           VerticalAlignment="Center"
+                           HorizontalAlignment="Center" />
+            </TabItem>
+            <TabItem Header="Disassembly">
+                <TextBlock Text="Disassembly View Placeholder"
+                           VerticalAlignment="Center"
+                           HorizontalAlignment="Center" />
+            </TabItem>
+            <TabItem Header="Eval">
+                <TextBlock Text="Expression Evaluator Placeholder"
+                           VerticalAlignment="Center"
+                           HorizontalAlignment="Center" />
+            </TabItem>
+            <TabItem Header="Watchpoints">
+                <TextBlock Text="Watchpoints View Placeholder"
+                           VerticalAlignment="Center"
+                           HorizontalAlignment="Center" />
+            </TabItem>
+            <TabItem Header="Breakpoints">
+                <TextBlock Text="Breakpoints View Placeholder"
+                           VerticalAlignment="Center"
+                           HorizontalAlignment="Center" />
+            </TabItem>
+        </TabControl>
+    </Border>
+</UserControl>

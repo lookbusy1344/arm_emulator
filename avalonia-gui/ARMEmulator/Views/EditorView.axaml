@@ -1,0 +1,14 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:ARMEmulator.ViewModels"
+             x:Class="ARMEmulator.Views.EditorView">
+    <Border BorderBrush="{DynamicResource SystemControlForegroundBaseMediumBrush}"
+            BorderThickness="1"
+            CornerRadius="4"
+            Padding="8">
+        <TextBlock Text="Editor View Placeholder"
+                   VerticalAlignment="Center"
+                   HorizontalAlignment="Center"
+                   Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}" />
+    </Border>
+</UserControl>
