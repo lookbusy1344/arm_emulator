@@ -752,7 +752,7 @@ Diagnostic Modes:
   -register-trace-format Register trace format: text, json (default: text)
 
 Examples:
-  # Start API server for GUI frontends (Swift app, Wails app)
+  # Start API server for GUI frontends (Swift app, Avalonia app)
   arm-emulator -api-server
   arm-emulator -api-server -port 3000
 

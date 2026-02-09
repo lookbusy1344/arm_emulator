@@ -6,13 +6,13 @@ This is an example of using vibe coding to re-create my first commercial project
 
 Here I am attempting to use Claude Code to broadly recreate the emulator as a cross-platform Go project, with a simple TUI debugger. Claude was given a one-paragraph prompt and essentially left to its own devices, with only gentle high level steering.
 
-After the TUI interface, I went on to make a cross-platform GUI using Wails. While this works, I was dissatisfied with the webview interface, so **the Wails GUI is now deprecated**. The current GUI is a **native Swift app for macOS** that provides a superior native experience, calling into the Go VM using a REST API. Perhaps later I will write a Windows GUI using the same backend, using WinUI or WPF.
+After the TUI interface, I added a REST API backend to support GUI frontends. The project now includes two native GUI applications: a **Swift app for macOS** and an **Avalonia app for Windows/Linux/macOS**, both calling into the Go VM using the REST API.
 
 The project therefore consists of:
 
 - A Go backend implementing the ARM2 emulator, CLI and TUI debugger, and REST API for GUI integration
 - A native Swift macOS app providing a GUI frontend using SwiftUI and MVVM architecture
-- (Deprecated) A Wails cross-platform GUI using web technologies
+- An Avalonia cross-platform GUI using .NET and ReactiveUI (Windows/Linux/macOS)
 
 ## Security
 
@@ -200,9 +200,15 @@ open ARMEmulator.xcodeproj
 - [docs/HTTP_API.md](docs/HTTP_API.md) - REST API and WebSocket reference
 - [openapi.yaml](openapi.yaml) - OpenAPI 3.0 specification
 
-#### Wails Cross-Platform GUI (Deprecated)
+#### Avalonia Cross-Platform GUI
 
-Web-based GUI available for reference. See [Wails.md](Wails.md) and [docs/GUI.md](docs/GUI.md).
+.NET-based GUI for Windows, Linux, and macOS. Built with Avalonia UI and ReactiveUI using MVVM architecture.
+
+**Requirements:** .NET SDK 10.0+
+
+**Documentation:**
+- [docs/AVALONIA_IMPLEMENTATION_PLAN.md](docs/AVALONIA_IMPLEMENTATION_PLAN.md) - Implementation details
+- [docs/HTTP_API.md](docs/HTTP_API.md) - REST API and WebSocket reference
 
 ### Symbol Table Dump
 
@@ -341,8 +347,8 @@ Download pre-built binaries with SHA256 checksums from [Releases](https://github
 ├── tools/               # Development tools (lint, format, xref)
 ├── api/                 # HTTP REST API backend for GUIs
 ├── service/             # Service layer for API/GUI integration
-├── swift-gui/           # Swift native macOS app (SwiftUI + MVVM) - Primary GUI
-├── gui/                 # Wails cross-platform GUI (DEPRECATED)
+├── swift-gui/           # Swift native macOS app (SwiftUI + MVVM)
+├── avalonia-gui/        # Avalonia cross-platform GUI (.NET + ReactiveUI)
 ├── tests/               # Test files (1,024 tests, 100% passing, 75% coverage)
 ├── examples/            # Example ARM assembly programs (49 programs)
 └── docs/                # User and developer documentation

@@ -2,7 +2,6 @@ package service
 
 import (
 	"bytes"
-	"context"
 	"fmt"
 	"io"
 	"log"
@@ -48,7 +47,7 @@ func init() {
 }
 
 // DebuggerService provides a thread-safe interface to debugger functionality
-// This service is shared by TUI, GUI, and CLI interfaces
+// This service is shared by TUI, API/GUI frontends, and CLI interfaces
 //
 // Lock Ordering:
 // The service uses its own sync.RWMutex (s.mu) to protect all field access,
@@ -59,7 +58,7 @@ func init() {
 // This is safe because:
 // - The TUI uses the Debugger's internal mutex directly (no service mutex)
 // - The service always acquires s.mu before any Debugger method that uses d.mu
-// - The GUI only accesses debugger state through the service
+// - The API/GUI frontends only access debugger state through the service
 //
 // Do NOT acquire locks in the reverse order (debugger.mu -> s.mu) as this
 // would create a deadlock risk.
@@ -72,9 +71,8 @@ type DebuggerService struct {
 	sourceMapByAddr      map[uint32]string // Quick lookup by address (for debugger)
 	program              *parser.Program
 	entryPoint           uint32
-	outputWriter         *EventEmittingWriter
-	ctx                  context.Context
-	stateChangedCallback func() // Callback for GUI state updates
+	outputBuffer         *bytes.Buffer // Output buffer for VM output (when not using API)
+	stateChangedCallback func()        // Callback for GUI state updates
 
 	// stdin redirection for guest programs (GUI)
 	stdinPipeReader *io.PipeReader
@@ -104,13 +102,6 @@ func (s *DebuggerService) GetVM() *vm.VM {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	return s.vm
-}
-
-// SetContext sets the Wails context for event emission
-func (s *DebuggerService) SetContext(ctx context.Context) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	s.ctx = ctx
 }
 
 // SetStateChangedCallback sets a callback for GUI state updates during execution
@@ -157,17 +148,13 @@ func (s *DebuggerService) LoadProgram(program *parser.Program, entryPoint uint32
 		}
 	}
 
-	// Create output buffer with event emission
-	// IMPORTANT: Only set OutputWriter if it hasn't been configured already.
-	// The API server sets up EventWriter for WebSocket broadcasting before calling LoadProgram.
-	// The GUI (Wails) doesn't pre-configure OutputWriter, so we set up EventEmittingWriter for it.
+	// Note: OutputWriter should be configured by the API layer before calling LoadProgram.
+	// The API server sets up EventWriter for WebSocket broadcasting.
+	// If OutputWriter is still os.Stdout, set up a buffer to capture output for GetOutput().
 	if s.vm.OutputWriter == os.Stdout {
-		// OutputWriter is still the default (os.Stdout), so set up event emission
-		outputBuffer := &bytes.Buffer{}
-		s.outputWriter = NewEventEmittingWriter(outputBuffer, s.ctx)
-		s.vm.OutputWriter = s.outputWriter
+		s.outputBuffer = &bytes.Buffer{}
+		s.vm.OutputWriter = s.outputBuffer
 	}
-	// else: OutputWriter was already configured (e.g., by API layer), leave it alone
 
 	// Load into debugger
 	s.debugger.LoadSymbols(s.symbols)
@@ -590,15 +577,19 @@ func (s *DebuggerService) GetExitCode() int32 {
 }
 
 // GetOutput returns captured program output (clears buffer)
+// Note: With the API server, output is broadcast via WebSocket events.
+// This method is primarily used by tests and direct service usage (not via API).
 func (s *DebuggerService) GetOutput() string {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	if s.outputWriter == nil {
+	if s.outputBuffer == nil {
 		return ""
 	}
 
-	return s.outputWriter.GetBufferAndClear()
+	output := s.outputBuffer.String()
+	s.outputBuffer.Reset()
+	return output
 }
 
 // GetDisassembly returns disassembled instructions starting at address.

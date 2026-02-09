@@ -25,7 +25,7 @@ go clean -testcache && go test ./...
 ./arm-emulator program.s
 ```
 
-**Test Organization:** Tests in `./tests/unit/` and `./tests/integration/` (exceptions: `gui/app_test.go`, `debugger/tui_internal_test.go`)
+**Test Organization:** Tests in `./tests/unit/` and `./tests/integration/` (exception: `debugger/tui_internal_test.go`)
 
 ## Swift GUI (macOS, Primary GUI)
 
