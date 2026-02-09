@@ -13,6 +13,36 @@
         MinWidth="800"
         MinHeight="600">
 
+    <!-- Keyboard Shortcuts -->
+    <Window.KeyBindings>
+        <!-- Load: Ctrl+L -->
+        <KeyBinding Gesture="Ctrl+L" Command="{Binding LoadProgramCommand}" />
+
+        <!-- Run: F5, Ctrl+R -->
+        <KeyBinding Gesture="F5" Command="{Binding RunCommand}" />
+        <KeyBinding Gesture="Ctrl+R" Command="{Binding RunCommand}" />
+
+        <!-- Pause: Ctrl+. -->
+        <KeyBinding Gesture="Ctrl+OemPeriod" Command="{Binding PauseCommand}" />
+
+        <!-- Step: F11, Ctrl+T -->
+        <KeyBinding Gesture="F11" Command="{Binding StepCommand}" />
+        <KeyBinding Gesture="Ctrl+T" Command="{Binding StepCommand}" />
+
+        <!-- Step Over: F10, Ctrl+Shift+T -->
+        <KeyBinding Gesture="F10" Command="{Binding StepOverCommand}" />
+        <KeyBinding Gesture="Ctrl+Shift+T" Command="{Binding StepOverCommand}" />
+
+        <!-- Step Out: Ctrl+Alt+T -->
+        <KeyBinding Gesture="Ctrl+Alt+T" Command="{Binding StepOutCommand}" />
+
+        <!-- Reset: Ctrl+Shift+R -->
+        <KeyBinding Gesture="Ctrl+Shift+R" Command="{Binding ResetCommand}" />
+
+        <!-- Show PC: Ctrl+J -->
+        <KeyBinding Gesture="Ctrl+J" Command="{Binding ShowPCCommand}" />
+    </Window.KeyBindings>
+
     <DockPanel>
         <!-- Toolbar at the top -->
         <views:ToolbarView DockPanel.Dock="Top" />

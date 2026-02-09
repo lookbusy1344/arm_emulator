@@ -41,6 +41,7 @@ public partial class MainWindowViewModel : ReactiveObject, IDisposable
 		StepOutCommand = CreateCommand(StepOutAsync, this.WhenAnyValue(x => x.Status).Select(s => s.CanStep()));
 		ResetCommand = CreateCommand(ResetAsync);
 		LoadProgramCommand = CreateCommand(LoadProgramAsync);
+		ShowPCCommand = CreateCommand(ShowPCAsync);
 
 		// Set up computed properties using WhenAnyValue
 		_canPauseHelper = this.WhenAnyValue(x => x.Status)
@@ -56,6 +57,17 @@ public partial class MainWindowViewModel : ReactiveObject, IDisposable
 		_isEditorEditableHelper = this.WhenAnyValue(x => x.Status)
 			.Select(s => s.IsEditorEditable())
 			.ToProperty(this, x => x.IsEditorEditable)
+			.DisposeWith(_disposables);
+
+		// Set up status indicator properties
+		_statusColorHelper = this.WhenAnyValue(x => x.Status, x => x.IsConnected)
+			.Select(tuple => GetStatusColor(tuple.Item1, tuple.Item2))
+			.ToProperty(this, x => x.StatusColor)
+			.DisposeWith(_disposables);
+
+		_statusTextHelper = this.WhenAnyValue(x => x.Status, x => x.IsConnected)
+			.Select(tuple => GetStatusText(tuple.Item1, tuple.Item2))
+			.ToProperty(this, x => x.StatusText)
 			.DisposeWith(_disposables);
 
 		// Set up timed highlight removal pipeline
@@ -206,11 +218,15 @@ public partial class MainWindowViewModel : ReactiveObject, IDisposable
 	private readonly ObservableAsPropertyHelper<bool> _canPauseHelper;
 	private readonly ObservableAsPropertyHelper<bool> _canStepHelper;
 	private readonly ObservableAsPropertyHelper<bool> _isEditorEditableHelper;
+	private readonly ObservableAsPropertyHelper<string> _statusColorHelper;
+	private readonly ObservableAsPropertyHelper<string> _statusTextHelper;
 #pragma warning restore CA2213
 
 	public bool CanPause => _canPauseHelper.Value;
 	public bool CanStep => _canStepHelper.Value;
 	public bool IsEditorEditable => _isEditorEditableHelper.Value;
+	public string StatusColor => _statusColorHelper.Value;
+	public string StatusText => _statusTextHelper.Value;
 
 	// Commands
 	public ReactiveCommand<Unit, Unit> RunCommand { get; }
@@ -220,6 +236,7 @@ public partial class MainWindowViewModel : ReactiveObject, IDisposable
 	public ReactiveCommand<Unit, Unit> StepOutCommand { get; }
 	public ReactiveCommand<Unit, Unit> ResetCommand { get; }
 	public ReactiveCommand<Unit, Unit> LoadProgramCommand { get; }
+	public ReactiveCommand<Unit, Unit> ShowPCCommand { get; }
 
 	/// <summary>
 	/// Helper to create commands with consistent error handling and scheduling.
@@ -340,6 +357,52 @@ public partial class MainWindowViewModel : ReactiveObject, IDisposable
 	{
 		// TODO: Implement program loading logic with file picker
 		return Task.CompletedTask;
+	}
+
+	private Task ShowPCAsync(CancellationToken ct)
+	{
+		// TODO: Implement scroll-to-PC logic (will be handled by EditorView)
+		return Task.CompletedTask;
+	}
+
+	/// <summary>
+	/// Gets the status indicator color based on VM state and connection status.
+	/// </summary>
+	private static string GetStatusColor(VMState status, bool isConnected)
+	{
+		if (!isConnected) {
+			return "Gray";
+		}
+
+		return status switch {
+			VMState.Idle => "Green",
+			VMState.Running => "DodgerBlue",
+			VMState.Breakpoint => "Orange",
+			VMState.Halted => "Purple",
+			VMState.Error => "Red",
+			VMState.WaitingForInput => "Orange",
+			_ => "Gray"
+		};
+	}
+
+	/// <summary>
+	/// Gets the status indicator tooltip text based on VM state and connection status.
+	/// </summary>
+	private static string GetStatusText(VMState status, bool isConnected)
+	{
+		if (!isConnected) {
+			return "Disconnected";
+		}
+
+		return status switch {
+			VMState.Idle => "Idle",
+			VMState.Running => "Running",
+			VMState.Breakpoint => "Breakpoint Hit",
+			VMState.Halted => "Halted",
+			VMState.Error => "Error",
+			VMState.WaitingForInput => "Waiting for Input",
+			_ => "Unknown"
+		};
 	}
 
 	/// <summary>

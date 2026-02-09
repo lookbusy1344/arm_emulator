@@ -1,7 +1,8 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:ARMEmulator.ViewModels"
-             x:Class="ARMEmulator.Views.ToolbarView">
+             x:Class="ARMEmulator.Views.ToolbarView"
+             x:DataType="vm:MainWindowViewModel">
     <Border BorderBrush="{DynamicResource SystemControlForegroundBaseMediumBrush}"
             BorderThickness="0,0,0,1"
             Padding="8">
@@ -10,34 +11,42 @@
             <Border Width="16"
                     Height="16"
                     CornerRadius="8"
-                    Background="Gray"
-                    ToolTip.Tip="Disconnected"
+                    Background="{Binding StatusColor}"
+                    ToolTip.Tip="{Binding StatusText}"
                     VerticalAlignment="Center"
                     Margin="0,0,16,0" />
 
             <!-- Load Button -->
             <Button Content="📂 Load"
+                    Command="{Binding LoadProgramCommand}"
                     ToolTip.Tip="Load Program (Ctrl+L)" />
 
             <!-- Execution Control Buttons -->
             <Separator />
             <Button Content="▶️ Run"
+                    Command="{Binding RunCommand}"
                     ToolTip.Tip="Run (F5, Ctrl+R)" />
             <Button Content="⏸️ Pause"
+                    Command="{Binding PauseCommand}"
                     ToolTip.Tip="Pause (Ctrl+.)" />
 
             <Separator />
             <Button Content="➡️ Step"
+                    Command="{Binding StepCommand}"
                     ToolTip.Tip="Step (F11, Ctrl+T)" />
             <Button Content="⤵️ Step Over"
+                    Command="{Binding StepOverCommand}"
                     ToolTip.Tip="Step Over (F10, Ctrl+Shift+T)" />
             <Button Content="⤴️ Step Out"
+                    Command="{Binding StepOutCommand}"
                     ToolTip.Tip="Step Out (Ctrl+Alt+T)" />
 
             <Separator />
             <Button Content="🔄 Reset"
+                    Command="{Binding ResetCommand}"
                     ToolTip.Tip="Reset (Ctrl+Shift+R)" />
             <Button Content="📍 Show PC"
+                    Command="{Binding ShowPCCommand}"
                     ToolTip.Tip="Show PC (Ctrl+J)" />
         </StackPanel>
     </Border>
