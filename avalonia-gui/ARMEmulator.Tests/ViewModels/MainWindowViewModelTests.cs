@@ -74,6 +74,127 @@ public class MainWindowViewModelTests : IDisposable
 		viewModel.StepOutCommand.Should().NotBeNull();
 		viewModel.ResetCommand.Should().NotBeNull();
 		viewModel.LoadProgramCommand.Should().NotBeNull();
+		viewModel.ShowPCCommand.Should().NotBeNull();
+	}
+
+	[Fact]
+	public void StatusColor_ReturnsGray_WhenDisconnected()
+	{
+		// Arrange
+		using var viewModel = new MainWindowViewModel(_mockApi, _mockWs);
+
+		// Act & Assert
+		viewModel.IsConnected = false;
+		viewModel.StatusColor.Should().Be("Gray");
+	}
+
+	[Fact]
+	public void StatusColor_ReturnsGreen_WhenIdleAndConnected()
+	{
+		// Arrange
+		using var viewModel = new MainWindowViewModel(_mockApi, _mockWs);
+
+		// Act
+		viewModel.IsConnected = true;
+		viewModel.Status = VMState.Idle;
+
+		// Assert
+		viewModel.StatusColor.Should().Be("Green");
+	}
+
+	[Fact]
+	public void StatusColor_ReturnsDodgerBlue_WhenRunning()
+	{
+		// Arrange
+		using var viewModel = new MainWindowViewModel(_mockApi, _mockWs);
+
+		// Act
+		viewModel.IsConnected = true;
+		viewModel.Status = VMState.Running;
+
+		// Assert
+		viewModel.StatusColor.Should().Be("DodgerBlue");
+	}
+
+	[Fact]
+	public void StatusColor_ReturnsOrange_WhenBreakpoint()
+	{
+		// Arrange
+		using var viewModel = new MainWindowViewModel(_mockApi, _mockWs);
+
+		// Act
+		viewModel.IsConnected = true;
+		viewModel.Status = VMState.Breakpoint;
+
+		// Assert
+		viewModel.StatusColor.Should().Be("Orange");
+	}
+
+	[Fact]
+	public void StatusColor_ReturnsPurple_WhenHalted()
+	{
+		// Arrange
+		using var viewModel = new MainWindowViewModel(_mockApi, _mockWs);
+
+		// Act
+		viewModel.IsConnected = true;
+		viewModel.Status = VMState.Halted;
+
+		// Assert
+		viewModel.StatusColor.Should().Be("Purple");
+	}
+
+	[Fact]
+	public void StatusColor_ReturnsRed_WhenError()
+	{
+		// Arrange
+		using var viewModel = new MainWindowViewModel(_mockApi, _mockWs);
+
+		// Act
+		viewModel.IsConnected = true;
+		viewModel.Status = VMState.Error;
+
+		// Assert
+		viewModel.StatusColor.Should().Be("Red");
+	}
+
+	[Fact]
+	public void StatusText_ReturnsDisconnected_WhenNotConnected()
+	{
+		// Arrange
+		using var viewModel = new MainWindowViewModel(_mockApi, _mockWs);
+
+		// Act & Assert
+		viewModel.IsConnected = false;
+		viewModel.StatusText.Should().Be("Disconnected");
+	}
+
+	[Fact]
+	public void StatusText_ReturnsIdle_WhenIdleAndConnected()
+	{
+		// Arrange
+		using var viewModel = new MainWindowViewModel(_mockApi, _mockWs);
+
+		// Act
+		viewModel.IsConnected = true;
+		viewModel.Status = VMState.Idle;
+
+		// Assert
+		viewModel.StatusText.Should().Be("Idle");
+	}
+
+	[Fact]
+	public void StatusText_ReturnsRunning_WhenRunning()
+	{
+		// Arrange
+		using var viewModel = new MainWindowViewModel(_mockApi, _mockWs);
+
+		// Act
+		viewModel.IsConnected = true;
+		viewModel.Status = VMState.Running;
+
+		// Assert
+		viewModel.StatusText.Should().Be("Running");
 	}
 
 	[Fact]
@@ -462,5 +583,15 @@ public class MainWindowViewModelTests : IDisposable
 
 		// Assert
 		await _mockApi.Received(1).ResetAsync("test-session", Arg.Any<CancellationToken>());
+	}
+
+	[Fact]
+	public async Task ShowPCCommand_CanExecuteWithoutSession()
+	{
+		// Arrange
+		using var viewModel = new MainWindowViewModel(_mockApi, _mockWs);
+
+		// Act & Assert - should not throw
+		await viewModel.ShowPCCommand.Execute();
 	}
 }
