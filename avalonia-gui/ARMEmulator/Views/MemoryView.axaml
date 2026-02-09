@@ -1,0 +1,117 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:ARMEmulator.ViewModels"
+             xmlns:converters="using:ARMEmulator.Converters"
+             x:Class="ARMEmulator.Views.MemoryView"
+             x:DataType="vm:MemoryViewModel">
+    <UserControl.Resources>
+        <converters:BoolToHighlightConverter x:Key="HighlightConverter" />
+    </UserControl.Resources>
+
+    <DockPanel>
+        <!-- Address Navigation Bar -->
+        <Border DockPanel.Dock="Top"
+                Background="{DynamicResource SystemControlBackgroundAltHighBrush}"
+                Padding="8"
+                BorderThickness="0,0,0,1"
+                BorderBrush="{DynamicResource SystemControlForegroundBaseLowBrush}">
+            <Grid ColumnDefinitions="Auto,*,Auto,Auto" RowDefinitions="Auto,Auto">
+                <!-- Address Input -->
+                <TextBlock Grid.Row="0" Grid.Column="0"
+                           Text="Address:"
+                           VerticalAlignment="Center"
+                           Margin="0,0,8,0" />
+                <TextBox Grid.Row="0" Grid.Column="1"
+                         Text="{Binding AddressInput}"
+                         Watermark="0x8000 or 32768"
+                         Width="200"
+                         HorizontalAlignment="Left"
+                         Margin="0,0,8,0">
+                    <TextBox.KeyBindings>
+                        <KeyBinding Gesture="Enter" Command="{Binding NavigateToAddressCommand}" />
+                    </TextBox.KeyBindings>
+                </TextBox>
+                <Button Grid.Row="0" Grid.Column="2"
+                        Content="Go"
+                        Command="{Binding NavigateToAddressCommand}"
+                        Margin="0,0,16,0" />
+
+                <!-- Quick Jump Buttons -->
+                <StackPanel Grid.Row="0" Grid.Column="3" Orientation="Horizontal" Spacing="4">
+                    <Button Content="PC"
+                            Command="{Binding JumpToPCCommand}"
+                            ToolTip.Tip="Jump to Program Counter" />
+                    <Button Content="SP"
+                            Command="{Binding JumpToSPCommand}"
+                            ToolTip.Tip="Jump to Stack Pointer" />
+                    <Button Content="R0"
+                            Command="{Binding JumpToRegisterCommand}"
+                            CommandParameter="0"
+                            ToolTip.Tip="Jump to R0 value" />
+                    <Button Content="R1"
+                            Command="{Binding JumpToRegisterCommand}"
+                            CommandParameter="1"
+                            ToolTip.Tip="Jump to R1 value" />
+                    <Button Content="R2"
+                            Command="{Binding JumpToRegisterCommand}"
+                            CommandParameter="2"
+                            ToolTip.Tip="Jump to R2 value" />
+                    <Button Content="R3"
+                            Command="{Binding JumpToRegisterCommand}"
+                            CommandParameter="3"
+                            ToolTip.Tip="Jump to R3 value" />
+                </StackPanel>
+
+                <!-- Auto-scroll Checkbox -->
+                <CheckBox Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="4"
+                          IsChecked="{Binding AutoScrollToWrites}"
+                          Content="Auto-scroll to memory writes"
+                          Margin="0,8,0,0" />
+            </Grid>
+        </Border>
+
+        <!-- Error Message -->
+        <Border DockPanel.Dock="Top"
+                Background="#FFDDDD"
+                Padding="8"
+                IsVisible="{Binding ErrorMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+            <TextBlock Text="{Binding ErrorMessage}"
+                       Foreground="#CC0000"
+                       FontWeight="SemiBold" />
+        </Border>
+
+        <!-- Memory Hexdump Display -->
+        <ScrollViewer>
+            <ItemsControl ItemsSource="{Binding FormattedRows}">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <Border Background="{Binding IsHighlighted, Converter={StaticResource HighlightConverter}}"
+                                Padding="4,2">
+                            <Grid ColumnDefinitions="Auto,16,Auto,16,Auto">
+                                <!-- Address -->
+                                <TextBlock Grid.Column="0"
+                                           Text="{Binding Address}"
+                                           FontFamily="JetBrains Mono,Consolas,Courier New,monospace"
+                                           FontSize="12"
+                                           Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}" />
+
+                                <!-- Hex Bytes -->
+                                <TextBlock Grid.Column="2"
+                                           Text="{Binding HexBytes}"
+                                           FontFamily="JetBrains Mono,Consolas,Courier New,monospace"
+                                           FontSize="12" />
+
+                                <!-- ASCII Text -->
+                                <TextBlock Grid.Column="4"
+                                           Text="{Binding AsciiText}"
+                                           FontFamily="JetBrains Mono,Consolas,Courier New,monospace"
+                                           FontSize="12"
+                                           Foreground="{DynamicResource SystemControlForegroundBaseMediumHighBrush}" />
+                            </Grid>
+                        </Border>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </ScrollViewer>
+    </DockPanel>
+</UserControl>

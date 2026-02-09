@@ -12,9 +12,7 @@
                 <views:RegistersView />
             </TabItem>
             <TabItem Header="Memory">
-                <TextBlock Text="Memory View Placeholder"
-                           VerticalAlignment="Center"
-                           HorizontalAlignment="Center" />
+                <views:MemoryView />
             </TabItem>
             <TabItem Header="Stack">
                 <TextBlock Text="Stack View Placeholder"
