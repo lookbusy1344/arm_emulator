@@ -193,7 +193,12 @@ public partial class MainWindowViewModel : ReactiveObject, IDisposable
 		set => this.RaiseAndSetIfChanged(ref _isConnected, value);
 	}
 
-	public string? SessionId { get; private set; }
+	private string? _sessionId;
+	public string? SessionId
+	{
+		get => _sessionId;
+		private set => this.RaiseAndSetIfChanged(ref _sessionId, value);
+	}
 
 	// Computed properties via ObservableAsPropertyHelper
 	// These are disposed via _disposables.Dispose()
@@ -229,6 +234,49 @@ public partial class MainWindowViewModel : ReactiveObject, IDisposable
 		outputScheduler: RxApp.MainThreadScheduler
 	).DisposeWith(_disposables);
 #pragma warning restore CA2000
+
+	/// <summary>
+	/// Creates a new emulator session and connects the WebSocket.
+	/// If a session already exists, destroys it first.
+	/// </summary>
+	public async Task CreateSessionAsync(CancellationToken ct = default)
+	{
+		// Destroy existing session if present
+		if (SessionId is not null) {
+			await DestroySessionAsync(ct);
+		}
+
+		// Create new session
+		var sessionInfo = await _api.CreateSessionAsync(ct);
+		SessionId = sessionInfo.SessionId;
+
+		// Connect WebSocket
+		await _ws.ConnectAsync(sessionInfo.SessionId, ct);
+		IsConnected = true;
+	}
+
+	/// <summary>
+	/// Destroys the current session and disconnects the WebSocket.
+	/// </summary>
+	public async Task DestroySessionAsync(CancellationToken ct = default)
+	{
+		if (SessionId is null) {
+			return;
+		}
+
+		try {
+			// Disconnect WebSocket first
+			await _ws.DisconnectAsync();
+
+			// Destroy session on backend
+			await _api.DestroySessionAsync(SessionId, ct);
+		}
+		finally {
+			// Always clear local state
+			SessionId = null;
+			IsConnected = false;
+		}
+	}
 
 	// Command implementations (stubs for now)
 	private Task RunAsync(CancellationToken ct) => Task.CompletedTask;

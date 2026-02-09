@@ -315,4 +315,58 @@ public class MainWindowViewModelTests : IDisposable
 		viewModel.Status.Should().Be(VMState.Halted);
 		viewModel.Registers.Should().Be(originalRegisters);
 	}
+
+	[Fact]
+	public async Task CreateSession_SetsSessionIdAndConnects()
+	{
+		// Arrange
+		using var viewModel = new MainWindowViewModel(_mockApi, _mockWs);
+		var sessionInfo = new SessionInfo("test-session-123");
+		_mockApi.CreateSessionAsync(Arg.Any<CancellationToken>()).Returns(sessionInfo);
+
+		// Act
+		await viewModel.CreateSessionAsync();
+
+		// Assert
+		viewModel.SessionId.Should().Be("test-session-123");
+		viewModel.IsConnected.Should().BeTrue();
+		await _mockWs.Received(1).ConnectAsync("test-session-123", Arg.Any<CancellationToken>());
+	}
+
+	[Fact]
+	public async Task DestroySession_ClearsSessionIdAndDisconnects()
+	{
+		// Arrange
+		using var viewModel = new MainWindowViewModel(_mockApi, _mockWs);
+		var sessionInfo = new SessionInfo("test-session-123");
+		_mockApi.CreateSessionAsync(Arg.Any<CancellationToken>()).Returns(sessionInfo);
+		await viewModel.CreateSessionAsync();
+
+		// Act
+		await viewModel.DestroySessionAsync();
+
+		// Assert
+		viewModel.SessionId.Should().BeNull();
+		viewModel.IsConnected.Should().BeFalse();
+		await _mockWs.Received(1).DisconnectAsync();
+		await _mockApi.Received(1).DestroySessionAsync("test-session-123", Arg.Any<CancellationToken>());
+	}
+
+	[Fact]
+	public async Task CreateSession_WhenAlreadyConnected_DestroysOldSessionFirst()
+	{
+		// Arrange
+		using var viewModel = new MainWindowViewModel(_mockApi, _mockWs);
+		var session1 = new SessionInfo("session-1");
+		var session2 = new SessionInfo("session-2");
+		_mockApi.CreateSessionAsync(Arg.Any<CancellationToken>()).Returns(session1, session2);
+
+		// Act
+		await viewModel.CreateSessionAsync();  // Create first session
+		await viewModel.CreateSessionAsync();  // Create second session
+
+		// Assert - old session should be destroyed first
+		await _mockApi.Received(1).DestroySessionAsync("session-1", Arg.Any<CancellationToken>());
+		viewModel.SessionId.Should().Be("session-2");
+	}
 }
