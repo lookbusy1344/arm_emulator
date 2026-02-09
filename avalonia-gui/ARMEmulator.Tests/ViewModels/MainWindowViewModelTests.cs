@@ -369,4 +369,98 @@ public class MainWindowViewModelTests : IDisposable
 		await _mockApi.Received(1).DestroySessionAsync("session-1", Arg.Any<CancellationToken>());
 		viewModel.SessionId.Should().Be("session-2");
 	}
+
+	[Fact]
+	public async Task RunCommand_CallsApiAndUpdatesState()
+	{
+		// Arrange
+		using var viewModel = new MainWindowViewModel(_mockApi, _mockWs);
+		viewModel.SessionId = "test-session";
+
+		// Act
+		await viewModel.RunCommand.Execute();
+
+		// Assert
+		await _mockApi.Received(1).RunAsync("test-session", Arg.Any<CancellationToken>());
+	}
+
+	[Fact]
+	public async Task PauseCommand_CallsApiStop()
+	{
+		// Arrange
+		using var viewModel = new MainWindowViewModel(_mockApi, _mockWs);
+		viewModel.SessionId = "test-session";
+		viewModel.Status = VMState.Running;
+
+		// Act
+		await viewModel.PauseCommand.Execute();
+
+		// Assert
+		await _mockApi.Received(1).StopAsync("test-session", Arg.Any<CancellationToken>());
+	}
+
+	[Fact]
+	public async Task StepCommand_CallsApiAndUpdatesRegisters()
+	{
+		// Arrange
+		using var viewModel = new MainWindowViewModel(_mockApi, _mockWs);
+		viewModel.SessionId = "test-session";
+		var newRegisters = RegisterState.Create(r0: 42);
+		_mockApi.StepAsync("test-session", Arg.Any<CancellationToken>()).Returns(newRegisters);
+
+		// Act
+		await viewModel.StepCommand.Execute();
+
+		// Assert
+		await _mockApi.Received(1).StepAsync("test-session", Arg.Any<CancellationToken>());
+		viewModel.Registers.Should().Be(newRegisters);
+	}
+
+	[Fact]
+	public async Task StepOverCommand_CallsApiAndUpdatesRegisters()
+	{
+		// Arrange
+		using var viewModel = new MainWindowViewModel(_mockApi, _mockWs);
+		viewModel.SessionId = "test-session";
+		var newRegisters = RegisterState.Create(r0: 99);
+		_mockApi.StepOverAsync("test-session", Arg.Any<CancellationToken>()).Returns(newRegisters);
+
+		// Act
+		await viewModel.StepOverCommand.Execute();
+
+		// Assert
+		await _mockApi.Received(1).StepOverAsync("test-session", Arg.Any<CancellationToken>());
+		viewModel.Registers.Should().Be(newRegisters);
+	}
+
+	[Fact]
+	public async Task StepOutCommand_CallsApiAndUpdatesRegisters()
+	{
+		// Arrange
+		using var viewModel = new MainWindowViewModel(_mockApi, _mockWs);
+		viewModel.SessionId = "test-session";
+		var newRegisters = RegisterState.Create(r0: 123);
+		_mockApi.StepOutAsync("test-session", Arg.Any<CancellationToken>()).Returns(newRegisters);
+
+		// Act
+		await viewModel.StepOutCommand.Execute();
+
+		// Assert
+		await _mockApi.Received(1).StepOutAsync("test-session", Arg.Any<CancellationToken>());
+		viewModel.Registers.Should().Be(newRegisters);
+	}
+
+	[Fact]
+	public async Task ResetCommand_CallsApi()
+	{
+		// Arrange
+		using var viewModel = new MainWindowViewModel(_mockApi, _mockWs);
+		viewModel.SessionId = "test-session";
+
+		// Act
+		await viewModel.ResetCommand.Execute();
+
+		// Assert
+		await _mockApi.Received(1).ResetAsync("test-session", Arg.Any<CancellationToken>());
+	}
 }

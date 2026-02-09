@@ -197,7 +197,7 @@ public partial class MainWindowViewModel : ReactiveObject, IDisposable
 	public string? SessionId
 	{
 		get => _sessionId;
-		private set => this.RaiseAndSetIfChanged(ref _sessionId, value);
+		internal set => this.RaiseAndSetIfChanged(ref _sessionId, value);
 	}
 
 	// Computed properties via ObservableAsPropertyHelper
@@ -278,14 +278,69 @@ public partial class MainWindowViewModel : ReactiveObject, IDisposable
 		}
 	}
 
-	// Command implementations (stubs for now)
-	private Task RunAsync(CancellationToken ct) => Task.CompletedTask;
-	private Task PauseAsync(CancellationToken ct) => Task.CompletedTask;
-	private Task StepAsync(CancellationToken ct) => Task.CompletedTask;
-	private Task StepOverAsync(CancellationToken ct) => Task.CompletedTask;
-	private Task StepOutAsync(CancellationToken ct) => Task.CompletedTask;
-	private Task ResetAsync(CancellationToken ct) => Task.CompletedTask;
-	private Task LoadProgramAsync(CancellationToken ct) => Task.CompletedTask;
+	// Command implementations
+	private async Task RunAsync(CancellationToken ct)
+	{
+		if (SessionId is null) {
+			return;
+		}
+
+		await _api.RunAsync(SessionId, ct);
+	}
+
+	private async Task PauseAsync(CancellationToken ct)
+	{
+		if (SessionId is null) {
+			return;
+		}
+
+		await _api.StopAsync(SessionId, ct);
+	}
+
+	private async Task StepAsync(CancellationToken ct)
+	{
+		if (SessionId is null) {
+			return;
+		}
+
+		var newRegisters = await _api.StepAsync(SessionId, ct);
+		UpdateRegisters(newRegisters);
+	}
+
+	private async Task StepOverAsync(CancellationToken ct)
+	{
+		if (SessionId is null) {
+			return;
+		}
+
+		var newRegisters = await _api.StepOverAsync(SessionId, ct);
+		UpdateRegisters(newRegisters);
+	}
+
+	private async Task StepOutAsync(CancellationToken ct)
+	{
+		if (SessionId is null) {
+			return;
+		}
+
+		var newRegisters = await _api.StepOutAsync(SessionId, ct);
+		UpdateRegisters(newRegisters);
+	}
+
+	private async Task ResetAsync(CancellationToken ct)
+	{
+		if (SessionId is null) {
+			return;
+		}
+
+		await _api.ResetAsync(SessionId, ct);
+	}
+
+	private Task LoadProgramAsync(CancellationToken ct)
+	{
+		// TODO: Implement program loading logic with file picker
+		return Task.CompletedTask;
+	}
 
 	/// <summary>
 	/// Sets up the Rx.NET pipeline for timed register highlight removal.
