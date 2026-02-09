@@ -11,38 +11,36 @@ namespace ARMEmulator.Tests.Services;
 
 public sealed class ApiClientTests : IDisposable
 {
-	private readonly HttpClient _httpClient;
-	private readonly TestHttpMessageHandler _handler;
-	private readonly ApiClient _apiClient;
+	private readonly HttpClient httpClient;
+	private readonly TestHttpMessageHandler handler;
+	private readonly ApiClient apiClient;
 
 	public ApiClientTests()
 	{
-		_handler = new TestHttpMessageHandler();
-		_httpClient = new HttpClient(_handler) {
-			BaseAddress = new Uri("http://localhost:8080")
-		};
-		_apiClient = new ApiClient(_httpClient);
+		handler = new TestHttpMessageHandler();
+		httpClient = new HttpClient(handler) { BaseAddress = new Uri("http://localhost:8080") };
+		apiClient = new ApiClient(httpClient);
 	}
 
 	[Fact]
 	public async Task CreateSessionAsync_WithSuccessResponse_ReturnsSessionInfo()
 	{
 		var sessionInfo = new SessionInfo("session-123");
-		_handler.SetResponse(HttpStatusCode.OK, JsonSerializer.Serialize(sessionInfo, ApiJsonContext.Default.SessionInfo));
+		handler.SetResponse(HttpStatusCode.OK, JsonSerializer.Serialize(sessionInfo, ApiJsonContext.Default.SessionInfo));
 
-		var result = await _apiClient.CreateSessionAsync();
+		var result = await apiClient.CreateSessionAsync();
 
 		_ = result.SessionId.Should().Be("session-123");
-		_ = _handler.LastRequest!.RequestUri!.PathAndQuery.Should().Be("/api/v1/session");
-		_ = _handler.LastRequest.Method.Should().Be(HttpMethod.Post);
+		_ = handler.LastRequest!.RequestUri!.PathAndQuery.Should().Be("/api/v1/session");
+		_ = handler.LastRequest.Method.Should().Be(HttpMethod.Post);
 	}
 
 	[Fact]
 	public async Task CreateSessionAsync_WhenBackendUnreachable_ThrowsBackendUnavailableException()
 	{
-		_handler.SetException(new HttpRequestException("Connection refused"));
+		handler.SetException(new HttpRequestException("Connection refused"));
 
-		var act = async () => await _apiClient.CreateSessionAsync();
+		var act = async () => await apiClient.CreateSessionAsync();
 
 		_ = await act.Should().ThrowAsync<BackendUnavailableException>()
 			.WithMessage("*Cannot connect to backend*");
@@ -52,9 +50,9 @@ public sealed class ApiClientTests : IDisposable
 	public async Task GetStatusAsync_WithValidSession_ReturnsStatus()
 	{
 		var status = new VMStatus(VMState.Idle, 0x8000, 0);
-		_handler.SetResponse(HttpStatusCode.OK, JsonSerializer.Serialize(status, ApiJsonContext.Default.VMStatus));
+		handler.SetResponse(HttpStatusCode.OK, JsonSerializer.Serialize(status, ApiJsonContext.Default.VMStatus));
 
-		var result = await _apiClient.GetStatusAsync("session-123");
+		var result = await apiClient.GetStatusAsync("session-123");
 
 		_ = result.State.Should().Be(VMState.Idle);
 		_ = result.PC.Should().Be(0x8000u);
@@ -63,9 +61,9 @@ public sealed class ApiClientTests : IDisposable
 	[Fact]
 	public async Task GetStatusAsync_WithInvalidSession_ThrowsSessionNotFoundException()
 	{
-		_handler.SetResponse(HttpStatusCode.NotFound, "{\"error\":\"session not found\"}");
+		handler.SetResponse(HttpStatusCode.NotFound, "{\"error\":\"session not found\"}");
 
-		var act = async () => await _apiClient.GetStatusAsync("invalid-session");
+		var act = async () => await apiClient.GetStatusAsync("invalid-session");
 
 		_ = await act.Should().ThrowAsync<SessionNotFoundException>()
 			.Where(ex => ex.SessionId == "invalid-session");
@@ -75,13 +73,13 @@ public sealed class ApiClientTests : IDisposable
 	public async Task LoadProgramAsync_WithValidProgram_ReturnsLoadResponse()
 	{
 		var response = new LoadProgramResponse(true, [], 0x8000);
-		_handler.SetResponse(HttpStatusCode.OK, JsonSerializer.Serialize(response, ApiJsonContext.Default.LoadProgramResponse));
+		handler.SetResponse(HttpStatusCode.OK, JsonSerializer.Serialize(response, ApiJsonContext.Default.LoadProgramResponse));
 
-		var result = await _apiClient.LoadProgramAsync("session-123", "MOV R0, #1");
+		var result = await apiClient.LoadProgramAsync("session-123", "MOV R0, #1");
 
 		_ = result.Success.Should().BeTrue();
 		_ = result.EntryPoint.Should().Be(0x8000u);
-		_ = _handler.LastRequest!.Content.Should().NotBeNull();
+		_ = handler.LastRequest!.Content.Should().NotBeNull();
 	}
 
 	[Fact]
@@ -94,9 +92,9 @@ public sealed class ApiClientTests : IDisposable
 				new ParseError(2, 10, "Unknown register")
 			]
 		);
-		_handler.SetResponse(HttpStatusCode.BadRequest, JsonSerializer.Serialize(errorResponse, ApiJsonContext.Default.ApiErrorResponse));
+		handler.SetResponse(HttpStatusCode.BadRequest, JsonSerializer.Serialize(errorResponse, ApiJsonContext.Default.ApiErrorResponse));
 
-		var act = async () => await _apiClient.LoadProgramAsync("session-123", "INVALID");
+		var act = async () => await apiClient.LoadProgramAsync("session-123", "INVALID");
 
 		var exception = await act.Should().ThrowAsync<ProgramLoadException>();
 		_ = exception.Which.Errors.Should().HaveCount(2);
@@ -108,22 +106,22 @@ public sealed class ApiClientTests : IDisposable
 	public async Task StepAsync_WithValidSession_ReturnsRegisters()
 	{
 		var registers = RegisterState.Create(r0: 42);
-		_handler.SetResponse(HttpStatusCode.OK, JsonSerializer.Serialize(registers, ApiJsonContext.Default.RegisterState));
+		handler.SetResponse(HttpStatusCode.OK, JsonSerializer.Serialize(registers, ApiJsonContext.Default.RegisterState));
 
-		var result = await _apiClient.StepAsync("session-123");
+		var result = await apiClient.StepAsync("session-123");
 
 		_ = result.R0.Should().Be(42u);
-		_ = _handler.LastRequest!.RequestUri!.PathAndQuery.Should().Be("/api/v1/session/session-123/step");
-		_ = _handler.LastRequest.Method.Should().Be(HttpMethod.Post);
+		_ = handler.LastRequest!.RequestUri!.PathAndQuery.Should().Be("/api/v1/session/session-123/step");
+		_ = handler.LastRequest.Method.Should().Be(HttpMethod.Post);
 	}
 
 	[Fact]
 	public async Task EvaluateExpressionAsync_WithValidExpression_ReturnsValue()
 	{
 		var response = new EvaluationResponse(42u);
-		_handler.SetResponse(HttpStatusCode.OK, JsonSerializer.Serialize(response, ApiJsonContext.Default.EvaluationResponse));
+		handler.SetResponse(HttpStatusCode.OK, JsonSerializer.Serialize(response, ApiJsonContext.Default.EvaluationResponse));
 
-		var result = await _apiClient.EvaluateExpressionAsync("session-123", "r0 + r1");
+		var result = await apiClient.EvaluateExpressionAsync("session-123", "r0 + r1");
 
 		_ = result.Should().Be(42u);
 	}
@@ -132,9 +130,9 @@ public sealed class ApiClientTests : IDisposable
 	public async Task EvaluateExpressionAsync_WithInvalidExpression_ThrowsExpressionEvaluationException()
 	{
 		var errorResponse = new ApiErrorResponse("Invalid syntax");
-		_handler.SetResponse(HttpStatusCode.BadRequest, JsonSerializer.Serialize(errorResponse, ApiJsonContext.Default.ApiErrorResponse));
+		handler.SetResponse(HttpStatusCode.BadRequest, JsonSerializer.Serialize(errorResponse, ApiJsonContext.Default.ApiErrorResponse));
 
-		var act = async () => await _apiClient.EvaluateExpressionAsync("session-123", "invalid");
+		var act = async () => await apiClient.EvaluateExpressionAsync("session-123", "invalid");
 
 		var exception = await act.Should().ThrowAsync<ExpressionEvaluationException>();
 		_ = exception.Which.Expression.Should().Be("invalid");
@@ -145,9 +143,9 @@ public sealed class ApiClientTests : IDisposable
 	{
 		var memory = new byte[] { 0x01, 0x02, 0x03, 0x04 };
 		var response = new MemoryResponse(memory);
-		_handler.SetResponse(HttpStatusCode.OK, JsonSerializer.Serialize(response, ApiJsonContext.Default.MemoryResponse));
+		handler.SetResponse(HttpStatusCode.OK, JsonSerializer.Serialize(response, ApiJsonContext.Default.MemoryResponse));
 
-		var result = await _apiClient.GetMemoryAsync("session-123", 0x10000, 4);
+		var result = await apiClient.GetMemoryAsync("session-123", 0x10000, 4);
 
 		_ = result.Should().Equal(memory);
 	}
@@ -155,21 +153,21 @@ public sealed class ApiClientTests : IDisposable
 	[Fact]
 	public async Task AddBreakpointAsync_SendsCorrectRequest()
 	{
-		_handler.SetResponse(HttpStatusCode.OK, "{}");
+		handler.SetResponse(HttpStatusCode.OK, "{}");
 
-		await _apiClient.AddBreakpointAsync("session-123", 0x8000);
+		await apiClient.AddBreakpointAsync("session-123", 0x8000);
 
-		_ = _handler.LastRequest!.RequestUri!.PathAndQuery.Should().Contain("/breakpoint");
-		_ = _handler.LastRequest.Method.Should().Be(HttpMethod.Post);
+		_ = handler.LastRequest!.RequestUri!.PathAndQuery.Should().Contain("/breakpoint");
+		_ = handler.LastRequest.Method.Should().Be(HttpMethod.Post);
 	}
 
 	[Fact]
 	public async Task AddWatchpointAsync_ReturnsWatchpoint()
 	{
 		var watchpoint = new Watchpoint(1, 0x10000, WatchpointType.Write);
-		_handler.SetResponse(HttpStatusCode.OK, JsonSerializer.Serialize(watchpoint, ApiJsonContext.Default.Watchpoint));
+		handler.SetResponse(HttpStatusCode.OK, JsonSerializer.Serialize(watchpoint, ApiJsonContext.Default.Watchpoint));
 
-		var result = await _apiClient.AddWatchpointAsync("session-123", 0x10000, WatchpointType.Write);
+		var result = await apiClient.AddWatchpointAsync("session-123", 0x10000, WatchpointType.Write);
 
 		_ = result.Id.Should().Be(1);
 		_ = result.Address.Should().Be(0x10000u);
@@ -178,8 +176,8 @@ public sealed class ApiClientTests : IDisposable
 
 	public void Dispose()
 	{
-		_httpClient.Dispose();
-		_handler.Dispose();
+		httpClient.Dispose();
+		handler.Dispose();
 	}
 }
 
@@ -188,35 +186,33 @@ public sealed class ApiClientTests : IDisposable
 /// </summary>
 internal sealed class TestHttpMessageHandler : HttpMessageHandler
 {
-	private HttpStatusCode _statusCode = HttpStatusCode.OK;
-	private string _content = "{}";
-	private Exception? _exception;
+	private HttpStatusCode statusCode = HttpStatusCode.OK;
+	private string content = "{}";
+	private Exception? exception;
 
 	public HttpRequestMessage? LastRequest { get; private set; }
 
 	public void SetResponse(HttpStatusCode statusCode, string content)
 	{
-		_statusCode = statusCode;
-		_content = content;
-		_exception = null;
+		this.statusCode = statusCode;
+		this.content = content;
+		exception = null;
 	}
 
 	public void SetException(Exception exception)
 	{
-		_exception = exception;
+		this.exception = exception;
 	}
 
 	protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
 	{
 		LastRequest = request;
 
-		if (_exception is not null) {
-			throw _exception;
+		if (exception is not null) {
+			throw exception;
 		}
 
-		var response = new HttpResponseMessage(_statusCode) {
-			Content = new StringContent(_content, Encoding.UTF8, "application/json")
-		};
+		var response = new HttpResponseMessage(statusCode) { Content = new StringContent(content, Encoding.UTF8, "application/json") };
 
 		return Task.FromResult(response);
 	}

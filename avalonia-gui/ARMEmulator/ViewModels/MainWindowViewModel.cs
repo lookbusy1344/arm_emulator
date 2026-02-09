@@ -15,7 +15,7 @@ namespace ARMEmulator.ViewModels;
 /// Central ViewModel for the main window, managing emulator state and user interactions.
 /// Uses ReactiveUI for MVVM with reactive state management.
 /// </summary>
-public partial class MainWindowViewModel : ReactiveObject, IDisposable
+public class MainWindowViewModel : ReactiveObject, IDisposable
 {
 	private readonly IApiClient api;
 	private readonly IWebSocketClient ws;

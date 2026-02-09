@@ -18,7 +18,7 @@ namespace ARMEmulator.Views;
 
 public partial class EditorView : ReactiveUserControl<MainWindowViewModel>
 {
-	private EditorGutterMargin? _gutterMargin;
+	private EditorGutterMargin? gutterMargin;
 
 	public EditorView()
 	{
@@ -28,13 +28,13 @@ public partial class EditorView : ReactiveUserControl<MainWindowViewModel>
 		LoadSyntaxHighlighting();
 
 		// Add custom gutter margin for breakpoints and PC indicator
-		_gutterMargin = new EditorGutterMargin();
-		TextEditor.TextArea.LeftMargins.Insert(0, _gutterMargin);
+		gutterMargin = new EditorGutterMargin();
+		TextEditor.TextArea.LeftMargins.Insert(0, gutterMargin);
 
 		_ = this.WhenActivated(disposables => {
 			// Bind ViewModel.SourceCode to TextEditor.Text
 			_ = this.WhenAnyValue(x => x.ViewModel!.SourceCode)
-				.Where(text => text != TextEditor.Text)  // Avoid feedback loop
+				.Where(text => text != TextEditor.Text) // Avoid feedback loop
 				.Subscribe(text => TextEditor.Text = text ?? "")
 				.DisposeWith(disposables);
 
@@ -43,7 +43,7 @@ public partial class EditorView : ReactiveUserControl<MainWindowViewModel>
 					handler => TextEditor.TextChanged += handler,
 					handler => TextEditor.TextChanged -= handler)
 				.Select(_ => TextEditor.Text)
-				.Where(text => text != ViewModel?.SourceCode)  // Avoid feedback loop
+				.Where(text => text != ViewModel?.SourceCode) // Avoid feedback loop
 				.Subscribe(text => {
 					if (ViewModel is not null) {
 						ViewModel.SourceCode = text ?? "";
@@ -56,7 +56,7 @@ public partial class EditorView : ReactiveUserControl<MainWindowViewModel>
 					x => x.ViewModel!.Breakpoints,
 					x => x.ViewModel!.AddressToLine,
 					(breakpoints, addressToLine) => ConvertBreakpointsToLines(breakpoints, addressToLine))
-				.Subscribe(lines => _gutterMargin.BreakpointLines = lines)
+				.Subscribe(lines => gutterMargin.BreakpointLines = lines)
 				.DisposeWith(disposables);
 
 			// Bind PC (address-based) to gutter (line-based)
@@ -64,12 +64,12 @@ public partial class EditorView : ReactiveUserControl<MainWindowViewModel>
 					x => x.ViewModel!.Registers.PC,
 					x => x.ViewModel!.AddressToLine,
 					(pc, addressToLine) => addressToLine.TryGetValue(pc, out var line) ? line : (int?)null)
-				.Subscribe(line => _gutterMargin.CurrentPCLine = line)
+				.Subscribe(line => gutterMargin.CurrentPCLine = line)
 				.DisposeWith(disposables);
 
 			// Handle gutter clicks to toggle breakpoints
-			_gutterMargin.LineClicked += OnGutterLineClicked;
-			_ = Disposable.Create(() => _gutterMargin.LineClicked -= OnGutterLineClicked).DisposeWith(disposables);
+			gutterMargin.LineClicked += OnGutterLineClicked;
+			_ = Disposable.Create(() => gutterMargin.LineClicked -= OnGutterLineClicked).DisposeWith(disposables);
 		});
 	}
 
@@ -116,7 +116,7 @@ public partial class EditorView : ReactiveUserControl<MainWindowViewModel>
 
 			using var stream = assembly.GetManifestResourceStream(resourceName);
 			if (stream is null) {
-				return;  // Silently fail if resource not found
+				return; // Silently fail if resource not found
 			}
 
 			using var reader = new XmlTextReader(stream);
