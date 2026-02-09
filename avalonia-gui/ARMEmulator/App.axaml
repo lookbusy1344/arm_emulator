@@ -6,6 +6,9 @@
     <Application.Styles>
         <FluentTheme />
 
+        <!-- AvaloniaEdit theme (required for 11.x versions) -->
+        <StyleInclude Source="avares://AvaloniaEdit/Themes/Fluent/AvaloniaEdit.xaml" />
+
         <!-- Custom theme resources can be added here -->
         <StyleInclude Source="avares://ARMEmulator/Themes/CustomStyles.axaml" />
     </Application.Styles>
