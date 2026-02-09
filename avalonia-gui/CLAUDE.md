@@ -47,8 +47,10 @@ dotnet test
 
 **CRITICAL:** Always use LF (Unix) line endings, never CRLF.
 
+- Applies to **all files** including `.cs`, `.csproj`, `.md`, `.json`, `.xml`
 - Configure your editor to use LF for this project
 - Git is configured to enforce this via `.gitattributes`
+- `.editorconfig` enforces `end_of_line = lf` for all file types
 
 ## Code Style
 
@@ -101,6 +103,24 @@ Use **idiomatic .NET exception-based error handling** (not Result/Either monads)
 - **Models:** Immutable records when possible
 - **Views:** XAML with code-behind minimal (logic in ViewModel)
 
+### Analyzer Suppressions
+
+**Use inline suppressions, not central suppression files.**
+
+- Suppress warnings at the specific location using `#pragma warning disable` or `[SuppressMessage]`
+- Include a justification comment explaining why the suppression is necessary
+- Avoid `GlobalSuppressions.cs` or `.editorconfig` suppressions unless truly project-wide
+
+```csharp
+// Justification: WebSocket library requires async void event handler
+#pragma warning disable VSTHRD100
+private async void OnWebSocketMessage(object? sender, MessageEventArgs e)
+#pragma warning restore VSTHRD100
+{
+    // ...
+}
+```
+
 ## Backend API Integration
 
 **⚠️ CRITICAL:** Backend API is shared with Swift GUI.
@@ -130,6 +150,7 @@ Use **idiomatic .NET exception-based error handling** (not Result/Either monads)
 - ❌ Don't use CRLF line endings
 - ❌ Don't commit without running `dotnet format && dotnet build && dotnet test`
 - ❌ Don't make breaking API changes
+- ❌ Don't use `GlobalSuppressions.cs` - use inline suppressions with justifications
 
 ## Additional Documentation
 
