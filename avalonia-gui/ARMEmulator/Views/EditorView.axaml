@@ -1,14 +1,21 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:ARMEmulator.ViewModels"
-             x:Class="ARMEmulator.Views.EditorView">
+             xmlns:avaloniaEdit="https://github.com/avaloniaui/avaloniaedit"
+             x:Class="ARMEmulator.Views.EditorView"
+             x:DataType="vm:MainWindowViewModel">
     <Border BorderBrush="{DynamicResource SystemControlForegroundBaseMediumBrush}"
             BorderThickness="1"
-            CornerRadius="4"
-            Padding="8">
-        <TextBlock Text="Editor View Placeholder"
-                   VerticalAlignment="Center"
-                   HorizontalAlignment="Center"
-                   Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}" />
+            CornerRadius="4">
+        <avaloniaEdit:TextEditor Name="TextEditor"
+                                 FontFamily="Consolas,Menlo,Monaco,Courier New,monospace"
+                                 FontSize="14"
+                                 ShowLineNumbers="True"
+                                 WordWrap="False"
+                                 Background="{DynamicResource SystemControlBackgroundAltHighBrush}"
+                                 Foreground="{DynamicResource SystemControlForegroundBaseHighBrush}"
+                                 IsReadOnly="{Binding !IsEditorEditable}"
+                                 HorizontalScrollBarVisibility="Auto"
+                                 VerticalScrollBarVisibility="Auto" />
     </Border>
 </UserControl>
