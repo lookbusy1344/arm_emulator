@@ -1,5 +1,10 @@
 # Custom Gutter Implementation Notes - Avalonia GUI
 
+> **Status Update (2026-02-09):** The original version incompatibility issue has been resolved by upgrading to `Avalonia.AvaloniaEdit 11.*`. This document now serves as:
+> 1. Historical reference for the problem encountered
+> 2. Comprehensive guide for implementing custom gutter features (adorner-based approach remains valid)
+> 3. Technical reference for future custom editor extensions
+
 ## Problem Statement
 
 The ARM Emulator's Avalonia GUI requires a custom editor gutter that displays:
@@ -8,11 +13,11 @@ The ARM Emulator's Avalonia GUI requires a custom editor gutter that displays:
 - **Current PC indicator** - Blue arrow showing the current program counter position
 - **Interactive clicks** - Toggle breakpoints by clicking the gutter
 
-## Challenge: Version Incompatibility
+## Challenge: Version Incompatibility (RESOLVED)
 
-### Root Cause
+### Root Cause (Historical)
 
-**AvaloniaEdit 0.10.12** (latest stable) was built against **Avalonia 0.10.x**, while the project uses **Avalonia 11.3.x**. This creates a type mismatch:
+**AvaloniaEdit 0.10.12** was built against **Avalonia 0.10.x**, while the project uses **Avalonia 11.3.x**. This created a type mismatch:
 
 ```
 error CS7069: Reference to type 'IControl' claims it is defined in
@@ -22,12 +27,19 @@ error CS1503: Argument 2: cannot convert from 'EditorGutterMargin'
 to 'Avalonia.Controls.IControl'
 ```
 
-### Technical Details
+### Resolution (2026-02-09)
 
-- `AbstractMargin` from AvaloniaEdit inherits from an older `Control` type
-- `TextEditor.TextArea.LeftMargins` collection expects `IControl` from Avalonia 0.10
-- Our custom `EditorGutterMargin : AbstractMargin` can't be added due to interface mismatch
-- No AvaloniaEdit version exists for Avalonia 11.x (checked NuGet, latest is 0.10.12)
+**Package renamed for Avalonia 11:**
+- Old package: `AvaloniaEdit` (0.10.12, Avalonia 0.10.x)
+- New package: `Avalonia.AvaloniaEdit` (11.4.1+, Avalonia 11.x)
+- **Status:** ✅ Version mismatch resolved, project now uses `Avalonia.AvaloniaEdit 11.*`
+
+### Technical Details (Historical)
+
+- `AbstractMargin` from AvaloniaEdit 0.10 inherited from an older `Control` type
+- `TextEditor.TextArea.LeftMargins` collection expected `IControl` from Avalonia 0.10
+- Custom `EditorGutterMargin : AbstractMargin` couldn't be added due to interface mismatch
+- **Update:** The package was renamed, not abandoned - see `Avalonia.AvaloniaEdit` on NuGet
 
 ### Attempted Solution
 
@@ -196,29 +208,24 @@ private void UpdateGutterCanvas()
 
 ---
 
-### Option 3: Wait for AvaloniaEdit.TextMate
+### Option 3: Avalonia.AvaloniaEdit 11.x (NOW IN USE)
 
-**Approach:** Use AvaloniaEdit.TextMate which may have better Avalonia 11 support.
+**Approach:** Use the renamed `Avalonia.AvaloniaEdit` package for Avalonia 11 compatibility.
+
+**Status:** ✅ **Implemented** - Project now uses `Avalonia.AvaloniaEdit 11.*`
 
 **Pros:**
-- Official/maintained package
-- TextMate grammar support (more powerful syntax highlighting)
-- May resolve version issues
+- Official package for Avalonia 11.x
+- Version compatibility resolved
+- Maintained by AvaloniaUI team
+- Drop-in replacement for AvaloniaEdit 0.10
 
-**Cons:**
-- Still in development (check compatibility)
-- May require rewriting syntax highlighting
-- Unknown if gutter extensibility is better
+**Notes:**
+- Requires theme inclusion in App.axaml: `<StyleInclude Source="avares://AvaloniaEdit/Themes/Fluent/AvaloniaEdit.xaml" />`
+- Still need to investigate if margin extensibility APIs have improved in 11.x
+- The adorner-based approach (Option 1) may still be preferred for custom gutters depending on API capabilities
 
-**Investigation Needed:**
-```bash
-dotnet add package AvaloniaEdit.TextMate --version <latest>
-```
-
-Check if it:
-1. Supports Avalonia 11.3.x
-2. Provides gutter extensibility APIs
-3. Has better margin system
+**Additional Package:** `AvaloniaEdit.TextMate 11.4.1+` is available separately for TextMate grammar support, but not currently needed for basic syntax highlighting
 
 ---
 
@@ -237,6 +244,37 @@ Check if it:
 - Not recommended for this project scale
 
 **Verdict:** ❌ Not worth it for this project.
+
+---
+
+## Next Steps: Re-evaluate with Avalonia.AvaloniaEdit 11.x
+
+Now that we're using `Avalonia.AvaloniaEdit 11.*`, we should investigate whether the margin extensibility APIs have improved:
+
+**Before committing to the adorner approach, verify:**
+1. Does `AbstractMargin` from `Avalonia.AvaloniaEdit 11.x` work with Avalonia 11 types?
+2. Can we extend `AbstractMargin` to create custom gutters without type mismatches?
+3. Are there new/improved APIs for margin rendering and interaction?
+
+**Test with minimal implementation:**
+```csharp
+public class TestMargin : AbstractMargin
+{
+    protected override void OnRender(DrawingContext context)
+    {
+        // Simple test rendering
+    }
+}
+
+// Try adding: TextEditor.TextArea.LeftMargins.Insert(0, new TestMargin());
+```
+
+**If margin extension now works:**
+- Consider reverting to margin-based approach (cleaner, more integrated)
+- Update this document with findings
+
+**If margin extension still has issues:**
+- Proceed with adorner-based approach as documented below
 
 ---
 
@@ -470,9 +508,11 @@ public void EditorGutterAdorner_BreakpointLines_TriggersRender()
 
 | Date | Decision | Rationale |
 |------|----------|-----------|
-| 2026-02-09 | Use adorner-based approach | Version conflicts rule out `AbstractMargin` extension |
+| 2026-02-09 | Use adorner-based approach | Version conflicts ruled out `AbstractMargin` extension (historical) |
 | 2026-02-09 | Defer gutter to Phase 4.3+ | Focus on core editor functionality first |
-| 2026-02-09 | Keep AvaloniaEdit 0.10.12 | Latest stable, syntax highlighting works |
+| 2026-02-09 | ~~Keep AvaloniaEdit 0.10.12~~ | ~~Latest stable, syntax highlighting works~~ **SUPERSEDED** |
+| 2026-02-09 | **Upgrade to Avalonia.AvaloniaEdit 11.*** | **Resolves version mismatch, uses renamed package for Avalonia 11.x** |
+| 2026-02-09 | Re-evaluate margin extensibility | Check if `Avalonia.AvaloniaEdit 11.x` has improved APIs before committing to adorner approach |
 
 ---
 
