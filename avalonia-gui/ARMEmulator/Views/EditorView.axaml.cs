@@ -1,8 +1,12 @@
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
+using System.Reflection;
+using System.Xml;
 using ARMEmulator.ViewModels;
 using Avalonia.Controls;
 using Avalonia.ReactiveUI;
+using AvaloniaEdit.Highlighting;
+using AvaloniaEdit.Highlighting.Xshd;
 using ReactiveUI;
 
 // ReactiveUI uses reflection for WhenAnyValue and WhenActivated, which triggers IL2026 warnings
@@ -16,6 +20,9 @@ public partial class EditorView : ReactiveUserControl<MainWindowViewModel>
 	public EditorView()
 	{
 		InitializeComponent();
+
+		// Load ARM assembly syntax highlighting
+		LoadSyntaxHighlighting();
 
 		_ = this.WhenActivated(disposables => {
 			// Bind ViewModel.SourceCode to TextEditor.Text
@@ -37,5 +44,28 @@ public partial class EditorView : ReactiveUserControl<MainWindowViewModel>
 				})
 				.DisposeWith(disposables);
 		});
+	}
+
+	/// <summary>
+	/// Loads the ARM assembly syntax highlighting definition from embedded resources.
+	/// </summary>
+	private void LoadSyntaxHighlighting()
+	{
+		try {
+			var assembly = Assembly.GetExecutingAssembly();
+			var resourceName = "ARMEmulator.Resources.ARMAssembly.xshd";
+
+			using var stream = assembly.GetManifestResourceStream(resourceName);
+			if (stream is null) {
+				return;  // Silently fail if resource not found
+			}
+
+			using var reader = new XmlTextReader(stream);
+			var definition = HighlightingLoader.Load(reader, HighlightingManager.Instance);
+			TextEditor.SyntaxHighlighting = definition;
+		}
+		catch {
+			// Silently ignore syntax highlighting errors - editor still works without it
+		}
 	}
 }

@@ -1,0 +1,197 @@
+<?xml version="1.0"?>
+<SyntaxDefinition name="ARM Assembly" extensions=".s;.asm" xmlns="http://icsharpcode.net/sharpdevelop/syntaxdefinition/2008">
+	<!-- ARM Assembly Syntax Highlighting for AvaloniaEdit -->
+
+	<Color name="Comment" foreground="#6A9955" fontStyle="italic" />
+	<Color name="Instruction" foreground="#569CD6" fontWeight="bold" />
+	<Color name="Register" foreground="#9CDCFE" />
+	<Color name="Number" foreground="#B5CEA8" />
+	<Color name="String" foreground="#CE9178" />
+	<Color name="Label" foreground="#DCDCAA" fontWeight="bold" />
+	<Color name="Directive" foreground="#C586C0" />
+
+	<RuleSet ignoreCase="true">
+		<!-- Comments -->
+		<Span color="Comment" begin=";" />
+		<Span color="Comment" begin="@" />
+		<Span color="Comment" begin="//" />
+
+		<!-- Strings -->
+		<Span color="String">
+			<Begin>"</Begin>
+			<End>"</End>
+			<RuleSet>
+				<Span begin="\\" end="." />
+			</RuleSet>
+		</Span>
+
+		<!-- Labels (word followed by colon) -->
+		<Rule color="Label">
+			\b[a-zA-Z_][a-zA-Z0-9_]*:
+		</Rule>
+
+		<!-- Directives -->
+		<Keywords color="Directive">
+			<Word>.data</Word>
+			<Word>.text</Word>
+			<Word>.global</Word>
+			<Word>.globl</Word>
+			<Word>.word</Word>
+			<Word>.byte</Word>
+			<Word>.hword</Word>
+			<Word>.ascii</Word>
+			<Word>.asciz</Word>
+			<Word>.string</Word>
+			<Word>.align</Word>
+			<Word>.balign</Word>
+			<Word>.space</Word>
+			<Word>.skip</Word>
+			<Word>.equ</Word>
+			<Word>.set</Word>
+			<Word>.section</Word>
+			<Word>.bss</Word>
+			<Word>.comm</Word>
+			<Word>.lcomm</Word>
+		</Keywords>
+
+		<!-- Data Processing Instructions -->
+		<Keywords color="Instruction">
+			<Word>mov</Word>
+			<Word>mvn</Word>
+			<Word>add</Word>
+			<Word>adc</Word>
+			<Word>sub</Word>
+			<Word>sbc</Word>
+			<Word>rsb</Word>
+			<Word>rsc</Word>
+			<Word>mul</Word>
+			<Word>mla</Word>
+			<Word>umull</Word>
+			<Word>umlal</Word>
+			<Word>smull</Word>
+			<Word>smlal</Word>
+			<Word>and</Word>
+			<Word>orr</Word>
+			<Word>eor</Word>
+			<Word>bic</Word>
+			<Word>lsl</Word>
+			<Word>lsr</Word>
+			<Word>asr</Word>
+			<Word>ror</Word>
+			<Word>rrx</Word>
+		</Keywords>
+
+		<!-- Compare Instructions -->
+		<Keywords color="Instruction">
+			<Word>cmp</Word>
+			<Word>cmn</Word>
+			<Word>tst</Word>
+			<Word>teq</Word>
+		</Keywords>
+
+		<!-- Branch Instructions -->
+		<Keywords color="Instruction">
+			<Word>b</Word>
+			<Word>bl</Word>
+			<Word>bx</Word>
+			<Word>blx</Word>
+			<Word>beq</Word>
+			<Word>bne</Word>
+			<Word>blt</Word>
+			<Word>ble</Word>
+			<Word>bgt</Word>
+			<Word>bge</Word>
+			<Word>bhi</Word>
+			<Word>blo</Word>
+			<Word>bls</Word>
+			<Word>bhs</Word>
+			<Word>bcs</Word>
+			<Word>bcc</Word>
+			<Word>bmi</Word>
+			<Word>bpl</Word>
+			<Word>bvs</Word>
+			<Word>bvc</Word>
+			<Word>bal</Word>
+		</Keywords>
+
+		<!-- Load/Store Instructions -->
+		<Keywords color="Instruction">
+			<Word>ldr</Word>
+			<Word>ldrb</Word>
+			<Word>ldrh</Word>
+			<Word>ldrsb</Word>
+			<Word>ldrsh</Word>
+			<Word>str</Word>
+			<Word>strb</Word>
+			<Word>strh</Word>
+			<Word>ldm</Word>
+			<Word>ldmia</Word>
+			<Word>ldmib</Word>
+			<Word>ldmda</Word>
+			<Word>ldmdb</Word>
+			<Word>ldmfd</Word>
+			<Word>ldmfa</Word>
+			<Word>ldmed</Word>
+			<Word>ldmea</Word>
+			<Word>stm</Word>
+			<Word>stmia</Word>
+			<Word>stmib</Word>
+			<Word>stmda</Word>
+			<Word>stmdb</Word>
+			<Word>stmfd</Word>
+			<Word>stmfa</Word>
+			<Word>stmed</Word>
+			<Word>stmea</Word>
+			<Word>push</Word>
+			<Word>pop</Word>
+		</Keywords>
+
+		<!-- Special Instructions -->
+		<Keywords color="Instruction">
+			<Word>swi</Word>
+			<Word>svc</Word>
+			<Word>bkpt</Word>
+			<Word>nop</Word>
+			<Word>mrs</Word>
+			<Word>msr</Word>
+			<Word>swp</Word>
+			<Word>swpb</Word>
+		</Keywords>
+
+		<!-- Registers -->
+		<Keywords color="Register">
+			<Word>r0</Word>
+			<Word>r1</Word>
+			<Word>r2</Word>
+			<Word>r3</Word>
+			<Word>r4</Word>
+			<Word>r5</Word>
+			<Word>r6</Word>
+			<Word>r7</Word>
+			<Word>r8</Word>
+			<Word>r9</Word>
+			<Word>r10</Word>
+			<Word>r11</Word>
+			<Word>r12</Word>
+			<Word>r13</Word>
+			<Word>r14</Word>
+			<Word>r15</Word>
+			<Word>sp</Word>
+			<Word>lr</Word>
+			<Word>pc</Word>
+			<Word>cpsr</Word>
+			<Word>spsr</Word>
+		</Keywords>
+
+		<!-- Numbers (hex, binary, decimal) -->
+		<Rule color="Number">
+			\#?0x[0-9A-Fa-f]+   <!-- Hex with optional # -->
+		</Rule>
+		<Rule color="Number">
+			\#?0b[01]+           <!-- Binary with optional # -->
+		</Rule>
+		<Rule color="Number">
+			\#?-?[0-9]+          <!-- Decimal with optional # and sign -->
+		</Rule>
+	</RuleSet>
+</SyntaxDefinition>

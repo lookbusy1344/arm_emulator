@@ -20,6 +20,10 @@
     <InternalsVisibleTo Include="ARMEmulator.Tests" />
   </ItemGroup>
 
+  <ItemGroup>
+    <EmbeddedResource Include="Resources\ARMAssembly.xshd" />
+  </ItemGroup>
+
   <PropertyGroup>
 	<EnforceCodeStyleInBuild>True</EnforceCodeStyleInBuild>
 	<AnalysisModeDesign>All</AnalysisModeDesign>
