@@ -1,0 +1,422 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:ARMEmulator.ViewModels"
+             xmlns:conv="using:ARMEmulator.Converters"
+             x:Class="ARMEmulator.Views.RegistersView"
+             x:DataType="vm:MainWindowViewModel">
+
+    <UserControl.Resources>
+        <conv:HexValueConverter x:Key="HexConverter" />
+        <conv:RegisterHighlightConverter x:Key="HighlightConverter" />
+    </UserControl.Resources>
+
+    <ScrollViewer>
+        <StackPanel Spacing="12" Margin="8">
+            <!-- General Purpose Registers (R0-R12) in a responsive grid -->
+            <Border BorderBrush="{DynamicResource SystemControlForegroundBaseMediumLowBrush}"
+                    BorderThickness="1"
+                    CornerRadius="4"
+                    Padding="8">
+                <StackPanel Spacing="4">
+                    <TextBlock Text="General Purpose"
+                               FontWeight="SemiBold"
+                               Margin="0,0,0,4" />
+                    <UniformGrid Columns="3" Rows="5">
+                        <!-- R0-R2 -->
+                        <Border Classes="registerCell">
+                            <Border.Background>
+                                <MultiBinding Converter="{StaticResource HighlightConverter}">
+                                    <Binding Source="R0" />
+                                    <Binding Path="ChangedRegisters" />
+                                </MultiBinding>
+                            </Border.Background>
+                            <StackPanel>
+                                <TextBlock Text="R0" FontSize="11" Opacity="0.7" />
+                                <TextBlock Text="{Binding Registers.R0, Converter={StaticResource HexConverter}}"
+                                           FontFamily="monospace"
+                                           FontSize="13" />
+                                <TextBlock Text="{Binding Registers.R0}"
+                                           FontSize="10"
+                                           Opacity="0.5" />
+                            </StackPanel>
+                        </Border>
+
+                        <Border Classes="registerCell">
+                            <Border.Background>
+                                <MultiBinding Converter="{StaticResource HighlightConverter}">
+                                    <Binding Source="R1" />
+                                    <Binding Path="ChangedRegisters" />
+                                </MultiBinding>
+                            </Border.Background>
+                            <StackPanel>
+                                <TextBlock Text="R1" FontSize="11" Opacity="0.7" />
+                                <TextBlock Text="{Binding Registers.R1, Converter={StaticResource HexConverter}}"
+                                           FontFamily="monospace"
+                                           FontSize="13" />
+                                <TextBlock Text="{Binding Registers.R1}"
+                                           FontSize="10"
+                                           Opacity="0.5" />
+                            </StackPanel>
+                        </Border>
+
+                        <Border Classes="registerCell">
+                            <Border.Background>
+                                <MultiBinding Converter="{StaticResource HighlightConverter}">
+                                    <Binding Source="R2" />
+                                    <Binding Path="ChangedRegisters" />
+                                </MultiBinding>
+                            </Border.Background>
+                            <StackPanel>
+                                <TextBlock Text="R2" FontSize="11" Opacity="0.7" />
+                                <TextBlock Text="{Binding Registers.R2, Converter={StaticResource HexConverter}}"
+                                           FontFamily="monospace"
+                                           FontSize="13" />
+                                <TextBlock Text="{Binding Registers.R2}"
+                                           FontSize="10"
+                                           Opacity="0.5" />
+                            </StackPanel>
+                        </Border>
+
+                        <!-- R3-R5 -->
+                        <Border Classes="registerCell">
+                            <Border.Background>
+                                <MultiBinding Converter="{StaticResource HighlightConverter}">
+                                    <Binding Source="R3" />
+                                    <Binding Path="ChangedRegisters" />
+                                </MultiBinding>
+                            </Border.Background>
+                            <StackPanel>
+                                <TextBlock Text="R3" FontSize="11" Opacity="0.7" />
+                                <TextBlock Text="{Binding Registers.R3, Converter={StaticResource HexConverter}}"
+                                           FontFamily="monospace"
+                                           FontSize="13" />
+                                <TextBlock Text="{Binding Registers.R3}"
+                                           FontSize="10"
+                                           Opacity="0.5" />
+                            </StackPanel>
+                        </Border>
+
+                        <Border Classes="registerCell">
+                            <Border.Background>
+                                <MultiBinding Converter="{StaticResource HighlightConverter}">
+                                    <Binding Source="R4" />
+                                    <Binding Path="ChangedRegisters" />
+                                </MultiBinding>
+                            </Border.Background>
+                            <StackPanel>
+                                <TextBlock Text="R4" FontSize="11" Opacity="0.7" />
+                                <TextBlock Text="{Binding Registers.R4, Converter={StaticResource HexConverter}}"
+                                           FontFamily="monospace"
+                                           FontSize="13" />
+                                <TextBlock Text="{Binding Registers.R4}"
+                                           FontSize="10"
+                                           Opacity="0.5" />
+                            </StackPanel>
+                        </Border>
+
+                        <Border Classes="registerCell">
+                            <Border.Background>
+                                <MultiBinding Converter="{StaticResource HighlightConverter}">
+                                    <Binding Source="R5" />
+                                    <Binding Path="ChangedRegisters" />
+                                </MultiBinding>
+                            </Border.Background>
+                            <StackPanel>
+                                <TextBlock Text="R5" FontSize="11" Opacity="0.7" />
+                                <TextBlock Text="{Binding Registers.R5, Converter={StaticResource HexConverter}}"
+                                           FontFamily="monospace"
+                                           FontSize="13" />
+                                <TextBlock Text="{Binding Registers.R5}"
+                                           FontSize="10"
+                                           Opacity="0.5" />
+                            </StackPanel>
+                        </Border>
+
+                        <!-- R6-R8 -->
+                        <Border Classes="registerCell">
+                            <Border.Background>
+                                <MultiBinding Converter="{StaticResource HighlightConverter}">
+                                    <Binding Source="R6" />
+                                    <Binding Path="ChangedRegisters" />
+                                </MultiBinding>
+                            </Border.Background>
+                            <StackPanel>
+                                <TextBlock Text="R6" FontSize="11" Opacity="0.7" />
+                                <TextBlock Text="{Binding Registers.R6, Converter={StaticResource HexConverter}}"
+                                           FontFamily="monospace"
+                                           FontSize="13" />
+                                <TextBlock Text="{Binding Registers.R6}"
+                                           FontSize="10"
+                                           Opacity="0.5" />
+                            </StackPanel>
+                        </Border>
+
+                        <Border Classes="registerCell">
+                            <Border.Background>
+                                <MultiBinding Converter="{StaticResource HighlightConverter}">
+                                    <Binding Source="R7" />
+                                    <Binding Path="ChangedRegisters" />
+                                </MultiBinding>
+                            </Border.Background>
+                            <StackPanel>
+                                <TextBlock Text="R7" FontSize="11" Opacity="0.7" />
+                                <TextBlock Text="{Binding Registers.R7, Converter={StaticResource HexConverter}}"
+                                           FontFamily="monospace"
+                                           FontSize="13" />
+                                <TextBlock Text="{Binding Registers.R7}"
+                                           FontSize="10"
+                                           Opacity="0.5" />
+                            </StackPanel>
+                        </Border>
+
+                        <Border Classes="registerCell">
+                            <Border.Background>
+                                <MultiBinding Converter="{StaticResource HighlightConverter}">
+                                    <Binding Source="R8" />
+                                    <Binding Path="ChangedRegisters" />
+                                </MultiBinding>
+                            </Border.Background>
+                            <StackPanel>
+                                <TextBlock Text="R8" FontSize="11" Opacity="0.7" />
+                                <TextBlock Text="{Binding Registers.R8, Converter={StaticResource HexConverter}}"
+                                           FontFamily="monospace"
+                                           FontSize="13" />
+                                <TextBlock Text="{Binding Registers.R8}"
+                                           FontSize="10"
+                                           Opacity="0.5" />
+                            </StackPanel>
+                        </Border>
+
+                        <!-- R9-R11 -->
+                        <Border Classes="registerCell">
+                            <Border.Background>
+                                <MultiBinding Converter="{StaticResource HighlightConverter}">
+                                    <Binding Source="R9" />
+                                    <Binding Path="ChangedRegisters" />
+                                </MultiBinding>
+                            </Border.Background>
+                            <StackPanel>
+                                <TextBlock Text="R9" FontSize="11" Opacity="0.7" />
+                                <TextBlock Text="{Binding Registers.R9, Converter={StaticResource HexConverter}}"
+                                           FontFamily="monospace"
+                                           FontSize="13" />
+                                <TextBlock Text="{Binding Registers.R9}"
+                                           FontSize="10"
+                                           Opacity="0.5" />
+                            </StackPanel>
+                        </Border>
+
+                        <Border Classes="registerCell">
+                            <Border.Background>
+                                <MultiBinding Converter="{StaticResource HighlightConverter}">
+                                    <Binding Source="R10" />
+                                    <Binding Path="ChangedRegisters" />
+                                </MultiBinding>
+                            </Border.Background>
+                            <StackPanel>
+                                <TextBlock Text="R10" FontSize="11" Opacity="0.7" />
+                                <TextBlock Text="{Binding Registers.R10, Converter={StaticResource HexConverter}}"
+                                           FontFamily="monospace"
+                                           FontSize="13" />
+                                <TextBlock Text="{Binding Registers.R10}"
+                                           FontSize="10"
+                                           Opacity="0.5" />
+                            </StackPanel>
+                        </Border>
+
+                        <Border Classes="registerCell">
+                            <Border.Background>
+                                <MultiBinding Converter="{StaticResource HighlightConverter}">
+                                    <Binding Source="R11" />
+                                    <Binding Path="ChangedRegisters" />
+                                </MultiBinding>
+                            </Border.Background>
+                            <StackPanel>
+                                <TextBlock Text="R11" FontSize="11" Opacity="0.7" />
+                                <TextBlock Text="{Binding Registers.R11, Converter={StaticResource HexConverter}}"
+                                           FontFamily="monospace"
+                                           FontSize="13" />
+                                <TextBlock Text="{Binding Registers.R11}"
+                                           FontSize="10"
+                                           Opacity="0.5" />
+                            </StackPanel>
+                        </Border>
+
+                        <!-- R12 -->
+                        <Border Classes="registerCell">
+                            <Border.Background>
+                                <MultiBinding Converter="{StaticResource HighlightConverter}">
+                                    <Binding Source="R12" />
+                                    <Binding Path="ChangedRegisters" />
+                                </MultiBinding>
+                            </Border.Background>
+                            <StackPanel>
+                                <TextBlock Text="R12" FontSize="11" Opacity="0.7" />
+                                <TextBlock Text="{Binding Registers.R12, Converter={StaticResource HexConverter}}"
+                                           FontFamily="monospace"
+                                           FontSize="13" />
+                                <TextBlock Text="{Binding Registers.R12}"
+                                           FontSize="10"
+                                           Opacity="0.5" />
+                            </StackPanel>
+                        </Border>
+                    </UniformGrid>
+                </StackPanel>
+            </Border>
+
+            <!-- Special Registers (SP, LR, PC) -->
+            <Border BorderBrush="{DynamicResource SystemControlForegroundBaseMediumLowBrush}"
+                    BorderThickness="1"
+                    CornerRadius="4"
+                    Padding="8">
+                <StackPanel Spacing="4">
+                    <TextBlock Text="Special Registers"
+                               FontWeight="SemiBold"
+                               Margin="0,0,0,4" />
+                    <UniformGrid Columns="3">
+                        <Border Classes="registerCell">
+                            <Border.Background>
+                                <MultiBinding Converter="{StaticResource HighlightConverter}">
+                                    <Binding Source="SP" />
+                                    <Binding Path="ChangedRegisters" />
+                                </MultiBinding>
+                            </Border.Background>
+                            <StackPanel>
+                                <TextBlock Text="SP (R13)" FontSize="11" Opacity="0.7" />
+                                <TextBlock Text="{Binding Registers.SP, Converter={StaticResource HexConverter}}"
+                                           FontFamily="monospace"
+                                           FontSize="13" />
+                                <TextBlock Text="{Binding Registers.SP}"
+                                           FontSize="10"
+                                           Opacity="0.5" />
+                            </StackPanel>
+                        </Border>
+
+                        <Border Classes="registerCell">
+                            <Border.Background>
+                                <MultiBinding Converter="{StaticResource HighlightConverter}">
+                                    <Binding Source="LR" />
+                                    <Binding Path="ChangedRegisters" />
+                                </MultiBinding>
+                            </Border.Background>
+                            <StackPanel>
+                                <TextBlock Text="LR (R14)" FontSize="11" Opacity="0.7" />
+                                <TextBlock Text="{Binding Registers.LR, Converter={StaticResource HexConverter}}"
+                                           FontFamily="monospace"
+                                           FontSize="13" />
+                                <TextBlock Text="{Binding Registers.LR}"
+                                           FontSize="10"
+                                           Opacity="0.5" />
+                            </StackPanel>
+                        </Border>
+
+                        <Border Classes="registerCell">
+                            <Border.Background>
+                                <MultiBinding Converter="{StaticResource HighlightConverter}">
+                                    <Binding Source="PC" />
+                                    <Binding Path="ChangedRegisters" />
+                                </MultiBinding>
+                            </Border.Background>
+                            <StackPanel>
+                                <TextBlock Text="PC (R15)" FontSize="11" Opacity="0.7" />
+                                <TextBlock Text="{Binding Registers.PC, Converter={StaticResource HexConverter}}"
+                                           FontFamily="monospace"
+                                           FontSize="13" />
+                                <TextBlock Text="{Binding Registers.PC}"
+                                           FontSize="10"
+                                           Opacity="0.5" />
+                            </StackPanel>
+                        </Border>
+                    </UniformGrid>
+                </StackPanel>
+            </Border>
+
+            <!-- CPSR Flags -->
+            <Border BorderBrush="{DynamicResource SystemControlForegroundBaseMediumLowBrush}"
+                    BorderThickness="1"
+                    CornerRadius="4"
+                    Padding="8">
+                <StackPanel Spacing="8">
+                    <TextBlock Text="CPSR Flags"
+                               FontWeight="SemiBold" />
+                    <Border Classes="registerCell">
+                        <Border.Background>
+                            <MultiBinding Converter="{StaticResource HighlightConverter}">
+                                <Binding Source="CPSR" />
+                                <Binding Path="ChangedRegisters" />
+                            </MultiBinding>
+                        </Border.Background>
+                        <StackPanel Orientation="Horizontal" Spacing="16">
+                            <!-- N Flag -->
+                            <StackPanel>
+                                <TextBlock Text="N (Negative)"
+                                           FontSize="11"
+                                           Opacity="0.7" />
+                                <TextBlock Text="{Binding Registers.CPSR.N}"
+                                           FontFamily="monospace"
+                                           FontSize="14"
+                                           FontWeight="{Binding Registers.CPSR.N, Converter={x:Static conv:BoolToFontWeightConverter.Instance}}"
+                                           Foreground="{Binding Registers.CPSR.N, Converter={x:Static conv:BoolToColorConverter.Instance}}" />
+                            </StackPanel>
+
+                            <!-- Z Flag -->
+                            <StackPanel>
+                                <TextBlock Text="Z (Zero)"
+                                           FontSize="11"
+                                           Opacity="0.7" />
+                                <TextBlock Text="{Binding Registers.CPSR.Z}"
+                                           FontFamily="monospace"
+                                           FontSize="14"
+                                           FontWeight="{Binding Registers.CPSR.Z, Converter={x:Static conv:BoolToFontWeightConverter.Instance}}"
+                                           Foreground="{Binding Registers.CPSR.Z, Converter={x:Static conv:BoolToColorConverter.Instance}}" />
+                            </StackPanel>
+
+                            <!-- C Flag -->
+                            <StackPanel>
+                                <TextBlock Text="C (Carry)"
+                                           FontSize="11"
+                                           Opacity="0.7" />
+                                <TextBlock Text="{Binding Registers.CPSR.C}"
+                                           FontFamily="monospace"
+                                           FontSize="14"
+                                           FontWeight="{Binding Registers.CPSR.C, Converter={x:Static conv:BoolToFontWeightConverter.Instance}}"
+                                           Foreground="{Binding Registers.CPSR.C, Converter={x:Static conv:BoolToColorConverter.Instance}}" />
+                            </StackPanel>
+
+                            <!-- V Flag -->
+                            <StackPanel>
+                                <TextBlock Text="V (Overflow)"
+                                           FontSize="11"
+                                           Opacity="0.7" />
+                                <TextBlock Text="{Binding Registers.CPSR.V}"
+                                           FontFamily="monospace"
+                                           FontSize="14"
+                                           FontWeight="{Binding Registers.CPSR.V, Converter={x:Static conv:BoolToFontWeightConverter.Instance}}"
+                                           Foreground="{Binding Registers.CPSR.V, Converter={x:Static conv:BoolToColorConverter.Instance}}" />
+                            </StackPanel>
+
+                            <!-- Display String -->
+                            <StackPanel>
+                                <TextBlock Text="Display"
+                                           FontSize="11"
+                                           Opacity="0.7" />
+                                <TextBlock Text="{Binding Registers.CPSR.DisplayString}"
+                                           FontFamily="monospace"
+                                           FontSize="14"
+                                           FontWeight="SemiBold" />
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+            </Border>
+        </StackPanel>
+    </ScrollViewer>
+
+    <UserControl.Styles>
+        <Style Selector="Border.registerCell">
+            <Setter Property="Padding" Value="8" />
+            <Setter Property="Margin" Value="2" />
+            <Setter Property="CornerRadius" Value="4" />
+        </Style>
+    </UserControl.Styles>
+</UserControl>

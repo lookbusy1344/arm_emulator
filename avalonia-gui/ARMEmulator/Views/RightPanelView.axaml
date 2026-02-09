@@ -1,6 +1,7 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:ARMEmulator.ViewModels"
+             xmlns:views="using:ARMEmulator.Views"
              x:Class="ARMEmulator.Views.RightPanelView">
     <Border BorderBrush="{DynamicResource SystemControlForegroundBaseMediumBrush}"
             BorderThickness="1"
@@ -8,9 +9,7 @@
             Padding="8">
         <TabControl>
             <TabItem Header="Registers">
-                <TextBlock Text="Registers View Placeholder"
-                           VerticalAlignment="Center"
-                           HorizontalAlignment="Center" />
+                <views:RegistersView />
             </TabItem>
             <TabItem Header="Memory">
                 <TextBlock Text="Memory View Placeholder"
