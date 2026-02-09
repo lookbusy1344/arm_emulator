@@ -43,6 +43,8 @@ public partial class EditorView : ReactiveUserControl<MainWindowViewModel>
 					}
 				})
 				.DisposeWith(disposables);
+
+			// TODO: Bind breakpoints and PC indicator when custom gutter is implemented
 		});
 	}
 

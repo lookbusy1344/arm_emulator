@@ -366,6 +366,32 @@ public partial class MainWindowViewModel : ReactiveObject, IDisposable
 	}
 
 	/// <summary>
+	/// Adds a breakpoint at the specified address.
+	/// </summary>
+	public async Task AddBreakpointAsync(uint address, CancellationToken ct = default)
+	{
+		if (SessionId is null) {
+			return;
+		}
+
+		await _api.AddBreakpointAsync(SessionId, address, ct);
+		Breakpoints = Breakpoints.Add(address);
+	}
+
+	/// <summary>
+	/// Removes a breakpoint at the specified address.
+	/// </summary>
+	public async Task RemoveBreakpointAsync(uint address, CancellationToken ct = default)
+	{
+		if (SessionId is null) {
+			return;
+		}
+
+		await _api.RemoveBreakpointAsync(SessionId, address, ct);
+		Breakpoints = Breakpoints.Remove(address);
+	}
+
+	/// <summary>
 	/// Gets the status indicator color based on VM state and connection status.
 	/// </summary>
 	private static string GetStatusColor(VMState status, bool isConnected)
