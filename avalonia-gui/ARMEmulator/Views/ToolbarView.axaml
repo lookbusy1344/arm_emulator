@@ -14,40 +14,58 @@
                     Background="{Binding StatusColor}"
                     ToolTip.Tip="{Binding StatusText}"
                     VerticalAlignment="Center"
-                    Margin="0,0,16,0" />
+                    Margin="0,0,16,0"
+                    AutomationProperties.Name="VM Status Indicator"
+                    AutomationProperties.HelpText="{Binding StatusText}" />
 
             <!-- Load Button -->
             <Button Content="📂 Load"
                     Command="{Binding LoadProgramCommand}"
-                    ToolTip.Tip="Load Program (Ctrl+L)" />
+                    ToolTip.Tip="Load Program (Ctrl+L)"
+                    AutomationProperties.Name="Load Program"
+                    AutomationProperties.AcceleratorKey="Ctrl+L" />
 
             <!-- Execution Control Buttons -->
             <Separator />
             <Button Content="▶️ Run"
                     Command="{Binding RunCommand}"
-                    ToolTip.Tip="Run (F5, Ctrl+R)" />
+                    ToolTip.Tip="Run (F5, Ctrl+R)"
+                    AutomationProperties.Name="Run Program"
+                    AutomationProperties.AcceleratorKey="F5" />
             <Button Content="⏸️ Pause"
                     Command="{Binding PauseCommand}"
-                    ToolTip.Tip="Pause (Ctrl+.)" />
+                    ToolTip.Tip="Pause (Ctrl+.)"
+                    AutomationProperties.Name="Pause Execution"
+                    AutomationProperties.AcceleratorKey="Ctrl+Period" />
 
             <Separator />
             <Button Content="➡️ Step"
                     Command="{Binding StepCommand}"
-                    ToolTip.Tip="Step (F11, Ctrl+T)" />
+                    ToolTip.Tip="Step (F11, Ctrl+T)"
+                    AutomationProperties.Name="Step Single Instruction"
+                    AutomationProperties.AcceleratorKey="F11" />
             <Button Content="⤵️ Step Over"
                     Command="{Binding StepOverCommand}"
-                    ToolTip.Tip="Step Over (F10, Ctrl+Shift+T)" />
+                    ToolTip.Tip="Step Over (F10, Ctrl+Shift+T)"
+                    AutomationProperties.Name="Step Over Function"
+                    AutomationProperties.AcceleratorKey="F10" />
             <Button Content="⤴️ Step Out"
                     Command="{Binding StepOutCommand}"
-                    ToolTip.Tip="Step Out (Ctrl+Alt+T)" />
+                    ToolTip.Tip="Step Out (Ctrl+Alt+T)"
+                    AutomationProperties.Name="Step Out of Function"
+                    AutomationProperties.AcceleratorKey="Ctrl+Alt+T" />
 
             <Separator />
             <Button Content="🔄 Reset"
                     Command="{Binding ResetCommand}"
-                    ToolTip.Tip="Reset (Ctrl+Shift+R)" />
+                    ToolTip.Tip="Reset (Ctrl+Shift+R)"
+                    AutomationProperties.Name="Reset Virtual Machine"
+                    AutomationProperties.AcceleratorKey="Ctrl+Shift+R" />
             <Button Content="📍 Show PC"
                     Command="{Binding ShowPcCommand}"
-                    ToolTip.Tip="Show PC (Ctrl+J)" />
+                    ToolTip.Tip="Show PC (Ctrl+J)"
+                    AutomationProperties.Name="Show Program Counter in Editor"
+                    AutomationProperties.AcceleratorKey="Ctrl+J" />
         </StackPanel>
     </Border>
 </UserControl>

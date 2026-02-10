@@ -44,7 +44,9 @@
                          Text="{Binding InputText}"
                          Watermark="Enter input..."
                          VerticalAlignment="Center"
-                         ToolTip.Tip="Enter input for the running program (press Enter or click Send)">
+                         ToolTip.Tip="Enter input for the running program (press Enter or click Send)"
+                         AutomationProperties.Name="Program Input"
+                         AutomationProperties.HelpText="Enter text input for the running program">
                     <TextBox.KeyBindings>
                         <KeyBinding Gesture="Enter" Command="{Binding SendInputCommand}" />
                     </TextBox.KeyBindings>
@@ -52,7 +54,9 @@
                 <Button Content="Send"
                         Command="{Binding SendInputCommand}"
                         VerticalAlignment="Center"
-                        ToolTip.Tip="Send input to program (Enter)" />
+                        ToolTip.Tip="Send input to program (Enter)"
+                        AutomationProperties.Name="Send Input"
+                        AutomationProperties.AcceleratorKey="Enter" />
             </StackPanel>
 
             <!-- Output area with auto-scroll -->
@@ -65,7 +69,9 @@
                          Background="Transparent"
                          FontFamily="Consolas,Menlo,Monaco,Courier New,monospace"
                          TextWrapping="NoWrap"
-                         AcceptsReturn="True" />
+                         AcceptsReturn="True"
+                         AutomationProperties.Name="Console Output"
+                         AutomationProperties.HelpText="Program output from stdout and stderr" />
             </ScrollViewer>
         </DockPanel>
     </Border>
