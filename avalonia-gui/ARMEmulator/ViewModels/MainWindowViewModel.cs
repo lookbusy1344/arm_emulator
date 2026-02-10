@@ -71,6 +71,14 @@ public class MainWindowViewModel : ReactiveObject, IDisposable
 		// Set up timed highlight removal pipeline
 		SetupHighlightPipeline();
 
+		// Initialize child ViewModels
+		ExpressionEvaluator = new ExpressionEvaluatorViewModel(api);
+
+		// Sync SessionId to child ViewModels
+		_ = this.WhenAnyValue(x => x.SessionId)
+			.Subscribe(id => ExpressionEvaluator.SessionId = id)
+			.DisposeWith(disposables);
+
 		// Subscribe to WebSocket events
 		_ = this.ws.Events
 			.ObserveOn(RxApp.MainThreadScheduler)
@@ -243,6 +251,9 @@ public class MainWindowViewModel : ReactiveObject, IDisposable
 	public bool IsEditorEditable => isEditorEditableHelper.Value;
 	public string StatusColor => statusColorHelper.Value;
 	public string StatusText => statusTextHelper.Value;
+
+	// Child ViewModels
+	public ExpressionEvaluatorViewModel ExpressionEvaluator { get; }
 
 	// Commands
 	public ReactiveCommand<Unit, Unit> RunCommand { get; }

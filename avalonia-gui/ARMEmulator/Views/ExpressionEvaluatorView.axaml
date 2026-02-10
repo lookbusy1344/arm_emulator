@@ -1,0 +1,156 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:ARMEmulator.ViewModels"
+             xmlns:conv="using:ARMEmulator.Converters"
+             x:Class="ARMEmulator.Views.ExpressionEvaluatorView"
+             x:DataType="vm:ExpressionEvaluatorViewModel">
+    <UserControl.Resources>
+        <conv:HexValueConverter x:Key="HexValueConverter" />
+        <conv:BinaryValueConverter x:Key="BinaryValueConverter" />
+    </UserControl.Resources>
+
+    <ScrollViewer>
+        <StackPanel Spacing="12" Margin="8">
+            <!-- Input Section -->
+            <Border BorderBrush="{DynamicResource SystemControlForegroundBaseMediumBrush}"
+                    BorderThickness="1"
+                    CornerRadius="4"
+                    Padding="12">
+                <StackPanel Spacing="8">
+                    <TextBlock Text="Expression Evaluator"
+                               FontWeight="SemiBold"
+                               FontSize="14" />
+
+                    <TextBlock Text="Examples: r0, r1+r2, [r0], 0x8000"
+                               Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"
+                               FontSize="11" />
+
+                    <Grid ColumnDefinitions="*,Auto">
+                        <TextBox Grid.Column="0"
+                                 Text="{Binding Expression}"
+                                 Watermark="Enter expression (e.g., r0, r1+4)"
+                                 FontFamily="Consolas, Menlo, Monaco, monospace"
+                                 Margin="0,0,8,0">
+                            <TextBox.KeyBindings>
+                                <KeyBinding Gesture="Enter" Command="{Binding EvaluateCommand}" />
+                            </TextBox.KeyBindings>
+                        </TextBox>
+
+                        <Button Grid.Column="1"
+                                Content="Evaluate"
+                                Command="{Binding EvaluateCommand}"
+                                HorizontalAlignment="Right"
+                                MinWidth="90" />
+                    </Grid>
+                </StackPanel>
+            </Border>
+
+            <!-- Result Section -->
+            <Border BorderBrush="{DynamicResource SystemControlForegroundBaseMediumBrush}"
+                    BorderThickness="1"
+                    CornerRadius="4"
+                    Padding="12"
+                    IsVisible="{Binding Result, Converter={x:Static ObjectConverters.IsNotNull}}">
+                <StackPanel Spacing="8">
+                    <TextBlock Text="Result"
+                               FontWeight="SemiBold"
+                               FontSize="14" />
+
+                    <Grid RowDefinitions="Auto,Auto,Auto" ColumnDefinitions="Auto,*" ColumnSpacing="12" RowSpacing="6">
+                        <TextBlock Grid.Row="0" Grid.Column="0" Text="Hex:" FontWeight="SemiBold" />
+                        <SelectableTextBlock Grid.Row="0" Grid.Column="1"
+                                             Text="{Binding Result, Converter={StaticResource HexValueConverter}}"
+                                             FontFamily="Consolas, Menlo, Monaco, monospace" />
+
+                        <TextBlock Grid.Row="1" Grid.Column="0" Text="Decimal:" FontWeight="SemiBold" />
+                        <SelectableTextBlock Grid.Row="1" Grid.Column="1"
+                                             Text="{Binding Result}"
+                                             FontFamily="Consolas, Menlo, Monaco, monospace" />
+
+                        <TextBlock Grid.Row="2" Grid.Column="0" Text="Binary:" FontWeight="SemiBold" />
+                        <SelectableTextBlock Grid.Row="2" Grid.Column="1"
+                                             Text="{Binding Result, Converter={StaticResource BinaryValueConverter}}"
+                                             FontFamily="Consolas, Menlo, Monaco, monospace"
+                                             FontSize="11" />
+                    </Grid>
+                </StackPanel>
+            </Border>
+
+            <!-- Error Section -->
+            <Border BorderBrush="#D32F2F"
+                    BorderThickness="1"
+                    CornerRadius="4"
+                    Padding="12"
+                    Background="#FFEBEE"
+                    IsVisible="{Binding ErrorMessage, Converter={x:Static ObjectConverters.IsNotNull}}">
+                <StackPanel Spacing="4">
+                    <TextBlock Text="Error"
+                               FontWeight="SemiBold"
+                               Foreground="#D32F2F" />
+                    <TextBlock Text="{Binding ErrorMessage}"
+                               TextWrapping="Wrap"
+                               Foreground="#C62828" />
+                </StackPanel>
+            </Border>
+
+            <!-- History Section -->
+            <Border BorderBrush="{DynamicResource SystemControlForegroundBaseMediumBrush}"
+                    BorderThickness="1"
+                    CornerRadius="4"
+                    Padding="12">
+                <StackPanel Spacing="8">
+                    <Grid ColumnDefinitions="*,Auto">
+                        <TextBlock Grid.Column="0"
+                                   Text="History"
+                                   FontWeight="SemiBold"
+                                   FontSize="14" />
+                        <Button Grid.Column="1"
+                                Content="Clear"
+                                Command="{Binding ClearHistoryCommand}"
+                                IsEnabled="{Binding History.Length}"
+                                FontSize="11"
+                                Padding="6,2" />
+                    </Grid>
+
+                    <ItemsControl ItemsSource="{Binding History}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Border BorderBrush="{DynamicResource SystemControlForegroundBaseLowBrush}"
+                                        BorderThickness="0,0,0,1"
+                                        Padding="4,8">
+                                    <Grid RowDefinitions="Auto,Auto" ColumnDefinitions="*,Auto">
+                                        <TextBlock Grid.Row="0" Grid.Column="0"
+                                                   Text="{Binding Expression}"
+                                                   FontFamily="Consolas, Menlo, Monaco, monospace"
+                                                   FontWeight="SemiBold" />
+                                        <TextBlock Grid.Row="0" Grid.Column="1"
+                                                   Text="{Binding Timestamp, StringFormat='{}{0:HH:mm:ss}'}"
+                                                   FontSize="11"
+                                                   Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}" />
+                                        <TextBlock Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2"
+                                                   FontFamily="Consolas, Menlo, Monaco, monospace"
+                                                   FontSize="12"
+                                                   Margin="0,4,0,0">
+                                            <Run Text="0x" />
+                                            <Run Text="{Binding Result, StringFormat='{}{0:X8}'}" />
+                                            <Run Text=" (" />
+                                            <Run Text="{Binding Result}" />
+                                            <Run Text=")" />
+                                        </TextBlock>
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+
+                    <TextBlock Text="No history yet. Evaluate an expression to begin."
+                               Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"
+                               FontStyle="Italic"
+                               HorizontalAlignment="Center"
+                               Margin="0,20"
+                               IsVisible="{Binding !History.Length}" />
+                </StackPanel>
+            </Border>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

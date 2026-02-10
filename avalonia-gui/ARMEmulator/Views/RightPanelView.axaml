@@ -2,7 +2,8 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:ARMEmulator.ViewModels"
              xmlns:views="using:ARMEmulator.Views"
-             x:Class="ARMEmulator.Views.RightPanelView">
+             x:Class="ARMEmulator.Views.RightPanelView"
+             x:DataType="vm:MainWindowViewModel">
     <Border BorderBrush="{DynamicResource SystemControlForegroundBaseMediumBrush}"
             BorderThickness="1"
             CornerRadius="4"
@@ -21,9 +22,7 @@
                 <views:DisassemblyView />
             </TabItem>
             <TabItem Header="Eval">
-                <TextBlock Text="Expression Evaluator Placeholder"
-                           VerticalAlignment="Center"
-                           HorizontalAlignment="Center" />
+                <views:ExpressionEvaluatorView DataContext="{Binding ExpressionEvaluator}" />
             </TabItem>
             <TabItem Header="Watchpoints">
                 <TextBlock Text="Watchpoints View Placeholder"
