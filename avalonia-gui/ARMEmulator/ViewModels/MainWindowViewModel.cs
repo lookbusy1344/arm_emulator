@@ -40,6 +40,7 @@ public class MainWindowViewModel : ReactiveObject, IDisposable
 		ResetCommand = CreateCommand(ResetAsync);
 		LoadProgramCommand = CreateCommand(LoadProgramAsync);
 		ShowPcCommand = CreateCommand(ShowPcAsync);
+		SendInputCommand = CreateCommand(SendInputAsync, this.WhenAnyValue(x => x.InputText).Select(s => !string.IsNullOrWhiteSpace(s)));
 
 		// Set up computed properties using WhenAnyValue
 		canPauseHelper = this.WhenAnyValue(x => x.Status)
@@ -55,6 +56,11 @@ public class MainWindowViewModel : ReactiveObject, IDisposable
 		isEditorEditableHelper = this.WhenAnyValue(x => x.Status)
 			.Select(s => s.IsEditorEditable())
 			.ToProperty(this, x => x.IsEditorEditable)
+			.DisposeWith(disposables);
+
+		isWaitingForInputHelper = this.WhenAnyValue(x => x.Status)
+			.Select(s => s == VMState.WaitingForInput)
+			.ToProperty(this, x => x.IsWaitingForInput)
 			.DisposeWith(disposables);
 
 		// Set up status indicator properties
@@ -125,6 +131,14 @@ public class MainWindowViewModel : ReactiveObject, IDisposable
 	{
 		get => consoleOutput;
 		set => this.RaiseAndSetIfChanged(ref consoleOutput, value);
+	}
+
+	private string inputText = "";
+
+	public string InputText
+	{
+		get => inputText;
+		set => this.RaiseAndSetIfChanged(ref inputText, value);
 	}
 
 	private string? errorMessage;
@@ -242,6 +256,7 @@ public class MainWindowViewModel : ReactiveObject, IDisposable
 	private readonly ObservableAsPropertyHelper<bool> canPauseHelper;
 	private readonly ObservableAsPropertyHelper<bool> canStepHelper;
 	private readonly ObservableAsPropertyHelper<bool> isEditorEditableHelper;
+	private readonly ObservableAsPropertyHelper<bool> isWaitingForInputHelper;
 	private readonly ObservableAsPropertyHelper<string> statusColorHelper;
 	private readonly ObservableAsPropertyHelper<string> statusTextHelper;
 #pragma warning restore CA2213
@@ -249,6 +264,7 @@ public class MainWindowViewModel : ReactiveObject, IDisposable
 	public bool CanPause => canPauseHelper.Value;
 	public bool CanStep => canStepHelper.Value;
 	public bool IsEditorEditable => isEditorEditableHelper.Value;
+	public bool IsWaitingForInput => isWaitingForInputHelper.Value;
 	public string StatusColor => statusColorHelper.Value;
 	public string StatusText => statusTextHelper.Value;
 
@@ -264,6 +280,7 @@ public class MainWindowViewModel : ReactiveObject, IDisposable
 	public ReactiveCommand<Unit, Unit> ResetCommand { get; }
 	public ReactiveCommand<Unit, Unit> LoadProgramCommand { get; }
 	public ReactiveCommand<Unit, Unit> ShowPcCommand { get; }
+	public ReactiveCommand<Unit, Unit> SendInputCommand { get; }
 
 	/// <summary>
 	/// Helper to create commands with consistent error handling and scheduling.
