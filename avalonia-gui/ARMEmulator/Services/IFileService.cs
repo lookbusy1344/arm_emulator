@@ -1,3 +1,5 @@
+using Avalonia.Controls;
+
 namespace ARMEmulator.Services;
 
 /// <summary>
@@ -9,16 +11,18 @@ public interface IFileService
 	/// <summary>
 	/// Opens a file picker dialog for assembly files (.s extension).
 	/// </summary>
-	/// <returns>Selected file path, or null if cancelled</returns>
-	Task<string?> OpenFileAsync();
+	/// <param name="parent">Parent window for the dialog</param>
+	/// <returns>Selected file path and content, or null if cancelled</returns>
+	Task<(string path, string content)?> OpenFileAsync(Window parent);
 
 	/// <summary>
 	/// Opens a save dialog for the current file or a new file.
 	/// </summary>
+	/// <param name="parent">Parent window for the dialog</param>
 	/// <param name="content">File content to save</param>
 	/// <param name="currentPath">Current file path (null for new file)</param>
 	/// <returns>Saved file path, or null if cancelled</returns>
-	Task<string?> SaveFileAsync(string content, string? currentPath);
+	Task<string?> SaveFileAsync(Window parent, string content, string? currentPath);
 
 	/// <summary>
 	/// List of recently opened files (most recent first).
