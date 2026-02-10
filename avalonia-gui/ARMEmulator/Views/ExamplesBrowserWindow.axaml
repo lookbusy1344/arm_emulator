@@ -16,10 +16,12 @@
 		            HorizontalAlignment="Right"
 		            Margin="16"
 		            Spacing="12">
-			<Button Content="Cancel" MinWidth="80" Click="CancelButton_Click" />
+			<Button Content="Cancel" MinWidth="80" Click="CancelButton_Click"
+			        ToolTip.Tip="Close without loading" />
 			<Button Content="Load" MinWidth="80" Click="LoadButton_Click"
 			        IsEnabled="{Binding SelectedExample, Converter={x:Static ObjectConverters.IsNotNull}}"
-			        IsDefault="True" />
+			        IsDefault="True"
+			        ToolTip.Tip="Load selected example into editor" />
 		</StackPanel>
 
 		<!-- Split View -->
@@ -36,7 +38,8 @@
 				<TextBox DockPanel.Dock="Top"
 				         Text="{Binding SearchText}"
 				         Watermark="Search examples..."
-				         Margin="0,0,0,8" />
+				         Margin="0,0,0,8"
+				         ToolTip.Tip="Filter examples by name or description" />
 
 				<!-- Examples List -->
 				<ListBox ItemsSource="{Binding FilteredExamples}"
@@ -55,6 +58,21 @@
 						</DataTemplate>
 					</ListBox.ItemTemplate>
 				</ListBox>
+
+				<!-- Empty state for filtered results -->
+				<Border IsVisible="{Binding !FilteredExamples.Length}"
+				        Padding="20"
+				        VerticalAlignment="Center">
+					<StackPanel Spacing="8" HorizontalAlignment="Center">
+						<TextBlock Text="🔍 No examples found"
+						           FontWeight="SemiBold"
+						           HorizontalAlignment="Center" />
+						<TextBlock Text="Try a different search term"
+						           FontSize="11"
+						           Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"
+						           HorizontalAlignment="Center" />
+					</StackPanel>
+				</Border>
 			</DockPanel>
 
 			<!-- Splitter -->
@@ -69,7 +87,55 @@
 				         TextWrapping="NoWrap"
 				         FontFamily="Consolas,Menlo,Monaco,monospace"
 				         FontSize="12" />
+
+				<!-- Empty state for no selection -->
+				<Border IsVisible="{Binding !SelectedExample}"
+				        Padding="20"
+				        VerticalAlignment="Center">
+					<StackPanel Spacing="8" HorizontalAlignment="Center">
+						<TextBlock Text="Select an example to preview"
+						           Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"
+						           HorizontalAlignment="Center" />
+					</StackPanel>
+				</Border>
 			</DockPanel>
+
+			<!-- Loading Indicator -->
+			<Border Grid.Column="0" Grid.ColumnSpan="3"
+			        IsVisible="{Binding IsLoading}"
+			        Background="{DynamicResource SystemControlBackgroundAltMediumBrush}"
+			        Opacity="0.9">
+				<StackPanel Spacing="12" HorizontalAlignment="Center" VerticalAlignment="Center">
+					<ProgressBar IsIndeterminate="True" Width="200" />
+					<TextBlock Text="Loading examples..."
+					           HorizontalAlignment="Center"
+					           FontWeight="SemiBold" />
+				</StackPanel>
+			</Border>
+
+			<!-- Error Display -->
+			<Border Grid.Column="0" Grid.ColumnSpan="3"
+			        IsVisible="{Binding ErrorMessage, Converter={x:Static ObjectConverters.IsNotNull}}"
+			        Background="{DynamicResource SystemControlBackgroundAltMediumBrush}"
+			        Padding="40">
+				<StackPanel Spacing="12" HorizontalAlignment="Center" VerticalAlignment="Center">
+					<TextBlock Text="⚠️ Error Loading Examples"
+					           FontWeight="SemiBold"
+					           FontSize="16"
+					           HorizontalAlignment="Center" />
+					<TextBlock Text="{Binding ErrorMessage}"
+					           TextWrapping="Wrap"
+					           MaxWidth="400"
+					           Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"
+					           HorizontalAlignment="Center"
+					           TextAlignment="Center" />
+					<TextBlock Text="Check that the backend is running on http://localhost:8080"
+					           FontSize="11"
+					           FontStyle="Italic"
+					           Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"
+					           HorizontalAlignment="Center" />
+				</StackPanel>
+			</Border>
 		</Grid>
 	</DockPanel>
 </Window>
