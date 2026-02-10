@@ -21,12 +21,16 @@ public class MainWindowViewModelTests : IDisposable
 	[SuppressMessage("IDisposableAnalyzers.Correctness", "CA2213:Disposable fields should be disposed", Justification = "NSubstitute mock doesn't require disposal")]
 	private readonly IWebSocketClient mockWs;
 
+	[SuppressMessage("IDisposableAnalyzers.Correctness", "CA2213:Disposable fields should be disposed", Justification = "NSubstitute mock doesn't require disposal")]
+	private readonly IFileService mockFileService;
+
 	private readonly Subject<EmulatorEvent> eventsSubject;
 
 	public MainWindowViewModelTests()
 	{
 		mockApi = Substitute.For<IApiClient>();
 		mockWs = Substitute.For<IWebSocketClient>();
+		mockFileService = Substitute.For<IFileService>();
 		eventsSubject = new Subject<EmulatorEvent>();
 		mockWs.Events.Returns(eventsSubject);
 	}
@@ -41,7 +45,7 @@ public class MainWindowViewModelTests : IDisposable
 	public void Constructor_InitializesWithDefaultState()
 	{
 		// Arrange & Act
-		using var viewModel = new MainWindowViewModel(mockApi, mockWs);
+		using var viewModel = new MainWindowViewModel(mockApi, mockWs, mockFileService);
 
 		// Assert
 		viewModel.Status.Should().Be(VMState.Idle);
@@ -64,7 +68,7 @@ public class MainWindowViewModelTests : IDisposable
 	public void Constructor_InitializesCommands()
 	{
 		// Arrange & Act
-		using var viewModel = new MainWindowViewModel(mockApi, mockWs);
+		using var viewModel = new MainWindowViewModel(mockApi, mockWs, mockFileService);
 
 		// Assert
 		viewModel.RunCommand.Should().NotBeNull();
@@ -81,7 +85,7 @@ public class MainWindowViewModelTests : IDisposable
 	public void StatusColor_ReturnsGray_WhenDisconnected()
 	{
 		// Arrange
-		using var viewModel = new MainWindowViewModel(mockApi, mockWs);
+		using var viewModel = new MainWindowViewModel(mockApi, mockWs, mockFileService);
 
 		// Act & Assert
 		viewModel.IsConnected = false;
@@ -92,7 +96,7 @@ public class MainWindowViewModelTests : IDisposable
 	public void StatusColor_ReturnsGreen_WhenIdleAndConnected()
 	{
 		// Arrange
-		using var viewModel = new MainWindowViewModel(mockApi, mockWs);
+		using var viewModel = new MainWindowViewModel(mockApi, mockWs, mockFileService);
 
 		// Act
 		viewModel.IsConnected = true;
@@ -106,7 +110,7 @@ public class MainWindowViewModelTests : IDisposable
 	public void StatusColor_ReturnsDodgerBlue_WhenRunning()
 	{
 		// Arrange
-		using var viewModel = new MainWindowViewModel(mockApi, mockWs);
+		using var viewModel = new MainWindowViewModel(mockApi, mockWs, mockFileService);
 
 		// Act
 		viewModel.IsConnected = true;
@@ -120,7 +124,7 @@ public class MainWindowViewModelTests : IDisposable
 	public void StatusColor_ReturnsOrange_WhenBreakpoint()
 	{
 		// Arrange
-		using var viewModel = new MainWindowViewModel(mockApi, mockWs);
+		using var viewModel = new MainWindowViewModel(mockApi, mockWs, mockFileService);
 
 		// Act
 		viewModel.IsConnected = true;
@@ -134,7 +138,7 @@ public class MainWindowViewModelTests : IDisposable
 	public void StatusColor_ReturnsPurple_WhenHalted()
 	{
 		// Arrange
-		using var viewModel = new MainWindowViewModel(mockApi, mockWs);
+		using var viewModel = new MainWindowViewModel(mockApi, mockWs, mockFileService);
 
 		// Act
 		viewModel.IsConnected = true;
@@ -148,7 +152,7 @@ public class MainWindowViewModelTests : IDisposable
 	public void StatusColor_ReturnsRed_WhenError()
 	{
 		// Arrange
-		using var viewModel = new MainWindowViewModel(mockApi, mockWs);
+		using var viewModel = new MainWindowViewModel(mockApi, mockWs, mockFileService);
 
 		// Act
 		viewModel.IsConnected = true;
@@ -162,7 +166,7 @@ public class MainWindowViewModelTests : IDisposable
 	public void StatusText_ReturnsDisconnected_WhenNotConnected()
 	{
 		// Arrange
-		using var viewModel = new MainWindowViewModel(mockApi, mockWs);
+		using var viewModel = new MainWindowViewModel(mockApi, mockWs, mockFileService);
 
 		// Act & Assert
 		viewModel.IsConnected = false;
@@ -173,7 +177,7 @@ public class MainWindowViewModelTests : IDisposable
 	public void StatusText_ReturnsIdle_WhenIdleAndConnected()
 	{
 		// Arrange
-		using var viewModel = new MainWindowViewModel(mockApi, mockWs);
+		using var viewModel = new MainWindowViewModel(mockApi, mockWs, mockFileService);
 
 		// Act
 		viewModel.IsConnected = true;
@@ -187,7 +191,7 @@ public class MainWindowViewModelTests : IDisposable
 	public void StatusText_ReturnsRunning_WhenRunning()
 	{
 		// Arrange
-		using var viewModel = new MainWindowViewModel(mockApi, mockWs);
+		using var viewModel = new MainWindowViewModel(mockApi, mockWs, mockFileService);
 
 		// Act
 		viewModel.IsConnected = true;
@@ -201,7 +205,7 @@ public class MainWindowViewModelTests : IDisposable
 	public void CanPause_ReturnsFalse_WhenStateIsIdle()
 	{
 		// Arrange
-		using var viewModel = new MainWindowViewModel(mockApi, mockWs);
+		using var viewModel = new MainWindowViewModel(mockApi, mockWs, mockFileService);
 
 		// Act & Assert
 		viewModel.CanPause.Should().BeFalse();
@@ -211,7 +215,7 @@ public class MainWindowViewModelTests : IDisposable
 	public void CanStep_ReturnsTrue_WhenStateIsIdle()
 	{
 		// Arrange
-		using var viewModel = new MainWindowViewModel(mockApi, mockWs);
+		using var viewModel = new MainWindowViewModel(mockApi, mockWs, mockFileService);
 
 		// Act & Assert
 		viewModel.CanStep.Should().BeTrue();
@@ -221,7 +225,7 @@ public class MainWindowViewModelTests : IDisposable
 	public void IsEditorEditable_ReturnsTrue_WhenStateIsIdle()
 	{
 		// Arrange
-		using var viewModel = new MainWindowViewModel(mockApi, mockWs);
+		using var viewModel = new MainWindowViewModel(mockApi, mockWs, mockFileService);
 
 		// Act & Assert
 		viewModel.IsEditorEditable.Should().BeTrue();
@@ -231,7 +235,7 @@ public class MainWindowViewModelTests : IDisposable
 	public void UpdateRegisters_TracksChangedRegisters()
 	{
 		// Arrange
-		using var viewModel = new MainWindowViewModel(mockApi, mockWs);
+		using var viewModel = new MainWindowViewModel(mockApi, mockWs, mockFileService);
 		var initialRegisters = RegisterState.Create(r0: 0, r1: 100);
 		var updatedRegisters = RegisterState.Create(r0: 42, r1: 100);
 
@@ -250,7 +254,7 @@ public class MainWindowViewModelTests : IDisposable
 	public void UpdateRegisters_DetectsMultipleChanges()
 	{
 		// Arrange
-		using var viewModel = new MainWindowViewModel(mockApi, mockWs);
+		using var viewModel = new MainWindowViewModel(mockApi, mockWs, mockFileService);
 		var initialRegisters = RegisterState.Create(r0: 0, r1: 0, r2: 0);
 		var updatedRegisters = RegisterState.Create(r0: 10, r1: 20, r2: 0);
 
@@ -268,7 +272,7 @@ public class MainWindowViewModelTests : IDisposable
 	public void UpdateRegisters_DetectsCPSRChange()
 	{
 		// Arrange
-		using var viewModel = new MainWindowViewModel(mockApi, mockWs);
+		using var viewModel = new MainWindowViewModel(mockApi, mockWs, mockFileService);
 		var initialRegisters = RegisterState.Create(cpsr: new CPSRFlags(false, false, false, false));
 		var updatedRegisters = RegisterState.Create(cpsr: new CPSRFlags(true, false, false, false));
 
@@ -284,7 +288,7 @@ public class MainWindowViewModelTests : IDisposable
 	public void UpdateRegisters_FirstUpdate_DoesNotHighlightAnything()
 	{
 		// Arrange
-		using var viewModel = new MainWindowViewModel(mockApi, mockWs);
+		using var viewModel = new MainWindowViewModel(mockApi, mockWs, mockFileService);
 		var registers = RegisterState.Create(r0: 42);
 
 		// Act
@@ -300,7 +304,7 @@ public class MainWindowViewModelTests : IDisposable
 	public async Task UpdateRegisters_HighlightRemoval_RemovesAfter1500ms()
 	{
 		// Arrange
-		using var viewModel = new MainWindowViewModel(mockApi, mockWs);
+		using var viewModel = new MainWindowViewModel(mockApi, mockWs, mockFileService);
 		var initialRegisters = RegisterState.Create(r0: 0);
 		var updatedRegisters = RegisterState.Create(r0: 42);
 
@@ -322,7 +326,7 @@ public class MainWindowViewModelTests : IDisposable
 	public async Task UpdateRegisters_MultipleChanges_EachHighlightTimedIndependently()
 	{
 		// Arrange
-		using var viewModel = new MainWindowViewModel(mockApi, mockWs);
+		using var viewModel = new MainWindowViewModel(mockApi, mockWs, mockFileService);
 		viewModel.UpdateRegisters(RegisterState.Create(r0: 0, r1: 0));
 
 		// Act - change R0 first
@@ -353,7 +357,7 @@ public class MainWindowViewModelTests : IDisposable
 	public void WebSocket_StateEvent_UpdatesRegistersAndStatus()
 	{
 		// Arrange
-		using var viewModel = new MainWindowViewModel(mockApi, mockWs);
+		using var viewModel = new MainWindowViewModel(mockApi, mockWs, mockFileService);
 		var newRegisters = RegisterState.Create(r0: 42, r1: 100);
 		var status = new VMStatus(VMState.Running, PC: 0x8000, Cycles: 100);
 
@@ -369,7 +373,7 @@ public class MainWindowViewModelTests : IDisposable
 	public void WebSocket_OutputEvent_AppendsToConsole()
 	{
 		// Arrange
-		using var viewModel = new MainWindowViewModel(mockApi, mockWs);
+		using var viewModel = new MainWindowViewModel(mockApi, mockWs, mockFileService);
 
 		// Act
 		eventsSubject.OnNext(new OutputEvent("session1", OutputStreamType.Stdout, "Hello\n"));
@@ -383,7 +387,7 @@ public class MainWindowViewModelTests : IDisposable
 	public void WebSocket_ExecutionEvent_BreakpointHit_UpdatesStatus()
 	{
 		// Arrange
-		using var viewModel = new MainWindowViewModel(mockApi, mockWs);
+		using var viewModel = new MainWindowViewModel(mockApi, mockWs, mockFileService);
 
 		// Act
 		eventsSubject.OnNext(new ExecutionEvent("session1", ExecutionEventType.BreakpointHit));
@@ -396,7 +400,7 @@ public class MainWindowViewModelTests : IDisposable
 	public void WebSocket_ExecutionEvent_Halted_UpdatesStatus()
 	{
 		// Arrange
-		using var viewModel = new MainWindowViewModel(mockApi, mockWs);
+		using var viewModel = new MainWindowViewModel(mockApi, mockWs, mockFileService);
 
 		// Act
 		eventsSubject.OnNext(new ExecutionEvent("session1", ExecutionEventType.Halted));
@@ -409,7 +413,7 @@ public class MainWindowViewModelTests : IDisposable
 	public void WebSocket_ExecutionEvent_Error_UpdatesStatusAndMessage()
 	{
 		// Arrange
-		using var viewModel = new MainWindowViewModel(mockApi, mockWs);
+		using var viewModel = new MainWindowViewModel(mockApi, mockWs, mockFileService);
 
 		// Act
 		eventsSubject.OnNext(new ExecutionEvent("session1", ExecutionEventType.Error, Message: "Test error"));
@@ -423,7 +427,7 @@ public class MainWindowViewModelTests : IDisposable
 	public void WebSocket_StateEventWhenHalted_IsIgnored()
 	{
 		// Arrange
-		using var viewModel = new MainWindowViewModel(mockApi, mockWs);
+		using var viewModel = new MainWindowViewModel(mockApi, mockWs, mockFileService);
 		viewModel.Status = VMState.Halted;
 		var originalRegisters = viewModel.Registers;
 
@@ -441,7 +445,7 @@ public class MainWindowViewModelTests : IDisposable
 	public async Task CreateSession_SetsSessionIdAndConnects()
 	{
 		// Arrange
-		using var viewModel = new MainWindowViewModel(mockApi, mockWs);
+		using var viewModel = new MainWindowViewModel(mockApi, mockWs, mockFileService);
 		var sessionInfo = new SessionInfo("test-session-123");
 		mockApi.CreateSessionAsync(Arg.Any<CancellationToken>()).Returns(sessionInfo);
 
@@ -458,7 +462,7 @@ public class MainWindowViewModelTests : IDisposable
 	public async Task DestroySession_ClearsSessionIdAndDisconnects()
 	{
 		// Arrange
-		using var viewModel = new MainWindowViewModel(mockApi, mockWs);
+		using var viewModel = new MainWindowViewModel(mockApi, mockWs, mockFileService);
 		var sessionInfo = new SessionInfo("test-session-123");
 		mockApi.CreateSessionAsync(Arg.Any<CancellationToken>()).Returns(sessionInfo);
 		await viewModel.CreateSessionAsync();
@@ -477,7 +481,7 @@ public class MainWindowViewModelTests : IDisposable
 	public async Task CreateSession_WhenAlreadyConnected_DestroysOldSessionFirst()
 	{
 		// Arrange
-		using var viewModel = new MainWindowViewModel(mockApi, mockWs);
+		using var viewModel = new MainWindowViewModel(mockApi, mockWs, mockFileService);
 		var session1 = new SessionInfo("session-1");
 		var session2 = new SessionInfo("session-2");
 		mockApi.CreateSessionAsync(Arg.Any<CancellationToken>()).Returns(session1, session2);
@@ -495,7 +499,7 @@ public class MainWindowViewModelTests : IDisposable
 	public async Task RunCommand_CallsApiAndUpdatesState()
 	{
 		// Arrange
-		using var viewModel = new MainWindowViewModel(mockApi, mockWs);
+		using var viewModel = new MainWindowViewModel(mockApi, mockWs, mockFileService);
 		viewModel.SessionId = "test-session";
 
 		// Act
@@ -509,7 +513,7 @@ public class MainWindowViewModelTests : IDisposable
 	public async Task PauseCommand_CallsApiStop()
 	{
 		// Arrange
-		using var viewModel = new MainWindowViewModel(mockApi, mockWs);
+		using var viewModel = new MainWindowViewModel(mockApi, mockWs, mockFileService);
 		viewModel.SessionId = "test-session";
 		viewModel.Status = VMState.Running;
 
@@ -524,7 +528,7 @@ public class MainWindowViewModelTests : IDisposable
 	public async Task StepCommand_CallsApiAndUpdatesRegisters()
 	{
 		// Arrange
-		using var viewModel = new MainWindowViewModel(mockApi, mockWs);
+		using var viewModel = new MainWindowViewModel(mockApi, mockWs, mockFileService);
 		viewModel.SessionId = "test-session";
 		var newRegisters = RegisterState.Create(r0: 42);
 		mockApi.StepAsync("test-session", Arg.Any<CancellationToken>()).Returns(newRegisters);
@@ -541,7 +545,7 @@ public class MainWindowViewModelTests : IDisposable
 	public async Task StepOverCommand_CallsApiAndUpdatesRegisters()
 	{
 		// Arrange
-		using var viewModel = new MainWindowViewModel(mockApi, mockWs);
+		using var viewModel = new MainWindowViewModel(mockApi, mockWs, mockFileService);
 		viewModel.SessionId = "test-session";
 		var newRegisters = RegisterState.Create(r0: 99);
 		mockApi.StepOverAsync("test-session", Arg.Any<CancellationToken>()).Returns(newRegisters);
@@ -558,7 +562,7 @@ public class MainWindowViewModelTests : IDisposable
 	public async Task StepOutCommand_CallsApiAndUpdatesRegisters()
 	{
 		// Arrange
-		using var viewModel = new MainWindowViewModel(mockApi, mockWs);
+		using var viewModel = new MainWindowViewModel(mockApi, mockWs, mockFileService);
 		viewModel.SessionId = "test-session";
 		var newRegisters = RegisterState.Create(r0: 123);
 		mockApi.StepOutAsync("test-session", Arg.Any<CancellationToken>()).Returns(newRegisters);
@@ -575,7 +579,7 @@ public class MainWindowViewModelTests : IDisposable
 	public async Task ResetCommand_CallsApi()
 	{
 		// Arrange
-		using var viewModel = new MainWindowViewModel(mockApi, mockWs);
+		using var viewModel = new MainWindowViewModel(mockApi, mockWs, mockFileService);
 		viewModel.SessionId = "test-session";
 
 		// Act
@@ -589,7 +593,7 @@ public class MainWindowViewModelTests : IDisposable
 	public async Task ShowPCCommand_CanExecuteWithoutSession()
 	{
 		// Arrange
-		using var viewModel = new MainWindowViewModel(mockApi, mockWs);
+		using var viewModel = new MainWindowViewModel(mockApi, mockWs, mockFileService);
 
 		// Act & Assert - should not throw
 		await viewModel.ShowPcCommand.Execute();
@@ -601,7 +605,7 @@ public class MainWindowViewModelTests : IDisposable
 	public void IsWaitingForInput_ReturnsFalse_WhenStatusIsIdle()
 	{
 		// Arrange
-		using var viewModel = new MainWindowViewModel(mockApi, mockWs);
+		using var viewModel = new MainWindowViewModel(mockApi, mockWs, mockFileService);
 
 		// Act & Assert
 		viewModel.Status = VMState.Idle;
@@ -612,7 +616,7 @@ public class MainWindowViewModelTests : IDisposable
 	public void IsWaitingForInput_ReturnsTrue_WhenStatusIsWaitingForInput()
 	{
 		// Arrange
-		using var viewModel = new MainWindowViewModel(mockApi, mockWs);
+		using var viewModel = new MainWindowViewModel(mockApi, mockWs, mockFileService);
 
 		// Act & Assert
 		viewModel.Status = VMState.WaitingForInput;
@@ -623,7 +627,7 @@ public class MainWindowViewModelTests : IDisposable
 	public async Task SendInputCommand_WhenWaitingForInput_DoesNotCallStep()
 	{
 		// Arrange
-		using var viewModel = new MainWindowViewModel(mockApi, mockWs);
+		using var viewModel = new MainWindowViewModel(mockApi, mockWs, mockFileService);
 		viewModel.SessionId = "test-session";
 		viewModel.Status = VMState.WaitingForInput;
 		viewModel.InputText = "test input";
@@ -648,7 +652,7 @@ public class MainWindowViewModelTests : IDisposable
 	public async Task SendInputCommand_WhenNotWaitingForInput_CallsStepToConsumeBufferedInput()
 	{
 		// Arrange
-		using var viewModel = new MainWindowViewModel(mockApi, mockWs);
+		using var viewModel = new MainWindowViewModel(mockApi, mockWs, mockFileService);
 		viewModel.SessionId = "test-session";
 		viewModel.Status = VMState.Idle;  // Not waiting for input
 		viewModel.InputText = "buffered input";
@@ -670,7 +674,7 @@ public class MainWindowViewModelTests : IDisposable
 	public async Task SendInputCommand_AutoAppendsNewline()
 	{
 		// Arrange
-		using var viewModel = new MainWindowViewModel(mockApi, mockWs);
+		using var viewModel = new MainWindowViewModel(mockApi, mockWs, mockFileService);
 		viewModel.SessionId = "test-session";
 		viewModel.Status = VMState.Idle;
 		viewModel.InputText = "no newline here";
@@ -689,7 +693,7 @@ public class MainWindowViewModelTests : IDisposable
 	public async Task SendInputCommand_ClearsInputTextAfterSuccessfulSend()
 	{
 		// Arrange
-		using var viewModel = new MainWindowViewModel(mockApi, mockWs);
+		using var viewModel = new MainWindowViewModel(mockApi, mockWs, mockFileService);
 		viewModel.SessionId = "test-session";
 		viewModel.Status = VMState.Idle;
 		viewModel.InputText = "test input";
@@ -708,7 +712,7 @@ public class MainWindowViewModelTests : IDisposable
 	public async Task SendInputCommand_WhenSessionNotFound_SetsErrorMessage()
 	{
 		// Arrange
-		using var viewModel = new MainWindowViewModel(mockApi, mockWs);
+		using var viewModel = new MainWindowViewModel(mockApi, mockWs, mockFileService);
 		viewModel.SessionId = "test-session";
 		viewModel.Status = VMState.Idle;
 		viewModel.InputText = "test input";
@@ -727,7 +731,7 @@ public class MainWindowViewModelTests : IDisposable
 	public async Task SendInputCommand_WhenApiException_SetsErrorMessage()
 	{
 		// Arrange
-		using var viewModel = new MainWindowViewModel(mockApi, mockWs);
+		using var viewModel = new MainWindowViewModel(mockApi, mockWs, mockFileService);
 		viewModel.SessionId = "test-session";
 		viewModel.Status = VMState.Idle;
 		viewModel.InputText = "test input";
@@ -747,7 +751,7 @@ public class MainWindowViewModelTests : IDisposable
 	public void Constructor_InitializesSendInputCommand()
 	{
 		// Arrange & Act
-		using var viewModel = new MainWindowViewModel(mockApi, mockWs);
+		using var viewModel = new MainWindowViewModel(mockApi, mockWs, mockFileService);
 
 		// Assert
 		viewModel.SendInputCommand.Should().NotBeNull();

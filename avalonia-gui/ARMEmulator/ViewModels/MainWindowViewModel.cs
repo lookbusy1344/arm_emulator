@@ -3,6 +3,8 @@ using System.Reactive.Disposables;
 using System.Reactive.Subjects;
 using ARMEmulator.Models;
 using ARMEmulator.Services;
+using ARMEmulator.Views;
+using Avalonia.Controls;
 using ReactiveUI;
 
 // ReactiveUI uses reflection for WhenAnyValue and RaiseAndSetIfChanged, which triggers IL2026 warnings
@@ -19,17 +21,22 @@ public class MainWindowViewModel : ReactiveObject, IDisposable
 {
 	private readonly IApiClient api;
 	private readonly IWebSocketClient ws;
+	private readonly IFileService fileService;
 	private readonly CompositeDisposable disposables = [];
 	private readonly Subject<string> registerHighlightTrigger = new();
 	private static readonly TimeSpan HighlightDuration = TimeSpan.FromSeconds(1.5);
 
+	// Window reference for showing dialogs (set by MainWindow)
+	private Window? parentWindow;
+
 	/// <summary>
 	/// Initializes a new instance of the MainWindowViewModel with required services.
 	/// </summary>
-	public MainWindowViewModel(IApiClient api, IWebSocketClient ws)
+	public MainWindowViewModel(IApiClient api, IWebSocketClient ws, IFileService fileService)
 	{
 		this.api = api;
 		this.ws = ws;
+		this.fileService = fileService;
 
 		// Initialize commands with can-execute observables
 		RunCommand = CreateCommand(RunAsync, this.WhenAnyValue(x => x.Status).Select(s => !s.CanPause()));
@@ -41,6 +48,15 @@ public class MainWindowViewModel : ReactiveObject, IDisposable
 		LoadProgramCommand = CreateCommand(LoadProgramAsync);
 		ShowPcCommand = CreateCommand(ShowPcAsync);
 		SendInputCommand = CreateCommand(SendInputAsync, this.WhenAnyValue(x => x.InputText).Select(s => !string.IsNullOrWhiteSpace(s)));
+
+		// File operation commands
+		OpenFileCommand = CreateCommand(OpenFileAsync);
+		SaveFileCommand = CreateCommand(SaveFileAsync);
+		SaveAsCommand = CreateCommand(SaveAsAsync);
+		OpenExampleCommand = CreateCommand(OpenExampleAsync);
+		ShowPreferencesCommand = CreateCommand(ShowPreferencesAsync);
+		ShowAboutCommand = CreateCommand(ShowAboutAsync);
+		OpenRecentFileCommand = ReactiveCommand.CreateFromTask<string>(OpenRecentFileAsync);
 
 		// Set up computed properties using WhenAnyValue
 		canPauseHelper = this.WhenAnyValue(x => x.Status)
@@ -281,6 +297,24 @@ public class MainWindowViewModel : ReactiveObject, IDisposable
 	public ReactiveCommand<Unit, Unit> LoadProgramCommand { get; }
 	public ReactiveCommand<Unit, Unit> ShowPcCommand { get; }
 	public ReactiveCommand<Unit, Unit> SendInputCommand { get; }
+
+	// File operation commands
+	public ReactiveCommand<Unit, Unit> OpenFileCommand { get; }
+	public ReactiveCommand<Unit, Unit> SaveFileCommand { get; }
+	public ReactiveCommand<Unit, Unit> SaveAsCommand { get; }
+	public ReactiveCommand<Unit, Unit> OpenExampleCommand { get; }
+	public ReactiveCommand<Unit, Unit> ShowPreferencesCommand { get; }
+	public ReactiveCommand<Unit, Unit> ShowAboutCommand { get; }
+	public ReactiveCommand<string, Unit> OpenRecentFileCommand { get; }
+
+	// Recent files from FileService
+	public IReadOnlyList<RecentFile> RecentFiles => fileService.RecentFiles;
+
+	/// <summary>
+	/// Sets the parent window for showing dialogs.
+	/// Called by MainWindow after construction.
+	/// </summary>
+	public void SetParentWindow(Window window) => parentWindow = window;
 
 	/// <summary>
 	/// Helper to create commands with consistent error handling and scheduling.
@@ -654,6 +688,106 @@ public class MainWindowViewModel : ReactiveObject, IDisposable
 		Status = state;
 		ErrorMessage = msg;
 		return true;
+	}
+
+	// File operations
+	private async Task OpenFileAsync(CancellationToken ct)
+	{
+		if (parentWindow is null) {
+			return;
+		}
+
+		var result = await fileService.OpenFileAsync(parentWindow);
+		if (result is null) {
+			return;
+		}
+
+		var (path, content) = result.Value;
+		SourceCode = content;
+		// Auto-load program after opening
+		await LoadProgramAsync(ct);
+	}
+
+	private async Task SaveFileAsync(CancellationToken ct)
+	{
+		if (parentWindow is null) {
+			return;
+		}
+
+		var path = await fileService.SaveFileAsync(parentWindow, SourceCode, fileService.CurrentFilePath);
+		if (path is not null) {
+			fileService.CurrentFilePath = path;
+		}
+	}
+
+	private async Task SaveAsAsync(CancellationToken ct)
+	{
+		if (parentWindow is null) {
+			return;
+		}
+
+		var path = await fileService.SaveFileAsync(parentWindow, SourceCode, null);
+		if (path is not null) {
+			fileService.CurrentFilePath = path;
+		}
+	}
+
+	private async Task OpenExampleAsync(CancellationToken ct)
+	{
+		if (parentWindow is null) {
+			return;
+		}
+
+		var vm = new ExamplesBrowserViewModel(api);
+		var window = new ExamplesBrowserWindow(vm);
+		await window.ShowDialog(parentWindow);
+
+		if (window.SelectedExampleContent is not null) {
+			SourceCode = window.SelectedExampleContent;
+			await LoadProgramAsync(ct);
+		}
+
+		vm.Dispose();
+	}
+
+	private async Task ShowPreferencesAsync(CancellationToken ct)
+	{
+		if (parentWindow is null) {
+			return;
+		}
+
+		// TODO: Load settings from persistent storage
+		var window = new PreferencesWindow(AppSettings.Default);
+		await window.ShowDialog(parentWindow);
+
+		if (window.UpdatedSettings is not null) {
+			// TODO: Save settings to persistent storage
+			// For now, just apply font size to editor
+		}
+	}
+
+	private async Task ShowAboutAsync(CancellationToken ct)
+	{
+		if (parentWindow is null) {
+			return;
+		}
+
+		var vm = new AboutWindowViewModel(api);
+		var window = new AboutWindow(vm);
+		await window.ShowDialog(parentWindow);
+	}
+
+	private async Task OpenRecentFileAsync(string path, CancellationToken ct)
+	{
+		try {
+			var content = await File.ReadAllTextAsync(path, ct);
+			SourceCode = content;
+			fileService.CurrentFilePath = path;
+			await LoadProgramAsync(ct);
+		}
+		catch (Exception ex) {
+			ErrorMessage = $"Failed to open {path}: {ex.Message}";
+		}
 	}
 
 	public void Dispose()

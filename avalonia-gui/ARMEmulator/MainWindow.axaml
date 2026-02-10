@@ -15,6 +15,13 @@
 
     <!-- Keyboard Shortcuts -->
     <Window.KeyBindings>
+        <!-- File Operations -->
+        <KeyBinding Gesture="Ctrl+O" Command="{Binding OpenFileCommand}" />
+        <KeyBinding Gesture="Ctrl+S" Command="{Binding SaveFileCommand}" />
+        <KeyBinding Gesture="Ctrl+Shift+S" Command="{Binding SaveAsCommand}" />
+        <KeyBinding Gesture="Ctrl+Shift+E" Command="{Binding OpenExampleCommand}" />
+        <KeyBinding Gesture="Ctrl+OemComma" Command="{Binding ShowPreferencesCommand}" />
+
         <!-- Load: Ctrl+L -->
         <KeyBinding Gesture="Ctrl+L" Command="{Binding LoadProgramCommand}" />
 
@@ -44,6 +51,28 @@
     </Window.KeyBindings>
 
     <DockPanel>
+        <!-- Menu Bar -->
+        <Menu DockPanel.Dock="Top">
+            <MenuItem Header="_File">
+                <MenuItem Header="_Open..." Command="{Binding OpenFileCommand}" InputGesture="Ctrl+O" />
+                <MenuItem Header="_Save" Command="{Binding SaveFileCommand}" InputGesture="Ctrl+S" />
+                <MenuItem Header="Save _As..." Command="{Binding SaveAsCommand}" InputGesture="Ctrl+Shift+S" />
+                <Separator />
+                <MenuItem Header="_Recent Files" ItemsSource="{Binding RecentFiles}">
+                    <MenuItem.ItemTemplate>
+                        <DataTemplate>
+                            <MenuItem Header="{Binding FileName}" Command="{Binding $parent[Window].((vm:MainWindowViewModel)DataContext).OpenRecentFileCommand}" CommandParameter="{Binding Path}" />
+                        </DataTemplate>
+                    </MenuItem.ItemTemplate>
+                </MenuItem>
+                <Separator />
+                <MenuItem Header="_Examples..." Command="{Binding OpenExampleCommand}" InputGesture="Ctrl+Shift+E" />
+                <Separator />
+                <MenuItem Header="_Preferences..." Command="{Binding ShowPreferencesCommand}" InputGesture="Ctrl+," />
+                <MenuItem Header="_About..." Command="{Binding ShowAboutCommand}" />
+            </MenuItem>
+        </Menu>
+
         <!-- Toolbar at the top -->
         <views:ToolbarView DockPanel.Dock="Top" />
 

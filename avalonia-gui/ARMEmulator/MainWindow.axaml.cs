@@ -23,5 +23,6 @@ public partial class MainWindow : Window
 	public MainWindow(MainWindowViewModel viewModel) : this()
 	{
 		DataContext = viewModel;
+		viewModel.SetParentWindow(this);
 	}
 }
