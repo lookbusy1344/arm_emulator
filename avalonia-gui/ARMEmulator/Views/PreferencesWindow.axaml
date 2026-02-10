@@ -1,0 +1,129 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:ARMEmulator.ViewModels"
+        x:Class="ARMEmulator.Views.PreferencesWindow"
+        x:DataType="vm:PreferencesWindowViewModel"
+        Title="Preferences"
+        Width="550"
+        Height="450"
+        CanResize="False"
+        WindowStartupLocation="CenterOwner"
+        Icon="/Assets/avalonia-logo.ico">
+
+	<Window.Styles>
+		<Style Selector="TextBlock.label">
+			<Setter Property="VerticalAlignment" Value="Center" />
+			<Setter Property="MinWidth" Value="120" />
+		</Style>
+		<Style Selector="TextBox.input">
+			<Setter Property="MinWidth" Value="300" />
+		</Style>
+		<Style Selector="NumericUpDown.input">
+			<Setter Property="MinWidth" Value="100" />
+		</Style>
+		<Style Selector="ComboBox.input">
+			<Setter Property="MinWidth" Value="150" />
+		</Style>
+	</Window.Styles>
+
+	<DockPanel>
+		<!-- Action Buttons -->
+		<StackPanel DockPanel.Dock="Bottom"
+		            Orientation="Horizontal"
+		            HorizontalAlignment="Right"
+		            Margin="16"
+		            Spacing="12">
+			<Button Content="Cancel" MinWidth="80" Click="CancelButton_Click" />
+			<Button Content="OK" MinWidth="80" Click="OkButton_Click" IsDefault="True" />
+		</StackPanel>
+
+		<!-- Tabs -->
+		<TabControl Margin="16">
+			<!-- General Tab -->
+			<TabItem Header="General">
+				<StackPanel Margin="16" Spacing="16">
+					<!-- Backend URL -->
+					<StackPanel Orientation="Horizontal" Spacing="12">
+						<TextBlock Text="Backend URL:" Classes="label" />
+						<TextBox Text="{Binding BackendUrl}" Classes="input"
+						         Watermark="http://localhost:8080" />
+					</StackPanel>
+
+					<TextBlock Text="The HTTP endpoint for the ARM emulator backend."
+					           FontSize="11"
+					           Foreground="{DynamicResource SystemBaseMediumColor}"
+					           TextWrapping="Wrap"
+					           Margin="132,0,0,0" />
+
+					<!-- Theme Selection -->
+					<StackPanel Orientation="Horizontal" Spacing="12" Margin="0,16,0,0">
+						<TextBlock Text="Theme:" Classes="label" />
+						<ComboBox ItemsSource="{Binding ThemeOptions}"
+						          SelectedItem="{Binding SelectedTheme}"
+						          Classes="input" />
+					</StackPanel>
+
+					<TextBlock Text="Auto: Follow system theme. Requires app restart."
+					           FontSize="11"
+					           Foreground="{DynamicResource SystemBaseMediumColor}"
+					           Margin="132,0,0,0" />
+
+					<!-- Recent Files Limit -->
+					<StackPanel Orientation="Horizontal" Spacing="12" Margin="0,16,0,0">
+						<TextBlock Text="Recent Files Limit:" Classes="label" />
+						<NumericUpDown Value="{Binding RecentFilesLimit}"
+						               Minimum="1"
+						               Maximum="50"
+						               Increment="5"
+						               Classes="input" />
+					</StackPanel>
+
+					<!-- Memory Auto-Scroll -->
+					<CheckBox Content="Auto-scroll memory view to writes"
+					          IsChecked="{Binding AutoScrollToMemoryWrites}"
+					          Margin="0,16,0,0" />
+				</StackPanel>
+			</TabItem>
+
+			<!-- Editor Tab -->
+			<TabItem Header="Editor">
+				<StackPanel Margin="16" Spacing="16">
+					<!-- Font Size -->
+					<StackPanel Orientation="Horizontal" Spacing="12">
+						<TextBlock Text="Font Size:" Classes="label" />
+						<NumericUpDown Value="{Binding EditorFontSize}"
+						               Minimum="10"
+						               Maximum="24"
+						               Increment="1"
+						               Classes="input" />
+						<TextBlock Text="pt" VerticalAlignment="Center" />
+					</StackPanel>
+
+					<!-- Font Size Preview -->
+					<Border BorderBrush="{DynamicResource SystemBaseMediumLowColor}"
+					        BorderThickness="1"
+					        Padding="12"
+					        Margin="0,16,0,0">
+						<StackPanel Spacing="8">
+							<TextBlock Text="Preview" FontWeight="SemiBold" />
+							<TextBlock FontFamily="Consolas,Menlo,Monaco,monospace"
+							           FontSize="{Binding EditorFontSize}"
+							           TextWrapping="Wrap">
+								<Run Text="MOV R0, #42" />
+								<LineBreak />
+								<Run Text="ADD R1, R0, #8" />
+								<LineBreak />
+								<Run Text="STR R1, [R2]" />
+							</TextBlock>
+						</StackPanel>
+					</Border>
+
+					<TextBlock Text="Changes will apply immediately to the editor."
+					           FontSize="11"
+					           Foreground="{DynamicResource SystemBaseMediumColor}"
+					           TextWrapping="Wrap" />
+				</StackPanel>
+			</TabItem>
+		</TabControl>
+	</DockPanel>
+</Window>
