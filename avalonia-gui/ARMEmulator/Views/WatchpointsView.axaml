@@ -1,0 +1,147 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:ARMEmulator.ViewModels"
+             xmlns:models="using:ARMEmulator.Models"
+             xmlns:conv="using:ARMEmulator.Converters"
+             x:Class="ARMEmulator.Views.WatchpointsView"
+             x:DataType="vm:MainWindowViewModel">
+    <UserControl.Resources>
+        <conv:HexValueConverter x:Key="HexConverter" />
+        <conv:WatchpointTypeIconConverter x:Key="WatchpointTypeIconConverter" />
+    </UserControl.Resources>
+
+    <ScrollViewer>
+        <StackPanel Spacing="12" Margin="8">
+            <!-- Add Watchpoint Section -->
+            <Border BorderBrush="{DynamicResource SystemControlForegroundBaseMediumBrush}"
+                    BorderThickness="1"
+                    CornerRadius="4"
+                    Padding="12">
+                <StackPanel Spacing="8">
+                    <TextBlock Text="Add Watchpoint"
+                               FontWeight="SemiBold"
+                               FontSize="14" />
+
+                    <Grid ColumnDefinitions="Auto,*,Auto" RowDefinitions="Auto,Auto,Auto" ColumnSpacing="8" RowSpacing="8">
+                        <!-- Address input -->
+                        <TextBlock Grid.Row="0" Grid.Column="0"
+                                   Text="Address:"
+                                   VerticalAlignment="Center" />
+                        <TextBox Grid.Row="0" Grid.Column="1"
+                                 x:Name="WatchpointAddressInput"
+                                 Watermark="0x8000 or hex value"
+                                 FontFamily="Consolas, Menlo, Monaco, monospace" />
+
+                        <!-- Type selector -->
+                        <TextBlock Grid.Row="1" Grid.Column="0"
+                                   Text="Type:"
+                                   VerticalAlignment="Center" />
+                        <ComboBox Grid.Row="1" Grid.Column="1"
+                                  x:Name="WatchpointTypeCombo"
+                                  SelectedIndex="2">
+                            <ComboBoxItem Content="Read" />
+                            <ComboBoxItem Content="Write" />
+                            <ComboBoxItem Content="Read/Write" />
+                        </ComboBox>
+
+                        <!-- Add button -->
+                        <Button Grid.Row="2" Grid.Column="1"
+                                Content="Add Watchpoint"
+                                HorizontalAlignment="Left"
+                                Click="AddWatchpointButton_Click"
+                                MinWidth="120" />
+                    </Grid>
+                </StackPanel>
+            </Border>
+
+            <!-- Active Watchpoints Section -->
+            <Border BorderBrush="{DynamicResource SystemControlForegroundBaseMediumBrush}"
+                    BorderThickness="1"
+                    CornerRadius="4"
+                    Padding="12">
+                <StackPanel Spacing="8">
+                    <TextBlock Text="Active Watchpoints"
+                               FontWeight="SemiBold"
+                               FontSize="14" />
+
+                    <ItemsControl ItemsSource="{Binding Watchpoints}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate DataType="models:Watchpoint">
+                                <Border BorderBrush="{DynamicResource SystemControlForegroundBaseLowBrush}"
+                                        BorderThickness="0,0,0,1"
+                                        Padding="4,8">
+                                    <Grid ColumnDefinitions="Auto,*,Auto,Auto">
+                                        <!-- Type Icon -->
+                                        <TextBlock Grid.Column="0"
+                                                   Text="{Binding Type, Converter={StaticResource WatchpointTypeIconConverter}}"
+                                                   FontSize="16"
+                                                   Margin="0,0,12,0"
+                                                   VerticalAlignment="Center" />
+
+                                        <!-- Address -->
+                                        <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                            <TextBlock Text="{Binding Address, Converter={StaticResource HexConverter}}"
+                                                       FontFamily="Consolas, Menlo, Monaco, monospace"
+                                                       FontWeight="SemiBold" />
+                                            <TextBlock Text="{Binding Type}"
+                                                       FontSize="11"
+                                                       Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}" />
+                                        </StackPanel>
+
+                                        <!-- ID Badge -->
+                                        <Border Grid.Column="2"
+                                                Background="{DynamicResource SystemControlBackgroundAltMediumBrush}"
+                                                CornerRadius="8"
+                                                Padding="6,2"
+                                                Margin="8,0">
+                                            <TextBlock FontSize="10" FontWeight="SemiBold">
+                                                <Run Text="#" />
+                                                <Run Text="{Binding Id}" />
+                                            </TextBlock>
+                                        </Border>
+
+                                        <!-- Remove Button -->
+                                        <Button Grid.Column="3"
+                                                Content="✕"
+                                                FontSize="12"
+                                                Padding="6,4"
+                                                Click="RemoveWatchpointButton_Click"
+                                                Tag="{Binding Id}"
+                                                ToolTip.Tip="Remove watchpoint" />
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+
+                    <!-- Empty state -->
+                    <TextBlock Text="No watchpoints set. Add a watchpoint to monitor memory access."
+                               Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"
+                               FontStyle="Italic"
+                               HorizontalAlignment="Center"
+                               Margin="0,20"
+                               IsVisible="{Binding !Watchpoints.Length}" />
+                </StackPanel>
+            </Border>
+
+            <!-- Help Section -->
+            <Border BorderBrush="{DynamicResource SystemControlHighlightAccentBrush}"
+                    BorderThickness="1"
+                    CornerRadius="4"
+                    Padding="12"
+                    Background="{DynamicResource SystemControlBackgroundAltHighBrush}">
+                <StackPanel Spacing="4">
+                    <TextBlock Text="💡 About Watchpoints"
+                               FontWeight="SemiBold"
+                               FontSize="12" />
+                    <TextBlock TextWrapping="Wrap"
+                               FontSize="11"
+                               Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}">
+                        Watchpoints pause execution when memory at a specific address is accessed.
+                        Use Read watchpoints to catch memory reads, Write for writes, or Read/Write for both.
+                    </TextBlock>
+                </StackPanel>
+            </Border>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

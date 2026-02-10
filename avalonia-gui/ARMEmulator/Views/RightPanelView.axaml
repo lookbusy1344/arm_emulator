@@ -25,9 +25,7 @@
                 <views:ExpressionEvaluatorView DataContext="{Binding ExpressionEvaluator}" />
             </TabItem>
             <TabItem Header="Watchpoints">
-                <TextBlock Text="Watchpoints View Placeholder"
-                           VerticalAlignment="Center"
-                           HorizontalAlignment="Center" />
+                <views:WatchpointsView />
             </TabItem>
             <TabItem Header="Breakpoints">
                 <TextBlock Text="Breakpoints View Placeholder"

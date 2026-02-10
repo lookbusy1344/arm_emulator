@@ -419,6 +419,32 @@ public class MainWindowViewModel : ReactiveObject, IDisposable
 	}
 
 	/// <summary>
+	/// Adds a watchpoint at the specified address with the given type.
+	/// </summary>
+	public async Task AddWatchpointAsync(uint address, WatchpointType type, CancellationToken ct = default)
+	{
+		if (SessionId is null) {
+			return;
+		}
+
+		var watchpoint = await api.AddWatchpointAsync(SessionId, address, type, ct);
+		Watchpoints = [.. Watchpoints, watchpoint];
+	}
+
+	/// <summary>
+	/// Removes a watchpoint by its ID.
+	/// </summary>
+	public async Task RemoveWatchpointAsync(int watchpointId, CancellationToken ct = default)
+	{
+		if (SessionId is null) {
+			return;
+		}
+
+		await api.RemoveWatchpointAsync(SessionId, watchpointId, ct);
+		Watchpoints = [.. Watchpoints.Where(w => w.Id != watchpointId)];
+	}
+
+	/// <summary>
 	/// Gets the status indicator color based on VM state and connection status.
 	/// </summary>
 	private static string GetStatusColor(VMState status, bool isConnected)
