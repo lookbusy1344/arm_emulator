@@ -1,17 +1,27 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:ARMEmulator.ViewModels"
+             xmlns:converters="using:ARMEmulator.Converters"
+             x:DataType="vm:MainWindowViewModel"
              x:Class="ARMEmulator.Views.ConsoleView">
-    <Border BorderBrush="{DynamicResource SystemControlForegroundBaseMediumBrush}"
-            BorderThickness="1"
+    <Border BorderThickness="1"
             CornerRadius="4"
             Padding="8">
+        <Border.BorderBrush>
+            <MultiBinding Converter="{x:Static converters:ConditionalValueConverter.Instance}">
+                <Binding Path="IsWaitingForInput" />
+                <Binding Source="Orange" />
+                <Binding Source="{DynamicResource SystemControlForegroundBaseMediumBrush}" />
+            </MultiBinding>
+        </Border.BorderBrush>
+
         <DockPanel>
             <TextBlock DockPanel.Dock="Top"
                        Text="Console Output"
                        FontWeight="SemiBold"
                        Margin="0,0,0,8" />
 
+            <!-- Input area at bottom -->
             <StackPanel DockPanel.Dock="Bottom"
                         Orientation="Horizontal"
                         Spacing="8"
@@ -19,16 +29,29 @@
                 <TextBlock Text="Input:"
                            VerticalAlignment="Center" />
                 <TextBox Width="400"
+                         Text="{Binding InputText}"
                          Watermark="Enter input..."
-                         VerticalAlignment="Center" />
+                         VerticalAlignment="Center">
+                    <TextBox.KeyBindings>
+                        <KeyBinding Gesture="Enter" Command="{Binding SendInputCommand}" />
+                    </TextBox.KeyBindings>
+                </TextBox>
                 <Button Content="Send"
+                        Command="{Binding SendInputCommand}"
                         VerticalAlignment="Center" />
             </StackPanel>
 
-            <ScrollViewer>
-                <TextBlock Text="Console output will appear here..."
-                           FontFamily="Consolas,Menlo,Monaco,Courier New,monospace"
-                           Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}" />
+            <!-- Output area with auto-scroll -->
+            <ScrollViewer Name="OutputScrollViewer"
+                          VerticalScrollBarVisibility="Auto"
+                          HorizontalScrollBarVisibility="Auto">
+                <TextBox Text="{Binding ConsoleOutput}"
+                         IsReadOnly="True"
+                         BorderThickness="0"
+                         Background="Transparent"
+                         FontFamily="Consolas,Menlo,Monaco,Courier New,monospace"
+                         TextWrapping="NoWrap"
+                         AcceptsReturn="True" />
             </ScrollViewer>
         </DockPanel>
     </Border>
