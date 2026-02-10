@@ -1,0 +1,77 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:ARMEmulator.ViewModels"
+        x:Class="ARMEmulator.Views.AboutWindow"
+        x:DataType="vm:AboutWindowViewModel"
+        Title="About ARM Emulator"
+        Width="450"
+        Height="350"
+        CanResize="False"
+        WindowStartupLocation="CenterOwner"
+        Icon="/Assets/avalonia-logo.ico">
+
+	<Window.Styles>
+		<Style Selector="TextBlock.title">
+			<Setter Property="FontSize" Value="24" />
+			<Setter Property="FontWeight" Value="Bold" />
+			<Setter Property="Margin" Value="0,0,0,16" />
+		</Style>
+		<Style Selector="TextBlock.section">
+			<Setter Property="FontWeight" Value="SemiBold" />
+			<Setter Property="Margin" Value="0,16,0,4" />
+		</Style>
+		<Style Selector="TextBlock.value">
+			<Setter Property="Foreground" Value="{DynamicResource SystemAccentColor}" />
+		</Style>
+		<Style Selector="TextBlock.unavailable">
+			<Setter Property="Foreground" Value="{DynamicResource SystemErrorTextColor}" />
+			<Setter Property="FontStyle" Value="Italic" />
+		</Style>
+	</Window.Styles>
+
+	<StackPanel Margin="32" Spacing="8">
+		<!-- App Icon and Title -->
+		<TextBlock Text="ARM Emulator" Classes="title" HorizontalAlignment="Center" />
+
+		<!-- Frontend Version -->
+		<TextBlock Classes="section">Frontend (Avalonia .NET)</TextBlock>
+		<StackPanel Orientation="Horizontal" Spacing="8">
+			<TextBlock Text="Version:" />
+			<TextBlock Text="{Binding AppVersion}" Classes="value" />
+		</StackPanel>
+
+		<!-- Backend Version -->
+		<TextBlock Classes="section">Backend (Go)</TextBlock>
+		<StackPanel Orientation="Horizontal" Spacing="8">
+			<TextBlock Text="Version:" />
+			<TextBlock Text="{Binding BackendVersion}"
+			           Classes.value="{Binding IsBackendAvailable}"
+			           Classes.unavailable="{Binding !IsBackendAvailable}" />
+		</StackPanel>
+
+		<StackPanel Orientation="Horizontal" Spacing="8"
+		            IsVisible="{Binding IsBackendAvailable}">
+			<TextBlock Text="Commit:" />
+			<TextBlock Text="{Binding BackendCommit}" FontFamily="Consolas,Menlo,Monaco,monospace" />
+		</StackPanel>
+
+		<StackPanel Orientation="Horizontal" Spacing="8"
+		            IsVisible="{Binding IsBackendAvailable}">
+			<TextBlock Text="Build Date:" />
+			<TextBlock Text="{Binding BackendBuildDate}" />
+		</StackPanel>
+
+		<!-- Project Info -->
+		<TextBlock Classes="section">Project</TextBlock>
+		<TextBlock Text="Cross-platform ARM assembly emulator" TextWrapping="Wrap" />
+		<TextBlock Text="with HTTP REST API backend and" TextWrapping="Wrap" />
+		<TextBlock Text="multiple GUI frontends (Swift + Avalonia)" TextWrapping="Wrap" />
+
+		<!-- Close Button -->
+		<Button Content="Close"
+		        HorizontalAlignment="Center"
+		        Margin="0,24,0,0"
+		        MinWidth="100"
+		        Click="CloseButton_Click" />
+	</StackPanel>
+</Window>
