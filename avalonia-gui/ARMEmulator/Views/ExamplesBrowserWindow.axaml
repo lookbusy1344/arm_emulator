@@ -1,0 +1,75 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:ARMEmulator.ViewModels"
+        x:Class="ARMEmulator.Views.ExamplesBrowserWindow"
+        x:DataType="vm:ExamplesBrowserViewModel"
+        Title="Browse Examples"
+        Width="900"
+        Height="600"
+        WindowStartupLocation="CenterOwner"
+        Icon="/Assets/avalonia-logo.ico">
+
+	<DockPanel>
+		<!-- Action Buttons -->
+		<StackPanel DockPanel.Dock="Bottom"
+		            Orientation="Horizontal"
+		            HorizontalAlignment="Right"
+		            Margin="16"
+		            Spacing="12">
+			<Button Content="Cancel" MinWidth="80" Click="CancelButton_Click" />
+			<Button Content="Load" MinWidth="80" Click="LoadButton_Click"
+			        IsEnabled="{Binding SelectedExample, Converter={x:Static ObjectConverters.IsNotNull}}"
+			        IsDefault="True" />
+		</StackPanel>
+
+		<!-- Split View -->
+		<Grid Margin="16">
+			<Grid.ColumnDefinitions>
+				<ColumnDefinition Width="300" MinWidth="200" />
+				<ColumnDefinition Width="5" />
+				<ColumnDefinition Width="*" MinWidth="300" />
+			</Grid.ColumnDefinitions>
+
+			<!-- Left: Examples List -->
+			<DockPanel Grid.Column="0">
+				<!-- Search -->
+				<TextBox DockPanel.Dock="Top"
+				         Text="{Binding SearchText}"
+				         Watermark="Search examples..."
+				         Margin="0,0,0,8" />
+
+				<!-- Examples List -->
+				<ListBox ItemsSource="{Binding FilteredExamples}"
+				         SelectedItem="{Binding SelectedExample}">
+					<ListBox.ItemTemplate>
+						<DataTemplate>
+							<StackPanel Spacing="2">
+								<TextBlock Text="{Binding Name}" FontWeight="SemiBold" />
+								<TextBlock Text="{Binding Description}"
+								           FontSize="11"
+								           Foreground="{DynamicResource SystemBaseMediumColor}" />
+								<TextBlock Text="{Binding Size, StringFormat='{}{0} bytes'}"
+								           FontSize="10"
+								           Foreground="{DynamicResource SystemBaseLowColor}" />
+							</StackPanel>
+						</DataTemplate>
+					</ListBox.ItemTemplate>
+				</ListBox>
+			</DockPanel>
+
+			<!-- Splitter -->
+			<GridSplitter Grid.Column="1" Width="5" />
+
+			<!-- Right: Preview -->
+			<DockPanel Grid.Column="2">
+				<TextBlock DockPanel.Dock="Top" Text="Preview" FontWeight="SemiBold" Margin="0,0,0,8" />
+				<TextBox Text="{Binding PreviewContent}"
+				         IsReadOnly="True"
+				         AcceptsReturn="True"
+				         TextWrapping="NoWrap"
+				         FontFamily="Consolas,Menlo,Monaco,monospace"
+				         FontSize="12" />
+			</DockPanel>
+		</Grid>
+	</DockPanel>
+</Window>
