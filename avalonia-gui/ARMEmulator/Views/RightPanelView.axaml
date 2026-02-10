@@ -28,9 +28,7 @@
                 <views:WatchpointsView />
             </TabItem>
             <TabItem Header="Breakpoints">
-                <TextBlock Text="Breakpoints View Placeholder"
-                           VerticalAlignment="Center"
-                           HorizontalAlignment="Center" />
+                <views:BreakpointsListView />
             </TabItem>
         </TabControl>
     </Border>

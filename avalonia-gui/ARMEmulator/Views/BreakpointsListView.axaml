@@ -1,0 +1,184 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:ARMEmulator.ViewModels"
+             xmlns:models="using:ARMEmulator.Models"
+             xmlns:conv="using:ARMEmulator.Converters"
+             x:Class="ARMEmulator.Views.BreakpointsListView"
+             x:DataType="vm:MainWindowViewModel">
+    <UserControl.Resources>
+        <conv:HexValueConverter x:Key="HexConverter" />
+        <conv:WatchpointTypeIconConverter x:Key="WatchpointTypeIconConverter" />
+    </UserControl.Resources>
+
+    <ScrollViewer>
+        <StackPanel Spacing="12" Margin="8">
+            <!-- Breakpoints Section -->
+            <Border BorderBrush="{DynamicResource SystemControlForegroundBaseMediumBrush}"
+                    BorderThickness="1"
+                    CornerRadius="4"
+                    Padding="12">
+                <StackPanel Spacing="8">
+                    <Grid ColumnDefinitions="*,Auto">
+                        <TextBlock Grid.Column="0"
+                                   Text="Breakpoints"
+                                   FontWeight="SemiBold"
+                                   FontSize="14" />
+                        <TextBlock Grid.Column="1"
+                                   Text="{Binding Breakpoints.Count, StringFormat='{}{0} active'}"
+                                   FontSize="11"
+                                   Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"
+                                   VerticalAlignment="Center" />
+                    </Grid>
+
+                    <!-- Breakpoints List -->
+                    <ItemsControl ItemsSource="{Binding Breakpoints}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate DataType="x:UInt32">
+                                <Border BorderBrush="{DynamicResource SystemControlForegroundBaseLowBrush}"
+                                        BorderThickness="0,0,0,1"
+                                        Padding="4,8">
+                                    <Grid ColumnDefinitions="Auto,*,Auto">
+                                        <!-- Icon -->
+                                        <TextBlock Grid.Column="0"
+                                                   Text="🔴"
+                                                   FontSize="14"
+                                                   Margin="0,0,12,0"
+                                                   VerticalAlignment="Center" />
+
+                                        <!-- Address -->
+                                        <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                            <TextBlock Text="{Binding Converter={StaticResource HexConverter}}"
+                                                       FontFamily="Consolas, Menlo, Monaco, monospace"
+                                                       FontWeight="SemiBold" />
+                                            <TextBlock Text="Breakpoint"
+                                                       FontSize="11"
+                                                       Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}" />
+                                        </StackPanel>
+
+                                        <!-- Remove Button -->
+                                        <Button Grid.Column="2"
+                                                Content="✕"
+                                                FontSize="12"
+                                                Padding="6,4"
+                                                Click="RemoveBreakpointButton_Click"
+                                                Tag="{Binding}"
+                                                ToolTip.Tip="Remove breakpoint" />
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+
+                    <!-- Empty state for breakpoints -->
+                    <TextBlock Text="No breakpoints set. Click in the editor gutter or disassembly to add."
+                               Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"
+                               FontStyle="Italic"
+                               HorizontalAlignment="Center"
+                               Margin="0,12"
+                               IsVisible="{Binding !Breakpoints.Count}" />
+                </StackPanel>
+            </Border>
+
+            <!-- Watchpoints Section -->
+            <Border BorderBrush="{DynamicResource SystemControlForegroundBaseMediumBrush}"
+                    BorderThickness="1"
+                    CornerRadius="4"
+                    Padding="12">
+                <StackPanel Spacing="8">
+                    <Grid ColumnDefinitions="*,Auto">
+                        <TextBlock Grid.Column="0"
+                                   Text="Watchpoints"
+                                   FontWeight="SemiBold"
+                                   FontSize="14" />
+                        <TextBlock Grid.Column="1"
+                                   Text="{Binding Watchpoints.Length, StringFormat='{}{0} active'}"
+                                   FontSize="11"
+                                   Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"
+                                   VerticalAlignment="Center" />
+                    </Grid>
+
+                    <!-- Watchpoints List -->
+                    <ItemsControl ItemsSource="{Binding Watchpoints}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate DataType="models:Watchpoint">
+                                <Border BorderBrush="{DynamicResource SystemControlForegroundBaseLowBrush}"
+                                        BorderThickness="0,0,0,1"
+                                        Padding="4,8">
+                                    <Grid ColumnDefinitions="Auto,*,Auto,Auto">
+                                        <!-- Type Icon -->
+                                        <TextBlock Grid.Column="0"
+                                                   Text="{Binding Type, Converter={StaticResource WatchpointTypeIconConverter}}"
+                                                   FontSize="14"
+                                                   Margin="0,0,12,0"
+                                                   VerticalAlignment="Center" />
+
+                                        <!-- Address and Type -->
+                                        <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                            <TextBlock Text="{Binding Address, Converter={StaticResource HexConverter}}"
+                                                       FontFamily="Consolas, Menlo, Monaco, monospace"
+                                                       FontWeight="SemiBold" />
+                                            <TextBlock FontSize="11"
+                                                       Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}">
+                                                <Run Text="Watchpoint:" />
+                                                <Run Text="{Binding Type}" />
+                                            </TextBlock>
+                                        </StackPanel>
+
+                                        <!-- ID Badge -->
+                                        <Border Grid.Column="2"
+                                                Background="{DynamicResource SystemControlBackgroundAltMediumBrush}"
+                                                CornerRadius="8"
+                                                Padding="6,2"
+                                                Margin="8,0">
+                                            <TextBlock FontSize="10" FontWeight="SemiBold">
+                                                <Run Text="#" />
+                                                <Run Text="{Binding Id}" />
+                                            </TextBlock>
+                                        </Border>
+
+                                        <!-- Remove Button -->
+                                        <Button Grid.Column="3"
+                                                Content="✕"
+                                                FontSize="12"
+                                                Padding="6,4"
+                                                Click="RemoveWatchpointButton_Click"
+                                                Tag="{Binding Id}"
+                                                ToolTip.Tip="Remove watchpoint" />
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+
+                    <!-- Empty state for watchpoints -->
+                    <TextBlock Text="No watchpoints set. Use the Watchpoints tab to add memory watchpoints."
+                               Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"
+                               FontStyle="Italic"
+                               HorizontalAlignment="Center"
+                               Margin="0,12"
+                               IsVisible="{Binding !Watchpoints.Length}" />
+                </StackPanel>
+            </Border>
+
+            <!-- Overall empty state -->
+            <Border BorderBrush="{DynamicResource SystemControlHighlightAccentBrush}"
+                    BorderThickness="1"
+                    CornerRadius="4"
+                    Padding="20"
+                    Background="{DynamicResource SystemControlBackgroundAltHighBrush}"
+                    IsVisible="{Binding !Breakpoints.Count}">
+                <StackPanel Spacing="8" HorizontalAlignment="Center">
+                    <TextBlock Text="No debugging aids active"
+                               FontWeight="SemiBold"
+                               HorizontalAlignment="Center" />
+                    <TextBlock Text="Add breakpoints or watchpoints to pause execution at specific points."
+                               TextWrapping="Wrap"
+                               FontSize="11"
+                               Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"
+                               HorizontalAlignment="Center"
+                               TextAlignment="Center" />
+                </StackPanel>
+            </Border>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>
