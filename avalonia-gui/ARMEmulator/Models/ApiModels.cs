@@ -60,13 +60,55 @@ public sealed record SourceMapEntry(
 );
 
 /// <summary>
-/// Application settings (persisted to user config).
+/// Application settings with persistent configuration.
+/// Immutable record for thread-safe settings updates.
 /// </summary>
-public sealed class AppSettings
+public sealed record AppSettings
 {
-	public string BackendUrl { get; set; } = "http://localhost:8080";
-	public int FontSize { get; set; } = 14;
-	public string ColorScheme { get; set; } = "Auto"; // Auto, Light, Dark
-	public int RecentFilesLimit { get; set; } = 10;
-	public List<string> RecentFiles { get; set; } = [];
+	/// <summary>Backend API base URL.</summary>
+	public required string BackendUrl { get; init; }
+
+	/// <summary>Editor font size (10-24pt range).</summary>
+	public required int EditorFontSize { get; init; }
+
+	/// <summary>Application color theme.</summary>
+	public required AppTheme Theme { get; init; }
+
+	/// <summary>Maximum number of recent files to track.</summary>
+	public required int RecentFilesLimit { get; init; }
+
+	/// <summary>Auto-scroll memory view to writes.</summary>
+	public required bool AutoScrollToMemoryWrites { get; init; }
+
+	/// <summary>Default settings instance.</summary>
+	public static AppSettings Default { get; } = new() {
+		BackendUrl = "http://localhost:8080",
+		EditorFontSize = 14,
+		Theme = AppTheme.Auto,
+		RecentFilesLimit = 10,
+		AutoScrollToMemoryWrites = true
+	};
+
+	/// <summary>
+	/// Creates a validated copy with clamped font size.
+	/// </summary>
+	public AppSettings Validate() => this with {
+		EditorFontSize = Math.Clamp(EditorFontSize, 10, 24),
+		RecentFilesLimit = Math.Max(RecentFilesLimit, 1)
+	};
+}
+
+/// <summary>
+/// Application theme options.
+/// </summary>
+public enum AppTheme
+{
+	/// <summary>Automatically detect system theme.</summary>
+	Auto,
+
+	/// <summary>Light theme.</summary>
+	Light,
+
+	/// <summary>Dark theme.</summary>
+	Dark
 }
