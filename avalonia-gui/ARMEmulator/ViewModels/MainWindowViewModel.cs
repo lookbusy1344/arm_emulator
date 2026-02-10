@@ -410,6 +410,60 @@ public class MainWindowViewModel : ReactiveObject, IDisposable
 	}
 
 	/// <summary>
+	/// Sends input to the emulator with smart logic:
+	/// - If VM is waiting for input, the input unblocks a pending step() call.
+	/// - If VM is not waiting, input is buffered and we must call step() to consume it.
+	/// This matches the Swift EmulatorViewModel+Input.swift implementation.
+	/// </summary>
+	private async Task SendInputAsync(CancellationToken ct)
+	{
+		if (SessionId is null || string.IsNullOrWhiteSpace(InputText)) {
+			return;
+		}
+
+		// Capture current status before sending input
+		// If VM is waiting for input, the input will unblock an existing step() call
+		// If VM is NOT waiting, the backend buffers input and we need to step() to consume it
+		var wasWaitingForInput = Status == VMState.WaitingForInput;
+
+		var inputData = InputText + "\n"; // Auto-append newline as per plan
+		var sentInput = InputText; // Save for clearing after success
+
+		try {
+			// Send input to backend
+			await api.SendStdinAsync(SessionId, inputData, ct);
+			ErrorMessage = null;
+
+			if (wasWaitingForInput) {
+				// VM was waiting for input - the step() that triggered the input request
+				// is still in progress and will complete now that we've provided input.
+				// DO NOT call step() again or we'll execute an extra instruction!
+				// Just refresh state to get the updated status
+				var status = await api.GetStatusAsync(SessionId, ct);
+				var registers = await api.GetRegistersAsync(SessionId, ct);
+				UpdateRegisters(registers);
+				Status = status.State;
+				LastMemoryWrite = status.LastWrite;
+			}
+			else {
+				// VM was not waiting - the backend buffered the input for later.
+				// Call step() to consume the buffered input.
+				var newRegisters = await api.StepAsync(SessionId, ct);
+				UpdateRegisters(newRegisters);
+			}
+
+			// Clear input field after successful send
+			InputText = "";
+		}
+		catch (SessionNotFoundException) {
+			ErrorMessage = "Session not found. Please create a new session.";
+		}
+		catch (ApiException ex) {
+			ErrorMessage = $"Failed to send input: {ex.Message}";
+		}
+	}
+
+	/// <summary>
 	/// Adds a breakpoint at the specified address.
 	/// </summary>
 	public async Task AddBreakpointAsync(uint address, CancellationToken ct = default)
