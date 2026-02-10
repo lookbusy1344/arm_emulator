@@ -62,8 +62,7 @@ public class PlatformThemeDetectorTests
 		using var detector = new PlatformThemeDetector();
 
 		// Act
-		var act = () =>
-		{
+		var act = () => {
 			detector.Dispose();
 			detector.Dispose();
 		};

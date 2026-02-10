@@ -23,8 +23,7 @@ public sealed class PlatformThemeDetector : IPlatformThemeDetector, IDisposable
 		themeSubject = new BehaviorSubject<PlatformTheme>(initialTheme);
 
 		// Subscribe to Avalonia's actual theme changed event if available
-		if (Application.Current is not null)
-		{
+		if (Application.Current is not null) {
 			themeChangeSubscription = Observable
 				.FromEventPattern(
 					h => Application.Current.ActualThemeVariantChanged += h,
@@ -40,32 +39,26 @@ public sealed class PlatformThemeDetector : IPlatformThemeDetector, IDisposable
 
 	private static PlatformTheme DetectSystemTheme()
 	{
-		try
-		{
+		try {
 			// Use Avalonia's theme detection first
-			if (Application.Current?.ActualThemeVariant is { } avaloniaTheme)
-			{
+			if (Application.Current?.ActualThemeVariant is { } avaloniaTheme) {
 				return avaloniaTheme == ThemeVariant.Dark ? PlatformTheme.Dark : PlatformTheme.Light;
 			}
 
 			// Fall back to platform-specific detection
-			if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
-			{
+			if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX)) {
 				return DetectMacOSTheme();
 			}
 
-			if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-			{
+			if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {
 				return DetectWindowsTheme();
 			}
 
-			if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
-			{
+			if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux)) {
 				return DetectLinuxTheme();
 			}
 		}
-		catch
-		{
+		catch {
 			// Fall back to light theme on detection failure
 		}
 
@@ -74,12 +67,9 @@ public sealed class PlatformThemeDetector : IPlatformThemeDetector, IDisposable
 
 	private static PlatformTheme DetectMacOSTheme()
 	{
-		try
-		{
-			using var process = new Process
-			{
-				StartInfo = new ProcessStartInfo
-				{
+		try {
+			using var process = new Process {
+				StartInfo = new ProcessStartInfo {
 					FileName = "defaults",
 					Arguments = "read -g AppleInterfaceStyle",
 					UseShellExecute = false,
@@ -89,8 +79,7 @@ public sealed class PlatformThemeDetector : IPlatformThemeDetector, IDisposable
 				}
 			};
 
-			if (process.Start())
-			{
+			if (process.Start()) {
 				var output = process.StandardOutput.ReadToEnd().Trim();
 				process.WaitForExit();
 
@@ -100,8 +89,7 @@ public sealed class PlatformThemeDetector : IPlatformThemeDetector, IDisposable
 					: PlatformTheme.Light;
 			}
 		}
-		catch
-		{
+		catch {
 			// Fall back to light theme
 		}
 
@@ -112,16 +100,13 @@ public sealed class PlatformThemeDetector : IPlatformThemeDetector, IDisposable
 	{
 		// Windows 10/11 theme detection via registry
 		// This is a simplified version - Avalonia should handle this better
-		try
-		{
-			if (OperatingSystem.IsWindows())
-			{
+		try {
+			if (OperatingSystem.IsWindows()) {
 				// Avalonia's platform detection should handle this
 				// For now, default to light
 			}
 		}
-		catch
-		{
+		catch {
 			// Fall back to light theme
 		}
 
