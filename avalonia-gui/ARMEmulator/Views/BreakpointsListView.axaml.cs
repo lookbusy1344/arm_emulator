@@ -1,6 +1,6 @@
+using ARMEmulator.ViewModels;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
-using ARMEmulator.ViewModels;
 
 namespace ARMEmulator.Views;
 
@@ -16,19 +16,15 @@ public partial class BreakpointsListView : UserControl
 	private async void RemoveBreakpointButton_Click(object? sender, RoutedEventArgs e)
 #pragma warning restore VSTHRD100
 	{
-		if (DataContext is not MainWindowViewModel vm)
-		{
+		if (DataContext is not MainWindowViewModel vm) {
 			return;
 		}
 
-		if (sender is Button { Tag: uint address })
-		{
-			try
-			{
+		if (sender is Button { Tag: uint address }) {
+			try {
 				await vm.RemoveBreakpointAsync(address);
 			}
-			catch
-			{
+			catch {
 				// TODO: Show error message
 			}
 		}
@@ -39,19 +35,15 @@ public partial class BreakpointsListView : UserControl
 	private async void RemoveWatchpointButton_Click(object? sender, RoutedEventArgs e)
 #pragma warning restore VSTHRD100
 	{
-		if (DataContext is not MainWindowViewModel vm)
-		{
+		if (DataContext is not MainWindowViewModel vm) {
 			return;
 		}
 
-		if (sender is Button { Tag: int id })
-		{
-			try
-			{
+		if (sender is Button { Tag: int id }) {
+			try {
 				await vm.RemoveWatchpointAsync(id);
 			}
-			catch
-			{
+			catch {
 				// TODO: Show error message
 			}
 		}

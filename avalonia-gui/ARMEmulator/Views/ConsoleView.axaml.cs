@@ -1,6 +1,6 @@
+using ARMEmulator.ViewModels;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
-using ARMEmulator.ViewModels;
 
 namespace ARMEmulator.Views;
 

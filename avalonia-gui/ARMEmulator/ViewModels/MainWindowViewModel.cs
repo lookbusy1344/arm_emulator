@@ -444,8 +444,7 @@ public class MainWindowViewModel : ReactiveObject, IDisposable
 				UpdateRegisters(registers);
 				Status = status.State;
 				LastMemoryWrite = status.LastWrite;
-			}
-			else {
+			} else {
 				// VM was not waiting - the backend buffered the input for later.
 				// Call step() to consume the buffered input.
 				var newRegisters = await api.StepAsync(SessionId, ct);

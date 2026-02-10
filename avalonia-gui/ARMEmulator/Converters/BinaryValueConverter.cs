@@ -12,8 +12,7 @@ public class BinaryValueConverter : IValueConverter
 
 	public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
 	{
-		if (value is not uint uintValue)
-		{
+		if (value is not uint uintValue) {
 			return "00000000000000000000000000000000";
 		}
 
@@ -22,17 +21,14 @@ public class BinaryValueConverter : IValueConverter
 
 	public object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
 	{
-		if (value is not string str)
-		{
+		if (value is not string str) {
 			return 0u;
 		}
 
-		try
-		{
+		try {
 			return System.Convert.ToUInt32(str, 2);
 		}
-		catch
-		{
+		catch {
 			return 0u;
 		}
 	}

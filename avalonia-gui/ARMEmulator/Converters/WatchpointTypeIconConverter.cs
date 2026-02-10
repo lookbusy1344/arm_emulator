@@ -1,6 +1,6 @@
 using System.Globalization;
-using Avalonia.Data.Converters;
 using ARMEmulator.Models;
+using Avalonia.Data.Converters;
 
 namespace ARMEmulator.Converters;
 
@@ -13,13 +13,11 @@ public class WatchpointTypeIconConverter : IValueConverter
 
 	public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
 	{
-		if (value is not WatchpointType type)
-		{
+		if (value is not WatchpointType type) {
 			return "👁";
 		}
 
-		return type switch
-		{
+		return type switch {
 			WatchpointType.Read => "👁",
 			WatchpointType.Write => "✏️",
 			WatchpointType.ReadWrite => "👁✏️",
