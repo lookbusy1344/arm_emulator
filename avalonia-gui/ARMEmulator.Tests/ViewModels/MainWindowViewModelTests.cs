@@ -594,4 +594,162 @@ public class MainWindowViewModelTests : IDisposable
 		// Act & Assert - should not throw
 		await viewModel.ShowPcCommand.Execute();
 	}
+
+	// ===== Console Input Tests =====
+
+	[Fact]
+	public void IsWaitingForInput_ReturnsFalse_WhenStatusIsIdle()
+	{
+		// Arrange
+		using var viewModel = new MainWindowViewModel(mockApi, mockWs);
+
+		// Act & Assert
+		viewModel.Status = VMState.Idle;
+		viewModel.IsWaitingForInput.Should().BeFalse();
+	}
+
+	[Fact]
+	public void IsWaitingForInput_ReturnsTrue_WhenStatusIsWaitingForInput()
+	{
+		// Arrange
+		using var viewModel = new MainWindowViewModel(mockApi, mockWs);
+
+		// Act & Assert
+		viewModel.Status = VMState.WaitingForInput;
+		viewModel.IsWaitingForInput.Should().BeTrue();
+	}
+
+	[Fact]
+	public async Task SendInputCommand_WhenWaitingForInput_DoesNotCallStep()
+	{
+		// Arrange
+		using var viewModel = new MainWindowViewModel(mockApi, mockWs);
+		viewModel.SessionId = "test-session";
+		viewModel.Status = VMState.WaitingForInput;
+		viewModel.InputText = "test input";
+
+		var status = new VMStatus(VMState.Idle, PC: 0x8000, Cycles: 100);
+		var registers = RegisterState.Create(r0: 42);
+		mockApi.SendStdinAsync("test-session", Arg.Any<string>(), Arg.Any<CancellationToken>()).Returns(Task.CompletedTask);
+		mockApi.GetStatusAsync("test-session", Arg.Any<CancellationToken>()).Returns(status);
+		mockApi.GetRegistersAsync("test-session", Arg.Any<CancellationToken>()).Returns(registers);
+
+		// Act
+		await viewModel.SendInputCommand.Execute();
+
+		// Assert - input was sent, but step was NOT called (unblocks existing step)
+		await mockApi.Received(1).SendStdinAsync("test-session", "test input\n", Arg.Any<CancellationToken>());
+		await mockApi.DidNotReceive().StepAsync(Arg.Any<string>(), Arg.Any<CancellationToken>());
+		await mockApi.Received(1).GetStatusAsync("test-session", Arg.Any<CancellationToken>());
+		await mockApi.Received(1).GetRegistersAsync("test-session", Arg.Any<CancellationToken>());
+	}
+
+	[Fact]
+	public async Task SendInputCommand_WhenNotWaitingForInput_CallsStepToConsumeBufferedInput()
+	{
+		// Arrange
+		using var viewModel = new MainWindowViewModel(mockApi, mockWs);
+		viewModel.SessionId = "test-session";
+		viewModel.Status = VMState.Idle;  // Not waiting for input
+		viewModel.InputText = "buffered input";
+
+		var registers = RegisterState.Create(r0: 99);
+		mockApi.SendStdinAsync("test-session", Arg.Any<string>(), Arg.Any<CancellationToken>()).Returns(Task.CompletedTask);
+		mockApi.StepAsync("test-session", Arg.Any<CancellationToken>()).Returns(registers);
+
+		// Act
+		await viewModel.SendInputCommand.Execute();
+
+		// Assert - input was sent, then step was called to consume it
+		await mockApi.Received(1).SendStdinAsync("test-session", "buffered input\n", Arg.Any<CancellationToken>());
+		await mockApi.Received(1).StepAsync("test-session", Arg.Any<CancellationToken>());
+		viewModel.Registers.Should().Be(registers);
+	}
+
+	[Fact]
+	public async Task SendInputCommand_AutoAppendsNewline()
+	{
+		// Arrange
+		using var viewModel = new MainWindowViewModel(mockApi, mockWs);
+		viewModel.SessionId = "test-session";
+		viewModel.Status = VMState.Idle;
+		viewModel.InputText = "no newline here";
+
+		var registers = RegisterState.Create();
+		mockApi.StepAsync("test-session", Arg.Any<CancellationToken>()).Returns(registers);
+
+		// Act
+		await viewModel.SendInputCommand.Execute();
+
+		// Assert - newline should be automatically appended
+		await mockApi.Received(1).SendStdinAsync("test-session", "no newline here\n", Arg.Any<CancellationToken>());
+	}
+
+	[Fact]
+	public async Task SendInputCommand_ClearsInputTextAfterSuccessfulSend()
+	{
+		// Arrange
+		using var viewModel = new MainWindowViewModel(mockApi, mockWs);
+		viewModel.SessionId = "test-session";
+		viewModel.Status = VMState.Idle;
+		viewModel.InputText = "test input";
+
+		var registers = RegisterState.Create();
+		mockApi.StepAsync("test-session", Arg.Any<CancellationToken>()).Returns(registers);
+
+		// Act
+		await viewModel.SendInputCommand.Execute();
+
+		// Assert - input text should be cleared after send
+		viewModel.InputText.Should().BeEmpty();
+	}
+
+	[Fact]
+	public async Task SendInputCommand_WhenSessionNotFound_SetsErrorMessage()
+	{
+		// Arrange
+		using var viewModel = new MainWindowViewModel(mockApi, mockWs);
+		viewModel.SessionId = "test-session";
+		viewModel.Status = VMState.Idle;
+		viewModel.InputText = "test input";
+
+		mockApi.When(x => x.SendStdinAsync("test-session", Arg.Any<string>(), Arg.Any<CancellationToken>()))
+			.Do(_ => throw new SessionNotFoundException("test-session"));
+
+		// Act
+		await viewModel.SendInputCommand.Execute();
+
+		// Assert
+		viewModel.ErrorMessage.Should().Contain("Session not found");
+	}
+
+	[Fact]
+	public async Task SendInputCommand_WhenApiException_SetsErrorMessage()
+	{
+		// Arrange
+		using var viewModel = new MainWindowViewModel(mockApi, mockWs);
+		viewModel.SessionId = "test-session";
+		viewModel.Status = VMState.Idle;
+		viewModel.InputText = "test input";
+
+		mockApi.When(x => x.SendStdinAsync("test-session", Arg.Any<string>(), Arg.Any<CancellationToken>()))
+			.Do(_ => throw new ApiException("Network error"));
+
+		// Act
+		await viewModel.SendInputCommand.Execute();
+
+		// Assert
+		viewModel.ErrorMessage.Should().Contain("Failed to send input");
+		viewModel.ErrorMessage.Should().Contain("Network error");
+	}
+
+	[Fact]
+	public void Constructor_InitializesSendInputCommand()
+	{
+		// Arrange & Act
+		using var viewModel = new MainWindowViewModel(mockApi, mockWs);
+
+		// Assert
+		viewModel.SendInputCommand.Should().NotBeNull();
+	}
 }
