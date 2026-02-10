@@ -26,7 +26,8 @@
                          Watermark="0x8000 or 32768"
                          Width="200"
                          HorizontalAlignment="Left"
-                         Margin="0,0,8,0">
+                         Margin="0,0,8,0"
+                         ToolTip.Tip="Enter memory address in hex (0x...) or decimal (press Enter or click Go)">
                     <TextBox.KeyBindings>
                         <KeyBinding Gesture="Enter" Command="{Binding NavigateToAddressCommand}" />
                     </TextBox.KeyBindings>
@@ -34,7 +35,8 @@
                 <Button Grid.Row="0" Grid.Column="2"
                         Content="Go"
                         Command="{Binding NavigateToAddressCommand}"
-                        Margin="0,0,16,0" />
+                        Margin="0,0,16,0"
+                        ToolTip.Tip="Navigate to specified address" />
 
                 <!-- Quick Jump Buttons -->
                 <StackPanel Grid.Row="0" Grid.Column="3" Orientation="Horizontal" Spacing="4">
@@ -66,7 +68,8 @@
                 <CheckBox Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="4"
                           IsChecked="{Binding AutoScrollToWrites}"
                           Content="Auto-scroll to memory writes"
-                          Margin="0,8,0,0" />
+                          Margin="0,8,0,0"
+                          ToolTip.Tip="Automatically scroll to show memory addresses when they are written during execution" />
             </Grid>
         </Border>
 

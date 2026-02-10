@@ -30,7 +30,8 @@
                                  Text="{Binding Expression}"
                                  Watermark="Enter expression (e.g., r0, r1+4)"
                                  FontFamily="Consolas, Menlo, Monaco, monospace"
-                                 Margin="0,0,8,0">
+                                 Margin="0,0,8,0"
+                                 ToolTip.Tip="Enter an expression using registers (r0-r15), memory references ([address]), arithmetic (+, -, *, /), or hex values (0x8000)">
                             <TextBox.KeyBindings>
                                 <KeyBinding Gesture="Enter" Command="{Binding EvaluateCommand}" />
                             </TextBox.KeyBindings>
@@ -40,7 +41,8 @@
                                 Content="Evaluate"
                                 Command="{Binding EvaluateCommand}"
                                 HorizontalAlignment="Right"
-                                MinWidth="90" />
+                                MinWidth="90"
+                                ToolTip.Tip="Evaluate expression and show result in hex, decimal, and binary (Enter)" />
                     </Grid>
                 </StackPanel>
             </Border>
@@ -109,7 +111,8 @@
                                 Command="{Binding ClearHistoryCommand}"
                                 IsEnabled="{Binding History.Length}"
                                 FontSize="11"
-                                Padding="6,2" />
+                                Padding="6,2"
+                                ToolTip.Tip="Clear evaluation history" />
                     </Grid>
 
                     <ItemsControl ItemsSource="{Binding History}">

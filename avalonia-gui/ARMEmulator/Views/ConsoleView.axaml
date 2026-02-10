@@ -16,10 +16,22 @@
         </Border.BorderBrush>
 
         <DockPanel>
-            <TextBlock DockPanel.Dock="Top"
-                       Text="Console Output"
-                       FontWeight="SemiBold"
-                       Margin="0,0,0,8" />
+            <!-- Header with status indicator -->
+            <DockPanel DockPanel.Dock="Top" Margin="0,0,0,8">
+                <TextBlock Text="Console Output"
+                           FontWeight="SemiBold"
+                           DockPanel.Dock="Left" />
+                <Border DockPanel.Dock="Right"
+                        Background="Orange"
+                        CornerRadius="4"
+                        Padding="6,2"
+                        IsVisible="{Binding IsWaitingForInput}">
+                    <TextBlock Text="⏸️ Waiting for input"
+                               FontSize="11"
+                               FontWeight="SemiBold"
+                               Foreground="White" />
+                </Border>
+            </DockPanel>
 
             <!-- Input area at bottom -->
             <StackPanel DockPanel.Dock="Bottom"
@@ -31,14 +43,16 @@
                 <TextBox Width="400"
                          Text="{Binding InputText}"
                          Watermark="Enter input..."
-                         VerticalAlignment="Center">
+                         VerticalAlignment="Center"
+                         ToolTip.Tip="Enter input for the running program (press Enter or click Send)">
                     <TextBox.KeyBindings>
                         <KeyBinding Gesture="Enter" Command="{Binding SendInputCommand}" />
                     </TextBox.KeyBindings>
                 </TextBox>
                 <Button Content="Send"
                         Command="{Binding SendInputCommand}"
-                        VerticalAlignment="Center" />
+                        VerticalAlignment="Center"
+                        ToolTip.Tip="Send input to program (Enter)" />
             </StackPanel>
 
             <!-- Output area with auto-scroll -->
