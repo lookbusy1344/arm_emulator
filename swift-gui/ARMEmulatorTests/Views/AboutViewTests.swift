@@ -59,7 +59,7 @@ final class BackendVersionTests: XCTestCase {
 
 final class CommitHashFormattingTests: XCTestCase {
     func testFormatCommitHash() {
-        // Simulate the formatCommitHash() method
+        /// Simulate the formatCommitHash() method
         func formatCommitHash(_ hash: String) -> String {
             if hash == "unknown" {
                 return hash
@@ -97,7 +97,7 @@ final class CommitHashFormattingTests: XCTestCase {
 
 final class DateFormattingTests: XCTestCase {
     func testFormatDate() {
-        // Simulate the formatDate() method
+        /// Simulate the formatDate() method
         func formatDate(_ dateString: String) -> String {
             if dateString == "unknown" {
                 return dateString
@@ -282,7 +282,7 @@ final class AboutViewTextTests: XCTestCase {
     }
 
     func testVersionDisplayFormat() {
-        // Test version display format
+        /// Test version display format
         func formatVersionDisplay(version: BackendVersion) -> [String] {
             [
                 "Backend Version: \(version.version)",

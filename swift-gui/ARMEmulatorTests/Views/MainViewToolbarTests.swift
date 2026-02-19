@@ -7,7 +7,7 @@ import XCTest
 
 final class ToolbarStatusIconTests: XCTestCase {
     func testStatusIcons() {
-        // Simulate the statusIcon computed property
+        /// Simulate the statusIcon computed property
         func statusIcon(for status: VMState) -> String {
             switch status {
             case .running:
@@ -52,7 +52,7 @@ final class ToolbarStatusIconTests: XCTestCase {
 
 final class ToolbarStatusColorTests: XCTestCase {
     func testStatusColors() {
-        // Simulate the statusColor computed property
+        /// Simulate the statusColor computed property
         func statusColor(for status: VMState) -> Color {
             switch status {
             case .running:
@@ -96,7 +96,7 @@ final class ToolbarStatusColorTests: XCTestCase {
 
 final class ToolbarStatusTextTests: XCTestCase {
     func testStatusText() {
-        // Simulate the statusText computed property
+        /// Simulate the statusText computed property
         func statusText(for status: VMState) -> String {
             switch status {
             case .running:
@@ -156,7 +156,7 @@ final class ToolbarButtonLabelTests: XCTestCase {
     }
 
     func testRunContinueButtonLabel() {
-        // Button label changes based on status
+        /// Button label changes based on status
         func runButtonLabel(for status: VMState) -> String {
             status == .breakpoint ? "Continue" : "Run"
         }
@@ -288,7 +288,7 @@ final class ToolbarKeyboardShortcutTests: XCTestCase {
 
 final class ToolbarButtonDisabledTests: XCTestCase {
     func testRunButtonDisabled() {
-        // Run button disabled when running or waiting for input
+        /// Run button disabled when running or waiting for input
         func isRunButtonDisabled(status: VMState) -> Bool {
             status == .running || status == .waitingForInput
         }
@@ -302,7 +302,7 @@ final class ToolbarButtonDisabledTests: XCTestCase {
     }
 
     func testPauseButtonDisabled() {
-        // Pause button enabled only when canPause
+        /// Pause button enabled only when canPause
         func isPauseButtonDisabled(canPause: Bool) -> Bool {
             !canPause
         }
@@ -312,7 +312,7 @@ final class ToolbarButtonDisabledTests: XCTestCase {
     }
 
     func testStepButtonsDisabled() {
-        // Step buttons enabled only when canStep
+        /// Step buttons enabled only when canStep
         func isStepButtonDisabled(canStep: Bool) -> Bool {
             !canStep
         }
@@ -322,7 +322,7 @@ final class ToolbarButtonDisabledTests: XCTestCase {
     }
 
     func testShowPCButtonDisabled() {
-        // Show PC button disabled when PC is 0
+        /// Show PC button disabled when PC is 0
         func isShowPCButtonDisabled(currentPC: UInt32) -> Bool {
             currentPC == 0
         }
@@ -359,7 +359,7 @@ final class ToolbarHelpTextTests: XCTestCase {
     }
 
     func testHelpTextFormat() {
-        // Help text format: "Action description (Shortcut)"
+        /// Help text format: "Action description (Shortcut)"
         func formatHelpText(action: String, shortcut: String) -> String {
             "\(action) (\(shortcut))"
         }
@@ -369,7 +369,7 @@ final class ToolbarHelpTextTests: XCTestCase {
     }
 
     func testDynamicHelpText() {
-        // Run button help text changes based on status
+        /// Run button help text changes based on status
         func runButtonHelpText(for status: VMState) -> String {
             status == .breakpoint
                 ? "Continue execution (⌘R)"

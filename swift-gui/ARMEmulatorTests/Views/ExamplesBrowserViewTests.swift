@@ -97,7 +97,7 @@ final class ExampleProgramModelTests: XCTestCase {
 
 final class ExamplesBrowserFilteringTests: XCTestCase {
     func testFilterByName() {
-        // Simulate the filteredExamples logic
+        /// Simulate the filteredExamples logic
         func filterExamples(
             _ examples: [ExampleProgram],
             searchText: String,
@@ -152,7 +152,7 @@ final class ExamplesBrowserFilteringTests: XCTestCase {
     }
 
     func testFilterPartialMatches() {
-        // Test partial matching behavior
+        /// Test partial matching behavior
         func matches(_ text: String, searchText: String) -> Bool {
             text.localizedCaseInsensitiveContains(searchText)
         }
@@ -179,7 +179,7 @@ final class ExamplesBrowserFilteringTests: XCTestCase {
 
 final class ExamplePreviewTests: XCTestCase {
     func testPreviewTruncation() {
-        // Simulate the preview truncation logic
+        /// Simulate the preview truncation logic
         func generatePreview(content: String, maxLines: Int = 15) -> String {
             let lines = content.components(separatedBy: .newlines)
             var preview = lines.prefix(maxLines).joined(separator: "\n")
@@ -234,7 +234,7 @@ final class ExamplePreviewTests: XCTestCase {
 
 final class ExampleSelectionTests: XCTestCase {
     func testInitialSelection() {
-        // Simulate initial selection behavior
+        /// Simulate initial selection behavior
         func selectFirst(_ examples: [ExampleProgram]) -> ExampleProgram? {
             examples.isEmpty ? nil : examples[0]
         }
@@ -260,7 +260,7 @@ final class ExampleSelectionTests: XCTestCase {
     }
 
     func testOpenButtonState() {
-        // Open button should be disabled when no selection
+        /// Open button should be disabled when no selection
         func isOpenButtonEnabled(selectedExample: ExampleProgram?) -> Bool {
             selectedExample != nil
         }
@@ -371,7 +371,7 @@ final class ExampleRowTests: XCTestCase {
 
 final class SearchUITests: XCTestCase {
     func testSearchTextEmpty() {
-        // Test the search clear button logic
+        /// Test the search clear button logic
         func shouldShowClearButton(searchText: String) -> Bool {
             !searchText.isEmpty
         }
@@ -396,7 +396,7 @@ final class SearchUITests: XCTestCase {
 
 final class CounterDisplayTests: XCTestCase {
     func testExampleCounter() {
-        // Test the counter format: "N example(s)"
+        /// Test the counter format: "N example(s)"
         func formatCounter(count: Int) -> String {
             "\(count) example(s)"
         }

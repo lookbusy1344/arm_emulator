@@ -68,7 +68,7 @@ final class ResultValueFormattingTests: XCTestCase {
     }
 
     func testBinaryFormatting() {
-        // Binary formatting with padding to 32 bits
+        /// Binary formatting with padding to 32 bits
         func formatBinary(_ value: UInt32) -> String {
             let binary = String(value, radix: 2)
             return String(repeating: "0", count: max(0, 32 - binary.count)) + binary
@@ -220,7 +220,7 @@ final class ExpressionErrorHandlingTests: XCTestCase {
 
 final class ExpressionFormStateTests: XCTestCase {
     func testEvaluateButtonDisabled() {
-        // Button should be disabled when expression is empty or evaluating
+        /// Button should be disabled when expression is empty or evaluating
         func isButtonDisabled(expression: String, isEvaluating: Bool) -> Bool {
             expression.isEmpty || isEvaluating
         }
@@ -232,7 +232,7 @@ final class ExpressionFormStateTests: XCTestCase {
     }
 
     func testInputValidation() {
-        // Test empty expression guard
+        /// Test empty expression guard
         func shouldProceedWithEvaluation(expression: String) -> Bool {
             !expression.isEmpty
         }

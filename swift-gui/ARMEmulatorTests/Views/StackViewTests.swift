@@ -8,7 +8,7 @@ final class StackViewCalculationsTests: XCTestCase {
         // Initial SP value from vm/constants.go
         let initialSP: UInt32 = 0x0005_0000
 
-        // Stack grows downward (SP decreases as stack grows)
+        /// Stack grows downward (SP decreases as stack grows)
         func calculateStackSize(currentSP: UInt32) -> UInt32 {
             currentSP < initialSP ? initialSP - currentSP : 0
         }
@@ -24,7 +24,7 @@ final class StackViewCalculationsTests: XCTestCase {
     }
 
     func testStackOffsetCalculation() {
-        // Offset from current SP (SP+0, SP+4, SP+8, etc.)
+        /// Offset from current SP (SP+0, SP+4, SP+8, etc.)
         func calculateOffset(address: UInt32, currentSP: UInt32) -> Int {
             Int(address) - Int(currentSP)
         }
@@ -86,7 +86,7 @@ final class StackEntryTests: XCTestCase {
 
 final class StackRowFormatTests: XCTestCase {
     func testStackOffsetFormatting() {
-        // Stack offsets are displayed as "SP+N" or "SP-N"
+        /// Stack offsets are displayed as "SP+N" or "SP-N"
         func formatOffset(_ offset: Int) -> String {
             String(format: "SP%+d", offset)
         }
@@ -118,7 +118,7 @@ final class StackRowFormatTests: XCTestCase {
     }
 
     func testASCIIRepresentation() {
-        // Convert 4 bytes to ASCII representation (printable chars or dots)
+        /// Convert 4 bytes to ASCII representation (printable chars or dots)
         func asciiRepresentation(value: UInt32) -> String {
             let bytes = [
                 UInt8(value & 0xFF),
@@ -148,7 +148,7 @@ final class StackRowFormatTests: XCTestCase {
 
 final class StackAnnotationTests: XCTestCase {
     func testCodeAddressDetection() {
-        // Detect likely code addresses (typical range: 0x8000-0x10000)
+        /// Detect likely code addresses (typical range: 0x8000-0x10000)
         func isLikelyCodeAddress(_ value: UInt32) -> Bool {
             (0x8000 ... 0x10000).contains(value)
         }
@@ -162,7 +162,7 @@ final class StackAnnotationTests: XCTestCase {
     }
 
     func testStackAddressDetection() {
-        // Detect values that might be stack pointers (within 4KB of current SP)
+        /// Detect values that might be stack pointers (within 4KB of current SP)
         func isLikelyStackAddress(value: UInt32, currentSP: UInt32) -> Bool {
             abs(Int(value) - Int(currentSP)) < 4096
         }
@@ -177,7 +177,7 @@ final class StackAnnotationTests: XCTestCase {
     }
 
     func testRegisterValueMatching() {
-        // Detect values that match register contents (saved register values)
+        /// Detect values that match register contents (saved register values)
         func matchesRegister(value: UInt32, registerValues: [(String, UInt32)]) -> String? {
             for (name, regValue) in registerValues {
                 if value == regValue, regValue != 0 {
@@ -204,7 +204,7 @@ final class StackAnnotationTests: XCTestCase {
 
 final class StackByteConversionTests: XCTestCase {
     func testLittleEndianConversion() {
-        // Convert 4 bytes (little-endian) to UInt32
+        /// Convert 4 bytes (little-endian) to UInt32
         func littleEndianToUInt32(_ bytes: [UInt8]) -> UInt32 {
             bytes.enumerated().reduce(UInt32(0)) { result, item in
                 result | (UInt32(item.element) << (item.offset * 8))
@@ -286,7 +286,7 @@ final class StackViewStateTests: XCTestCase {
     }
 
     func testStackHeaderFormatting() {
-        // Test header text format: "Stack ↓ (SP = 0x...) - N bytes used"
+        /// Test header text format: "Stack ↓ (SP = 0x...) - N bytes used"
         func formatHeader(sp: UInt32, stackSize: UInt32) -> String {
             "Stack ↓ (SP = \(String(format: "0x%08X", sp))) - \(stackSize) bytes used"
         }

@@ -6,7 +6,7 @@ import XCTest
 
 final class AppSettingsColorSchemeTests: XCTestCase {
     func testPreferredColorSchemeMapping() {
-        // Simulate the preferredColorScheme computed property
+        /// Simulate the preferredColorScheme computed property
         func preferredColorScheme(for value: String) -> ColorScheme? {
             switch value {
             case "light":
@@ -72,7 +72,7 @@ final class AppSettingsValidationTests: XCTestCase {
     }
 
     func testBackendURLFormat() {
-        // Verify valid backend URL formats
+        /// Verify valid backend URL formats
         func isValidBackendURL(_ url: String) -> Bool {
             url.starts(with: "http://") || url.starts(with: "https://")
         }
@@ -188,7 +188,7 @@ final class GeneralPreferencesTests: XCTestCase {
     }
 
     func testRecentFilesStepperLabel() {
-        // Test the stepper label format
+        /// Test the stepper label format
         func formatRecentFilesLabel(count: Int) -> String {
             "Recent Files: \(count)"
         }
@@ -220,7 +220,7 @@ final class EditorPreferencesTests: XCTestCase {
     }
 
     func testFontSizeStepperLabel() {
-        // Test the stepper label format
+        /// Test the stepper label format
         func formatFontSizeLabel(size: Int) -> String {
             "Font Size: \(size)"
         }
@@ -231,7 +231,7 @@ final class EditorPreferencesTests: XCTestCase {
     }
 
     func testFontSizeHelpText() {
-        // Test the help text format
+        /// Test the help text format
         func formatFontSizeHelpText(size: Int) -> String {
             "Current size: \(size) pt"
         }
@@ -414,7 +414,7 @@ final class TextFieldBehaviorTests: XCTestCase {
 
 final class PreviewFontTests: XCTestCase {
     func testPreviewFontSize() {
-        // Test font size application in preview
+        /// Test font size application in preview
         func previewFontSize(from setting: Int) -> CGFloat {
             CGFloat(setting)
         }

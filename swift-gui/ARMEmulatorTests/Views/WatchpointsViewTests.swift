@@ -5,7 +5,7 @@ import XCTest
 
 final class WatchpointAddressParsingTests: XCTestCase {
     func testHexAddressWithPrefix() {
-        // Test parsing hex addresses with 0x prefix
+        /// Test parsing hex addresses with 0x prefix
         func parseAddress(_ input: String) -> UInt32? {
             let trimmed = input.trimmingCharacters(in: .whitespacesAndNewlines)
             guard !trimmed.isEmpty else { return nil }
@@ -25,7 +25,7 @@ final class WatchpointAddressParsingTests: XCTestCase {
     }
 
     func testHexAddressWithoutPrefix() {
-        // Test parsing decimal addresses (no prefix)
+        /// Test parsing decimal addresses (no prefix)
         func parseAddress(_ input: String) -> UInt32? {
             let trimmed = input.trimmingCharacters(in: .whitespacesAndNewlines)
             guard !trimmed.isEmpty else { return nil }
@@ -204,7 +204,7 @@ final class WatchpointTypeLabelTests: XCTestCase {
     }
 
     func testTypeLabelCapitalization() {
-        // Labels should be properly capitalized
+        /// Labels should be properly capitalized
         func watchpointTypeLabel(_ type: String) -> String {
             switch type {
             case "read": "Read"
@@ -230,7 +230,7 @@ final class WatchpointTypeLabelTests: XCTestCase {
 
 final class WatchpointFormValidationTests: XCTestCase {
     func testAddButtonEnabledState() {
-        // Add button should be disabled when input is empty
+        /// Add button should be disabled when input is empty
         func isAddButtonEnabled(addressInput: String) -> Bool {
             !addressInput.isEmpty
         }
@@ -242,7 +242,7 @@ final class WatchpointFormValidationTests: XCTestCase {
     }
 
     func testInputValidation() {
-        // Test that validation occurs before calling ViewModel
+        /// Test that validation occurs before calling ViewModel
         func shouldProceedWithAdd(addressInput: String) -> Bool {
             let trimmed = addressInput.trimmingCharacters(in: .whitespacesAndNewlines)
             return !trimmed.isEmpty

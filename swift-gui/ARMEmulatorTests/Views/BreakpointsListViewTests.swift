@@ -77,7 +77,7 @@ final class BreakpointSortingTests: XCTestCase {
 
 final class BreakpointsEmptyStateTests: XCTestCase {
     func testEmptyStateCondition() {
-        // Empty state shows when BOTH breakpoints and watchpoints are empty
+        /// Empty state shows when BOTH breakpoints and watchpoints are empty
         func shouldShowEmptyState(breakpoints: Set<UInt32>, watchpoints: [Watchpoint]) -> Bool {
             breakpoints.isEmpty && watchpoints.isEmpty
         }

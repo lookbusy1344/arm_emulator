@@ -18,7 +18,7 @@ final class BackendStatusViewStateTests: XCTestCase {
     }
 
     func testErrorMessageExtraction() {
-        // Test extracting error message from BackendStatus.error case
+        /// Test extracting error message from BackendStatus.error case
         func extractErrorMessage(from status: BackendManager.BackendStatus) -> String? {
             if case let .error(message) = status {
                 return message
@@ -33,7 +33,7 @@ final class BackendStatusViewStateTests: XCTestCase {
     }
 
     func testStatusRequiresRetryButton() {
-        // Determine which statuses should show a retry/start button
+        /// Determine which statuses should show a retry/start button
         func shouldShowRetryButton(for status: BackendManager.BackendStatus) -> Bool {
             switch status {
             case .stopped, .error:
@@ -51,7 +51,7 @@ final class BackendStatusViewStateTests: XCTestCase {
     }
 
     func testStatusShowsProgressIndicator() {
-        // Determine which statuses should show a progress indicator
+        /// Determine which statuses should show a progress indicator
         func shouldShowProgress(for status: BackendManager.BackendStatus) -> Bool {
             switch status {
             case .unknown, .starting:
@@ -69,7 +69,7 @@ final class BackendStatusViewStateTests: XCTestCase {
     }
 
     func testStatusShowsContent() {
-        // Determine which statuses should show content (vs empty view)
+        /// Determine which statuses should show content (vs empty view)
         func shouldShowContent(for status: BackendManager.BackendStatus) -> Bool {
             switch status {
             case .running:
@@ -91,7 +91,7 @@ final class BackendStatusViewStateTests: XCTestCase {
 
 final class BackendStatusIconTests: XCTestCase {
     func testStatusIcons() {
-        // Verify expected SF Symbol names for each status
+        /// Verify expected SF Symbol names for each status
         func iconName(for status: BackendManager.BackendStatus) -> String? {
             switch status {
             case .stopped:
@@ -122,7 +122,7 @@ final class BackendStatusIconTests: XCTestCase {
 
 final class BackendStatusTextTests: XCTestCase {
     func testStatusTitles() {
-        // Verify title text for each status
+        /// Verify title text for each status
         func titleText(for status: BackendManager.BackendStatus) -> String? {
             switch status {
             case .unknown, .starting:
@@ -144,7 +144,7 @@ final class BackendStatusTextTests: XCTestCase {
     }
 
     func testStatusDescriptions() {
-        // Verify description text for each status
+        /// Verify description text for each status
         func descriptionText(for status: BackendManager.BackendStatus) -> String? {
             switch status {
             case .stopped:
@@ -162,7 +162,7 @@ final class BackendStatusTextTests: XCTestCase {
     }
 
     func testButtonLabels() {
-        // Verify button text for each actionable status
+        /// Verify button text for each actionable status
         func buttonLabel(for status: BackendManager.BackendStatus) -> String? {
             switch status {
             case .stopped:

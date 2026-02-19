@@ -162,7 +162,7 @@ for size in sizes {
     }
 }
 
-// Generate Contents.json for Asset Catalog
+/// Generate Contents.json for Asset Catalog
 let contentsJSON = """
 {
   "images" : [

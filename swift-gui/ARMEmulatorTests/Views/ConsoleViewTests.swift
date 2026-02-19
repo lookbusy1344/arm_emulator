@@ -5,7 +5,7 @@ import XCTest
 
 final class ConsoleViewInputTests: XCTestCase {
     func testInputProcessing() {
-        // Simulate the sendInput() logic from ConsoleView
+        /// Simulate the sendInput() logic from ConsoleView
         func processInput(_ input: String) -> String? {
             guard !input.isEmpty else { return nil }
             return input + "\n"
@@ -18,7 +18,7 @@ final class ConsoleViewInputTests: XCTestCase {
     }
 
     func testInputNewlineAppending() throws {
-        // Verify newline is always appended
+        /// Verify newline is always appended
         func processInput(_ input: String) -> String? {
             guard !input.isEmpty else { return nil }
             return input + "\n"
@@ -33,7 +33,7 @@ final class ConsoleViewInputTests: XCTestCase {
     }
 
     func testEmptyInputRejection() {
-        // Empty input should be rejected (guard clause)
+        /// Empty input should be rejected (guard clause)
         func processInput(_ input: String) -> String? {
             guard !input.isEmpty else { return nil }
             return input + "\n"

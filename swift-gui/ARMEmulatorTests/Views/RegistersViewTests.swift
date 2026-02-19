@@ -16,7 +16,7 @@ final class RegistersViewGridColumnsTests: XCTestCase {
     // - Width >= 700: 3 columns
 
     func testGridColumnLogic() {
-        // Simulate the gridColumns logic
+        /// Simulate the gridColumns logic
         func gridColumns(for width: CGFloat) -> Int {
             if width < 500 {
                 1
@@ -36,7 +36,7 @@ final class RegistersViewGridColumnsTests: XCTestCase {
     }
 
     func testGridColumnEdgeCases() {
-        // Test boundary conditions
+        /// Test boundary conditions
         func gridColumns(for width: CGFloat) -> Int {
             if width < 500 {
                 1
