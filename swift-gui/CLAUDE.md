@@ -7,7 +7,7 @@ macOS-native GUI for ARM Emulator using SwiftUI and MVVM architecture.
 **IMPORTANT:** This Swift project targets modern platforms only - no backward compatibility required.
 
 - **macOS:** 26.2
-- **Swift:** 6.2
+- **Swift:** 6.3
 - **Xcode:** 26.2
 
 Always use the latest SwiftUI APIs and Swift language features. Target Apple Silicon only.
@@ -75,7 +75,7 @@ find ~/Library/Developer/Xcode/DerivedData -name "ARMEmulator.app" -type d -exec
 
 - **Pattern:** MVVM with SwiftUI
 - **Backend Connection:** HTTP REST API + WebSocket to Go backend (port 8080)
-- **Features:** Modern Swift 6.2 features (async/await, actors, structured concurrency)
+- **Features:** Modern Swift 6.3 features (async/await, actors, structured concurrency)
 - **Target:** Apple Silicon only, macOS 26.2+
 
 **⚠️ CRITICAL: API SYNCHRONIZATION**
@@ -253,6 +253,6 @@ swift-gui/
 
 - **No backward compatibility** - use latest Swift/SwiftUI features freely
 - **Apple Silicon only** - no Intel support required
-- **Modern Swift 6.2** - leverage all new language features
+- **Modern Swift 6.3** - leverage all new language features
 - **SwiftUI-first** - avoid UIKit/AppKit unless absolutely necessary
 - **0 SwiftLint violations** - non-negotiable before commit
