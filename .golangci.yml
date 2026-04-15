@@ -16,10 +16,10 @@ linters:
     - ineffassign   # Detect ineffectual assignments
     - misspell      # Check for commonly misspelled words
     - unconvert     # Remove unnecessary type conversions
+    - gosec         # Security checks
 
   disable:
     - staticcheck   # Disable staticcheck QF style suggestions
-    - gosec         # Disabled: G703/G115 produce false positives in memory ops and validated paths
 
 linters-settings:
   errcheck:

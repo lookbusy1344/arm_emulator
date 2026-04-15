@@ -126,7 +126,7 @@ func GetConfigPath() string {
 	}
 
 	// Ensure directory exists
-	if err := os.MkdirAll(configDir, 0750); err != nil {
+	if err := os.MkdirAll(configDir, 0750); err != nil { // #nosec G703 -- path derived from OS-provided home dir, not user input
 		// If we can't create the directory, fall back to current directory
 		return "config.toml"
 	}
@@ -160,7 +160,7 @@ func GetLogPath() string {
 	}
 
 	// Ensure directory exists
-	if err := os.MkdirAll(logDir, 0750); err != nil {
+	if err := os.MkdirAll(logDir, 0750); err != nil { // #nosec G703 -- path derived from OS-provided home dir, not user input
 		return "logs"
 	}
 

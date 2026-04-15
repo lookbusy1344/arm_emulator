@@ -207,11 +207,11 @@ func (m *Memory) WriteHalfword(address uint32, value uint16) error {
 	m.WriteCount++
 
 	if m.LittleEndian {
-		seg.Data[offset] = byte(value)
-		seg.Data[offset+1] = byte(value >> 8)
+		seg.Data[offset] = byte(value)         // #nosec G115 -- intentional byte extraction from uint16
+		seg.Data[offset+1] = byte(value >> 8)  // #nosec G115 -- intentional byte extraction from uint16
 	} else {
-		seg.Data[offset] = byte(value >> 8)
-		seg.Data[offset+1] = byte(value)
+		seg.Data[offset] = byte(value >> 8)    // #nosec G115 -- intentional byte extraction from uint16
+		seg.Data[offset+1] = byte(value)       // #nosec G115 -- intentional byte extraction from uint16
 	}
 	return nil
 }
@@ -278,15 +278,15 @@ func (m *Memory) WriteWord(address uint32, value uint32) error {
 	m.WriteCount++
 
 	if m.LittleEndian {
-		seg.Data[offset] = byte(value)
-		seg.Data[offset+1] = byte(value >> 8)
-		seg.Data[offset+2] = byte(value >> 16)
-		seg.Data[offset+3] = byte(value >> 24)
+		seg.Data[offset] = byte(value)          // #nosec G115 -- intentional byte extraction from uint32
+		seg.Data[offset+1] = byte(value >> 8)   // #nosec G115 -- intentional byte extraction from uint32
+		seg.Data[offset+2] = byte(value >> 16)  // #nosec G115 -- intentional byte extraction from uint32
+		seg.Data[offset+3] = byte(value >> 24)  // #nosec G115 -- intentional byte extraction from uint32
 	} else {
-		seg.Data[offset] = byte(value >> 24)
-		seg.Data[offset+1] = byte(value >> 16)
-		seg.Data[offset+2] = byte(value >> 8)
-		seg.Data[offset+3] = byte(value)
+		seg.Data[offset] = byte(value >> 24)    // #nosec G115 -- intentional byte extraction from uint32
+		seg.Data[offset+1] = byte(value >> 16)  // #nosec G115 -- intentional byte extraction from uint32
+		seg.Data[offset+2] = byte(value >> 8)   // #nosec G115 -- intentional byte extraction from uint32
+		seg.Data[offset+3] = byte(value)        // #nosec G115 -- intentional byte extraction from uint32
 	}
 	return nil
 }
@@ -357,15 +357,15 @@ func (m *Memory) WriteWordUnsafe(address uint32, value uint32) error {
 
 	// Write word in appropriate endianness
 	if m.LittleEndian {
-		seg.Data[offset] = byte(value)
-		seg.Data[offset+1] = byte(value >> 8)
-		seg.Data[offset+2] = byte(value >> 16)
-		seg.Data[offset+3] = byte(value >> 24)
+		seg.Data[offset] = byte(value)          // #nosec G115 -- intentional byte extraction from uint32
+		seg.Data[offset+1] = byte(value >> 8)   // #nosec G115 -- intentional byte extraction from uint32
+		seg.Data[offset+2] = byte(value >> 16)  // #nosec G115 -- intentional byte extraction from uint32
+		seg.Data[offset+3] = byte(value >> 24)  // #nosec G115 -- intentional byte extraction from uint32
 	} else {
-		seg.Data[offset] = byte(value >> 24)
-		seg.Data[offset+1] = byte(value >> 16)
-		seg.Data[offset+2] = byte(value >> 8)
-		seg.Data[offset+3] = byte(value)
+		seg.Data[offset] = byte(value >> 24)    // #nosec G115 -- intentional byte extraction from uint32
+		seg.Data[offset+1] = byte(value >> 16)  // #nosec G115 -- intentional byte extraction from uint32
+		seg.Data[offset+2] = byte(value >> 8)   // #nosec G115 -- intentional byte extraction from uint32
+		seg.Data[offset+3] = byte(value)        // #nosec G115 -- intentional byte extraction from uint32
 	}
 	return nil
 }

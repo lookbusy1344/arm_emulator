@@ -106,7 +106,7 @@ func LoadProgramIntoVM(machine *vm.VM, program *parser.Program, entryPoint uint3
 						return fmt.Errorf("invalid .byte value: %s", arg)
 					}
 				}
-				if err := machine.Memory.WriteByteUnsafe(dataAddr, byte(value)); err != nil {
+				if err := machine.Memory.WriteByteUnsafe(dataAddr, byte(value)); err != nil { // #nosec G115 -- intentional truncation: .byte directive accepts 0-255
 					return err
 				}
 				dataAddr++

@@ -1079,14 +1079,14 @@ func (s *Server) handleGetExample(w http.ResponseWriter, r *http.Request, exampl
 
 	// Read example file
 	examplePath := filepath.Join("examples", exampleName)
-	content, err := os.ReadFile(examplePath) // #nosec G304 -- path is validated above
+	content, err := os.ReadFile(examplePath) // #nosec G304,G703 -- path is validated above (no ".." or "/")
 	if err != nil {
 		writeError(w, http.StatusNotFound, fmt.Sprintf("Example not found: %s", exampleName))
 		return
 	}
 
 	// Get file info for size
-	info, err := os.Stat(examplePath)
+	info, err := os.Stat(examplePath) // #nosec G703 -- path is validated above (no ".." or "/")
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "Failed to get file info")
 		return
