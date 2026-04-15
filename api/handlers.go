@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/lookbusy1344/arm-emulator/parser"
 	"github.com/lookbusy1344/arm-emulator/service"
@@ -220,6 +221,17 @@ func (s *Server) handleStop(w http.ResponseWriter, r *http.Request, sessionID st
 	}
 
 	session.Service.Pause()
+
+	// Wait for the execution goroutine to update vm.State. Pause() only sets Running=false;
+	// the goroutine updates State to halted after its current vm.Step() returns.
+	const stopTimeout = 100 * time.Millisecond
+	deadline := time.Now().Add(stopTimeout)
+	for time.Now().Before(deadline) {
+		if session.Service.GetExecutionState() != service.StateRunning {
+			break
+		}
+		time.Sleep(time.Millisecond)
+	}
 
 	writeJSON(w, http.StatusOK, SuccessResponse{
 		Success: true,

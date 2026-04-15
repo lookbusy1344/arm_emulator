@@ -52,9 +52,26 @@ func (s *Server) GetSession(sessionID string) (*Session, error) {
 	return s.sessions.GetSession(sessionID)
 }
 
-// Handler returns the HTTP handler with CORS middleware applied
+// Handler returns the HTTP handler with CORS and security middleware applied
 func (s *Server) Handler() http.Handler {
-	return s.corsMiddleware(s.mux)
+	return s.corsMiddleware(s.rejectPathTraversal(s.mux))
+}
+
+// rejectPathTraversal rejects requests with ".." in their path before the ServeMux
+// can issue a redirect. Without this, Go's ServeMux path-cleaning redirects path
+// traversal attempts with 307 rather than rejecting them outright.
+func (s *Server) rejectPathTraversal(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		path := r.URL.RawPath
+		if path == "" {
+			path = r.URL.Path
+		}
+		if strings.Contains(path, "..") {
+			writeError(w, http.StatusBadRequest, "Invalid path")
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
 }
 
 // registerRoutes sets up all HTTP routes

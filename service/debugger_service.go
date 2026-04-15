@@ -225,12 +225,21 @@ func (s *DebuggerService) Continue() error {
 	return nil
 }
 
-// Pause pauses execution and sets VM state to halted
+// Pause signals execution to stop and transitions to halted.
+//
+// When State == StateRunning a goroutine is executing vm.Step() without holding s.mu,
+// so writing vm.State here would be a data race. In that case only Running is cleared
+// and RunUntilHalt() sets StateHalted once vm.Step() returns.
+//
+// When State != StateRunning (e.g. StateBreakpoint) no goroutine is in vm.Step(), so
+// vm.State can be written safely under s.mu.
 func (s *DebuggerService) Pause() {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.debugger.Running = false
-	s.vm.State = vm.StateHalted
+	if s.vm.State != vm.StateRunning {
+		s.vm.State = vm.StateHalted
+	}
 }
 
 // Reset performs a complete reset to initial state
@@ -483,6 +492,12 @@ func (s *DebuggerService) RunUntilHalt() error {
 		s.mu.Lock()
 		if !s.debugger.Running || s.vm.State != vm.StateRunning {
 			serviceLog.Printf("Exiting loop: Running=%v, State=%v", s.debugger.Running, s.vm.State)
+			// If stopped externally (e.g. Pause()), transition state to halted.
+			// Pause() cannot write vm.State directly because vm.Step() runs concurrently
+			// without s.mu, so the state update must happen here where the lock is held.
+			if !s.debugger.Running && s.vm.State == vm.StateRunning {
+				s.vm.State = vm.StateHalted
+			}
 			s.mu.Unlock()
 			break
 		}
