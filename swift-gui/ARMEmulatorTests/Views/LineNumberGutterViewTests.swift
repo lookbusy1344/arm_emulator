@@ -202,7 +202,7 @@ class LineNumberGutterViewTests: XCTestCase {
 
     func testBreakpointDrawing() {
         // Set initial breakpoints
-        let breakpoints: Set<Int> = [1, 3, 5]
+        let breakpoints = Set([1, 3, 5])
         gutterView.setBreakpoints(breakpoints)
 
         // Verify display can be called without crashing

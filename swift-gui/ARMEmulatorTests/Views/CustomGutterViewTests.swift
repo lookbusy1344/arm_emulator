@@ -46,7 +46,7 @@ class CustomGutterViewTests: XCTestCase {
     }
 
     func testSetBreakpoints() {
-        let breakpoints: Set<Int> = [2, 4]
+        let breakpoints = Set([2, 4])
         gutterView.setBreakpoints(breakpoints)
 
         // Verify needsDisplay is triggered (we can't easily verify the visual result)
