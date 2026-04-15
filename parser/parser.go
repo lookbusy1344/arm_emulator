@@ -341,18 +341,15 @@ func (p *Parser) handleDirective(d *Directive, program *Program) {
 
 	case ".word":
 		// Reserve 4 bytes per word
-		// Safe: len(d.Args) is limited by available memory, multiplication by 4 won't overflow in practice
-		p.currentAddress += uint32(len(d.Args) * 4) // #nosec G115 -- reasonable argument count
+		p.currentAddress += uint32(len(d.Args) * 4) // #nosec G115 -- overflow requires >1B args; memory exhausts first
 
 	case ".half":
 		// Reserve 2 bytes per halfword
-		// Safe: len(d.Args) is limited by available memory, multiplication by 2 won't overflow in practice
-		p.currentAddress += uint32(len(d.Args) * 2) // #nosec G115 -- reasonable argument count
+		p.currentAddress += uint32(len(d.Args) * 2) // #nosec G115 -- overflow requires >2B args; memory exhausts first
 
 	case ".byte":
 		// Reserve 1 byte per byte
-		// Safe: len(d.Args) is limited by available memory
-		p.currentAddress += uint32(len(d.Args)) // #nosec G115 -- reasonable argument count
+		p.currentAddress += uint32(len(d.Args)) // #nosec G115 -- overflow requires >4B args; memory exhausts first
 
 	case ".ascii", ".asciz", ".string":
 		// Reserve bytes for string (use processed length to account for escape sequences)
@@ -364,8 +361,7 @@ func (p *Parser) handleDirective(d *Directive, program *Program) {
 			}
 			// Process escape sequences to get actual byte count (e.g., "\n" = 1 byte, "\x41" = 1 byte)
 			processedStr := ProcessEscapeSequences(str)
-			// Safe: string length is limited by available memory
-			p.currentAddress += uint32(len(processedStr)) // #nosec G115 -- reasonable string length
+			p.currentAddress += uint32(len(processedStr)) // #nosec G115 -- overflow requires >4GB string; memory exhausts first
 			if d.Name == ".asciz" || d.Name == ".string" {
 				p.currentAddress++ // Null terminator
 			}
@@ -768,13 +764,12 @@ func (p *Parser) adjustAddressesForDynamicPools(program *Program) {
 		// Difference (can be negative if we reserved more space than needed)
 		difference := actualBytes - estimatedBytes
 
-		// Update pool location with cumulative offset
-		// #nosec G115 -- poolLoc and cumulativeOffset are within reasonable bounds for address calculations
-		program.LiteralPoolLocs[i] = uint32(int32(poolLoc) + cumulativeOffset)
+		// Update pool location with cumulative offset.
+		// Assumes program addresses stay in the lower 2GB (int32 range); safe for ARM programs.
+		program.LiteralPoolLocs[i] = uint32(int32(poolLoc) + cumulativeOffset) // #nosec G115 -- signed delta arithmetic; addresses assumed < 2GB
 
 		// Add this pool's difference to cumulative offset for subsequent items
-		// #nosec G115 -- difference is bounded by pool size estimates, safe to convert to int32
-		cumulativeOffset += int32(difference)
+		cumulativeOffset += int32(difference) // #nosec G115 -- difference bounded by pool capacity (EstimatedLiteralsPerPool * 4)
 
 		// Store cumulative offset after this pool
 		offsetAtPool[i] = cumulativeOffset
@@ -788,8 +783,7 @@ func (p *Parser) adjustAddressesForDynamicPools(program *Program) {
 		getAdjustmentForAddress := func(addr uint32) int32 {
 			// Find the last pool that this address comes after
 			for i := len(originalPoolLocs) - 1; i >= 0; i-- {
-				// #nosec G115 -- estimatedBytes is a const 64, safe to convert to uint32
-				poolEndLoc := originalPoolLocs[i] + uint32(estimatedBytes)
+				poolEndLoc := originalPoolLocs[i] + uint32(estimatedBytes) // #nosec G115 -- estimatedBytes = EstimatedLiteralsPerPool*4, a small constant
 				if addr >= poolEndLoc {
 					// This address comes after pool i, use cumulative offset at pool i
 					return offsetAtPool[i]
@@ -808,8 +802,7 @@ func (p *Parser) adjustAddressesForDynamicPools(program *Program) {
 		// Second pass: apply adjustments
 		for i, adjustment := range instAdjustments {
 			if adjustment != 0 {
-				// #nosec G115 -- adjustment is bounded, safe conversion
-				program.Instructions[i].Address = uint32(int32(program.Instructions[i].Address) + adjustment)
+				program.Instructions[i].Address = uint32(int32(program.Instructions[i].Address) + adjustment) // #nosec G115 -- signed delta arithmetic; addresses assumed < 2GB
 			}
 		}
 
@@ -824,8 +817,7 @@ func (p *Parser) adjustAddressesForDynamicPools(program *Program) {
 
 		for name, adjustment := range symbolAdjustments {
 			symbol := program.SymbolTable.symbols[name]
-			// #nosec G115 -- adjustment is bounded, safe conversion
-			symbol.Value = uint32(int32(symbol.Value) + adjustment)
+			symbol.Value = uint32(int32(symbol.Value) + adjustment) // #nosec G115 -- signed delta arithmetic; addresses assumed < 2GB
 			program.SymbolTable.symbols[name] = symbol
 		}
 	}

@@ -384,7 +384,7 @@ func main() {
 		if len(program.Instructions) > 0 {
 			codeStart := entryAddr
 			// Safe conversion: instruction count is bounded by memory size and parser limits
-			codeEnd := entryAddr + uint32(len(program.Instructions)*4) // #nosec G115 -- program size is bounded by memory
+			codeEnd := entryAddr + uint32(len(program.Instructions)*4) // #nosec G115 -- overflow requires >1B instructions; memory exhausts first
 			machine.CodeCoverage.SetCodeRange(codeStart, codeEnd)
 		}
 		machine.CodeCoverage.LoadSymbols(symbols)

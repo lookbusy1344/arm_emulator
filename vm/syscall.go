@@ -918,13 +918,12 @@ func handleRead(vm *VM) error {
 			return nil
 		}
 	}
-	//nolint:gosec // G115: n is bounded by reasonable read size
-	vm.CPU.SetRegister(0, uint32(n))
+	vm.CPU.SetRegister(0, uint32(n)) // #nosec G115 -- n <= len(data) <= MaxReadSize (1MB), fits in uint32
 
 	// Track memory write for GUI highlighting (only if bytes were actually read)
 	if n > 0 {
 		vm.LastMemoryWrite = bufferAddr
-		vm.LastMemoryWriteSize = uint32(n) // #nosec G115 -- n is bounded by reasonable read size
+		vm.LastMemoryWriteSize = uint32(n) // #nosec G115 -- n <= len(data) <= MaxReadSize (1MB), fits in uint32
 		vm.HasMemoryWrite = true
 	}
 
