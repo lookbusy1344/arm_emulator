@@ -733,6 +733,15 @@ func parseNumber(s string) (uint32, error) {
 	return result, nil
 }
 
+// applySignedOffset adds a signed offset to a uint32 address.
+// Panics if addr exceeds math.MaxInt32, enforcing the emulator's 2GB address space limit.
+func applySignedOffset(addr uint32, offset int32) uint32 {
+	if addr > math.MaxInt32 {
+		panic(fmt.Sprintf("address 0x%x exceeds 2GB limit", addr))
+	}
+	return uint32(int32(addr) + offset) // #nosec G115 -- addr bounds-checked above
+}
+
 // adjustAddressesForDynamicPools adjusts addresses after determining actual literal pool sizes
 // This function updates the addresses of all items after each pool to reflect the actual
 // space needed (based on literal counts) rather than the fixed 16-literal estimate
@@ -766,7 +775,7 @@ func (p *Parser) adjustAddressesForDynamicPools(program *Program) {
 
 		// Update pool location with cumulative offset.
 		// Assumes program addresses stay in the lower 2GB (int32 range); safe for ARM programs.
-		program.LiteralPoolLocs[i] = uint32(int32(poolLoc) + cumulativeOffset) // #nosec G115 -- signed delta arithmetic; addresses assumed < 2GB
+		program.LiteralPoolLocs[i] = applySignedOffset(poolLoc, cumulativeOffset)
 
 		// Add this pool's difference to cumulative offset for subsequent items
 		cumulativeOffset += int32(difference) // #nosec G115 -- difference bounded by pool capacity (EstimatedLiteralsPerPool * 4)
@@ -802,7 +811,7 @@ func (p *Parser) adjustAddressesForDynamicPools(program *Program) {
 		// Second pass: apply adjustments
 		for i, adjustment := range instAdjustments {
 			if adjustment != 0 {
-				program.Instructions[i].Address = uint32(int32(program.Instructions[i].Address) + adjustment) // #nosec G115 -- signed delta arithmetic; addresses assumed < 2GB
+				program.Instructions[i].Address = applySignedOffset(program.Instructions[i].Address, adjustment)
 			}
 		}
 
@@ -817,7 +826,7 @@ func (p *Parser) adjustAddressesForDynamicPools(program *Program) {
 
 		for name, adjustment := range symbolAdjustments {
 			symbol := program.SymbolTable.symbols[name]
-			symbol.Value = uint32(int32(symbol.Value) + adjustment) // #nosec G115 -- signed delta arithmetic; addresses assumed < 2GB
+			symbol.Value = applySignedOffset(symbol.Value, adjustment)
 			program.SymbolTable.symbols[name] = symbol
 		}
 	}
