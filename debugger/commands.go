@@ -80,9 +80,9 @@ func (d *Debugger) cmdNext(args []string) error {
 
 // cmdFinish steps out of current function
 func (d *Debugger) cmdFinish(args []string) error {
-	d.StepMode = StepOut
-	d.Running = true
-	d.ResumeFromCurrentPC()
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	d.beginStepOutLocked()
 	return nil
 }
 

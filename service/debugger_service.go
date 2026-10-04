@@ -810,10 +810,13 @@ func (s *DebuggerService) StepOut() error {
 		return fmt.Errorf("no program loaded")
 	}
 
-	// Use debugger's public method instead of accessing fields directly
-	s.debugger.SetStepOut()
+	if err := s.beginExecutionLocked(); err != nil {
+		return err
+	}
+	defer s.endExecutionLocked()
 
-	return nil
+	s.debugger.SetStepOut()
+	return s.runLocked()
 }
 
 // AddWatchpoint adds a watchpoint at the specified address

@@ -318,7 +318,7 @@ func (s *Server) handleStepOut(w http.ResponseWriter, r *http.Request, sessionID
 
 	stepErr := session.Service.StepOut()
 	if stepErr != nil {
-		writeError(w, http.StatusInternalServerError, fmt.Sprintf("Step out failed: %v", stepErr))
+		writeError(w, executionErrorStatus(stepErr), fmt.Sprintf("Step out failed: %v", stepErr))
 		return
 	}
 

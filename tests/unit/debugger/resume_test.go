@@ -69,3 +69,52 @@ func TestRunCommandStopsAtEntryBreakpoint(t *testing.T) {
 		t.Error("expected run to stop at a breakpoint on the entry point")
 	}
 }
+
+func TestFinishCommandReturnsToCaller(t *testing.T) {
+	const (
+		caller    = 0x8000
+		callee    = 0x8100
+		returnTo  = caller + 4
+		blCallee  = 0xEB00003E // BL 0x8100 from 0x8000
+		movR0     = 0xE3A00001 // MOV R0, #1
+		movPCLR   = 0xE1A0F00E // MOV PC, LR
+		calleeNop = 0xE1A00000 // MOV R0, R0
+	)
+	machine := vm.NewVM()
+	for _, seg := range machine.Memory.Segments {
+		if seg.Name == "code" {
+			seg.Permissions |= vm.PermWrite
+		}
+	}
+	for addr, word := range map[uint32]uint32{
+		caller: blCallee, returnTo: movR0, callee: calleeNop, callee + 4: movPCLR,
+	} {
+		if err := machine.Memory.WriteWord(addr, word); err != nil {
+			t.Fatal(err)
+		}
+	}
+	machine.CPU.PC = caller
+	if err := machine.Step(); err != nil {
+		t.Fatal(err)
+	}
+	if machine.CPU.PC != callee {
+		t.Fatalf("expected BL to reach 0x%X, got 0x%08X", callee, machine.CPU.PC)
+	}
+
+	dbg := debugger.NewDebugger(machine)
+	if err := dbg.ExecuteCommand("finish"); err != nil {
+		t.Fatal(err)
+	}
+	const maxSteps = 10
+	for range maxSteps {
+		if stop, _ := dbg.ShouldBreak(); stop {
+			break
+		}
+		if err := machine.Step(); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if machine.CPU.PC != returnTo {
+		t.Fatalf("expected finish to stop at 0x%X, got 0x%08X", returnTo, machine.CPU.PC)
+	}
+}
