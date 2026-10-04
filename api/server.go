@@ -101,7 +101,7 @@ func (s *Server) registerRoutes() {
 func (s *Server) Start() error {
 	s.server = &http.Server{
 		Addr:         fmt.Sprintf("127.0.0.1:%d", s.port),
-		Handler:      s.Handler(),
+		Handler:      LoopbackHostOnly(s.Handler()),
 		ReadTimeout:  15 * time.Second,
 		WriteTimeout: 15 * time.Second,
 		IdleTimeout:  60 * time.Second,
@@ -129,51 +129,34 @@ func (s *Server) GetBroadcaster() *Broadcaster {
 	return s.broadcaster
 }
 
-// corsMiddleware adds CORS headers restricted to localhost origins for security
+// corsMiddleware rejects requests from browser pages not served by this machine and
+// adds CORS headers for the rest.
 func (s *Server) corsMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		origin := r.Header.Get("Origin")
-
-		// Allow localhost origins only (various forms and ports)
-		// Allowed: http://localhost:*, http://127.0.0.1:*, https://localhost:*, file://
-		// Rejected: any remote origin
-		if isAllowedOrigin(origin) {
+		allowed := isAllowedOrigin(origin)
+		if allowed && origin != "" {
 			w.Header().Set("Access-Control-Allow-Origin", origin)
 			w.Header().Set("Access-Control-Allow-Credentials", "true")
 		}
-
+		w.Header().Set("Vary", "Origin")
 		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
 		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
 
-		if r.Method == "OPTIONS" {
+		// A preflight without Access-Control-Allow-Origin fails in the browser.
+		if r.Method == http.MethodOptions {
 			w.WriteHeader(http.StatusOK)
+			return
+		}
+
+		// Simple requests (e.g. a text/plain POST) skip preflight, so reject them here.
+		if !allowed {
+			writeError(w, http.StatusForbidden, "Origin not allowed")
 			return
 		}
 
 		next.ServeHTTP(w, r)
 	})
-}
-
-// isAllowedOrigin checks if the origin is from localhost
-func isAllowedOrigin(origin string) bool {
-	if origin == "" {
-		return true // No origin header (native apps, curl, etc.)
-	}
-
-	// Allow file:// for local HTML files
-	if strings.HasPrefix(origin, "file://") {
-		return true
-	}
-
-	// Allow localhost and 127.0.0.1 with http/https on any port
-	if strings.HasPrefix(origin, "http://localhost") ||
-		strings.HasPrefix(origin, "https://localhost") ||
-		strings.HasPrefix(origin, "http://127.0.0.1") ||
-		strings.HasPrefix(origin, "https://127.0.0.1") {
-		return true
-	}
-
-	return false
 }
 
 // handleHealth handles health check requests

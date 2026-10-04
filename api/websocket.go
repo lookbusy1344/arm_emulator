@@ -21,11 +21,7 @@ const (
 var upgrader = websocket.Upgrader{
 	ReadBufferSize:  1024,
 	WriteBufferSize: 1024,
-	CheckOrigin: func(r *http.Request) bool {
-		// Allow all origins for development
-		// In production, this should check against allowed origins
-		return true
-	},
+	CheckOrigin:     isAllowedRequestOrigin,
 }
 
 // WebSocketClient represents a connected WebSocket client
