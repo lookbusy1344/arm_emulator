@@ -62,21 +62,20 @@ func ExecuteDataProcessing(vm *VM, inst *Instruction) error {
 
 		var shiftAmount int
 		if shiftByReg == 1 {
-			// Shift amount in register
+			// Shift amount in the bottom byte of Rs
 			rs := int((inst.Opcode >> RsShift) & Mask4Bit)
 			shiftAmount = int(vm.CPU.GetRegister(rs) & ImmediateValueMask)
 		} else {
-			// Shift amount in instruction
-			shiftAmount = int((inst.Opcode >> ShiftAmountPos) & Mask5Bit)
+			shiftType, shiftAmount = immediateShift(shiftType, int((inst.Opcode>>ShiftAmountPos)&Mask5Bit))
 		}
 
-		// In ARM, ROR #0 means RRX (rotate right extended through carry)
-		if shiftType == ShiftROR && shiftAmount == 0 && shiftByReg == 0 {
-			shiftType = ShiftRRX
+		if shiftByReg == 1 && shiftAmount == 0 {
+			// A register shift by zero leaves the operand and carry unchanged
+			op2, shiftCarry = op2Value, vm.CPU.CPSR.C
+		} else {
+			shiftCarry = CalculateShiftCarry(op2Value, shiftAmount, shiftType, vm.CPU.CPSR.C)
+			op2 = PerformShift(op2Value, shiftAmount, shiftType, vm.CPU.CPSR.C)
 		}
-
-		shiftCarry = CalculateShiftCarry(op2Value, shiftAmount, shiftType, vm.CPU.CPSR.C)
-		op2 = PerformShift(op2Value, shiftAmount, shiftType, vm.CPU.CPSR.C)
 	}
 
 	// Execute operation

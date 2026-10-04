@@ -130,6 +130,22 @@ const (
 	ShiftRRX                  // Rotate Right Extended (with carry)
 )
 
+// immediateShift returns the shift an immediate shift field denotes. Amount 0 encodes
+// LSR #32, ASR #32 and RRX; LSL #0 is no shift.
+func immediateShift(shiftType ShiftType, amount int) (ShiftType, int) {
+	if amount != 0 {
+		return shiftType, amount
+	}
+	switch shiftType {
+	case ShiftLSR, ShiftASR:
+		return shiftType, BitsInWord
+	case ShiftROR:
+		return ShiftRRX, 0
+	default:
+		return shiftType, 0
+	}
+}
+
 // PerformShift performs a shift operation and returns the result
 func PerformShift(value uint32, shiftAmount int, shiftType ShiftType, carry bool) uint32 {
 	// Note: In ARM encoding, shift amount 0 has special meanings:

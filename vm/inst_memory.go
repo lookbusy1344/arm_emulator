@@ -57,8 +57,9 @@ func ExecuteLoadStore(v *VM, inst *Instruction) error {
 			rm := int(inst.Opcode & Mask4Bit)
 			offsetReg := vm.CPU.GetRegister(rm)
 
-			shiftType := ShiftType((inst.Opcode >> ShiftTypePos) & Mask2Bit)
-			shiftAmount := int((inst.Opcode >> ShiftAmountPos) & Mask5Bit)
+			shiftType, shiftAmount := immediateShift(
+				ShiftType((inst.Opcode>>ShiftTypePos)&Mask2Bit),
+				int((inst.Opcode>>ShiftAmountPos)&Mask5Bit))
 
 			offset = PerformShift(offsetReg, shiftAmount, shiftType, vm.CPU.CPSR.C)
 		}
