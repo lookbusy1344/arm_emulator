@@ -77,6 +77,7 @@ type DebuggerService struct {
 	stateChangedCallback func()        // Callback for GUI state updates
 
 	executing bool       // a goroutine is executing guest code
+	atEntry   bool       // no instruction has run since load or reset; run stops at an entry breakpoint
 	closed    bool       // Close was called; no further execution
 	execDone  *sync.Cond // signalled when executing becomes false
 
@@ -128,6 +129,7 @@ func (s *DebuggerService) beginExecutionLocked() error {
 		return ErrExecutionInProgress
 	}
 	s.executing = true
+	s.atEntry = false
 	s.stdinInterrupted = false
 	return nil
 }
@@ -240,6 +242,7 @@ func (s *DebuggerService) LoadProgram(program *parser.Program, entryPoint uint32
 	// Reset execution state to halted (not running until execution begins)
 	s.vm.State = vm.StateHalted
 	s.debugger.Running = false
+	s.atEntry = true
 
 	return nil
 }
@@ -328,6 +331,7 @@ func (s *DebuggerService) Reset() error {
 	// Reset execution control
 	s.debugger.Running = false
 	s.vm.State = vm.StateHalted
+	s.atEntry = true
 
 	return nil
 }
@@ -352,6 +356,7 @@ func (s *DebuggerService) ResetToEntryPoint() error {
 		return fmt.Errorf("failed to reset registers: %w", err)
 	}
 	s.debugger.Running = false
+	s.atEntry = true
 
 	return nil
 }
@@ -517,10 +522,14 @@ func (s *DebuggerService) RunUntilHalt() error {
 	if !s.debugger.Running {
 		return nil
 	}
+	resuming := !s.atEntry
 	if err := s.beginExecutionLocked(); err != nil {
 		return err
 	}
 	defer s.endExecutionLocked()
+	if resuming {
+		s.debugger.ResumeFromCurrentPC()
+	}
 	return s.runLocked()
 }
 

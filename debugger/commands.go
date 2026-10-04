@@ -39,6 +39,7 @@ func (d *Debugger) cmdContinue(args []string) error {
 	d.VM.State = vm.StateRunning
 	d.Running = true
 	d.StepMode = StepNone
+	d.ResumeFromCurrentPC()
 
 	d.Println("Continuing...")
 	return nil
@@ -68,6 +69,7 @@ func (d *Debugger) cmdNext(args []string) error {
 		d.StepOverPC = d.VM.CPU.PC + 4
 		d.StepMode = StepOver
 		d.Running = true
+		d.ResumeFromCurrentPC()
 	} else {
 		// Not a function call - just single step
 		d.StepMode = StepSingle
@@ -80,6 +82,7 @@ func (d *Debugger) cmdNext(args []string) error {
 func (d *Debugger) cmdFinish(args []string) error {
 	d.StepMode = StepOut
 	d.Running = true
+	d.ResumeFromCurrentPC()
 	return nil
 }
 

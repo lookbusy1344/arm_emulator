@@ -30,6 +30,11 @@ type Debugger struct {
 	StepOverCallDepth int    // Track call depth for step over
 	StepOverPC        uint32 // PC to return to after step over
 
+	// Resuming execution sets these so the next ShouldBreak ignores a breakpoint at
+	// the address execution stopped on; otherwise resume stops again without moving.
+	skipBreakpointPC uint32
+	skipBreakpoint   bool
+
 	// Symbol table (for label/symbol resolution)
 	Symbols map[string]uint32
 
@@ -235,6 +240,8 @@ func (d *Debugger) ShouldBreak() (bool, string) {
 
 	// Check step mode (protected by mutex)
 	d.mu.Lock()
+	skipBreakpoint := d.skipBreakpoint && d.skipBreakpointPC == pc
+	d.skipBreakpoint = false
 	switch d.StepMode {
 	case StepSingle:
 		d.StepMode = StepNone
@@ -260,7 +267,7 @@ func (d *Debugger) ShouldBreak() (bool, string) {
 	d.mu.Unlock()
 
 	// Check breakpoints
-	if bp := d.Breakpoints.GetBreakpoint(pc); bp != nil {
+	if bp := d.Breakpoints.GetBreakpoint(pc); bp != nil && !skipBreakpoint {
 		if !bp.Enabled {
 			return false, ""
 		}
@@ -331,11 +338,25 @@ func (d *Debugger) SetStepOver() {
 		d.StepOverPC = d.VM.CPU.PC + 4
 		d.StepMode = StepOver
 		d.Running = true
+		d.resumeFromCurrentPCLocked()
 	} else {
 		// Not a function call - just single step
 		d.StepMode = StepSingle
 		d.Running = true
 	}
+}
+
+// ResumeFromCurrentPC makes the next ShouldBreak ignore a breakpoint at the current PC,
+// so resuming executes the instruction execution stopped on (thread-safe).
+func (d *Debugger) ResumeFromCurrentPC() {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	d.resumeFromCurrentPCLocked()
+}
+
+func (d *Debugger) resumeFromCurrentPCLocked() {
+	d.skipBreakpointPC = d.VM.CPU.PC
+	d.skipBreakpoint = true
 }
 
 // SetStepOut configures the debugger to step out of the current function (thread-safe)
@@ -344,4 +365,5 @@ func (d *Debugger) SetStepOut() {
 	defer d.mu.Unlock()
 	d.StepMode = StepOut
 	d.Running = true
+	d.resumeFromCurrentPCLocked()
 }
