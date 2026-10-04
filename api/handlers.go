@@ -1,13 +1,13 @@
 package api
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/lookbusy1344/arm-emulator/parser"
 	"github.com/lookbusy1344/arm-emulator/service"
@@ -156,6 +156,18 @@ func (s *Server) handleLoadProgram(w http.ResponseWriter, r *http.Request, sessi
 	writeJSON(w, http.StatusOK, response)
 }
 
+// executionErrorStatus maps an execution error to an HTTP status.
+func executionErrorStatus(err error) int {
+	switch {
+	case errors.Is(err, service.ErrExecutionInProgress):
+		return http.StatusConflict
+	case errors.Is(err, service.ErrClosed):
+		return http.StatusGone
+	default:
+		return http.StatusInternalServerError
+	}
+}
+
 // handleRun handles POST /api/v1/session/{id}/run
 func (s *Server) handleRun(w http.ResponseWriter, r *http.Request, sessionID string) {
 	if r.Method != http.MethodPost {
@@ -220,18 +232,8 @@ func (s *Server) handleStop(w http.ResponseWriter, r *http.Request, sessionID st
 		return
 	}
 
+	// Pause returns once execution has stopped.
 	session.Service.Pause()
-
-	// Wait for the execution goroutine to update vm.State. Pause() only sets Running=false;
-	// the goroutine updates State to halted after its current vm.Step() returns.
-	const stopTimeout = 100 * time.Millisecond
-	deadline := time.Now().Add(stopTimeout)
-	for time.Now().Before(deadline) {
-		if session.Service.GetExecutionState() != service.StateRunning {
-			break
-		}
-		time.Sleep(time.Millisecond)
-	}
 
 	writeJSON(w, http.StatusOK, SuccessResponse{
 		Success: true,
@@ -254,7 +256,7 @@ func (s *Server) handleStep(w http.ResponseWriter, r *http.Request, sessionID st
 
 	stepErr := session.Service.Step()
 	if stepErr != nil {
-		writeError(w, http.StatusInternalServerError, fmt.Sprintf("Step failed: %v", stepErr))
+		writeError(w, executionErrorStatus(stepErr), fmt.Sprintf("Step failed: %v", stepErr))
 		return
 	}
 
@@ -285,7 +287,7 @@ func (s *Server) handleStepOver(w http.ResponseWriter, r *http.Request, sessionI
 
 	stepErr := session.Service.StepOver()
 	if stepErr != nil {
-		writeError(w, http.StatusInternalServerError, fmt.Sprintf("Step over failed: %v", stepErr))
+		writeError(w, executionErrorStatus(stepErr), fmt.Sprintf("Step over failed: %v", stepErr))
 		return
 	}
 

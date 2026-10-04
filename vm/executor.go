@@ -2,6 +2,7 @@ package vm
 
 import (
 	"bufio"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -287,6 +288,11 @@ func (vm *VM) Step() error {
 
 	// Execute instruction
 	if err := vm.Execute(decoded); err != nil {
+		// An interrupted console read leaves the instruction unexecuted.
+		if errors.Is(err, ErrInputInterrupted) {
+			vm.State = stateBefore
+			return err
+		}
 		// Don't overwrite terminal states (Halted, Breakpoint) set by syscalls
 		if vm.State != StateHalted && vm.State != StateBreakpoint {
 			vm.State = StateError

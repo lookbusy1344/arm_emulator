@@ -2,12 +2,12 @@ package service
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"io"
 	"log"
 	"os"
 	"path/filepath"
-	"strings"
 	"sync"
 	"time"
 
@@ -23,6 +23,13 @@ const (
 	maxStackCount       = 1000   // Maximum number of stack entries to return
 	maxStackOffset      = 100000 // Maximum stack offset to prevent wraparound attacks
 	stepsBeforeYield    = 1000   // Yield every N steps during execution
+)
+
+var (
+	// ErrExecutionInProgress is returned when guest code is already executing.
+	ErrExecutionInProgress = errors.New("execution in progress")
+	// ErrClosed is returned after Close.
+	ErrClosed = errors.New("debugger service closed")
 )
 
 var serviceLog *log.Logger
@@ -49,21 +56,16 @@ func init() {
 // DebuggerService provides a thread-safe interface to debugger functionality
 // This service is shared by TUI, API/GUI frontends, and CLI interfaces
 //
-// Lock Ordering:
-// The service uses its own sync.RWMutex (s.mu) to protect all field access,
-// including access to the debugger. When calling Debugger methods that have
-// their own internal mutex (like ShouldBreak), the lock order is:
-// s.mu -> debugger.mu
+// Concurrency:
+// mu guards every field and all access to the VM. At most one goroutine executes guest
+// code at a time (Step, StepOver, RunUntilHalt); it holds mu while an instruction runs
+// and releases it between instructions and while the guest waits for input. Calls that
+// replace VM state (LoadProgram, Reset, ResetToEntryPoint, Pause, Close) first stop that
+// goroutine and wait for it to finish.
 //
-// This is safe because:
-// - The TUI uses the Debugger's internal mutex directly (no service mutex)
-// - The service always acquires s.mu before any Debugger method that uses d.mu
-// - The API/GUI frontends only access debugger state through the service
-//
-// Do NOT acquire locks in the reverse order (debugger.mu -> s.mu) as this
-// would create a deadlock risk.
+// Lock order: s.mu -> debugger.mu. Never acquire them in the reverse order.
 type DebuggerService struct {
-	mu                   sync.RWMutex
+	mu                   sync.Mutex
 	vm                   *vm.VM
 	debugger             *debugger.Debugger
 	symbols              map[string]uint32
@@ -74,33 +76,93 @@ type DebuggerService struct {
 	outputBuffer         *bytes.Buffer // Output buffer for VM output (when not using API)
 	stateChangedCallback func()        // Callback for GUI state updates
 
-	// stdin redirection for guest programs (GUI)
-	stdinPipeReader *io.PipeReader
-	stdinPipeWriter *io.PipeWriter
-	stdinBuffer     strings.Builder // Buffer for stdin sent before execution starts
+	executing bool       // a goroutine is executing guest code
+	closed    bool       // Close was called; no further execution
+	execDone  *sync.Cond // signalled when executing becomes false
+
+	// Guest stdin. SendInput appends to stdin; the VM reads it through stdinSource.
+	stdin            []byte
+	stdinInterrupted bool       // pending reads fail with vm.ErrInputInterrupted
+	stdinReady       *sync.Cond // signalled when stdin grows or reads are interrupted
+}
+
+// stdinSource feeds queued input to the guest. The VM reads it inside vm.Step, which
+// runs with s.mu held. Waiting for input releases s.mu so other calls can proceed.
+type stdinSource struct{ s *DebuggerService }
+
+func (r stdinSource) Read(p []byte) (int, error) {
+	s := r.s
+	for len(s.stdin) == 0 && !s.stdinInterrupted {
+		s.stdinReady.Wait()
+	}
+	if s.stdinInterrupted {
+		return 0, vm.ErrInputInterrupted
+	}
+	n := copy(p, s.stdin)
+	s.stdin = s.stdin[n:]
+	return n, nil
 }
 
 // NewDebuggerService creates a new debugger service
 func NewDebuggerService(machine *vm.VM) *DebuggerService {
-	// Setup stdin pipe for guest program input (GUI)
-	stdinReader, stdinWriter := io.Pipe()
-	machine.SetStdinReader(stdinReader)
-
-	return &DebuggerService{
+	s := &DebuggerService{
 		vm:              machine,
 		debugger:        debugger.NewDebugger(machine),
 		symbols:         make(map[string]uint32),
 		sourceMap:       nil,
 		sourceMapByAddr: make(map[uint32]string),
-		stdinPipeReader: stdinReader,
-		stdinPipeWriter: stdinWriter,
 	}
+	s.execDone = sync.NewCond(&s.mu)
+	s.stdinReady = sync.NewCond(&s.mu)
+	machine.SetStdinReader(stdinSource{s})
+	return s
+}
+
+// beginExecutionLocked claims the VM for guest execution. The caller holds s.mu and
+// must call endExecutionLocked when done.
+func (s *DebuggerService) beginExecutionLocked() error {
+	if s.closed {
+		return ErrClosed
+	}
+	if s.executing {
+		return ErrExecutionInProgress
+	}
+	s.executing = true
+	s.stdinInterrupted = false
+	return nil
+}
+
+func (s *DebuggerService) endExecutionLocked() {
+	s.executing = false
+	s.execDone.Broadcast()
+}
+
+// stopExecutionLocked stops guest execution and waits for it to end. A blocked input
+// read is abandoned without completing. The caller holds s.mu.
+func (s *DebuggerService) stopExecutionLocked() {
+	s.debugger.Running = false
+	if !s.executing {
+		return
+	}
+	s.stdinInterrupted = true
+	s.stdinReady.Broadcast()
+	for s.executing {
+		s.execDone.Wait()
+	}
+}
+
+// Close stops guest execution and rejects further execution.
+func (s *DebuggerService) Close() {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.closed = true
+	s.stopExecutionLocked()
 }
 
 // GetVM returns the underlying VM (for testing)
 func (s *DebuggerService) GetVM() *vm.VM {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
+	s.mu.Lock()
+	defer s.mu.Unlock()
 	return s.vm
 }
 
@@ -115,6 +177,7 @@ func (s *DebuggerService) SetStateChangedCallback(callback func()) {
 func (s *DebuggerService) LoadProgram(program *parser.Program, entryPoint uint32) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	s.stopExecutionLocked()
 
 	s.program = program
 	s.entryPoint = entryPoint
@@ -183,8 +246,8 @@ func (s *DebuggerService) LoadProgram(program *parser.Program, entryPoint uint32
 
 // GetRegisterState returns current register state (thread-safe)
 func (s *DebuggerService) GetRegisterState() RegisterState {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
+	s.mu.Lock()
+	defer s.mu.Unlock()
 
 	// Build 16-register array: R0-R14 + PC at R15
 	var regs [16]uint32
@@ -207,10 +270,11 @@ func (s *DebuggerService) GetRegisterState() RegisterState {
 // Step executes a single instruction
 func (s *DebuggerService) Step() error {
 	s.mu.Lock()
-	// Release lock BEFORE Step() because Step() may block on stdin read.
-	// This allows SendInput() to acquire RLock and write to the stdin pipe.
-	s.mu.Unlock()
-
+	defer s.mu.Unlock()
+	if err := s.beginExecutionLocked(); err != nil {
+		return err
+	}
+	defer s.endExecutionLocked()
 	return s.vm.Step()
 }
 
@@ -225,21 +289,12 @@ func (s *DebuggerService) Continue() error {
 	return nil
 }
 
-// Pause signals execution to stop and transitions to halted.
-//
-// When State == StateRunning a goroutine is executing vm.Step() without holding s.mu,
-// so writing vm.State here would be a data race. In that case only Running is cleared
-// and RunUntilHalt() sets StateHalted once vm.Step() returns.
-//
-// When State != StateRunning (e.g. StateBreakpoint) no goroutine is in vm.Step(), so
-// vm.State can be written safely under s.mu.
+// Pause stops execution, waits for it to end, and transitions to halted.
 func (s *DebuggerService) Pause() {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	s.debugger.Running = false
-	if s.vm.State != vm.StateRunning {
-		s.vm.State = vm.StateHalted
-	}
+	s.stopExecutionLocked()
+	s.vm.State = vm.StateHalted
 }
 
 // Reset performs a complete reset to initial state
@@ -248,13 +303,14 @@ func (s *DebuggerService) Pause() {
 func (s *DebuggerService) Reset() error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	s.stopExecutionLocked()
 
 	// Full VM reset: clears all registers (PC=0), memory, and execution state
 	s.vm.Reset()
 
-	// Reset stdin reader to prevent hangs when stdin was redirected by GUI
-	// This ensures clean stdin state for the next program
-	s.vm.ResetStdinReader()
+	// Drop queued input, including bytes the VM has already buffered
+	s.stdin = nil
+	s.vm.SetStdinReader(stdinSource{s})
 
 	// Clear loaded program and associated metadata
 	s.program = nil
@@ -281,6 +337,7 @@ func (s *DebuggerService) Reset() error {
 func (s *DebuggerService) ResetToEntryPoint() error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	s.stopExecutionLocked()
 
 	if s.program == nil {
 		// No program loaded, perform full reset
@@ -301,8 +358,8 @@ func (s *DebuggerService) ResetToEntryPoint() error {
 
 // GetExecutionState returns current execution state
 func (s *DebuggerService) GetExecutionState() ExecutionState {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
+	s.mu.Lock()
+	defer s.mu.Unlock()
 	return VMStateToExecution(s.vm.State)
 }
 
@@ -335,8 +392,8 @@ func (s *DebuggerService) RemoveBreakpoint(address uint32) error {
 
 // GetBreakpoints returns all breakpoints
 func (s *DebuggerService) GetBreakpoints() []BreakpointInfo {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
+	s.mu.Lock()
+	defer s.mu.Unlock()
 
 	bps := s.debugger.Breakpoints.GetAllBreakpoints()
 	result := make([]BreakpointInfo, len(bps))
@@ -358,8 +415,8 @@ func (s *DebuggerService) ClearAllBreakpoints() {
 
 // GetMemory returns memory contents for a region
 func (s *DebuggerService) GetMemory(address uint32, size uint32) ([]byte, error) {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
+	s.mu.Lock()
+	defer s.mu.Unlock()
 
 	serviceLog.Printf("GetMemory: address=0x%08X, size=%d", address, size)
 	data := make([]byte, size)
@@ -395,15 +452,15 @@ func (s *DebuggerService) GetLastMemoryWrite() MemoryWriteInfo {
 
 // GetSourceLine returns the source line for an address
 func (s *DebuggerService) GetSourceLine(address uint32) string {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
+	s.mu.Lock()
+	defer s.mu.Unlock()
 	return s.sourceMapByAddr[address]
 }
 
 // GetSourceMap returns the source map entries with line numbers
 func (s *DebuggerService) GetSourceMap() []SourceMapEntry {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
+	s.mu.Lock()
+	defer s.mu.Unlock()
 
 	// Return copy of source map to prevent external modification
 	result := make([]SourceMapEntry, len(s.sourceMap))
@@ -413,8 +470,8 @@ func (s *DebuggerService) GetSourceMap() []SourceMapEntry {
 
 // GetSourceMapByAddr returns address-to-line lookup (for debugger display)
 func (s *DebuggerService) GetSourceMapByAddr() map[uint32]string {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
+	s.mu.Lock()
+	defer s.mu.Unlock()
 
 	// Return copy to prevent external modification
 	result := make(map[uint32]string, len(s.sourceMapByAddr))
@@ -426,8 +483,8 @@ func (s *DebuggerService) GetSourceMapByAddr() map[uint32]string {
 
 // GetSymbols returns all symbols
 func (s *DebuggerService) GetSymbols() map[string]uint32 {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
+	s.mu.Lock()
+	defer s.mu.Unlock()
 
 	// Return a copy to prevent external modification
 	symbols := make(map[string]uint32, len(s.symbols))
@@ -439,8 +496,8 @@ func (s *DebuggerService) GetSymbols() map[string]uint32 {
 
 // GetSymbolForAddress resolves an address to a symbol name
 func (s *DebuggerService) GetSymbolForAddress(addr uint32) string {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
+	s.mu.Lock()
+	defer s.mu.Unlock()
 
 	// Check if there's a symbol at this address
 	for name, symbolAddr := range s.symbols {
@@ -452,119 +509,77 @@ func (s *DebuggerService) GetSymbolForAddress(addr uint32) string {
 	return ""
 }
 
-// RunUntilHalt runs program until halt or breakpoint
-// If Running is already false (e.g., paused before goroutine started), returns immediately.
-// This handles the race where Pause() is called between Continue() setting Running=true
-// and this function starting execution.
+// RunUntilHalt runs the program until it halts, hits a breakpoint, or is stopped.
+// It returns nil at once if Pause ran after SetRunning(true) but before this call.
 func (s *DebuggerService) RunUntilHalt() error {
-	serviceLog.Println("RunUntilHalt() called")
 	s.mu.Lock()
-	// Check if already paused before we started (handles race with Pause())
+	defer s.mu.Unlock()
 	if !s.debugger.Running {
-		serviceLog.Println("RunUntilHalt() - already paused, exiting early")
-		s.mu.Unlock()
 		return nil
 	}
-
-	// Flush any buffered stdin to the pipe in a background goroutine
-	// This supports the batch stdin pattern where input is sent before calling run
-	// We use a goroutine because pipe writes block until there's a reader,
-	// but the reader only starts when the VM execution loop begins
-	if s.stdinBuffer.Len() > 0 {
-		buffered := s.stdinBuffer.String()
-		s.stdinBuffer.Reset()
-		serviceLog.Printf("Flushing %d bytes of buffered stdin in background", len(buffered))
-
-		// Launch goroutine to write to pipe (won't block RunUntilHalt)
-		go func() {
-			if _, err := s.stdinPipeWriter.Write([]byte(buffered)); err != nil {
-				serviceLog.Printf("Error writing buffered stdin to pipe: %v", err)
-			}
-		}()
+	if err := s.beginExecutionLocked(); err != nil {
+		return err
 	}
+	defer s.endExecutionLocked()
+	return s.runLocked()
+}
 
+// runLocked executes until the debugger stops, the guest halts, or an error occurs.
+// The caller holds s.mu and has claimed execution. The lock is released between
+// instructions so queries and Pause can interleave.
+func (s *DebuggerService) runLocked() error {
 	s.vm.State = vm.StateRunning
-	s.mu.Unlock()
-
-	stepCount := 0
-
-	for {
-		s.mu.Lock()
-		if !s.debugger.Running || s.vm.State != vm.StateRunning {
-			serviceLog.Printf("Exiting loop: Running=%v, State=%v", s.debugger.Running, s.vm.State)
-			// If stopped externally (e.g. Pause()), transition state to halted.
-			// Pause() cannot write vm.State directly because vm.Step() runs concurrently
-			// without s.mu, so the state update must happen here where the lock is held.
-			if !s.debugger.Running && s.vm.State == vm.StateRunning {
-				s.vm.State = vm.StateHalted
-			}
-			s.mu.Unlock()
-			break
+	for steps := 1; s.debugger.Running && s.vm.State == vm.StateRunning; steps++ {
+		// Single-step completes after one instruction; other modes check before it.
+		if s.debugger.StepMode != debugger.StepSingle && s.breakLocked() {
+			return nil
 		}
 
-		// Check breakpoints
-		if shouldBreak, _ := s.debugger.ShouldBreak(); shouldBreak {
-			serviceLog.Println("Breakpoint hit")
-			s.debugger.Running = false
-			s.vm.State = vm.StateBreakpoint
-			s.mu.Unlock()
-			break
-		}
-
-		// Capture values needed for step
-		pc := s.vm.CPU.PC
-
-		// Release lock BEFORE Step() because Step() may block on stdin read.
-		// This allows SendInput() to acquire RLock and write to the stdin pipe.
-		s.mu.Unlock()
-
-		// Execute step (without holding lock - Step may block on stdin)
 		err := s.vm.Step()
-
-		// Reacquire lock to check state
-		s.mu.Lock()
-		halted := s.vm.State == vm.StateHalted
-		s.mu.Unlock()
-
-		if stepCount == 0 {
-			serviceLog.Printf("Executing at PC=0x%08X", pc)
+		if errors.Is(err, vm.ErrInputInterrupted) {
+			break
 		}
-
-		// If error but VM is halted, it's normal program termination (SWI #0)
-		if err != nil && !halted {
-			serviceLog.Printf("Step error: %v", err)
-			s.mu.Lock()
+		// A halt (exit) or SWI breakpoint also returns an error; the state says which.
+		if err != nil && s.vm.State != vm.StateHalted && s.vm.State != vm.StateBreakpoint {
 			s.debugger.Running = false
-			s.mu.Unlock()
 			return err
 		}
 
-		if halted {
-			serviceLog.Println("VM halted")
-			s.mu.Lock()
-			s.debugger.Running = false
-			s.mu.Unlock()
-			break
+		if s.debugger.StepMode == debugger.StepSingle && s.breakLocked() {
+			return nil
 		}
 
-		// Periodically yield to allow GUI to query state
-		stepCount++
-		if stepCount >= stepsBeforeYield {
-			serviceLog.Printf("Yielding after %d steps", stepCount)
-			stepCount = 0
-			// Brief sleep to yield to scheduler and allow GUI queries
-			time.Sleep(1 * time.Millisecond)
+		s.mu.Unlock()
+		if steps%stepsBeforeYield == 0 {
+			time.Sleep(time.Millisecond)
 		}
+		s.mu.Lock()
 	}
 
-	serviceLog.Println("RunUntilHalt() completed")
+	s.debugger.Running = false
+	// Still running means Pause, Reset or Close stopped it.
+	if s.vm.State == vm.StateRunning {
+		s.vm.State = vm.StateHalted
+	}
 	return nil
+}
+
+// breakLocked stops at a breakpoint or completed step when the debugger asks for it.
+func (s *DebuggerService) breakLocked() bool {
+	stop, reason := s.debugger.ShouldBreak()
+	if !stop {
+		return false
+	}
+	serviceLog.Printf("Stopped: %s at PC=0x%08X", reason, s.vm.CPU.PC)
+	s.debugger.Running = false
+	s.vm.State = vm.StateBreakpoint
+	return true
 }
 
 // IsRunning returns whether execution is in progress
 func (s *DebuggerService) IsRunning() bool {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
+	s.mu.Lock()
+	defer s.mu.Unlock()
 	return s.debugger.Running
 }
 
@@ -574,6 +589,10 @@ func (s *DebuggerService) SetRunning(running bool) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.debugger.Running = running
+	// The executing goroutine owns vm.State.
+	if s.executing {
+		return
+	}
 	if running {
 		s.vm.State = vm.StateRunning
 	} else {
@@ -586,8 +605,8 @@ func (s *DebuggerService) SetRunning(running bool) {
 
 // GetExitCode returns the program exit code
 func (s *DebuggerService) GetExitCode() int32 {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
+	s.mu.Lock()
+	defer s.mu.Unlock()
 	return s.vm.ExitCode
 }
 
@@ -615,8 +634,8 @@ func (s *DebuggerService) GetOutput() string {
 //   - startAddr: must be 4-byte aligned (ARM requirement)
 //   - count: must be positive and <= maxDisassemblyCount
 func (s *DebuggerService) GetDisassembly(startAddr uint32, count int) []DisassemblyLine {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
+	s.mu.Lock()
+	defer s.mu.Unlock()
 
 	// Validate inputs
 	if count <= 0 || count > maxDisassemblyCount {
@@ -645,7 +664,7 @@ func (s *DebuggerService) GetDisassembly(startAddr uint32, count int) []Disassem
 			break
 		}
 
-		// Get symbol at this address if any (use unsafe version since we already hold RLock)
+		// Get symbol at this address if any (lock already held)
 		symbol := s.getSymbolForAddressUnsafe(addr)
 
 		// Get mnemonic from source map if available
@@ -679,8 +698,8 @@ func (s *DebuggerService) GetDisassembly(startAddr uint32, count int) []Disassem
 // The function performs safe arithmetic with overflow detection to prevent
 // integer wraparound vulnerabilities.
 func (s *DebuggerService) GetStack(offset int, count int) []StackEntry {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
+	s.mu.Lock()
+	defer s.mu.Unlock()
 
 	// Validate inputs
 	if count <= 0 || count > maxStackCount {
@@ -764,44 +783,13 @@ func (s *DebuggerService) StepOver() error {
 	if s.debugger == nil || s.program == nil {
 		return fmt.Errorf("no program loaded")
 	}
-
-	// Use debugger's SetStepOver to configure mode
-	s.debugger.SetStepOver()
-
-	// Execute until step completes
-	for s.debugger.Running {
-		// Check if we should break
-		if s.debugger.StepMode != debugger.StepSingle {
-			if shouldBreak, _ := s.debugger.ShouldBreak(); shouldBreak {
-				s.debugger.Running = false
-				break
-			}
-		}
-
-		// Release lock BEFORE Step() because Step() may block on stdin read.
-		s.mu.Unlock()
-
-		// Execute one instruction
-		err := s.vm.Step()
-
-		// Re-acquire lock
-		s.mu.Lock()
-
-		if err != nil {
-			s.debugger.Running = false
-			return err
-		}
-
-		// For single-step mode, check after execution
-		if s.debugger.StepMode == debugger.StepSingle {
-			if shouldBreak, _ := s.debugger.ShouldBreak(); shouldBreak {
-				s.debugger.Running = false
-				break
-			}
-		}
+	if err := s.beginExecutionLocked(); err != nil {
+		return err
 	}
+	defer s.endExecutionLocked()
 
-	return nil
+	s.debugger.SetStepOver()
+	return s.runLocked()
 }
 
 // StepOut executes until the current function returns
@@ -863,8 +851,8 @@ func (s *DebuggerService) RemoveWatchpoint(id int) error {
 
 // GetWatchpoints returns all watchpoints
 func (s *DebuggerService) GetWatchpoints() []WatchpointInfo {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
+	s.mu.Lock()
+	defer s.mu.Unlock()
 
 	if s.debugger == nil {
 		return []WatchpointInfo{}
@@ -924,46 +912,22 @@ func (s *DebuggerService) EvaluateExpression(expr string) (uint32, error) {
 	return s.debugger.Evaluator.EvaluateExpression(expr, s.vm, s.symbols)
 }
 
-// SendInput sends user input to the guest program's stdin
-// This is called from the GUI frontend when the user provides input
+// SendInput sends user input to the guest program's stdin.
+// Input sent while nothing runs is queued as-is for the next run (batch pattern).
+// Input sent during execution is echoed to the output and terminated with a newline.
 func (s *DebuggerService) SendInput(input string) error {
-	if s.stdinPipeWriter == nil {
-		return fmt.Errorf("stdin pipe not initialized")
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	if s.debugger.Running || s.executing {
+		if s.vm.OutputWriter != nil {
+			_, _ = s.vm.OutputWriter.Write([]byte(input + "\n"))
+		}
+		input += "\n"
 	}
-
-	// Check if VM is running or waiting for input
-	// If not running and not waiting, buffer the input for later (batch stdin pattern)
-	s.mu.RLock()
-	running := s.debugger.Running
-	waiting := s.vm.State == vm.StateWaitingForInput
-	s.mu.RUnlock()
-
-	if !running && !waiting {
-		s.mu.Lock()
-		// Note: input should already include newline from API layer
-		s.stdinBuffer.WriteString(input)
-		s.mu.Unlock()
-		serviceLog.Printf("SendInput: Buffered %d bytes for later", len(input))
-		return nil
-	}
-
-	// VM is running or waiting for input - echo to output and write to pipe
-	// NOTE: No mutex lock for pipe write! io.Pipe is already thread-safe.
-	// Taking a lock here causes deadlock when RunUntilHalt holds the lock while blocked on stdin read.
-
-	// Echo the input to the output window so the user can see what they typed
-	// Use RLock to safely access OutputWriter
-	s.mu.RLock()
-	outputWriter := s.vm.OutputWriter
-	s.mu.RUnlock()
-
-	if outputWriter != nil {
-		_, _ = outputWriter.Write([]byte(input + "\n"))
-	}
-
-	// Write input + newline to the stdin pipe (io.Pipe.Write is thread-safe)
-	_, err := s.stdinPipeWriter.Write([]byte(input + "\n"))
-	return err
+	s.stdin = append(s.stdin, input...)
+	s.stdinReady.Broadcast()
+	return nil
 }
 
 // EnableExecutionTrace enables execution tracing
@@ -999,8 +963,8 @@ func (s *DebuggerService) DisableExecutionTrace() {
 
 // GetExecutionTraceData returns execution trace entries
 func (s *DebuggerService) GetExecutionTraceData() ([]vm.TraceEntry, error) {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
+	s.mu.Lock()
+	defer s.mu.Unlock()
 
 	if s.vm.ExecutionTrace == nil {
 		return []vm.TraceEntry{}, nil
@@ -1046,8 +1010,8 @@ func (s *DebuggerService) DisableStatistics() {
 
 // GetStatistics returns performance statistics
 func (s *DebuggerService) GetStatistics() (*vm.PerformanceStatistics, error) {
-	s.mu.RLock()
-	defer s.mu.RUnlock()
+	s.mu.Lock()
+	defer s.mu.Unlock()
 
 	if s.vm.Statistics == nil {
 		return nil, fmt.Errorf("statistics not enabled")

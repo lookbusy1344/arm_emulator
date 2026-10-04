@@ -7,6 +7,7 @@ import (
 	"log"
 	"net/http"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -15,6 +16,7 @@ type Server struct {
 	sessions    *SessionManager
 	broadcaster *Broadcaster
 	mux         *http.ServeMux
+	serverMu    sync.Mutex
 	server      *http.Server
 	port        int
 	version     string
@@ -99,7 +101,7 @@ func (s *Server) registerRoutes() {
 
 // Start starts the HTTP server
 func (s *Server) Start() error {
-	s.server = &http.Server{
+	srv := &http.Server{
 		Addr:         fmt.Sprintf("127.0.0.1:%d", s.port),
 		Handler:      LoopbackHostOnly(s.Handler()),
 		ReadTimeout:  15 * time.Second,
@@ -107,8 +109,12 @@ func (s *Server) Start() error {
 		IdleTimeout:  60 * time.Second,
 	}
 
+	s.serverMu.Lock()
+	s.server = srv
+	s.serverMu.Unlock()
+
 	log.Printf("API server starting on http://127.0.0.1:%d (version: %s, commit: %s, built: %s)", s.port, s.version, s.commit, s.date)
-	return s.server.ListenAndServe()
+	return srv.ListenAndServe()
 }
 
 // Shutdown gracefully shuts down the server
@@ -118,10 +124,13 @@ func (s *Server) Shutdown(ctx context.Context) error {
 		s.broadcaster.Close()
 	}
 
-	if s.server == nil {
+	s.serverMu.Lock()
+	srv := s.server
+	s.serverMu.Unlock()
+	if srv == nil {
 		return nil
 	}
-	return s.server.Shutdown(ctx)
+	return srv.Shutdown(ctx)
 }
 
 // GetBroadcaster returns the broadcaster (for testing)

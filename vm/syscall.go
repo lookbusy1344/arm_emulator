@@ -103,6 +103,11 @@ func readLineWithLimit(reader *bufio.Reader, maxSize int) (string, error) {
 	return string(result), nil
 }
 
+// ErrInputInterrupted is returned by a stdin reader to abandon a blocked console read.
+// The read SWI does not complete: registers and PC stay as they were, so the SWI runs
+// again when execution resumes.
+var ErrInputInterrupted = errors.New("input interrupted")
+
 // SWI (Software Interrupt) syscall numbers
 const (
 	// Console I/O
@@ -440,6 +445,9 @@ func handleReadChar(vm *VM) error {
 	// Skip any leading whitespace (newlines, spaces, tabs)
 	for {
 		char, err := vm.stdinReader.ReadByte()
+		if errors.Is(err, ErrInputInterrupted) {
+			return err
+		}
 		if err != nil {
 			vm.SetState(StateRunning)                  // Restore running state
 			vm.CPU.SetRegister(0, SyscallErrorGeneral) // Return -1 on error
@@ -470,6 +478,9 @@ func handleReadString(vm *VM) error {
 	// Read string from stdin with size limit (DoS protection)
 	// Use a limited reader to prevent unbounded memory allocation
 	input, err := readLineWithLimit(vm.stdinReader, MaxStdinInputSize)
+	if errors.Is(err, ErrInputInterrupted) {
+		return err
+	}
 	if err != nil {
 		vm.SetState(StateRunning)                  // Restore running state
 		vm.CPU.SetRegister(0, SyscallErrorGeneral) // Return -1 on error
@@ -524,6 +535,9 @@ func handleReadInt(vm *VM) error {
 	for {
 		// Use limited read to prevent DoS from unbounded input
 		line, err := readLineWithLimit(vm.stdinReader, MaxStdinInputSize)
+		if errors.Is(err, ErrInputInterrupted) {
+			return err
+		}
 		if err != nil {
 			vm.SetState(StateRunning) // Restore running state
 			vm.CPU.SetRegister(0, 0)

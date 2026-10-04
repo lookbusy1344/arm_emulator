@@ -133,11 +133,8 @@ func (sm *SessionManager) DestroySession(sessionID string) error {
 		return ErrSessionNotFound
 	}
 
-	// Clean up session resources
-	if session.Service != nil {
-		// The service will clean up its own resources
-		session.Service = nil
-	}
+	// Handlers may still hold the session, so stop execution rather than clearing Service.
+	session.Service.Close()
 
 	// Clean up temporary directory if it was created
 	if session.TempDir != "" {
