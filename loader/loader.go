@@ -60,17 +60,15 @@ func LoadProgramIntoVM(machine *vm.VM, program *parser.Program, entryPoint uint3
 		case ".word":
 			// Write 32-bit words
 			for _, arg := range directive.Args {
-				var value uint32
 				// Try to parse as a number first
-				if _, err := fmt.Sscanf(arg, "0x%x", &value); err != nil {
-					if _, err := fmt.Sscanf(arg, "%d", &value); err != nil {
-						// Not a number, try to look up as a symbol (label)
-						symValue, symErr := program.SymbolTable.Get(arg)
-						if symErr != nil {
-							return fmt.Errorf("invalid .word value %q: %w", arg, symErr)
-						}
-						value = symValue
+				value, err := parser.ParseNumber(arg)
+				if err != nil {
+					// Not a number, try to look up as a symbol (label)
+					symValue, symErr := program.SymbolTable.Get(arg)
+					if symErr != nil {
+						return fmt.Errorf("invalid .word value %q: %w", arg, symErr)
 					}
+					value = symValue
 				}
 				if err := machine.Memory.WriteWordUnsafe(dataAddr, value); err != nil {
 					return err
@@ -101,10 +99,12 @@ func LoadProgramIntoVM(machine *vm.VM, program *parser.Program, entryPoint uint3
 					} else {
 						return fmt.Errorf("invalid .byte character literal: %s", arg)
 					}
-				} else if _, err := fmt.Sscanf(arg, "0x%x", &value); err != nil {
-					if _, err := fmt.Sscanf(arg, "%d", &value); err != nil {
+				} else {
+					parsed, err := parser.ParseNumber(arg)
+					if err != nil {
 						return fmt.Errorf("invalid .byte value: %s", arg)
 					}
+					value = parsed
 				}
 				if err := machine.Memory.WriteByteUnsafe(dataAddr, byte(value)); err != nil { // #nosec G115 -- intentional truncation: .byte directive accepts 0-255
 					return err
@@ -167,12 +167,8 @@ func LoadProgramIntoVM(machine *vm.VM, program *parser.Program, entryPoint uint3
 		case ".space", ".skip":
 			// Space is reserved but not written - just track the address
 			if len(directive.Args) > 0 {
-				var size uint32
-				if _, err := fmt.Sscanf(directive.Args[0], "0x%x", &size); err != nil {
-					if _, err := fmt.Sscanf(directive.Args[0], "%d", &size); err == nil {
-						// Successfully parsed
-					}
-				}
+				// The parser has validated the size; an unparsable one reserves nothing.
+				size, _ := parser.ParseNumber(directive.Args[0])
 				endAddr := dataAddr + size
 				if endAddr > maxAddr {
 					maxAddr = endAddr

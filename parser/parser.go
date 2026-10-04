@@ -313,7 +313,7 @@ func (p *Parser) handleDirective(d *Directive, program *Program) {
 	case ".org":
 		// Set origin address
 		if len(d.Args) > 0 {
-			if addr, err := parseNumber(d.Args[0]); err == nil {
+			if addr, err := ParseNumber(d.Args[0]); err == nil {
 				p.currentAddress = addr
 				// Set program origin if this is the first .org directive
 				if !p.originSet {
@@ -330,7 +330,7 @@ func (p *Parser) handleDirective(d *Directive, program *Program) {
 		// Define constant
 		if len(d.Args) >= 2 {
 			name := d.Args[0]
-			if value, err := parseNumber(d.Args[1]); err == nil {
+			if value, err := ParseNumber(d.Args[1]); err == nil {
 				if err := p.symbolTable.Define(name, SymbolConstant, value, d.Pos); err != nil {
 					p.errors.AddError(NewError(d.Pos, ErrorDuplicateLabel, err.Error()))
 				}
@@ -374,7 +374,7 @@ func (p *Parser) handleDirective(d *Directive, program *Program) {
 			var err error
 
 			// Try to parse as number first
-			size, err = parseNumber(d.Args[0])
+			size, err = ParseNumber(d.Args[0])
 			if err != nil {
 				// If not a number, try to resolve as symbol (e.g., .equ constant)
 				size, err = p.symbolTable.Get(d.Args[0])
@@ -390,7 +390,7 @@ func (p *Parser) handleDirective(d *Directive, program *Program) {
 	case ".align":
 		// Align to power of 2 (e.g., .align 2 means align to 2^2 = 4 bytes)
 		if len(d.Args) > 0 {
-			if alignPower, err := parseNumber(d.Args[0]); err == nil {
+			if alignPower, err := ParseNumber(d.Args[0]); err == nil {
 				alignBytes := uint32(1 << alignPower) // 2^alignPower
 				mask := alignBytes - 1
 				p.currentAddress = (p.currentAddress + mask) & ^mask
@@ -400,7 +400,7 @@ func (p *Parser) handleDirective(d *Directive, program *Program) {
 	case ".balign":
 		// Align to specified boundary
 		if len(d.Args) > 0 {
-			if align, err := parseNumber(d.Args[0]); err == nil {
+			if align, err := ParseNumber(d.Args[0]); err == nil {
 				if p.currentAddress%align != 0 {
 					p.currentAddress += align - (p.currentAddress % align)
 				}
@@ -687,8 +687,8 @@ func isInstructionName(s string) bool {
 	return false
 }
 
-// parseNumber parses a number in various formats (decimal, hex, binary, octal)
-func parseNumber(s string) (uint32, error) {
+// ParseNumber parses a number in various formats (decimal, hex, binary, octal)
+func ParseNumber(s string) (uint32, error) {
 	s = strings.TrimSpace(s)
 
 	// Handle negative numbers
