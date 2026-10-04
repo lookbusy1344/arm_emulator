@@ -288,6 +288,9 @@ func (e *Encoder) parseShift(shift string) (shiftType, shiftAmount uint32, shift
 	}
 
 	parts := strings.Fields(shift)
+	if len(parts) == 1 && strings.EqualFold(parts[0], "RRX") {
+		return uint32(vm.ShiftROR), 0, -1, nil // RRX is encoded as ROR #0
+	}
 	if len(parts) < 2 {
 		return 0, 0, -1, fmt.Errorf("invalid shift: %s", shift)
 	}
@@ -295,17 +298,15 @@ func (e *Encoder) parseShift(shift string) (shiftType, shiftAmount uint32, shift
 	// Parse shift type
 	switch strings.ToUpper(parts[0]) {
 	case "LSL":
-		shiftType = 0
+		shiftType = uint32(vm.ShiftLSL)
 	case "LSR":
-		shiftType = 1
+		shiftType = uint32(vm.ShiftLSR)
 	case "ASR":
-		shiftType = 2
+		shiftType = uint32(vm.ShiftASR)
 	case "ROR":
-		shiftType = 3
-	case "RRX":
-		return 3, 0, -1, nil // RRX is encoded as ROR #0
+		shiftType = uint32(vm.ShiftROR)
 	default:
-		return 0, 0, -1, fmt.Errorf("unknown shift type: %s", parts[0])
+		return 0, 0, -1, fmt.Errorf("invalid shift: %s", shift)
 	}
 
 	// Parse shift amount (register or immediate)
@@ -315,9 +316,16 @@ func (e *Encoder) parseShift(shift string) (shiftType, shiftAmount uint32, shift
 		if err != nil {
 			return 0, 0, -1, err
 		}
-		// Validate shift amount range (ARM allows 0-31)
-		if amount > 31 {
-			return 0, 0, -1, fmt.Errorf("shift amount out of range: %d (max 31)", amount)
+		// An amount field of 0 encodes LSR #32, ASR #32 and RRX, so LSL #0 is the only
+		// encoding for no shift.
+		rightShift := shiftType == uint32(vm.ShiftLSR) || shiftType == uint32(vm.ShiftASR)
+		switch {
+		case amount == 0:
+			return uint32(vm.ShiftLSL), 0, -1, nil
+		case amount == vm.BitsInWord && rightShift:
+			return shiftType, 0, -1, nil
+		case amount >= vm.BitsInWord:
+			return 0, 0, -1, fmt.Errorf("shift amount out of range: %d (max 31, or 32 for LSR/ASR)", amount)
 		}
 		return shiftType, amount, -1, nil
 	} else {
