@@ -1,6 +1,7 @@
 package integration_test
 
 import (
+	"encoding/json"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -576,5 +577,72 @@ start:
 		} else {
 			t.Logf("%s file generated successfully (%d bytes)", name, len(data))
 		}
+	}
+}
+
+const traceStatsProgram = `.org 0x8000
+start:
+    MOV R0, #3
+loop:
+    SUBS R0, R0, #1
+    BNE loop
+    MOV R0, #0
+    SWI #0x00
+`
+
+// TestTraceFlag tests the --trace and --trace-file flags
+func TestTraceFlag(t *testing.T) {
+	progPath := createTestProgram(t, traceStatsProgram)
+	defer os.Remove(progPath)
+	tracePath := filepath.Join(t.TempDir(), "trace.log")
+
+	_, stderr, exitCode := runEmulatorWithFlags(t, progPath, "--trace", "--trace-file", tracePath)
+	if exitCode != 0 {
+		t.Fatalf("Expected exit code 0, got %d\nStderr: %s", exitCode, stderr)
+	}
+
+	data, err := os.ReadFile(tracePath)
+	if err != nil {
+		t.Fatalf("Failed to read trace file: %v", err)
+	}
+	lines := strings.Split(strings.TrimSpace(string(data)), "\n")
+	// MOV, 3 x (SUBS, BNE), MOV, SWI
+	const wantEntries = 9
+	if len(lines) != wantEntries {
+		t.Fatalf("Expected %d trace entries, got %d:\n%s", wantEntries, len(lines), data)
+	}
+	if !strings.Contains(lines[0], "MOV R0, #3") {
+		t.Errorf("First entry should show the source line, got %q", lines[0])
+	}
+	if !strings.Contains(lines[0], "R0=0x00000003") {
+		t.Errorf("First entry should show the R0 change, got %q", lines[0])
+	}
+}
+
+// TestStatsFlag tests the --stats and --stats-file flags
+func TestStatsFlag(t *testing.T) {
+	progPath := createTestProgram(t, traceStatsProgram)
+	defer os.Remove(progPath)
+	statsPath := filepath.Join(t.TempDir(), "stats.json")
+
+	_, stderr, exitCode := runEmulatorWithFlags(t, progPath, "--stats", "--stats-file", statsPath)
+	if exitCode != 0 {
+		t.Fatalf("Expected exit code 0, got %d\nStderr: %s", exitCode, stderr)
+	}
+
+	data, err := os.ReadFile(statsPath)
+	if err != nil {
+		t.Fatalf("Failed to read stats file: %v", err)
+	}
+	var stats struct {
+		TotalInstructions uint64 `json:"total_instructions"`
+		BranchCount       uint64 `json:"branch_count"`
+		BranchTaken       uint64 `json:"branch_taken"`
+	}
+	if err := json.Unmarshal(data, &stats); err != nil {
+		t.Fatalf("Invalid stats JSON: %v\n%s", err, data)
+	}
+	if stats.TotalInstructions != 9 || stats.BranchCount != 3 || stats.BranchTaken != 2 {
+		t.Errorf("Expected 9 instructions, 3 branches, 2 taken; got %+v", stats)
 	}
 }

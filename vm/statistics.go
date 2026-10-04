@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"html/template"
 	"io"
+	"maps"
 	"sort"
 	"strings"
 	"time"
@@ -162,6 +163,19 @@ func (s *PerformanceStatistics) RecordMemoryWrite(bytes uint64) {
 
 	s.MemoryWrites++
 	s.BytesWritten += bytes
+}
+
+// Clone returns a copy that shares no maps or entries with s.
+func (s *PerformanceStatistics) Clone() *PerformanceStatistics {
+	c := *s
+	c.InstructionCounts = maps.Clone(s.InstructionCounts)
+	c.HotPath = maps.Clone(s.HotPath)
+	c.FunctionCalls = make(map[uint32]*FunctionStats, len(s.FunctionCalls))
+	for addr, fs := range s.FunctionCalls {
+		copied := *fs
+		c.FunctionCalls[addr] = &copied
+	}
+	return &c
 }
 
 // Finalize finalizes statistics collection

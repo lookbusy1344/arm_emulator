@@ -300,3 +300,51 @@ func TestCloseStopsExecution(t *testing.T) {
 		t.Errorf("Step after Close: expected ErrClosed, got %v", err)
 	}
 }
+
+// Run with -race: trace and statistics results must not share state with the executor.
+func TestTraceAndStatisticsDuringRun(t *testing.T) {
+	svc := newLoadedService(t, spinProgram)
+	if err := svc.EnableExecutionTrace(); err != nil {
+		t.Fatal(err)
+	}
+	if err := svc.EnableStatistics(); err != nil {
+		t.Fatal(err)
+	}
+	done := startRun(svc)
+	waitFor(t, "execution to start", func() bool { return cyclesAdvanced(svc) })
+
+	for range 50 {
+		entries, err := svc.GetExecutionTraceData()
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, e := range entries {
+			_ = len(e.RegisterChanges)
+		}
+		stats, err := svc.GetStatistics()
+		if err != nil {
+			t.Fatal(err)
+		}
+		for range stats.InstructionCounts {
+		}
+		for range stats.HotPath {
+		}
+	}
+
+	svc.Pause()
+	if err := waitDone(t, done); err != nil {
+		t.Fatalf("RunUntilHalt failed: %v", err)
+	}
+
+	entries, _ := svc.GetExecutionTraceData()
+	if len(entries) == 0 {
+		t.Fatal("expected trace entries after running")
+	}
+	if entries[0].Disassembly != "MOV R0, #0" {
+		t.Errorf("expected source text in trace, got %q", entries[0].Disassembly)
+	}
+	stats, _ := svc.GetStatistics()
+	if stats.TotalInstructions == 0 || stats.InstructionCounts["ADD"] == 0 {
+		t.Errorf("expected recorded statistics, got total=%d counts=%v", stats.TotalInstructions, stats.InstructionCounts)
+	}
+}

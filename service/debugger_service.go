@@ -8,6 +8,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"slices"
 	"sync"
 	"time"
 
@@ -956,6 +957,7 @@ func (s *DebuggerService) EnableExecutionTrace() error {
 		if len(s.symbols) > 0 {
 			s.vm.ExecutionTrace.LoadSymbols(s.symbols)
 		}
+		s.vm.ExecutionTrace.LoadSourceMap(s.sourceMapByAddr)
 	}
 
 	s.vm.ExecutionTrace.Enabled = true
@@ -982,7 +984,8 @@ func (s *DebuggerService) GetExecutionTraceData() ([]vm.TraceEntry, error) {
 		return []vm.TraceEntry{}, nil
 	}
 
-	return s.vm.ExecutionTrace.GetEntries(), nil
+	// Copy: the executor appends to the trace after the lock is released.
+	return slices.Clone(s.vm.ExecutionTrace.GetEntries()), nil
 }
 
 // ClearExecutionTrace clears execution trace entries
@@ -1032,5 +1035,6 @@ func (s *DebuggerService) GetStatistics() (*vm.PerformanceStatistics, error) {
 	// Finalize statistics before returning
 	s.vm.Statistics.Finalize()
 
-	return s.vm.Statistics, nil
+	// Copy: the executor updates the statistics after the lock is released.
+	return s.vm.Statistics.Clone(), nil
 }

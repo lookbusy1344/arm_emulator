@@ -96,6 +96,7 @@ func ExecuteLoadStore(v *VM, inst *Instruction) error {
 		var value uint32
 		var err error
 		var sizeStr string
+		var readSize uint64
 
 		if isHalfword {
 			// Load halfword
@@ -103,26 +104,26 @@ func ExecuteLoadStore(v *VM, inst *Instruction) error {
 			value = uint32(halfValue)
 			err = err2
 			sizeStr = "HALF"
+			readSize = AlignmentHalfword
 		} else if byteTransfer == 1 {
 			// Load byte
 			byteValue, err2 := vm.Memory.ReadByteAt(accessAddr)
 			value = uint32(byteValue)
 			err = err2
 			sizeStr = "BYTE"
+			readSize = AlignmentByte
 		} else {
 			// Load word
 			value, err = vm.Memory.ReadWord(accessAddr)
 			sizeStr = "WORD"
+			readSize = AlignmentWord
 		}
 
 		if err != nil {
 			return fmt.Errorf("load failed at 0x%08X: %w", accessAddr, err)
 		}
 
-		// Record memory trace if enabled
-		if vm.MemoryTrace != nil {
-			vm.MemoryTrace.RecordRead(vm.CPU.Cycles, vm.CPU.PC, accessAddr, value, sizeStr)
-		}
+		vm.recordMemoryAccess(false, accessAddr, value, sizeStr, readSize)
 
 		// If loading to SP (R13), use SetSPWithTrace for bounds validation
 		if rd == SP {
@@ -169,10 +170,7 @@ func ExecuteLoadStore(v *VM, inst *Instruction) error {
 		vm.LastMemoryWriteSize = writeSize
 		vm.HasMemoryWrite = true
 
-		// Record memory trace if enabled
-		if vm.MemoryTrace != nil {
-			vm.MemoryTrace.RecordWrite(vm.CPU.Cycles, vm.CPU.PC, accessAddr, value, sizeStr)
-		}
+		vm.recordMemoryAccess(true, accessAddr, value, sizeStr, uint64(writeSize))
 	}
 
 	// Write back effective address to base register if requested

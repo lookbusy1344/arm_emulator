@@ -38,8 +38,9 @@ type ExecutionTrace struct {
 
 	entries      []TraceEntry
 	startTime    time.Time
-	lastSnapshot RegisterSnapshot // Previous register values
-	symbols      *SymbolResolver  // Symbol resolver for address annotation
+	lastSnapshot RegisterSnapshot  // Previous register values
+	symbols      *SymbolResolver   // Symbol resolver for address annotation
+	sourceLines  map[uint32]string // Address -> source text for trace entries
 }
 
 // NewExecutionTrace creates a new execution trace
@@ -70,6 +71,28 @@ func (t *ExecutionTrace) LoadSymbols(symbols map[string]uint32) {
 	t.symbols = NewSymbolResolver(symbols)
 }
 
+// LoadSourceMap sets the source text shown for each instruction address.
+// Comments and surrounding whitespace are dropped.
+func (t *ExecutionTrace) LoadSourceMap(sourceMap map[uint32]string) {
+	t.sourceLines = make(map[uint32]string, len(sourceMap))
+	for addr, line := range sourceMap {
+		if i := strings.IndexAny(line, ";@"); i >= 0 {
+			line = line[:i]
+		}
+		t.sourceLines[addr] = strings.TrimSpace(line)
+	}
+}
+
+// RecordExecuted records the instruction at address with the given opcode. The entry
+// text is the source line when one is loaded, otherwise the mnemonic.
+func (t *ExecutionTrace) RecordExecuted(vm *VM, address, opcode uint32, mnemonic string) {
+	text, ok := t.sourceLines[address]
+	if !ok || text == "" {
+		text = mnemonic
+	}
+	t.record(vm, address, opcode, text)
+}
+
 // Start starts the trace
 func (t *ExecutionTrace) Start() {
 	t.startTime = time.Now()
@@ -77,8 +100,13 @@ func (t *ExecutionTrace) Start() {
 	t.lastSnapshot = RegisterSnapshot{}
 }
 
-// RecordInstruction records an instruction execution
+// RecordInstruction records an instruction execution, assuming the PC has advanced
+// sequentially past it.
 func (t *ExecutionTrace) RecordInstruction(vm *VM, disasm string) {
+	t.record(vm, vm.CPU.PC-ARMInstructionSize, 0, disasm)
+}
+
+func (t *ExecutionTrace) record(vm *VM, address, opcode uint32, disasm string) {
 	if !t.Enabled {
 		return
 	}
@@ -90,8 +118,8 @@ func (t *ExecutionTrace) RecordInstruction(vm *VM, disasm string) {
 
 	entry := TraceEntry{
 		Sequence:        vm.CPU.Cycles,
-		Address:         vm.CPU.PC - 4, // PC has already advanced
-		Opcode:          0,             // Will be filled by caller if needed
+		Address:         address,
+		Opcode:          opcode,
 		Disassembly:     disasm,
 		RegisterChanges: make(map[string]uint32),
 		Flags:           vm.CPU.CPSR,

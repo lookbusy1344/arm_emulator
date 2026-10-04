@@ -89,10 +89,7 @@ func ExecuteLoadStoreMultiple(vm *VM, inst *Instruction) error {
 				return fmt.Errorf("load multiple failed at 0x%08X: %w", addr, err)
 			}
 
-			// Record memory trace if enabled
-			if vm.MemoryTrace != nil {
-				vm.MemoryTrace.RecordRead(vm.CPU.Cycles, vm.CPU.PC, addr, value, "WORD")
-			}
+			vm.recordMemoryAccess(false, addr, value, "WORD", MultiRegisterWordSize)
 
 			// If loading to SP (R13), use SetSPWithTrace for bounds validation
 			if i == SP {
@@ -126,10 +123,7 @@ func ExecuteLoadStoreMultiple(vm *VM, inst *Instruction) error {
 			vm.LastMemoryWrite = addr
 			vm.HasMemoryWrite = true
 
-			// Record memory trace if enabled
-			if vm.MemoryTrace != nil {
-				vm.MemoryTrace.RecordWrite(vm.CPU.Cycles, vm.CPU.PC, addr, value, "WORD")
-			}
+			vm.recordMemoryAccess(true, addr, value, "WORD", MultiRegisterWordSize)
 		}
 
 		addr += MultiRegisterWordSize

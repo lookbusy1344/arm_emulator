@@ -271,6 +271,7 @@ func (vm *VM) Step() error {
 		// Condition not met, skip instruction
 		vm.CPU.IncrementPC()
 		vm.CPU.IncrementCycles(1)
+		vm.recordExecution(decoded, false)
 		return nil
 	}
 
@@ -297,11 +298,15 @@ func (vm *VM) Step() error {
 		if vm.State != StateHalted && vm.State != StateBreakpoint {
 			vm.State = StateError
 			vm.LastError = fmt.Errorf("execute failed at PC=0x%08X: %w", decoded.Address, err)
+		} else {
+			// Exit and breakpoint SWIs report through err but did execute.
+			vm.recordExecution(decoded, true)
 		}
 		return err
 	}
 
 	vm.CPU.IncrementCycles(1)
+	vm.recordExecution(decoded, true)
 
 	// Record diagnostic information after instruction execution
 	currentPC := decoded.Address
@@ -343,6 +348,48 @@ func (vm *VM) Step() error {
 	// else: Either Execute() changed the state, or we're in Run() mode (preserve StateRunning)
 
 	return nil
+}
+
+// recordExecution feeds the execution trace and statistics after an instruction.
+// executed is false when its condition failed and it was skipped.
+func (vm *VM) recordExecution(inst *Instruction, executed bool) {
+	if vm.ExecutionTrace == nil && vm.Statistics == nil {
+		return
+	}
+	mnemonic := Mnemonic(inst.Opcode)
+	if vm.ExecutionTrace != nil {
+		vm.ExecutionTrace.RecordExecuted(vm, inst.Address, inst.Opcode, mnemonic)
+	}
+	if vm.Statistics == nil {
+		return
+	}
+	vm.Statistics.RecordInstruction(mnemonic, inst.Address, 1)
+	if inst.Type != InstBranch {
+		return
+	}
+	taken := executed && vm.CPU.PC != inst.Address+ARMInstructionSize
+	vm.Statistics.RecordBranch(taken)
+	if taken && (mnemonic == "BL" || mnemonic == "BLX") {
+		vm.Statistics.RecordFunctionCall(vm.CPU.PC, "")
+	}
+}
+
+// recordMemoryAccess feeds the memory trace and statistics after a load or store.
+func (vm *VM) recordMemoryAccess(write bool, addr, value uint32, size string, bytes uint64) {
+	if vm.MemoryTrace != nil {
+		if write {
+			vm.MemoryTrace.RecordWrite(vm.CPU.Cycles, vm.CPU.PC, addr, value, size)
+		} else {
+			vm.MemoryTrace.RecordRead(vm.CPU.Cycles, vm.CPU.PC, addr, value, size)
+		}
+	}
+	if vm.Statistics != nil {
+		if write {
+			vm.Statistics.RecordMemoryWrite(bytes)
+		} else {
+			vm.Statistics.RecordMemoryRead(bytes)
+		}
+	}
 }
 
 // Fetch fetches the instruction at the current PC

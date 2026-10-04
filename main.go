@@ -307,6 +307,7 @@ func main() {
 
 		machine.ExecutionTrace = vm.NewExecutionTrace(traceWriter)
 		machine.ExecutionTrace.LoadSymbols(symbols)
+		machine.ExecutionTrace.LoadSourceMap(sourceMap)
 		machine.ExecutionTrace.Start()
 
 		// Apply filter if specified
