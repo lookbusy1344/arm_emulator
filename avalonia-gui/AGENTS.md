@@ -160,4 +160,4 @@ private async void OnWebSocketMessage(object? sender, MessageEventArgs e)
 
 - **Implementation Plan:** `../docs/AVALONIA_IMPLEMENTATION_PLAN.md`
 - **API Reference:** See Go backend `api/` directory
-- **Main Project Docs:** `../CLAUDE.md`
+- **Main Project Docs:** `../AGENTS.md`

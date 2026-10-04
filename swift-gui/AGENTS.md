@@ -236,7 +236,7 @@ swift-gui/
 │   └── Utilities/       - Helpers and extensions
 ├── ARMEmulatorTests/    - Unit tests
 ├── project.yml          - XcodeGen project definition
-└── CLAUDE.md           - This file
+└── AGENTS.md           - This file
 ```
 
 ## Development Workflow
