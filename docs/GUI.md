@@ -31,7 +31,7 @@ These shortcuts work when focus is not in an input field, providing fast debuggi
 
 ### Prerequisites
 
-- Go 1.25+
+- Go 1.27+
 - Node.js 18+
 - Wails CLI v2.9+
 

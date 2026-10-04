@@ -81,7 +81,7 @@ This document tracks the readiness of the ARM2 Emulator for v1.0 release.
 - [x] Automated build verification
 - [x] Automated test execution
 - [x] Automated linting (golangci-lint)
-- [x] Go 1.25 specified in workflows
+- [x] Go 1.27 specified in workflows
 
 ### 9. Cross-Platform Support ✅
 - [x] Linux AMD64 build configured

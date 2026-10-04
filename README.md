@@ -87,7 +87,7 @@ As a rough guide to the size of the project, the Go code on 13 Jan 2026 is aroun
 
 ## Prerequisites
 
-- Go 1.25 or higher (only required if building from source)
+- Go 1.27 or higher (only required if building from source)
 - Supported platforms: macOS, Linux, Windows
 
 ## Installation

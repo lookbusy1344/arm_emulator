@@ -52,7 +52,7 @@ The core concepts (load-store architecture, conditional execution, registers) re
 
 ### Q: What Go version do I need?
 
-**A:** Go 1.25 or later. Check with:
+**A:** Go 1.27 or later. Check with:
 ```bash
 go version
 ```
