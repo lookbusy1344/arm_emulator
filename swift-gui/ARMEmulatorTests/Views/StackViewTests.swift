@@ -8,8 +8,8 @@ final class StackViewCalculationsTests: XCTestCase {
         // Initial SP value from vm/constants.go
         let initialSP: UInt32 = 0x0005_0000
 
-        // Stack grows downward (SP decreases as stack grows)
         func calculateStackSize(currentSP: UInt32) -> UInt32 {
+            // Stack grows downward (SP decreases as stack grows)
             currentSP < initialSP ? initialSP - currentSP : 0
         }
 

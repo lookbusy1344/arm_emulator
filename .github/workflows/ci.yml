@@ -48,7 +48,17 @@ jobs:
 
       - name: Install Swift tools
         run: |
-          brew install xcodegen swiftlint swiftformat xcbeautify
+          brew install xcodegen swiftlint xcbeautify
+
+      # The runner image's Homebrew swiftformat lags the latest release.
+      - name: Install latest SwiftFormat
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release download --repo nicklockwood/SwiftFormat --pattern swiftformat.zip --dir "$RUNNER_TEMP"
+          unzip -q "$RUNNER_TEMP/swiftformat.zip" -d "$RUNNER_TEMP/swiftformat"
+          echo "$RUNNER_TEMP/swiftformat" >> "$GITHUB_PATH"
+          "$RUNNER_TEMP/swiftformat/swiftformat" --version
 
       - name: Generate Xcode project
         working-directory: swift-gui
