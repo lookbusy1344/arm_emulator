@@ -1,5 +1,5 @@
 using ARMEmulator.Services;
-using FluentAssertions;
+using AwesomeAssertions;
 using Xunit;
 
 namespace ARMEmulator.Tests.Services;

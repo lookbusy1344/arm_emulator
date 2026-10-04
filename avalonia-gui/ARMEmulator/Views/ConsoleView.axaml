@@ -1,19 +1,22 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:ARMEmulator.ViewModels"
-             xmlns:converters="using:ARMEmulator.Converters"
              x:DataType="vm:MainWindowViewModel"
              x:Class="ARMEmulator.Views.ConsoleView">
-    <Border BorderThickness="1"
+    <UserControl.Styles>
+        <Style Selector="Border.console">
+            <Setter Property="BorderBrush" Value="{DynamicResource SystemControlForegroundBaseMediumBrush}" />
+        </Style>
+        <Style Selector="Border.console.waiting">
+            <Setter Property="BorderBrush" Value="Orange" />
+        </Style>
+    </UserControl.Styles>
+
+    <Border Classes="console"
+            Classes.waiting="{Binding IsWaitingForInput}"
+            BorderThickness="1"
             CornerRadius="4"
             Padding="8">
-        <Border.BorderBrush>
-            <MultiBinding Converter="{x:Static converters:ConditionalValueConverter.Instance}">
-                <Binding Path="IsWaitingForInput" />
-                <Binding Source="Orange" />
-                <Binding Source="{DynamicResource SystemControlForegroundBaseMediumBrush}" />
-            </MultiBinding>
-        </Border.BorderBrush>
 
         <DockPanel>
             <!-- Header with status indicator -->
@@ -42,7 +45,7 @@
                            VerticalAlignment="Center" />
                 <TextBox Width="400"
                          Text="{Binding InputText}"
-                         Watermark="Enter input..."
+                         PlaceholderText="Enter input..."
                          VerticalAlignment="Center"
                          ToolTip.Tip="Enter input for the running program (press Enter or click Send)"
                          AutomationProperties.Name="Program Input"

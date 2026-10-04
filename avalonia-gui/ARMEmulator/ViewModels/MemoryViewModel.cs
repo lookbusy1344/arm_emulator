@@ -1,6 +1,7 @@
 using System.Collections.Immutable;
 using System.Reactive;
 using System.Reactive.Disposables;
+using System.Reactive.Disposables.Fluent;
 using ARMEmulator.Models;
 using ARMEmulator.Services;
 using ReactiveUI;

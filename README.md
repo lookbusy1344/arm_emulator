@@ -197,7 +197,7 @@ open ARMEmulator.xcodeproj
 - 6 execution states: idle, running, breakpoint, halted, error, waiting_for_input
 - Console output view with state-driven UI
 
-**Requirements:** macOS 26.2, Swift 6.2, Xcode 26.2. Enforces 0 SwiftLint violations.
+**Requirements:** macOS 26.2, Swift 6.4, Xcode 27.0. Enforces 0 SwiftLint violations.
 
 **Documentation:**
 - [docs/SWIFT_APP.md](docs/SWIFT_APP.md) - Complete guide

@@ -1,5 +1,5 @@
 using ARMEmulator.Models;
-using FluentAssertions;
+using AwesomeAssertions;
 
 namespace ARMEmulator.Tests.Models;
 

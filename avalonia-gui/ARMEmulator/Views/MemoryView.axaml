@@ -23,7 +23,7 @@
                            Margin="0,0,8,0" />
                 <TextBox Grid.Row="0" Grid.Column="1"
                          Text="{Binding AddressInput}"
-                         Watermark="0x8000 or 32768"
+                         PlaceholderText="0x8000 or 32768"
                          Width="200"
                          HorizontalAlignment="Left"
                          Margin="0,0,8,0"

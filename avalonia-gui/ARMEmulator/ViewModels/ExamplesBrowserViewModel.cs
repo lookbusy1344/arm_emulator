@@ -1,4 +1,5 @@
 using System.Reactive.Disposables;
+using System.Reactive.Disposables.Fluent;
 using System.Reactive.Linq;
 using ARMEmulator.Models;
 using ARMEmulator.Services;
@@ -32,7 +33,7 @@ public sealed class ExamplesBrowserViewModel : ReactiveObject, IDisposable
 		// Update filtered examples when search text or examples change
 		_ = this.WhenAnyValue(x => x.SearchText, x => x.Examples)
 			.Throttle(TimeSpan.FromMilliseconds(300))
-			.ObserveOn(RxApp.MainThreadScheduler)
+			.ObserveOn(RxSchedulers.MainThreadScheduler)
 			.Subscribe(_ => UpdateFilteredExamples())
 			.DisposeWith(disposables);
 
@@ -41,7 +42,7 @@ public sealed class ExamplesBrowserViewModel : ReactiveObject, IDisposable
 #pragma warning disable VSTHRD101
 		_ = this.WhenAnyValue(x => x.SelectedExample)
 			.Throttle(TimeSpan.FromMilliseconds(100))
-			.ObserveOn(RxApp.MainThreadScheduler)
+			.ObserveOn(RxSchedulers.MainThreadScheduler)
 			.Subscribe(async example => await LoadPreviewContentAsync(example))
 			.DisposeWith(disposables);
 #pragma warning restore VSTHRD101

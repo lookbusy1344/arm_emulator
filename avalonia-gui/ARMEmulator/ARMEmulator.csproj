@@ -38,37 +38,32 @@
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
-    <PackageReference Include="Microsoft.VisualStudio.Threading.Analyzers" Version="17.14.15">
+    <PackageReference Include="Microsoft.VisualStudio.Threading.Analyzers" Version="18.7.23">
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
-    <PackageReference Include="Roslynator.Analyzers" Version="4.15.0">
+    <PackageReference Include="Roslynator.Analyzers" Version="5.0.0">
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
   </ItemGroup>
 
   <ItemGroup>
-    <!-- Core Avalonia 11.3 -->
-    <PackageReference Include="Avalonia" Version="11.3.*" />
-    <PackageReference Include="Avalonia.Desktop" Version="11.3.*" />
-    <PackageReference Include="Avalonia.Themes.Fluent" Version="11.3.*" />
-    <PackageReference Include="Avalonia.Fonts.Inter" Version="11.3.*" />
-    <PackageReference Include="Avalonia.Diagnostics" Version="11.3.*">
-      <IncludeAssets Condition="'$(Configuration)' != 'Debug'">None</IncludeAssets>
-      <PrivateAssets Condition="'$(Configuration)' != 'Debug'">All</PrivateAssets>
-    </PackageReference>
+    <!-- Core Avalonia 12.1 -->
+    <PackageReference Include="Avalonia" Version="12.1.*" />
+    <PackageReference Include="Avalonia.Desktop" Version="12.1.*" />
+    <PackageReference Include="Avalonia.Themes.Fluent" Version="12.1.*" />
+    <PackageReference Include="Avalonia.Fonts.Inter" Version="12.1.*" />
 
-    <!-- MVVM - ReactiveUI (source generators have .NET 10 compatibility issues, using Fody instead) -->
-    <PackageReference Include="ReactiveUI" Version="20.*" />
-    <PackageReference Include="ReactiveUI.Fody" Version="19.*" />
-    <PackageReference Include="Avalonia.ReactiveUI" Version="11.3.*" />
+    <!-- MVVM - ReactiveUI -->
+    <PackageReference Include="ReactiveUI" Version="23.*" />
+    <PackageReference Include="ReactiveUI.Avalonia" Version="12.0.*" />
 
     <!-- Syntax Highlighting -->
-    <PackageReference Include="Avalonia.AvaloniaEdit" Version="11.*" />
+    <PackageReference Include="Avalonia.AvaloniaEdit" Version="12.*" />
 
     <!-- Reactive Extensions -->
-    <PackageReference Include="System.Reactive" Version="6.*" />
+    <PackageReference Include="System.Reactive" Version="7.*" />
 
     <!-- DI & Configuration -->
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.*" />

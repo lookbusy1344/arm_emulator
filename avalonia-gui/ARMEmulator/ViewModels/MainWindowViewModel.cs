@@ -1,5 +1,6 @@
 using System.Reactive;
 using System.Reactive.Disposables;
+using System.Reactive.Disposables.Fluent;
 using System.Reactive.Subjects;
 using ARMEmulator.Models;
 using ARMEmulator.Services;
@@ -103,7 +104,7 @@ public class MainWindowViewModel : ReactiveObject, IDisposable
 
 		// Subscribe to WebSocket events
 		_ = this.ws.Events
-			.ObserveOn(RxApp.MainThreadScheduler)
+			.ObserveOn(RxSchedulers.MainThreadScheduler)
 			.Subscribe(HandleEvent)
 			.DisposeWith(disposables);
 	}
@@ -326,7 +327,7 @@ public class MainWindowViewModel : ReactiveObject, IDisposable
 	) => ReactiveCommand.CreateFromTask(
 		execute,
 		canExecute,
-		outputScheduler: RxApp.MainThreadScheduler
+		outputScheduler: RxSchedulers.MainThreadScheduler
 	).DisposeWith(disposables);
 #pragma warning restore CA2000
 
@@ -603,7 +604,7 @@ public class MainWindowViewModel : ReactiveObject, IDisposable
 						.Select(register => (register, action: "remove"))
 					)
 			)
-			.ObserveOn(RxApp.MainThreadScheduler)
+			.ObserveOn(RxSchedulers.MainThreadScheduler)
 			.Subscribe(x => {
 				ChangedRegisters = x.action == "add"
 					? ChangedRegisters.Add(x.register)

@@ -4,7 +4,7 @@ using System.Text;
 using System.Text.Json;
 using ARMEmulator.Models;
 using ARMEmulator.Services;
-using FluentAssertions;
+using AwesomeAssertions;
 using NSubstitute;
 
 namespace ARMEmulator.Tests.Services;
@@ -28,7 +28,7 @@ public sealed class ApiClientTests : IDisposable
 		var sessionInfo = new SessionInfo("session-123");
 		handler.SetResponse(HttpStatusCode.OK, JsonSerializer.Serialize(sessionInfo, ApiJsonContext.Default.SessionInfo));
 
-		var result = await apiClient.CreateSessionAsync();
+		var result = await apiClient.CreateSessionAsync(TestContext.Current.CancellationToken);
 
 		_ = result.SessionId.Should().Be("session-123");
 		_ = handler.LastRequest!.RequestUri!.PathAndQuery.Should().Be("/api/v1/session");
@@ -52,7 +52,7 @@ public sealed class ApiClientTests : IDisposable
 		var status = new VMStatus(VMState.Idle, 0x8000, 0);
 		handler.SetResponse(HttpStatusCode.OK, JsonSerializer.Serialize(status, ApiJsonContext.Default.VMStatus));
 
-		var result = await apiClient.GetStatusAsync("session-123");
+		var result = await apiClient.GetStatusAsync("session-123", TestContext.Current.CancellationToken);
 
 		_ = result.State.Should().Be(VMState.Idle);
 		_ = result.PC.Should().Be(0x8000u);
@@ -75,7 +75,7 @@ public sealed class ApiClientTests : IDisposable
 		var response = new LoadProgramResponse(true, [], 0x8000);
 		handler.SetResponse(HttpStatusCode.OK, JsonSerializer.Serialize(response, ApiJsonContext.Default.LoadProgramResponse));
 
-		var result = await apiClient.LoadProgramAsync("session-123", "MOV R0, #1");
+		var result = await apiClient.LoadProgramAsync("session-123", "MOV R0, #1", TestContext.Current.CancellationToken);
 
 		_ = result.Success.Should().BeTrue();
 		_ = result.EntryPoint.Should().Be(0x8000u);
@@ -108,7 +108,7 @@ public sealed class ApiClientTests : IDisposable
 		var registers = RegisterState.Create(r0: 42);
 		handler.SetResponse(HttpStatusCode.OK, JsonSerializer.Serialize(registers, ApiJsonContext.Default.RegisterState));
 
-		var result = await apiClient.StepAsync("session-123");
+		var result = await apiClient.StepAsync("session-123", TestContext.Current.CancellationToken);
 
 		_ = result.R0.Should().Be(42u);
 		_ = handler.LastRequest!.RequestUri!.PathAndQuery.Should().Be("/api/v1/session/session-123/step");
@@ -121,7 +121,7 @@ public sealed class ApiClientTests : IDisposable
 		var response = new EvaluationResponse(42u);
 		handler.SetResponse(HttpStatusCode.OK, JsonSerializer.Serialize(response, ApiJsonContext.Default.EvaluationResponse));
 
-		var result = await apiClient.EvaluateExpressionAsync("session-123", "r0 + r1");
+		var result = await apiClient.EvaluateExpressionAsync("session-123", "r0 + r1", TestContext.Current.CancellationToken);
 
 		_ = result.Should().Be(42u);
 	}
@@ -145,7 +145,7 @@ public sealed class ApiClientTests : IDisposable
 		var response = new MemoryResponse(memory);
 		handler.SetResponse(HttpStatusCode.OK, JsonSerializer.Serialize(response, ApiJsonContext.Default.MemoryResponse));
 
-		var result = await apiClient.GetMemoryAsync("session-123", 0x10000, 4);
+		var result = await apiClient.GetMemoryAsync("session-123", 0x10000, 4, TestContext.Current.CancellationToken);
 
 		_ = result.Should().Equal(memory);
 	}
@@ -155,7 +155,7 @@ public sealed class ApiClientTests : IDisposable
 	{
 		handler.SetResponse(HttpStatusCode.OK, "{}");
 
-		await apiClient.AddBreakpointAsync("session-123", 0x8000);
+		await apiClient.AddBreakpointAsync("session-123", 0x8000, TestContext.Current.CancellationToken);
 
 		_ = handler.LastRequest!.RequestUri!.PathAndQuery.Should().Contain("/breakpoint");
 		_ = handler.LastRequest.Method.Should().Be(HttpMethod.Post);
@@ -167,7 +167,7 @@ public sealed class ApiClientTests : IDisposable
 		var watchpoint = new Watchpoint(1, 0x10000, WatchpointType.Write);
 		handler.SetResponse(HttpStatusCode.OK, JsonSerializer.Serialize(watchpoint, ApiJsonContext.Default.Watchpoint));
 
-		var result = await apiClient.AddWatchpointAsync("session-123", 0x10000, WatchpointType.Write);
+		var result = await apiClient.AddWatchpointAsync("session-123", 0x10000, WatchpointType.Write, TestContext.Current.CancellationToken);
 
 		_ = result.Id.Should().Be(1);
 		_ = result.Address.Should().Be(0x10000u);

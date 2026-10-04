@@ -1,7 +1,7 @@
 using ARMEmulator.Models;
 using ARMEmulator.Services;
 using ARMEmulator.ViewModels;
-using FluentAssertions;
+using AwesomeAssertions;
 using NSubstitute;
 
 namespace ARMEmulator.Tests.ViewModels;
@@ -49,7 +49,7 @@ public sealed class ExamplesBrowserViewModelTests
 
 		// Act
 		vm.SearchText = "fib";
-		await Task.Delay(350); // Wait for throttle
+		await Task.Delay(350, TestContext.Current.CancellationToken); // Wait for throttle
 
 		// Assert
 		vm.FilteredExamples.Should().HaveCount(1);
@@ -71,7 +71,7 @@ public sealed class ExamplesBrowserViewModelTests
 
 		// Act
 		vm.SearchText = "HELLO";
-		await Task.Delay(350); // Wait for throttle
+		await Task.Delay(350, TestContext.Current.CancellationToken); // Wait for throttle
 
 		// Assert
 		vm.FilteredExamples.Should().HaveCount(1);
@@ -93,7 +93,7 @@ public sealed class ExamplesBrowserViewModelTests
 
 		// Act
 		vm.SearchText = "loop";
-		await Task.Delay(350); // Wait for throttle
+		await Task.Delay(350, TestContext.Current.CancellationToken); // Wait for throttle
 
 		// Assert
 		vm.FilteredExamples.Should().HaveCount(2);
@@ -114,7 +114,7 @@ public sealed class ExamplesBrowserViewModelTests
 
 		// Act
 		vm.SelectedExample = vm.Examples[0];
-		await Task.Delay(150); // Wait for debounce
+		await Task.Delay(150, TestContext.Current.CancellationToken); // Wait for debounce
 
 		// Assert
 		vm.PreviewContent.Should().Contain("MOV R0, #42");

@@ -3,7 +3,7 @@ using System.Text;
 using System.Text.Json;
 using ARMEmulator.Models;
 using ARMEmulator.Services;
-using FluentAssertions;
+using AwesomeAssertions;
 using Xunit;
 
 namespace ARMEmulator.Tests.Services;

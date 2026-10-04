@@ -1,7 +1,7 @@
 using System.Collections.Immutable;
 using ARMEmulator.Models;
 using ARMEmulator.Services;
-using FluentAssertions;
+using AwesomeAssertions;
 
 namespace ARMEmulator.Tests.Integration;
 

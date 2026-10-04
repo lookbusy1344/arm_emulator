@@ -4,14 +4,14 @@ options:
   deploymentTarget:
     macOS: "26.2"
   developmentLanguage: en
-  xcodeVersion: "26.2"
+  xcodeVersion: "27.0"
 
 settings:
   base:
     DEVELOPMENT_TEAM: ""
     CODE_SIGN_STYLE: Automatic
     MACOSX_DEPLOYMENT_TARGET: "26.2"
-    SWIFT_VERSION: "6.3"
+    SWIFT_VERSION: "6.4"
     ENABLE_HARDENED_RUNTIME: YES
     COMBINE_HIDPI_IMAGES: YES
 

@@ -1,6 +1,6 @@
 using ARMEmulator.Models;
 using ARMEmulator.ViewModels;
-using FluentAssertions;
+using AwesomeAssertions;
 
 namespace ARMEmulator.Tests.ViewModels;
 

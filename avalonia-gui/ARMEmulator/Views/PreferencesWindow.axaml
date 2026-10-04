@@ -46,7 +46,7 @@
 					<StackPanel Orientation="Horizontal" Spacing="12">
 						<TextBlock Text="Backend URL:" Classes="label" />
 						<TextBox Text="{Binding BackendUrl}" Classes="input"
-						         Watermark="http://localhost:8080" />
+						         PlaceholderText="http://localhost:8080" />
 					</StackPanel>
 
 					<TextBlock Text="The HTTP endpoint for the ARM emulator backend."

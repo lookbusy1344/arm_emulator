@@ -57,7 +57,7 @@ go clean -testcache && go test ./...
 
 ## Swift GUI (macOS, Primary GUI)
 
-**Prerequisites:** macOS 26.2, Swift 6.2, Xcode 26.2
+**Prerequisites:** macOS 26.2, Swift 6.4, Xcode 27.0
 
 ```bash
 cd swift-gui

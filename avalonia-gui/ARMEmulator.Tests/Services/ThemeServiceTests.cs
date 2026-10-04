@@ -2,7 +2,7 @@ using System.Reactive.Subjects;
 using ARMEmulator.Models;
 using ARMEmulator.Services;
 using Avalonia.Styling;
-using FluentAssertions;
+using AwesomeAssertions;
 using NSubstitute;
 
 namespace ARMEmulator.Tests.Services;

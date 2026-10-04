@@ -2,7 +2,7 @@ using System.Collections.Immutable;
 using ARMEmulator.Models;
 using ARMEmulator.Services;
 using ARMEmulator.ViewModels;
-using FluentAssertions;
+using AwesomeAssertions;
 using NSubstitute;
 using Xunit;
 
@@ -164,7 +164,7 @@ public class MemoryViewModelTests : IDisposable
 
 		// Act
 		viewModel.UpdateMemoryWrite(new MemoryWrite(0x5000, 4));
-		await Task.Delay(50); // Allow async navigation to complete
+		await Task.Delay(50, TestContext.Current.CancellationToken); // Allow async navigation to complete
 
 		// Assert
 		viewModel.CurrentAddress.Should().Be(0x5000);

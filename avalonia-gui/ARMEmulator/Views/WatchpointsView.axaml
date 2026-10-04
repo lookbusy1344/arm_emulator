@@ -29,7 +29,7 @@
                                    VerticalAlignment="Center" />
                         <TextBox Grid.Row="0" Grid.Column="1"
                                  x:Name="WatchpointAddressInput"
-                                 Watermark="0x8000 or hex value"
+                                 PlaceholderText="0x8000 or hex value"
                                  FontFamily="Consolas, Menlo, Monaco, monospace" />
 
                         <!-- Type selector -->

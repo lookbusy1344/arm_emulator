@@ -28,7 +28,7 @@
                     <Grid ColumnDefinitions="*,Auto">
                         <TextBox Grid.Column="0"
                                  Text="{Binding Expression}"
-                                 Watermark="Enter expression (e.g., r0, r1+4)"
+                                 PlaceholderText="Enter expression (e.g., r0, r1+4)"
                                  FontFamily="Consolas, Menlo, Monaco, monospace"
                                  Margin="0,0,8,0"
                                  ToolTip.Tip="Enter an expression using registers (r0-r15), memory references ([address]), arithmetic (+, -, *, /), or hex values (0x8000)">

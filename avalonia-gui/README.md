@@ -78,7 +78,7 @@ avalonia-gui/
 | **UI Framework** | Avalonia UI 11.3.x |
 | **MVVM** | ReactiveUI 20.x with source generators |
 | **Text Editor** | AvaloniaEdit 0.10.x |
-| **Testing** | xUnit, NSubstitute, FluentAssertions, Avalonia.Headless |
+| **Testing** | xUnit v3, NSubstitute, AwesomeAssertions, Avalonia.Headless |
 
 ## Architecture
 

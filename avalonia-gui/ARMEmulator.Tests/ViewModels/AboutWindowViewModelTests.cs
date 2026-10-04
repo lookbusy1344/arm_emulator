@@ -1,7 +1,7 @@
 using ARMEmulator.Models;
 using ARMEmulator.Services;
 using ARMEmulator.ViewModels;
-using FluentAssertions;
+using AwesomeAssertions;
 using NSubstitute;
 
 namespace ARMEmulator.Tests.ViewModels;

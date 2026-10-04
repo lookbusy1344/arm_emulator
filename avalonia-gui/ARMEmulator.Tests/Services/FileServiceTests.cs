@@ -1,5 +1,5 @@
 using ARMEmulator.Services;
-using FluentAssertions;
+using AwesomeAssertions;
 using Xunit;
 
 namespace ARMEmulator.Tests.Services;
@@ -64,7 +64,7 @@ public sealed class FileServiceTests
 			service.AddRecentFile($"/path/file{i}.s");
 		}
 
-		service.RecentFiles.Should().HaveCountLessOrEqualTo(10); // Default max
+		service.RecentFiles.Should().HaveCountLessThanOrEqualTo(10); // Default max
 		service.RecentFiles[0].Path.Should().Be("/path/file14.s"); // Most recent
 	}
 

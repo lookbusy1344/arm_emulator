@@ -3,7 +3,7 @@ using System.Reactive.Subjects;
 using ARMEmulator.Models;
 using ARMEmulator.Services;
 using ARMEmulator.ViewModels;
-using FluentAssertions;
+using AwesomeAssertions;
 using NSubstitute;
 using Xunit;
 
@@ -316,7 +316,7 @@ public class MainWindowViewModelTests : IDisposable
 		viewModel.ChangedRegisters.Should().Contain("R0");
 
 		// Wait for highlight to be removed (1.5s + buffer)
-		await Task.Delay(1700);
+		await Task.Delay(1700, TestContext.Current.CancellationToken);
 
 		// Assert - highlight should be automatically removed
 		viewModel.ChangedRegisters.Should().NotContain("R0");
@@ -334,7 +334,7 @@ public class MainWindowViewModelTests : IDisposable
 		viewModel.ChangedRegisters.Should().Contain("R0");
 
 		// Wait 800ms, then change R1
-		await Task.Delay(800);
+		await Task.Delay(800, TestContext.Current.CancellationToken);
 		viewModel.UpdateRegisters(RegisterState.Create(r0: 10, r1: 20));
 
 		// Assert - both should be highlighted now
@@ -342,14 +342,14 @@ public class MainWindowViewModelTests : IDisposable
 		viewModel.ChangedRegisters.Should().Contain("R1");
 
 		// Wait 800ms more (R0 should expire at ~1600ms total, R1 at ~2400ms)
-		await Task.Delay(800);
+		await Task.Delay(800, TestContext.Current.CancellationToken);
 
 		// R0 should be gone, R1 should still be visible
 		viewModel.ChangedRegisters.Should().NotContain("R0");
 		viewModel.ChangedRegisters.Should().Contain("R1");
 
 		// Wait another 800ms for R1 to expire (with buffer for scheduling overhead)
-		await Task.Delay(800);
+		await Task.Delay(800, TestContext.Current.CancellationToken);
 		viewModel.ChangedRegisters.Should().NotContain("R1");
 	}
 
@@ -450,7 +450,7 @@ public class MainWindowViewModelTests : IDisposable
 		mockApi.CreateSessionAsync(Arg.Any<CancellationToken>()).Returns(sessionInfo);
 
 		// Act
-		await viewModel.CreateSessionAsync();
+		await viewModel.CreateSessionAsync(TestContext.Current.CancellationToken);
 
 		// Assert
 		viewModel.SessionId.Should().Be("test-session-123");
@@ -465,10 +465,10 @@ public class MainWindowViewModelTests : IDisposable
 		using var viewModel = new MainWindowViewModel(mockApi, mockWs, mockFileService);
 		var sessionInfo = new SessionInfo("test-session-123");
 		mockApi.CreateSessionAsync(Arg.Any<CancellationToken>()).Returns(sessionInfo);
-		await viewModel.CreateSessionAsync();
+		await viewModel.CreateSessionAsync(TestContext.Current.CancellationToken);
 
 		// Act
-		await viewModel.DestroySessionAsync();
+		await viewModel.DestroySessionAsync(TestContext.Current.CancellationToken);
 
 		// Assert
 		viewModel.SessionId.Should().BeNull();
@@ -487,8 +487,8 @@ public class MainWindowViewModelTests : IDisposable
 		mockApi.CreateSessionAsync(Arg.Any<CancellationToken>()).Returns(session1, session2);
 
 		// Act
-		await viewModel.CreateSessionAsync();  // Create first session
-		await viewModel.CreateSessionAsync();  // Create second session
+		await viewModel.CreateSessionAsync(TestContext.Current.CancellationToken);  // Create first session
+		await viewModel.CreateSessionAsync(TestContext.Current.CancellationToken);  // Create second session
 
 		// Assert - old session should be destroyed first
 		await mockApi.Received(1).DestroySessionAsync("session-1", Arg.Any<CancellationToken>());

@@ -1,6 +1,6 @@
 using System.Globalization;
 using ARMEmulator.Converters;
-using FluentAssertions;
+using AwesomeAssertions;
 using Xunit;
 
 namespace ARMEmulator.Tests.Converters;

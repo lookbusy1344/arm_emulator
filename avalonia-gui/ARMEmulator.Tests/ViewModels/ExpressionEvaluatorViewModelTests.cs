@@ -1,7 +1,7 @@
 using ARMEmulator.Models;
 using ARMEmulator.Services;
 using ARMEmulator.ViewModels;
-using FluentAssertions;
+using AwesomeAssertions;
 using NSubstitute;
 
 namespace ARMEmulator.Tests.ViewModels;
@@ -93,7 +93,7 @@ public class ExpressionEvaluatorViewModelTests
 		await viewModel.EvaluateCommand.Execute();
 
 		// Assert
-		await mockApi.DidNotReceiveWithAnyArgs().EvaluateExpressionAsync(default!, default!, default);
+		await mockApi.DidNotReceiveWithAnyArgs().EvaluateExpressionAsync(default!, default!, TestContext.Current.CancellationToken);
 		viewModel.History.Should().BeEmpty();
 	}
 

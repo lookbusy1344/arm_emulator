@@ -1,14 +1,15 @@
 using System.Reactive.Disposables;
+using System.Reactive.Disposables.Fluent;
 using System.Reactive.Linq;
 using System.Reflection;
 using System.Xml;
 using ARMEmulator.Controls;
 using ARMEmulator.ViewModels;
 using Avalonia.Controls;
-using Avalonia.ReactiveUI;
 using AvaloniaEdit.Highlighting;
 using AvaloniaEdit.Highlighting.Xshd;
 using ReactiveUI;
+using ReactiveUI.Avalonia;
 
 // ReactiveUI uses reflection for WhenAnyValue and WhenActivated, which triggers IL2026 warnings
 // This is acceptable since we don't use AOT compilation for this project
