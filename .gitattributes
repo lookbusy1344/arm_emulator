@@ -107,6 +107,7 @@ yarn.lock text eol=lf
 
 # .NET
 *.cs text eol=lf
+*.axaml text eol=lf
 *.csx text eol=lf
 *.csproj text eol=lf
 # *.vbproj text eol=lf
@@ -146,11 +147,11 @@ yarn.lock text eol=lf
 *.ttinclude text eol=lf
 
 # Windows-specific scripts (require CRLF)
-*.cmd text eol=crlf
-*.bat text eol=crlf
-*.ps1 text eol=crlf
-*.psm1 text eol=crlf
-*.psd1 text eol=crlf
+*.cmd text eol=lf
+*.bat text eol=lf
+*.ps1 text eol=lf
+*.psm1 text eol=lf
+*.psd1 text eol=lf
 
 # Images
 *.png binary
