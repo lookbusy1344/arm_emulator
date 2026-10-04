@@ -36,7 +36,7 @@ https://en.wikichip.org/wiki/acorn/microarchitectures/arm1
 
 ## AI-assisted Coded
 
-This is a AI-assisted coded project. Details of the initial prompt and development process followed in the first few weeks are documented in [Vibe_coding.md](Vibe_coding.md).
+This is a AI-assisted coded project. Details of the initial prompt and development process followed in the first few weeks are documented in [ai-assisted.md](ai-assisted.md).
 
 As a rough guide to the size of the project, the Go code on 13 Jan 2026 is around **61,000 lines**. The Swift GUI code is around **6,100 lines**.
 
