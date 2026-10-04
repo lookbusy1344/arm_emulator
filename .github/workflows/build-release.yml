@@ -216,10 +216,199 @@ jobs:
           path: ${{ steps.checksum.outputs.checksum_file }}
           retention-days: 7
 
+  build-avalonia-gui:
+    name: Build Avalonia GUI (${{ matrix.rid }})
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      matrix:
+        include:
+          - rid: linux-x64
+            runner: ubuntu-latest
+            goos: linux
+            goarch: amd64
+            platform: linux-amd64
+          - rid: osx-arm64
+            runner: macos-latest
+            goos: darwin
+            goarch: arm64
+            platform: macos-arm64
+          - rid: win-x64
+            runner: windows-latest
+            goos: windows
+            goarch: amd64
+            platform: win-amd64
+          - rid: win-arm64
+            runner: windows-latest
+            goos: windows
+            goarch: arm64
+            platform: win-arm64
+
+    env:
+      APP_NAME: ARMEmulator
+      # The csproj backend-copy targets look for arm-emulator at the repo root.
+      # The backend goes elsewhere so they stay inert; this job places it.
+      BACKEND_DIR: ${{ github.workspace }}/release-build/backend
+      PUBLISH_DIR: ${{ github.workspace }}/release-build/publish
+      STAGE_DIR: ${{ github.workspace }}/release-build/stage
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.27"
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Get version info
+        id: version
+        shell: bash
+        run: |
+          VERSION=${GITHUB_REF#refs/tags/}
+          COMMIT=${GITHUB_SHA::7}
+          DATE=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "number=${VERSION#v}" >> $GITHUB_OUTPUT
+          echo "commit=$COMMIT" >> $GITHUB_OUTPUT
+          echo "date=$DATE" >> $GITHUB_OUTPUT
+          echo "Building Avalonia GUI $VERSION for ${{ matrix.rid }} (commit: $COMMIT, date: $DATE)"
+
+      - name: Build Go backend
+        shell: bash
+        run: |
+          EXT=""
+          [ "${{ matrix.goos }}" = "windows" ] && EXT=".exe"
+          mkdir -p "$BACKEND_DIR"
+          go build -ldflags="-s -w -X main.Version=${{ steps.version.outputs.version }} -X main.Commit=${{ steps.version.outputs.commit }} -X main.Date=${{ steps.version.outputs.date }}" -o "$BACKEND_DIR/arm-emulator$EXT"
+        env:
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+
+      - name: Publish Avalonia app
+        shell: bash
+        working-directory: avalonia-gui
+        run: |
+          SINGLE_FILE=false
+          [ "${{ matrix.goos }}" = "windows" ] && SINGLE_FILE=true
+          dotnet publish ARMEmulator/ARMEmulator.csproj \
+            --configuration Release \
+            --runtime ${{ matrix.rid }} \
+            --self-contained true \
+            -p:PublishSingleFile=$SINGLE_FILE \
+            -p:IncludeNativeLibrariesForSelfExtract=$SINGLE_FILE \
+            -p:Version=${{ steps.version.outputs.number }} \
+            --output "$PUBLISH_DIR"
+
+      - name: Package Linux
+        if: matrix.goos == 'linux'
+        shell: bash
+        run: |
+          DIR_NAME="arm-emulator-avalonia-${{ matrix.platform }}"
+          mkdir -p "$STAGE_DIR/$DIR_NAME"
+          cp -R "$PUBLISH_DIR"/. "$STAGE_DIR/$DIR_NAME/"
+          cp "$BACKEND_DIR/arm-emulator" "$STAGE_DIR/$DIR_NAME/"
+          chmod +x "$STAGE_DIR/$DIR_NAME/$APP_NAME" "$STAGE_DIR/$DIR_NAME/arm-emulator"
+          ARTIFACT_NAME="$DIR_NAME.tar.gz"
+          tar -czf "$ARTIFACT_NAME" -C "$STAGE_DIR" "$DIR_NAME"
+          echo "ARTIFACT_NAME=$ARTIFACT_NAME" >> $GITHUB_ENV
+
+      - name: Package macOS
+        if: matrix.goos == 'darwin'
+        shell: bash
+        run: |
+          APP="$STAGE_DIR/$APP_NAME.app"
+          VERSION_NUMBER="${{ steps.version.outputs.number }}"
+          mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
+          cp -R "$PUBLISH_DIR"/. "$APP/Contents/MacOS/"
+          cp "$BACKEND_DIR/arm-emulator" "$APP/Contents/Resources/"
+          chmod +x "$APP/Contents/MacOS/$APP_NAME" "$APP/Contents/Resources/arm-emulator"
+          cat > "$APP/Contents/Info.plist" << EOF
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+              <key>CFBundleDevelopmentRegion</key>
+              <string>en</string>
+              <key>CFBundleDisplayName</key>
+              <string>ARM Emulator</string>
+              <key>CFBundleExecutable</key>
+              <string>$APP_NAME</string>
+              <key>CFBundleIdentifier</key>
+              <string>com.armemulator.gui</string>
+              <key>CFBundleInfoDictionaryVersion</key>
+              <string>6.0</string>
+              <key>CFBundleName</key>
+              <string>$APP_NAME</string>
+              <key>CFBundlePackageType</key>
+              <string>APPL</string>
+              <key>CFBundleShortVersionString</key>
+              <string>$VERSION_NUMBER</string>
+              <key>CFBundleVersion</key>
+              <string>$VERSION_NUMBER</string>
+              <key>LSMinimumSystemVersion</key>
+              <string>13.0</string>
+              <key>NSHighResolutionCapable</key>
+              <true/>
+              <key>NSPrincipalClass</key>
+              <string>NSApplication</string>
+          </dict>
+          </plist>
+          EOF
+          plutil -lint "$APP/Contents/Info.plist"
+          codesign --force --deep --sign - "$APP"
+          ARTIFACT_NAME="arm-emulator-avalonia-${{ matrix.platform }}.app.tar.gz"
+          tar -czf "$ARTIFACT_NAME" -C "$STAGE_DIR" "$APP_NAME.app"
+          echo "ARTIFACT_NAME=$ARTIFACT_NAME" >> $GITHUB_ENV
+
+      - name: Package Windows
+        if: matrix.goos == 'windows'
+        shell: pwsh
+        run: |
+          $dirName = "arm-emulator-avalonia-${{ matrix.platform }}"
+          $dest = Join-Path $env:STAGE_DIR $dirName
+          New-Item -ItemType Directory -Force -Path $dest | Out-Null
+          Copy-Item -Recurse -Path (Join-Path $env:PUBLISH_DIR '*') -Destination $dest
+          Copy-Item -Path (Join-Path $env:BACKEND_DIR 'arm-emulator.exe') -Destination $dest
+          $artifactName = "$dirName.zip"
+          Compress-Archive -Path $dest -DestinationPath $artifactName
+          "ARTIFACT_NAME=$artifactName" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+
+      - name: Generate SHA256 checksum
+        shell: bash
+        run: |
+          CHECKSUM_FILE="${ARTIFACT_NAME}.sha256"
+          if [ "$RUNNER_OS" = "Windows" ]; then
+            HASH=$(powershell -Command "(Get-FileHash -Algorithm SHA256 '$ARTIFACT_NAME').Hash.ToLower()")
+            echo "$HASH  $ARTIFACT_NAME" > "$CHECKSUM_FILE"
+          else
+            shasum -a 256 "$ARTIFACT_NAME" > "$CHECKSUM_FILE"
+          fi
+          echo "CHECKSUM_FILE=$CHECKSUM_FILE" >> $GITHUB_ENV
+          echo "Generated checksum:"
+          cat "$CHECKSUM_FILE"
+
+      - name: Upload Avalonia GUI artifact
+        uses: actions/upload-artifact@v5
+        with:
+          name: ${{ env.ARTIFACT_NAME }}
+          path: ${{ env.ARTIFACT_NAME }}
+          retention-days: 7
+
+      - name: Upload checksum
+        uses: actions/upload-artifact@v5
+        with:
+          name: ${{ env.CHECKSUM_FILE }}
+          path: ${{ env.CHECKSUM_FILE }}
+          retention-days: 7
+
   create-release:
     name: Create GitHub Release
     runs-on: ubuntu-latest
-    needs: [build, build-swift-gui]
+    needs: [build, build-swift-gui, build-avalonia-gui]
     if: startsWith(github.ref, 'refs/tags/')
     steps:
       - name: Download all artifacts
