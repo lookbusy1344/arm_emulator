@@ -101,31 +101,8 @@
     <Message Condition="Exists('$(OutDir)/arm-emulator.exe')" Importance="high" Text="✓ Backend binary copied successfully (Windows)" />
   </Target>
 
-  <!-- macOS .app Bundle Support -->
-  <PropertyGroup Condition="'$(RuntimeIdentifier)' == 'osx-x64' Or '$(RuntimeIdentifier)' == 'osx-arm64'">
-    <PublishSingleFile>false</PublishSingleFile>
-    <CreatePackage>true</CreatePackage>
-    <CFBundleDisplayName>ARM Emulator</CFBundleDisplayName>
-    <CFBundleName>ARMEmulator</CFBundleName>
-    <CFBundleIdentifier>com.armemulator.gui</CFBundleIdentifier>
-    <CFBundleShortVersionString>1.0.0</CFBundleShortVersionString>
-    <CFBundleVersion>1.0.0</CFBundleVersion>
-  </PropertyGroup>
-
-  <Target Name="BundleBackendIntoMacOSApp" AfterTargets="Publish" Condition="'$(RuntimeIdentifier)' == 'osx-x64' Or '$(RuntimeIdentifier)' == 'osx-arm64'">
-    <!-- Copy backend binary to Contents/Resources in .app bundle -->
-    <PropertyGroup>
-      <AppBundlePath>$(PublishDir)/ARMEmulator.app</AppBundlePath>
-      <AppResourcesPath>$(AppBundlePath)/Contents/Resources</AppResourcesPath>
-    </PropertyGroup>
-    <MakeDir Directories="$(AppResourcesPath)" />
-    <Copy Condition="Exists('$(BackendBinarySourcePath)')"
-          SourceFiles="$(BackendBinarySourcePath)"
-          DestinationFiles="$(AppResourcesPath)/arm-emulator"
-          SkipUnchangedFiles="true" />
-    <Exec Condition="Exists('$(AppResourcesPath)/arm-emulator')"
-          Command="chmod +x '$(AppResourcesPath)/arm-emulator'" />
-  </Target>
+  <!-- macOS: publish emits a flat folder. packaging/macos/build-dmg.sh and the
+       release workflow assemble ARMEmulator.app and place the backend in Contents/Resources. -->
 
   <!-- Windows Single-File Publish -->
   <PropertyGroup Condition="'$(RuntimeIdentifier)' == 'win-x64'">
