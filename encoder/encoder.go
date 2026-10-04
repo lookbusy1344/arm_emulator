@@ -92,6 +92,10 @@ func (e *Encoder) EncodeInstruction(inst *parser.Instruction, address uint32) (u
 	case "SWI", "SVC": // SVC is ARM7+ name for SWI
 		encoded, err = e.encodeSWI(inst, cond)
 
+	// Status register transfer
+	case "MRS", "MSR":
+		encoded, err = e.encodePSRTransfer(inst, cond)
+
 	// ADR pseudo-instruction
 	case "ADR":
 		encoded, err = e.encodeADR(inst, cond)

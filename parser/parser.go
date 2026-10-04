@@ -676,6 +676,7 @@ func isInstructionName(s string) bool {
 		"PUSH", "POP", "NOP",
 		"B", "BL", "BX",
 		"MUL", "MLA",
+		"MRS", "MSR",
 		"SWI", "SVC", // SVC is ARM7+ name for SWI (Supervisor Call)
 	}
 
