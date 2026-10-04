@@ -157,7 +157,7 @@ func (vm *VM) Reset() {
 			_ = f.Close() // Close all non-standard file descriptors
 		}
 	}
-	vm.files = nil
+	vm.files = make([]*os.File, DefaultFDTableSize) // standard descriptors initialise lazily
 	vm.fdMu.Unlock()
 
 	// Note: Do NOT reset stdinReader here - it may be intentionally redirected
