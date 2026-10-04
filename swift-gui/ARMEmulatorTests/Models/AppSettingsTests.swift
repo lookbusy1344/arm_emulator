@@ -6,6 +6,35 @@ import XCTest
 final class AppSettingsTests: XCTestCase {
     var settings: AppSettings!
     var testDefaults: UserDefaults!
+    private var original: Snapshot!
+
+    /// Values of the shared settings before each test. `removeObject` on
+    /// UserDefaults.standard does not reset the shared @AppStorage instance, so
+    /// tearDown assigns these back through the properties.
+    @MainActor
+    private struct Snapshot {
+        let backendURL: String
+        let editorFontSize: Int
+        let colorScheme: String
+        let maxRecentFiles: Int
+        let selectedTab: Int
+
+        init(_ settings: AppSettings) {
+            backendURL = settings.backendURL
+            editorFontSize = settings.editorFontSize
+            colorScheme = settings.colorScheme
+            maxRecentFiles = settings.maxRecentFiles
+            selectedTab = settings.selectedTab
+        }
+
+        func restore(to settings: AppSettings) {
+            settings.backendURL = backendURL
+            settings.editorFontSize = editorFontSize
+            settings.colorScheme = colorScheme
+            settings.maxRecentFiles = maxRecentFiles
+            settings.selectedTab = selectedTab
+        }
+    }
 
     override func setUp() async throws {
         try await super.setUp()
@@ -22,16 +51,13 @@ final class AppSettingsTests: XCTestCase {
         // We cannot inject a custom UserDefaults into @AppStorage directly
         // So we'll test via the actual UserDefaults.standard but clean up after
         settings = AppSettings.shared
+        original = Snapshot(settings)
     }
 
     override func tearDown() async throws {
-        // Clean up test data from UserDefaults.standard
-        UserDefaults.standard.removeObject(forKey: "backendURL")
-        UserDefaults.standard.removeObject(forKey: "editorFontSize")
-        UserDefaults.standard.removeObject(forKey: "colorScheme")
-        UserDefaults.standard.removeObject(forKey: "maxRecentFiles")
-        UserDefaults.standard.removeObject(forKey: "selectedTab")
+        original.restore(to: settings)
 
+        original = nil
         settings = nil
         testDefaults = nil
 

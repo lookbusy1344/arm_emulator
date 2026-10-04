@@ -76,18 +76,25 @@ final class ExampleProgramTests: XCTestCase {
 
 @MainActor
 final class FileServiceRecentFilesTests: XCTestCase {
+    /// Matches the AppSettings default; pinned so other suites cannot change it.
+    private static let maxRecentFiles = 10
+
     var fileService: FileService!
+    private var originalMaxRecentFiles: Int!
 
     override func setUp() async throws {
         try await super.setUp()
         // Note: FileService is a singleton, so we can't easily create a fresh instance
         // We'll clear recent files before each test
+        originalMaxRecentFiles = AppSettings.shared.maxRecentFiles
+        AppSettings.shared.maxRecentFiles = Self.maxRecentFiles
         fileService = FileService.shared
         fileService.clearRecentFiles()
     }
 
     override func tearDown() async throws {
         fileService.clearRecentFiles()
+        AppSettings.shared.maxRecentFiles = originalMaxRecentFiles
         try await super.tearDown()
     }
 
