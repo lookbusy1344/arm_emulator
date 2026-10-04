@@ -898,11 +898,6 @@ func handleRead(vm *VM) error {
 		return nil
 	}
 
-	// Signal waiting for input if reading from stdin (fd 0)
-	if fd == 0 {
-		vm.SetState(StateWaitingForInput)
-	}
-
 	// Buffer allocation: We allocate before the read operation rather than after validating
 	// the read will succeed. This is a trade-off for code clarity:
 	// - The file descriptor, size, and buffer range have been validated above
@@ -912,11 +907,18 @@ func handleRead(vm *VM) error {
 	//   and may not be possible for non-seekable files (pipes, stdin, etc.)
 	// - Maximum allocation is capped at 1MB, limiting potential waste
 	data := make([]byte, length)
-	n, err := f.Read(data)
-
-	// Restore running state if we were reading from stdin
-	if fd == 0 {
+	var n int
+	if fd == StdIn {
+		// Read through the VM stdin reader, which frontends redirect and the
+		// console SWIs share.
+		vm.SetState(StateWaitingForInput)
+		n, err = vm.stdinReader.Read(data)
+		if errors.Is(err, ErrInputInterrupted) {
+			return err
+		}
 		vm.SetState(StateRunning)
+	} else {
+		n, err = f.Read(data)
 	}
 
 	if err != nil && n == 0 {
