@@ -208,9 +208,9 @@ func TestUMULL_Basic(t *testing.T) {
 	v.CPU.R[3] = 0x10000
 	v.CPU.PC = 0x8000
 
-	// UMULL R0, R1, R2, R3 (E0C10392)
-	// Bits: cond=1110, 0000100, U=1, A=0, S=0, RdHi=0001, RdLo=0000, Rs=0011, 1001, Rm=0010
-	opcode := uint32(0xE0C10392)
+	// UMULL R0, R1, R2, R3 (E0810392)
+	// Bits: cond=1110, 0000100, U=0, A=0, S=0, RdHi=0001, RdLo=0000, Rs=0011, 1001, Rm=0010
+	opcode := uint32(0xE0810392)
 	setupCodeWrite(v)
 	v.Memory.WriteWord(0x8000, opcode)
 	v.Step()
@@ -232,8 +232,8 @@ func TestUMULL_WithFlags(t *testing.T) {
 	v.CPU.R[3] = 0x12345678
 	v.CPU.PC = 0x8000
 
-	// UMULLS R0, R1, R2, R3 (E0D10392) - with S bit
-	opcode := uint32(0xE0D10392)
+	// UMULLS R0, R1, R2, R3 (E0910392) - with S bit
+	opcode := uint32(0xE0910392)
 	setupCodeWrite(v)
 	v.Memory.WriteWord(0x8000, opcode)
 	v.Step()
@@ -261,8 +261,8 @@ func TestUMULL_LargeNumbers(t *testing.T) {
 	v.CPU.R[3] = 0xFFFFFFFF
 	v.CPU.PC = 0x8000
 
-	// UMULL R4, R5, R2, R3 (E0C54392)
-	opcode := uint32(0xE0C54392)
+	// UMULL R4, R5, R2, R3 (E0854392)
+	opcode := uint32(0xE0854392)
 	setupCodeWrite(v)
 	v.Memory.WriteWord(0x8000, opcode)
 	v.Step()
@@ -286,9 +286,9 @@ func TestUMLAL_Basic(t *testing.T) {
 	v.CPU.R[3] = 6
 	v.CPU.PC = 0x8000
 
-	// UMLAL R0, R1, R2, R3 (E0E10392)
-	// Bits: cond=1110, 0000101, U=1, A=1, S=0, RdHi=0001, RdLo=0000, Rs=0011, 1001, Rm=0010
-	opcode := uint32(0xE0E10392)
+	// UMLAL R0, R1, R2, R3 (E0A10392)
+	// Bits: cond=1110, 0000101, U=0, A=1, S=0, RdHi=0001, RdLo=0000, Rs=0011, 1001, Rm=0010
+	opcode := uint32(0xE0A10392)
 	setupCodeWrite(v)
 	v.Memory.WriteWord(0x8000, opcode)
 	v.Step()
@@ -311,8 +311,8 @@ func TestUMLAL_WithCarry(t *testing.T) {
 	v.CPU.R[3] = 1
 	v.CPU.PC = 0x8000
 
-	// UMLAL R0, R1, R2, R3 (E0E10392)
-	opcode := uint32(0xE0E10392)
+	// UMLAL R0, R1, R2, R3 (E0A10392)
+	opcode := uint32(0xE0A10392)
 	setupCodeWrite(v)
 	v.Memory.WriteWord(0x8000, opcode)
 	v.Step()
@@ -334,9 +334,9 @@ func TestSMULL_Positive(t *testing.T) {
 	v.CPU.R[3] = 2000
 	v.CPU.PC = 0x8000
 
-	// SMULL R0, R1, R2, R3 (E0810392)
-	// Bits: cond=1110, 0000100, U=0, A=0, S=0, RdHi=0001, RdLo=0000, Rs=0011, 1001, Rm=0010
-	opcode := uint32(0xE0810392)
+	// SMULL R0, R1, R2, R3 (E0C10392)
+	// Bits: cond=1110, 0000100, U=1, A=0, S=0, RdHi=0001, RdLo=0000, Rs=0011, 1001, Rm=0010
+	opcode := uint32(0xE0C10392)
 	setupCodeWrite(v)
 	v.Memory.WriteWord(0x8000, opcode)
 	v.Step()
@@ -357,8 +357,8 @@ func TestSMULL_Negative(t *testing.T) {
 	v.CPU.R[3] = 1000
 	v.CPU.PC = 0x8000
 
-	// SMULL R0, R1, R2, R3 (E0810392)
-	opcode := uint32(0xE0810392)
+	// SMULL R0, R1, R2, R3 (E0C10392)
+	opcode := uint32(0xE0C10392)
 	setupCodeWrite(v)
 	v.Memory.WriteWord(0x8000, opcode)
 	v.Step()
@@ -380,8 +380,8 @@ func TestSMULL_BothNegative(t *testing.T) {
 	v.CPU.R[3] = 0xFFFFFFFE // -2
 	v.CPU.PC = 0x8000
 
-	// SMULL R0, R1, R2, R3 (E0810392)
-	opcode := uint32(0xE0810392)
+	// SMULL R0, R1, R2, R3 (E0C10392)
+	opcode := uint32(0xE0C10392)
 	setupCodeWrite(v)
 	v.Memory.WriteWord(0x8000, opcode)
 	v.Step()
@@ -402,8 +402,8 @@ func TestSMULL_WithFlags(t *testing.T) {
 	v.CPU.R[3] = 2
 	v.CPU.PC = 0x8000
 
-	// SMULLS R0, R1, R2, R3 (E0910392) - with S bit
-	opcode := uint32(0xE0910392)
+	// SMULLS R0, R1, R2, R3 (E0D10392) - with S bit
+	opcode := uint32(0xE0D10392)
 	setupCodeWrite(v)
 	v.Memory.WriteWord(0x8000, opcode)
 	v.Step()
@@ -437,9 +437,9 @@ func TestSMLAL_Basic(t *testing.T) {
 	v.CPU.R[3] = 20
 	v.CPU.PC = 0x8000
 
-	// SMLAL R0, R1, R2, R3 (E0A10392)
-	// Bits: cond=1110, 0000101, U=0, A=1, S=0, RdHi=0001, RdLo=0000, Rs=0011, 1001, Rm=0010
-	opcode := uint32(0xE0A10392)
+	// SMLAL R0, R1, R2, R3 (E0E10392)
+	// Bits: cond=1110, 0000101, U=1, A=1, S=0, RdHi=0001, RdLo=0000, Rs=0011, 1001, Rm=0010
+	opcode := uint32(0xE0E10392)
 	setupCodeWrite(v)
 	v.Memory.WriteWord(0x8000, opcode)
 	v.Step()
@@ -462,8 +462,8 @@ func TestSMLAL_NegativeAccumulator(t *testing.T) {
 	v.CPU.R[3] = 5
 	v.CPU.PC = 0x8000
 
-	// SMLAL R0, R1, R2, R3 (E0A10392)
-	opcode := uint32(0xE0A10392)
+	// SMLAL R0, R1, R2, R3 (E0E10392)
+	opcode := uint32(0xE0E10392)
 	setupCodeWrite(v)
 	v.Memory.WriteWord(0x8000, opcode)
 	v.Step()
@@ -485,8 +485,8 @@ func TestLongMultiply_InvalidRegisters(t *testing.T) {
 	v.CPU.R[3] = 6
 	v.CPU.PC = 0x8000
 
-	// UMULL R0, R0, R2, R3 (E0C00392) - RdHi=RdLo=R0
-	opcode := uint32(0xE0C00392)
+	// UMULL R0, R0, R2, R3 (E0800392) - RdHi=RdLo=R0
+	opcode := uint32(0xE0800392)
 	setupCodeWrite(v)
 	v.Memory.WriteWord(0x8000, opcode)
 	err := v.Step()
@@ -504,8 +504,8 @@ func TestLongMultiply_RdLoEqualsRm(t *testing.T) {
 	v.CPU.R[3] = 6
 	v.CPU.PC = 0x8000
 
-	// UMULL R2, R1, R2, R3 (E0C12392) - RdLo=Rm=R2
-	opcode := uint32(0xE0C12392)
+	// UMULL R2, R1, R2, R3 (E0812392) - RdLo=Rm=R2
+	opcode := uint32(0xE0812392)
 	setupCodeWrite(v)
 	v.Memory.WriteWord(0x8000, opcode)
 	err := v.Step()
@@ -523,8 +523,8 @@ func TestLongMultiply_UsePC(t *testing.T) {
 	v.CPU.R[3] = 6
 	v.CPU.PC = 0x8000
 
-	// UMULL R0, R15, R2, R3 (E0CF0392) - RdHi=R15
-	opcode := uint32(0xE0CF0392)
+	// UMULL R0, R15, R2, R3 (E08F0392) - RdHi=R15
+	opcode := uint32(0xE08F0392)
 	setupCodeWrite(v)
 	v.Memory.WriteWord(0x8000, opcode)
 	err := v.Step()

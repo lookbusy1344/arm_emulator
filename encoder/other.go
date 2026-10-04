@@ -297,3 +297,53 @@ func (e *Encoder) encodeSWI(inst *parser.Instruction, cond uint32) (uint32, erro
 
 	return instruction, nil
 }
+
+// Long multiply bits (bits 22 and 21)
+const (
+	longMultiplySignedShift = 22 // 1 = SMULL/SMLAL, 0 = UMULL/UMLAL
+	longMultiplyAccumShift  = 21 // 1 = xMLAL
+	longMultiplyOperands    = 4
+)
+
+// encodeMultiplyLong encodes UMULL, UMLAL, SMULL and SMLAL.
+//
+//	xxxLL{cond}{S} RdLo, RdHi, Rm, Rs    cccc 0000 1UAS hhhh llll ssss 1001 mmmm
+func (e *Encoder) encodeMultiplyLong(inst *parser.Instruction, cond uint32) (uint32, error) {
+	mnemonic := strings.ToUpper(inst.Mnemonic)
+	if len(inst.Operands) != longMultiplyOperands {
+		return 0, fmt.Errorf("%s requires %d operands, got %d", mnemonic, longMultiplyOperands, len(inst.Operands))
+	}
+
+	var regs [longMultiplyOperands]uint32
+	for i, op := range inst.Operands {
+		reg, err := e.parseRegister(op)
+		if err != nil {
+			return 0, err
+		}
+		if reg == RegisterPC {
+			return 0, fmt.Errorf("%s: PC cannot be used", mnemonic)
+		}
+		regs[i] = reg
+	}
+	rdLo, rdHi, rm, rs := regs[0], regs[1], regs[2], regs[3]
+	if rdLo == rdHi {
+		return 0, fmt.Errorf("%s: RdLo and RdHi must be different registers", mnemonic)
+	}
+	if rdLo == rm || rdHi == rm {
+		return 0, fmt.Errorf("%s: RdLo and RdHi must differ from Rm", mnemonic)
+	}
+
+	var bits uint32
+	if strings.HasPrefix(mnemonic, "S") {
+		bits |= 1 << longMultiplySignedShift
+	}
+	if strings.HasSuffix(mnemonic, "MLAL") {
+		bits |= 1 << longMultiplyAccumShift
+	}
+	if inst.SetFlags {
+		bits |= 1 << SBitShift
+	}
+
+	return cond<<ConditionShift | vm.LongMultiplyPattern | bits |
+		rdHi<<RnShift | rdLo<<RdShift | rs<<RsShift | rm, nil
+}

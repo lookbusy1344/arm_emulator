@@ -70,6 +70,8 @@ func (e *Encoder) EncodeInstruction(inst *parser.Instruction, address uint32) (u
 	// Multiply instructions
 	case "MUL", "MLA":
 		encoded, err = e.encodeMultiply(inst, cond)
+	case "UMULL", "UMLAL", "SMULL", "SMLAL":
+		encoded, err = e.encodeMultiplyLong(inst, cond)
 
 	// Load/Store multiple
 	case "LDM", "STM", "LDMIA", "LDMIB", "LDMDA", "LDMDB":

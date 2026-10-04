@@ -675,7 +675,7 @@ func isInstructionName(s string) bool {
 		"STMFD", "STMFA", "STMEA", "STMED", // Store Multiple aliases
 		"PUSH", "POP", "NOP",
 		"B", "BL", "BX",
-		"MUL", "MLA",
+		"MUL", "MLA", "UMULL", "UMLAL", "SMULL", "SMLAL",
 		"MRS", "MSR",
 		"SWI", "SVC", // SVC is ARM7+ name for SWI (Supervisor Call)
 	}

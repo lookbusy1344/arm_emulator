@@ -101,10 +101,10 @@ func calculateMultiplyCycles(multiplier uint32) int {
 // ExecuteMultiplyLong executes long multiply instructions (UMULL, UMLAL, SMULL, SMLAL)
 func ExecuteMultiplyLong(vm *VM, inst *Instruction) error {
 	// Decode instruction fields
-	// Bit [22] = U (1=unsigned UMULL/UMLAL, 0=signed SMULL/SMLAL)
+	// Bit [22] = U (1=signed SMULL/SMLAL, 0=unsigned UMULL/UMLAL)
 	// Bit [21] = A (1=accumulate xMLAL, 0=multiply xMULL)
 	// Bit [20] = S (set flags)
-	unsignedOp := (inst.Opcode >> BBitShift) & Mask1Bit
+	signedOp := bitSet(inst.Opcode, longMultiplySignedShift)
 	accumulate := (inst.Opcode >> MultiplyAShift) & Mask1Bit
 	setFlags := inst.SetFlags
 
@@ -133,7 +133,7 @@ func ExecuteMultiplyLong(vm *VM, inst *Instruction) error {
 
 	var resultHi, resultLo uint32
 
-	if unsignedOp == 1 {
+	if !signedOp {
 		// Unsigned multiply
 		result64 := uint64(op1) * uint64(op2)
 
