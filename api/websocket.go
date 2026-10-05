@@ -27,7 +27,7 @@ var upgrader = websocket.Upgrader{
 // WebSocketClient represents a connected WebSocket client
 type WebSocketClient struct {
 	conn         *websocket.Conn
-	send         chan BroadcastEvent
+	send         *eventQueue
 	subscription *Subscription
 	broadcaster  *Broadcaster
 	mu           sync.Mutex
@@ -50,7 +50,7 @@ func (s *Server) handleWebSocket(w http.ResponseWriter, r *http.Request) {
 
 	client := &WebSocketClient{
 		conn:        conn,
-		send:        make(chan BroadcastEvent, 256),
+		send:        newEventQueue(clientQueueSize),
 		broadcaster: s.broadcaster,
 	}
 
@@ -111,7 +111,7 @@ func (c *WebSocketClient) writePump() {
 
 	for {
 		select {
-		case event, ok := <-c.send:
+		case event, ok := <-c.send.ch:
 			if err := c.conn.SetWriteDeadline(time.Now().Add(writeWait)); err != nil {
 				log.Printf("SetWriteDeadline error: %v", err)
 				return
@@ -175,7 +175,7 @@ func (c *WebSocketClient) forwardEventsFromSubscription(sub *Subscription) {
 	}
 
 	for event := range sub.Channel {
-		deliver(c.send, event)
+		c.send.push(event)
 	}
 }
 

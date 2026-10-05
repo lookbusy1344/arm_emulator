@@ -1,6 +1,7 @@
 package api
 
 import (
+	"slices"
 	"sync"
 )
 
@@ -27,7 +28,8 @@ type BroadcastEvent struct {
 type Subscription struct {
 	SessionID  string
 	EventTypes map[EventType]bool
-	Channel    chan BroadcastEvent
+	Channel    chan BroadcastEvent // receive side of queue
+	queue      *eventQueue
 }
 
 // Broadcaster manages event distribution to multiple WebSocket clients
@@ -35,7 +37,7 @@ type Subscription struct {
 type Broadcaster struct {
 	mu            sync.RWMutex
 	subscriptions map[*Subscription]bool
-	broadcast     chan BroadcastEvent
+	broadcast     *eventQueue
 	register      chan *Subscription
 	unregister    chan *Subscription
 	done          chan struct{}
@@ -45,7 +47,7 @@ type Broadcaster struct {
 func NewBroadcaster() *Broadcaster {
 	b := &Broadcaster{
 		subscriptions: make(map[*Subscription]bool),
-		broadcast:     make(chan BroadcastEvent, 256), // Buffered to prevent blocking
+		broadcast:     newEventQueue(broadcastQueueSize),
 		register:      make(chan *Subscription),
 		unregister:    make(chan *Subscription),
 		done:          make(chan struct{}),
@@ -73,7 +75,7 @@ func (b *Broadcaster) run() {
 			}
 			b.mu.Unlock()
 
-		case event := <-b.broadcast:
+		case event := <-b.broadcast.ch:
 			b.mu.RLock()
 			for sub := range b.subscriptions {
 				// Filter by session ID and event type
@@ -84,7 +86,7 @@ func (b *Broadcaster) run() {
 					continue
 				}
 
-				deliver(sub.Channel, event)
+				sub.queue.push(event)
 			}
 			b.mu.RUnlock()
 
@@ -110,10 +112,12 @@ func (b *Broadcaster) Subscribe(sessionID string, eventTypes []EventType) *Subsc
 		eventTypeMap[et] = true
 	}
 
+	queue := newEventQueue(subscriptionQueueSize)
 	sub := &Subscription{
 		SessionID:  sessionID,
 		EventTypes: eventTypeMap,
-		Channel:    make(chan BroadcastEvent, 64), // Buffered to handle bursts
+		Channel:    queue.ch,
+		queue:      queue,
 	}
 
 	b.register <- sub
@@ -127,27 +131,94 @@ func (b *Broadcaster) Unsubscribe(sub *Subscription) {
 
 // Broadcast sends an event to all matching subscriptions
 func (b *Broadcaster) Broadcast(event BroadcastEvent) {
-	deliver(b.broadcast, event)
+	b.broadcast.push(event)
 }
 
-// deliver queues event on ch without blocking. When ch is full an output event is
-// dropped, while a state or execution event displaces the oldest queued event, so a
-// client that falls behind an output burst still learns the latest state.
-func deliver(ch chan BroadcastEvent, event BroadcastEvent) {
-	for {
+// Queue sizes for events in flight.
+const (
+	broadcastQueueSize    = 256
+	subscriptionQueueSize = 64
+	clientQueueSize       = 256
+)
+
+// eventRank orders event types by how long a full queue keeps them. A client can
+// miss output, and a later state event supersedes an earlier one, but nothing
+// replaces an execution event.
+type eventRank int
+
+const (
+	rankOutput eventRank = iota
+	rankState
+	rankExecution
+)
+
+func rankOf(t EventType) eventRank {
+	switch t {
+	case EventTypeOutput:
+		return rankOutput
+	case EventTypeState:
+		return rankState
+	default:
+		return rankExecution
+	}
+}
+
+// eventQueue is a buffered event channel whose senders never block. Receivers read
+// ch directly.
+type eventQueue struct {
+	mu sync.Mutex // serialises senders, so a full queue can be rebuilt in order
+	ch chan BroadcastEvent
+}
+
+func newEventQueue(size int) *eventQueue {
+	return &eventQueue{ch: make(chan BroadcastEvent, size)}
+}
+
+// push queues event. When the queue is full an output event is dropped. A state or
+// execution event displaces the oldest queued event of the lowest rank at or below
+// its own, and is dropped when every queued event outranks it. Kept events stay in
+// order.
+func (q *eventQueue) push(event BroadcastEvent) {
+	q.mu.Lock()
+	defer q.mu.Unlock()
+	select {
+	case q.ch <- event:
+		return
+	default:
+	}
+	if event.Type == EventTypeOutput {
+		return
+	}
+
+	var queued []BroadcastEvent
+	for drained := false; !drained; {
 		select {
-		case ch <- event:
-			return
+		case e := <-q.ch:
+			queued = append(queued, e)
 		default:
-		}
-		if event.Type == EventTypeOutput {
-			return
-		}
-		select {
-		case <-ch:
-		default:
+			drained = true
 		}
 	}
+	if victim := evictionVictim(queued, rankOf(event.Type)); victim >= 0 {
+		queued = append(slices.Delete(queued, victim, victim+1), event)
+	}
+	// Receivers only remove events and push holds the only send access, so the
+	// refill fits.
+	for _, e := range queued {
+		q.ch <- e
+	}
+}
+
+// evictionVictim returns the index of the oldest event of the lowest rank not above
+// limit, or -1 when every event outranks limit.
+func evictionVictim(events []BroadcastEvent, limit eventRank) int {
+	victim := -1
+	for i, e := range events {
+		if r := rankOf(e.Type); r <= limit && (victim < 0 || r < rankOf(events[victim].Type)) {
+			victim = i
+		}
+	}
+	return victim
 }
 
 // BroadcastState sends a state change event
