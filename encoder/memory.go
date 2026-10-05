@@ -217,11 +217,13 @@ func (e *Encoder) encodeLDRPseudo(inst *parser.Instruction, cond, rd uint32) (ui
 	}
 
 	// Need to use literal pool - generate PC-relative LDR
-	// Check if this value already exists in the literal pool (deduplication)
+	pc := e.currentAddr + vm.ARMPipelineOffset // PC = current instruction + pipeline offset
+
+	// Reuse an existing literal with this value if this LDR can reach it
 	var literalAddr uint32
 	var found bool
 	for addr, val := range e.LiteralPool {
-		if val == value {
+		if val == value && withinLiteralReach(pc, addr) {
 			literalAddr = addr
 			found = true
 			break
@@ -230,7 +232,6 @@ func (e *Encoder) encodeLDRPseudo(inst *parser.Instruction, cond, rd uint32) (ui
 
 	if !found {
 		// Find the nearest literal pool location that's within ±MaxOffset12Bit bytes
-		pc := e.currentAddr + vm.ARMPipelineOffset // PC = current instruction + pipeline offset
 		literalAddr = e.findNearestLiteralPoolLocation(pc, value)
 
 		if literalAddr == 0 {
@@ -257,9 +258,6 @@ func (e *Encoder) encodeLDRPseudo(inst *parser.Instruction, cond, rd uint32) (ui
 		e.pendingLiterals[value] = literalAddr
 	}
 
-	// Calculate PC-relative offset
-	// PC = current instruction + pipeline offset
-	pc := e.currentAddr + vm.ARMPipelineOffset
 	// Check addresses are in int32 range
 	if literalAddr > math.MaxInt32 || pc > math.MaxInt32 {
 		return 0, fmt.Errorf("address out of int32 range for PC-relative addressing")
@@ -468,83 +466,59 @@ func (e *Encoder) encodeMemoryHalfword(inst *parser.Instruction, cond, rd, lBit 
 	return opcode, nil
 }
 
-// findNearestLiteralPoolLocation finds the nearest literal pool location within ±MaxOffset12Bit bytes
-// Returns 0 if no suitable location is found
+// withinLiteralReach reports whether a PC-relative LDR at pc can address addr.
+func withinLiteralReach(pc, addr uint32) bool {
+	if addr >= pc {
+		return addr-pc <= MaxOffset12Bit
+	}
+	return pc-addr <= MaxOffset12Bit
+}
+
+// findNearestLiteralPoolLocation returns the next free slot in the .ltorg pool that the
+// parser reserved space for this instruction: the first pool after it, or the last pool
+// when none follows. It returns 0 when there are no .ltorg pools or the pool is full.
 func (e *Encoder) findNearestLiteralPoolLocation(pc uint32, value uint32) uint32 {
-	// If no .ltorg directives specified, return 0 to use fallback behavior
 	if len(e.LiteralPoolLocs) == 0 {
 		return 0
 	}
 
-	// Check if this value already has a pending location
 	if addr, ok := e.pendingLiterals[value]; ok {
-		// Verify it's still within range
-		if addr > pc {
-			if addr-pc > MaxOffset12Bit {
-				// Out of range, need to find a new location
-				delete(e.pendingLiterals, value)
-			} else {
-				return addr
-			}
-		} else {
-			if pc-addr > MaxOffset12Bit {
-				// Out of range, need to find a new location
-				delete(e.pendingLiterals, value)
-			} else {
-				return addr
-			}
+		if withinLiteralReach(pc, addr) {
+			return addr
+		}
+		delete(e.pendingLiterals, value)
+	}
+
+	pool := len(e.LiteralPoolLocs) - 1
+	for i, poolLoc := range e.LiteralPoolLocs {
+		if poolLoc > e.currentAddr {
+			pool = i
+			break
 		}
 	}
 
-	// Find nearest pool location within ±MaxOffset12Bit bytes
-	var bestAddr uint32
-	var bestDistance uint32 = vm.Address32BitMax
-
-	for _, poolLoc := range e.LiteralPoolLocs {
-		var distance uint32
-		if poolLoc >= pc {
-			// Pool is at or after PC - forward reference
-			distance = poolLoc - pc
-			if distance <= MaxOffset12Bit && distance < bestDistance {
-				// Count how many literals are already assigned to this pool
-				literalsAtPool := e.countLiteralsAtPool(poolLoc)
-				// Calculate where this literal would go
-				// #nosec G115 -- literalsAtPool is bounded by pool capacity, safe conversion
-				candidateAddr := poolLoc + uint32(literalsAtPool)*WordSize
-				// Check if it's still within range from PC
-				if candidateAddr >= pc && candidateAddr-pc <= MaxOffset12Bit {
-					bestAddr = candidateAddr
-					bestDistance = distance
-				}
-			}
-		} else {
-			// Pool is before PC - backward reference
-			distance = pc - poolLoc
-			if distance <= MaxOffset12Bit && distance < bestDistance {
-				// For backward references, we need to be more careful
-				// Count existing literals
-				literalsAtPool := e.countLiteralsAtPool(poolLoc)
-				// #nosec G115 -- literalsAtPool is bounded by pool capacity, safe conversion
-				candidateAddr := poolLoc + uint32(literalsAtPool)*WordSize
-				// Check distance from PC to candidate address
-				if candidateAddr <= pc && pc-candidateAddr <= MaxOffset12Bit {
-					bestAddr = candidateAddr
-					bestDistance = distance
-				}
-			}
-		}
+	poolLoc, capacity := e.LiteralPoolLocs[pool], e.poolCapacity(pool)
+	used := e.countLiteralsAtPool(poolLoc, capacity)
+	if used >= capacity {
+		return 0
 	}
-
-	return bestAddr
+	return poolLoc + uint32(used)*WordSize // #nosec G115 -- used < capacity, a small count
 }
 
-// countLiteralsAtPool counts how many literals are already assigned to start at or near a pool location
-func (e *Encoder) countLiteralsAtPool(poolLoc uint32) int {
+// poolCapacity is the number of literal slots the parser reserved for pool i.
+func (e *Encoder) poolCapacity(i int) int {
+	if i < len(e.LiteralPoolCounts) {
+		return e.LiteralPoolCounts[i]
+	}
+	return parser.EstimatedLiteralsPerPool
+}
+
+// countLiteralsAtPool counts the literals already placed in a pool's reserved slots.
+func (e *Encoder) countLiteralsAtPool(poolLoc uint32, capacity int) int {
+	end := poolLoc + uint32(capacity)*WordSize // #nosec G115 -- capacity is a small count
 	count := 0
-	// Check all assigned literals to see how many are in this pool region
-	// Literals within N bytes of the pool location are considered part of the same pool
 	for addr := range e.LiteralPool {
-		if addr >= poolLoc && addr < poolLoc+parser.LiteralPoolRangeBytes {
+		if addr >= poolLoc && addr < end {
 			count++
 		}
 	}

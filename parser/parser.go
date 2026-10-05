@@ -836,6 +836,17 @@ func (p *Parser) adjustAddressesForDynamicPools(program *Program) {
 			}
 		}
 
+		// Data directives move with the code around them
+		dirAdjustments := make([]int32, len(program.Directives))
+		for i, dir := range program.Directives {
+			dirAdjustments[i] = getAdjustmentForAddress(dir.Address)
+		}
+		for i, adjustment := range dirAdjustments {
+			if adjustment != 0 {
+				program.Directives[i].Address = applySignedOffset(program.Directives[i].Address, adjustment)
+			}
+		}
+
 		// Same for symbols
 		symbolAdjustments := make(map[string]int32)
 		for name, symbol := range program.SymbolTable.symbols {

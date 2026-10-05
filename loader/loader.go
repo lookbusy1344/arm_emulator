@@ -21,8 +21,10 @@ func LoadProgramIntoVM(machine *vm.VM, program *parser.Program, entryPoint uint3
 		machine.Memory.AddSegment("low-memory", 0, segmentSize, vm.PermRead|vm.PermWrite|vm.PermExecute)
 	}
 
-	// Create encoder
+	// Create encoder with the .ltorg pool locations the parser recorded
 	enc := encoder.NewEncoder(program.SymbolTable)
+	enc.LiteralPoolLocs = program.LiteralPoolLocs
+	enc.LiteralPoolCounts = program.LiteralPoolCounts
 
 	// Track the maximum address used for literal pool placement
 	maxAddr := entryPoint
