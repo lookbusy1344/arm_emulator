@@ -79,3 +79,17 @@ func TestWordDirectiveRejectsInvalidValue(t *testing.T) {
 		t.Error("expected an error for an undefined .word symbol")
 	}
 }
+func TestByteDirectiveOutOfRange(t *testing.T) {
+	for _, value := range []string{"256", "-129", "0x100", "4294967295"} {
+		t.Run(value, func(t *testing.T) {
+			src := ".org 0x8000\n_start:\n\tSWI #0x00\n\t.byte " + value + "\n"
+			program, err := parser.NewParser(src, "test.s").Parse()
+			if err != nil {
+				t.Fatalf("parse error: %v", err)
+			}
+			if err := loader.LoadProgramIntoVM(vm.NewVM(), program, 0x8000); err == nil {
+				t.Errorf(".byte %s loaded, want range error", value)
+			}
+		})
+	}
+}

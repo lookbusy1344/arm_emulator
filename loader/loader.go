@@ -2,7 +2,9 @@ package loader
 
 import (
 	"fmt"
+	"math"
 	"os"
+	"strings"
 
 	"github.com/lookbusy1344/arm-emulator/encoder"
 	"github.com/lookbusy1344/arm-emulator/parser"
@@ -105,6 +107,9 @@ func LoadProgramIntoVM(machine *vm.VM, program *parser.Program, entryPoint uint3
 					parsed, err := parser.ParseNumber(arg)
 					if err != nil {
 						return fmt.Errorf("invalid .byte value: %s", arg)
+					}
+					if !fitsInByte(arg, parsed) {
+						return fmt.Errorf(".byte value out of range (-128 to 255): %s", arg)
 					}
 					value = parsed
 				}
@@ -228,4 +233,17 @@ func LoadProgramIntoVM(machine *vm.VM, program *parser.Program, entryPoint uint3
 	machine.EntryPoint = entryPoint
 
 	return nil
+}
+
+// fitsInByte reports whether a parsed .byte argument lies in -128..255. ParseNumber
+// returns negatives in two's complement, so the sign comes from the source text.
+func fitsInByte(arg string, value uint32) bool {
+	const (
+		maxUnsignedByte = math.MaxUint8
+		minSignedByte   = math.MinInt8
+	)
+	if strings.HasPrefix(strings.TrimSpace(arg), "-") {
+		return int32(value) >= minSignedByte // #nosec G115 -- reinterpret two's complement
+	}
+	return value <= maxUnsignedByte
 }
