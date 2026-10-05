@@ -2,6 +2,7 @@ package vm_test
 
 import (
 	"bytes"
+	"os"
 	"strings"
 	"sync"
 	"testing"
@@ -256,11 +257,57 @@ func TestAssert_MessageWraparound(t *testing.T) {
 	}
 }
 
-// Test 9: File descriptor table size limit (1024 FDs)
+// Test 9: File descriptor table size limit
 func TestFileDescriptor_1024Limit(t *testing.T) {
-	t.Skip("Skipping FD limit test - requires file system operations")
-	// This test would require creating 1024+ files which is resource-intensive
-	// The constant is now properly defined and used, which is the main fix
+	v, firstFD := openTestFile(t, "x")
+	openSame := func() uint32 {
+		v.CPU.R[0], v.CPU.R[1] = sandboxNameAddr, vm.FileModeRead
+		stepSWI(t, v, swiOpen)
+		return v.CPU.R[0]
+	}
+
+	opened := 1
+	for {
+		fd := openSame()
+		if fd == vm.SyscallErrorGeneral {
+			break
+		}
+		opened++
+		if opened > vm.MaxFileDescriptors {
+			t.Fatalf("opened %d files, limit is %d", opened, vm.MaxFileDescriptors)
+		}
+	}
+	if want := vm.MaxFileDescriptors - vm.FirstUserFD; opened != want {
+		t.Errorf("opened %d files before the limit, want %d", opened, want)
+	}
+
+	// A refused OPEN must not leave the host file open.
+	before := openHostDescriptors(t)
+	for range 3 {
+		if fd := openSame(); fd != vm.SyscallErrorGeneral {
+			t.Fatalf("OPEN at the limit returned fd %d", fd)
+		}
+	}
+	if after := openHostDescriptors(t); after != before {
+		t.Errorf("host descriptors went from %d to %d across refused OPENs", before, after)
+	}
+
+	// Closing one frees its slot for reuse.
+	v.CPU.R[0] = firstFD
+	stepSWI(t, v, swiClose)
+	if fd := openSame(); fd != firstFD {
+		t.Errorf("OPEN after CLOSE(%d) returned %d, want the freed fd", firstFD, fd)
+	}
+}
+
+// openHostDescriptors counts this process's open file descriptors.
+func openHostDescriptors(t *testing.T) int {
+	t.Helper()
+	entries, err := os.ReadDir("/dev/fd")
+	if err != nil {
+		t.Skipf("cannot list open descriptors: %v", err)
+	}
+	return len(entries)
 }
 
 // Test 10: File position validation for >4GB files

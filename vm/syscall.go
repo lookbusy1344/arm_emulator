@@ -882,6 +882,9 @@ func handleOpen(vm *VM) error {
 		vm.CPU.SetRegister(0, SyscallErrorGeneral)
 	} else {
 		fd := vm.allocFD(file)
+		if fd == SyscallErrorGeneral {
+			_ = file.Close() // descriptor table full
+		}
 		vm.CPU.SetRegister(0, fd)
 	}
 	vm.CPU.IncrementPC()
