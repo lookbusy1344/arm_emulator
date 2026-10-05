@@ -182,6 +182,14 @@ func (s *DebuggerService) LoadProgram(program *parser.Program, entryPoint uint32
 	defer s.mu.Unlock()
 	s.stopExecutionLocked()
 
+	// Start from a clean machine. Keep the configured stack top and the diagnostics
+	// the client enabled; vm.Reset clears both.
+	stackTop, trace, stats := s.vm.StackTop, s.vm.ExecutionTrace, s.vm.Statistics
+	s.vm.Reset()
+	s.vm.StackTop, s.vm.ExecutionTrace, s.vm.Statistics = stackTop, trace, stats
+	s.stdin = nil
+	s.vm.SetStdinReader(stdinSource{s})
+
 	s.program = program
 	s.entryPoint = entryPoint
 
@@ -231,13 +239,21 @@ func (s *DebuggerService) LoadProgram(program *parser.Program, entryPoint uint32
 		return err
 	}
 
-	// Initialize stack pointer only if not already set (preserve InitializeStack value)
-	// Stack grows downward from top of stack segment
+	// Default the stack to the top of the stack segment unless InitializeStack set it
 	if s.vm.StackTop == 0 {
 		s.vm.StackTop = vm.StackSegmentStart + vm.StackSegmentSize
-		if err := s.vm.CPU.SetSP(s.vm.StackTop); err != nil {
-			return fmt.Errorf("failed to initialize stack pointer: %w", err)
-		}
+	}
+	if err := s.vm.CPU.SetSP(s.vm.StackTop); err != nil {
+		return fmt.Errorf("failed to initialize stack pointer: %w", err)
+	}
+
+	if s.vm.ExecutionTrace != nil {
+		s.vm.ExecutionTrace.LoadSymbols(s.symbols)
+		s.vm.ExecutionTrace.LoadSourceMap(s.sourceMapByAddr)
+		s.vm.ExecutionTrace.Start()
+	}
+	if s.vm.Statistics != nil {
+		s.vm.Statistics.Start()
 	}
 
 	// Reset execution state to halted (not running until execution begins)
