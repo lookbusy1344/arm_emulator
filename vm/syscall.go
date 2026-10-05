@@ -940,7 +940,8 @@ func handleRead(vm *VM) error {
 		n, err = f.Read(data)
 	}
 
-	if err != nil && n == 0 {
+	// End of file reads zero bytes; any other failure with nothing read is an error.
+	if err != nil && n == 0 && !errors.Is(err, io.EOF) {
 		vm.CPU.SetRegister(0, SyscallErrorGeneral)
 		vm.CPU.IncrementPC()
 		return nil
