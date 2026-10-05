@@ -434,7 +434,7 @@ func (e *Encoder) encodeMemoryHalfword(inst *parser.Instruction, cond, rd, lBit 
 			(rd << RdShift) |
 			(hBit << HalfwordHBitShift) |
 			(sBit << HalfwordSBitShift) |
-			(1 << HalfwordBit7) | // Always 1 for halfword
+			(1 << HalfwordBit7) | (1 << HalfwordBit4) | // bits 7 and 4 mark a halfword transfer
 			offset // Rm in lower 4 bits
 	} else {
 		// Immediate offset: split into high (bits[11:8]) and low (bits[3:0])
@@ -457,7 +457,7 @@ func (e *Encoder) encodeMemoryHalfword(inst *parser.Instruction, cond, rd, lBit 
 			(rn << RnShift) |
 			(rd << RdShift) |
 			(offsetHigh << RsShift) |
-			(1 << HalfwordBit7) | // Always 1 for halfword misc
+			(1 << HalfwordBit7) | (1 << HalfwordBit4) | // bits 7 and 4 mark a halfword transfer
 			(hBit << HalfwordHBitShift) |
 			(sBit << HalfwordSBitShift) |
 			offsetLow

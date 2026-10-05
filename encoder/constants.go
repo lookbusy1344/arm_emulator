@@ -38,6 +38,7 @@ const (
 	HalfwordHBitShift = 5  // Bit 5: halfword bit
 	HalfwordSBitShift = 6  // Bit 6: signed bit
 	HalfwordBit7      = 7  // Bit 7: always 1 for halfword
+	HalfwordBit4      = 4  // Bit 4: always 1 for halfword
 	HalfwordIBitShift = 22 // Bit 22: immediate bit for halfword
 )
 
