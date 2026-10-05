@@ -25,10 +25,10 @@ type Debugger struct {
 	Evaluator *ExpressionEvaluator
 
 	// Execution control
-	Running           bool
-	StepMode          StepMode
-	StepOverCallDepth int    // Track call depth for step over
-	StepOverPC        uint32 // PC to return to after step over
+	Running    bool
+	StepMode   StepMode
+	StepOverPC uint32 // PC to return to after step over
+	stepOverSP uint32 // SP at the call; a deeper frame has a lower SP
 
 	// Resuming execution sets these so the next ShouldBreak ignores a breakpoint at
 	// the address execution stopped on; otherwise resume stops again without moving.
@@ -50,7 +50,7 @@ type Debugger struct {
 	Output strings.Builder
 
 	// Mutex for thread-safe access to execution state
-	// Protects: Running, StepMode, StepOverCallDepth, StepOverPC, and VM state during execution
+	// Protects: Running, StepMode, StepOverPC, stepOverSP, and VM state during execution
 	mu sync.Mutex
 }
 
@@ -251,8 +251,9 @@ func (d *Debugger) ShouldBreak() (bool, string) {
 		return true, "single step"
 
 	case StepOver:
-		// Continue until we return to the same call depth
-		if pc == d.StepOverPC {
+		// Stop at the return address in the calling frame, not in a recursive call
+		// that returns to the same address with more stack in use.
+		if pc == d.StepOverPC && d.VM.CPU.GetSP() >= d.stepOverSP {
 			d.StepMode = StepNone
 			d.mu.Unlock()
 			return true, "step over complete"
@@ -320,31 +321,22 @@ func (d *Debugger) Println(args ...interface{}) {
 func (d *Debugger) SetStepOver() {
 	d.mu.Lock()
 	defer d.mu.Unlock()
+	d.beginStepOverLocked()
+}
 
-	// Read instruction at current PC
+// beginStepOverLocked runs a call at the PC to completion, or single-steps any other
+// instruction. The caller holds d.mu.
+func (d *Debugger) beginStepOverLocked() {
+	d.Running = true
 	instr, err := d.VM.Memory.ReadWord(d.VM.CPU.PC)
-	if err != nil {
-		// If we can't read the instruction, fall back to single step
+	if err != nil || !isCall(instr) {
 		d.StepMode = StepSingle
-		d.Running = true
 		return
 	}
-
-	// Check if this is a BL (Branch with Link) instruction
-	// BL: bits[31:28] = condition, bits[27:24] = 1011
-	isBL := (instr & 0x0F000000) == 0x0B000000
-
-	if isBL {
-		// This is a function call - set up step over
-		d.StepOverPC = d.VM.CPU.PC + 4
-		d.StepMode = StepOver
-		d.Running = true
-		d.resumeFromCurrentPCLocked()
-	} else {
-		// Not a function call - just single step
-		d.StepMode = StepSingle
-		d.Running = true
-	}
+	d.StepOverPC = d.VM.CPU.PC + vm.ARMInstructionSize
+	d.stepOverSP = d.VM.CPU.GetSP()
+	d.StepMode = StepOver
+	d.resumeFromCurrentPCLocked()
 }
 
 // ResumeFromCurrentPC makes the next ShouldBreak ignore a breakpoint at the current PC,
