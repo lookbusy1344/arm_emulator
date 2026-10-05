@@ -224,6 +224,9 @@ func (e *Encoder) parseImmediate(imm string) (uint32, error) {
 	// Try to parse as symbol first
 	if !strings.HasPrefix(imm, "0x") && !strings.HasPrefix(imm, "0X") {
 		if sym, exists := e.symbolTable.Lookup(imm); exists && sym.Defined {
+			if negative {
+				return -sym.Value, nil
+			}
 			return sym.Value, nil
 		}
 	}

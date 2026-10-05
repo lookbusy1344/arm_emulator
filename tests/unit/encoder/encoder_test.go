@@ -808,3 +808,30 @@ func TestEncodeLDMSTM(t *testing.T) {
 		})
 	}
 }
+
+// TestNegatedSymbolImmediate checks that #-SYM encodes the same as the literal negation,
+// or fails the same way when the negated value has no encoding.
+func TestNegatedSymbolImmediate(t *testing.T) {
+	const symbolValue = 5
+	tests := []struct {
+		mnemonic          string
+		symbolic, literal []string
+	}{
+		{"MOV", []string{"R0", "#-K"}, []string{"R0", "#-5"}},
+		{"MVN", []string{"R0", "#-K"}, []string{"R0", "#-5"}},
+		{"ADD", []string{"R0", "R1", "#-K"}, []string{"R0", "R1", "#-5"}},
+		{"CMP", []string{"R0", "#-K"}, []string{"R0", "#-5"}},
+		{"MOV", []string{"R0", "#K"}, []string{"R0", "#5"}},
+	}
+	for _, tt := range tests {
+		t.Run(tt.mnemonic+" "+tt.symbolic[len(tt.symbolic)-1], func(t *testing.T) {
+			symbols := newTestEncoderWithSymbols(map[string]uint32{"K": symbolValue})
+			got, gotErr := symbols.EncodeInstruction(&parser.Instruction{Mnemonic: tt.mnemonic, Operands: tt.symbolic}, 0x8000)
+			want, wantErr := newTestEncoder().EncodeInstruction(&parser.Instruction{Mnemonic: tt.mnemonic, Operands: tt.literal}, 0x8000)
+			if (gotErr != nil) != (wantErr != nil) || got != want {
+				t.Errorf("%s %v = 0x%08X, %v; want 0x%08X, %v (as %v)",
+					tt.mnemonic, tt.symbolic, got, gotErr, want, wantErr, tt.literal)
+			}
+		})
+	}
+}
