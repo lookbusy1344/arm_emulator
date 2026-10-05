@@ -307,33 +307,23 @@ func TestParseOperand_Writeback(t *testing.T) {
 	}
 }
 
-// TestParseOperand_UnclosedBrackets tests behavior with unclosed brackets
-// Note: The parser may handle these gracefully or report errors at encoding time
+// TestParseOperand_UnclosedBrackets checks that a missing ] or } is a parse error.
 func TestParseOperand_UnclosedBrackets(t *testing.T) {
 	tests := []struct {
 		name  string
 		input string
 	}{
-		// These inputs have unclosed brackets - parser behavior may vary
 		{"unclosed memory bracket", "LDR R0, [R1"},
+		{"unclosed memory bracket with offset", "LDR R0, [R1, #4"},
 		{"unclosed register list", "STMFD SP!, {R0, R1"},
+		{"unclosed register list before comment", "PUSH {R0, R1 ; save"},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			p := parser.NewParser(tt.input, "test.s")
-			program, err := p.Parse()
-
-			// Parser may or may not error - document actual behavior
-			if err != nil {
-				t.Logf("Parser correctly rejected unclosed bracket: %v", err)
-				return
-			}
-
-			// If parser accepted it, verify the operand was captured (possibly incomplete)
-			if len(program.Instructions) > 0 {
-				inst := program.Instructions[0]
-				t.Logf("Parser accepted with operands: %v", inst.Operands)
+			program, err := parser.NewParser(tt.input, "test.s").Parse()
+			if err == nil {
+				t.Errorf("Parse(%q) succeeded with operands %v, want error", tt.input, program.Instructions[0].Operands)
 			}
 		})
 	}

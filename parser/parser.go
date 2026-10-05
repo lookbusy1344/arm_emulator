@@ -544,7 +544,8 @@ func (p *Parser) parseMemoryOperand() string {
 	parts = append(parts, "[")
 	p.nextToken()
 
-	for p.currentToken.Type != TokenRBracket && p.currentToken.Type != TokenNewline && p.currentToken.Type != TokenEOF {
+	start := p.currentToken.Pos
+	for p.currentToken.Type != TokenRBracket && !p.atOperandEnd() {
 		switch {
 		case p.currentToken.Type == TokenComma:
 			parts = append(parts, ",")
@@ -561,13 +562,15 @@ func (p *Parser) parseMemoryOperand() string {
 		p.nextToken()
 	}
 
-	if p.currentToken.Type == TokenRBracket {
-		parts = append(parts, "]")
+	if p.currentToken.Type != TokenRBracket {
+		p.errors.AddError(NewError(start, ErrorSyntax, "missing ']' in memory operand"))
+		return strings.Join(parts, "")
+	}
+	parts = append(parts, "]")
+	p.nextToken()
+	if p.currentToken.Type == TokenExclaim {
+		parts = append(parts, "!")
 		p.nextToken()
-		if p.currentToken.Type == TokenExclaim {
-			parts = append(parts, "!")
-			p.nextToken()
-		}
 	}
 	return strings.Join(parts, "")
 }
@@ -578,7 +581,8 @@ func (p *Parser) parseRegisterListOperand() string {
 	parts = append(parts, "{")
 	p.nextToken()
 
-	for p.currentToken.Type != TokenRBrace && p.currentToken.Type != TokenNewline && p.currentToken.Type != TokenEOF {
+	start := p.currentToken.Pos
+	for p.currentToken.Type != TokenRBrace && !p.atOperandEnd() {
 		switch p.currentToken.Type {
 		case TokenComma:
 			parts = append(parts, ",")
@@ -590,11 +594,22 @@ func (p *Parser) parseRegisterListOperand() string {
 		p.nextToken()
 	}
 
-	if p.currentToken.Type == TokenRBrace {
-		parts = append(parts, "}")
-		p.nextToken()
+	if p.currentToken.Type != TokenRBrace {
+		p.errors.AddError(NewError(start, ErrorSyntax, "missing '}' in register list"))
+		return strings.Join(parts, "")
 	}
+	parts = append(parts, "}")
+	p.nextToken()
 	return strings.Join(parts, "")
+}
+
+// atOperandEnd reports whether the current token ends the instruction's operands.
+func (p *Parser) atOperandEnd() bool {
+	switch p.currentToken.Type {
+	case TokenNewline, TokenEOF, TokenComment:
+		return true
+	}
+	return false
 }
 
 // parsePseudoOperand parses pseudo-instruction operands: =label, =value, =label+offset
