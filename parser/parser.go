@@ -370,41 +370,41 @@ func (p *Parser) handleDirective(d *Directive, program *Program) {
 	case ".space", ".skip":
 		// Reserve specified number of bytes
 		if len(d.Args) > 0 {
-			var size uint32
-			var err error
-
-			// Try to parse as number first
-			size, err = ParseNumber(d.Args[0])
+			size, err := ParseNumber(d.Args[0])
 			if err != nil {
 				// If not a number, try to resolve as symbol (e.g., .equ constant)
 				size, err = p.symbolTable.Get(d.Args[0])
-				if err != nil {
-					p.errors.AddError(NewError(d.Pos, ErrorInvalidOperand,
-						fmt.Sprintf("invalid size for .space: %s", d.Args[0])))
-					return
-				}
 			}
-			p.currentAddress += size
+			switch {
+			case err != nil:
+				p.directiveError(d, fmt.Sprintf("invalid size for %s: %s", d.Name, d.Args[0]))
+			case size > maxReservation || size > math.MaxUint32-p.currentAddress:
+				p.directiveError(d, fmt.Sprintf("size for %s out of range: %s", d.Name, d.Args[0]))
+			default:
+				p.currentAddress += size
+			}
 		}
 
 	case ".align":
 		// Align to power of 2 (e.g., .align 2 means align to 2^2 = 4 bytes)
 		if len(d.Args) > 0 {
-			if alignPower, err := ParseNumber(d.Args[0]); err == nil {
-				alignBytes := uint32(1 << alignPower) // 2^alignPower
-				mask := alignBytes - 1
-				p.currentAddress = (p.currentAddress + mask) & ^mask
+			alignPower, err := ParseNumber(d.Args[0])
+			if err != nil || alignPower > maxAlignPower {
+				p.directiveError(d, fmt.Sprintf(".align power must be 0-%d: %s", maxAlignPower, d.Args[0]))
+				return
 			}
+			p.alignTo(d, uint32(1)<<alignPower)
 		}
 
 	case ".balign":
 		// Align to specified boundary
 		if len(d.Args) > 0 {
-			if align, err := ParseNumber(d.Args[0]); err == nil {
-				if p.currentAddress%align != 0 {
-					p.currentAddress += align - (p.currentAddress % align)
-				}
+			align, err := ParseNumber(d.Args[0])
+			if err != nil || align == 0 || align&(align-1) != 0 || align > 1<<maxAlignPower {
+				p.directiveError(d, fmt.Sprintf(".balign boundary must be a power of two up to %d: %s", 1<<maxAlignPower, d.Args[0]))
+				return
 			}
+			p.alignTo(d, align)
 		}
 
 	case ".ltorg":
@@ -422,6 +422,26 @@ func (p *Parser) handleDirective(d *Directive, program *Program) {
 		// The encoder will place actual literals within this space
 		p.currentAddress += EstimatedLiteralsPerPool * 4
 	}
+}
+
+// Limits on directive arguments.
+const (
+	maxAlignPower  = 16         // .align 16 / .balign 65536
+	maxReservation = 0x80000000 // largest .space; anything above is a negative size
+)
+
+func (p *Parser) directiveError(d *Directive, msg string) {
+	p.errors.AddError(NewError(d.Pos, ErrorInvalidOperand, msg))
+}
+
+// alignTo advances the current address to the next multiple of boundary, a power of two.
+func (p *Parser) alignTo(d *Directive, boundary uint32) {
+	mask := boundary - 1
+	if p.currentAddress > math.MaxUint32-mask {
+		p.directiveError(d, fmt.Sprintf("%s past the end of the address space", d.Name))
+		return
+	}
+	p.currentAddress = (p.currentAddress + mask) &^ mask
 }
 
 // parseInstruction parses an ARM instruction
