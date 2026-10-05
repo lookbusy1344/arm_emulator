@@ -126,7 +126,7 @@ const (
 
 const (
 	// PC offset adjustments
-	PCStoreOffset = 12 // PC+12 when storing PC in STM
+	PCStoreOffset = 12 // PC+12 when storing PC with STR or STM
 	PCBranchBase  = 8  // PC+8 base for branch calculations
 
 	// Bit shift for word-to-byte offset conversion

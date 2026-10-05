@@ -148,8 +148,11 @@ func ExecuteLoadStore(v *VM, inst *Instruction) error {
 			vm.CPU.SetRegister(rd, value)
 		}
 	} else {
-		// Store instruction
+		// Store instruction. A stored R15 is the instruction address plus 12.
 		value := vm.CPU.GetRegister(rd)
+		if rd == ARMRegisterPC {
+			value = vm.CPU.PC + PCStoreOffset
+		}
 		var err error
 		var sizeStr string
 

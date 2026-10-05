@@ -94,16 +94,15 @@ func TestSTR_PC_AsSource(t *testing.T) {
 	mustWriteWord(t, v, 0x8000, opcode)
 	mustStep(t, v)
 
-	// Expected: PC + 8 stored (ARM2 stores PC+8 for STR)
-	// Note: Different ARM implementations vary
+	// A stored R15 is the instruction address plus 12, as for STM
 	val, err := v.Memory.ReadWord(0x9000)
 	if err != nil {
 		t.Fatalf("failed to read stored value: %v", err)
 	}
 
-	// PC + 8 = 0x8008
-	if val != 0x8008 {
-		t.Errorf("expected stored value 0x8008, got 0x%X", val)
+	// PC + 12 = 0x800C
+	if val != 0x800C {
+		t.Errorf("expected stored value 0x800C, got 0x%X", val)
 	}
 }
 

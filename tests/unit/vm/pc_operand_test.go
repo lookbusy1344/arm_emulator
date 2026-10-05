@@ -7,8 +7,8 @@ import (
 )
 
 // Instructions run at vm.CodeSegmentStart. Reading R15 gives the instruction address
-// plus 8, or plus 12 when the instruction also shifts by a register. STM of R15
-// stores the address plus 12.
+// plus 8, or plus 12 when the instruction also shifts by a register. STR and STM of
+// R15 store the address plus 12.
 const (
 	pcPlus8  = vm.CodeSegmentStart + 8
 	pcPlus12 = vm.CodeSegmentStart + 12
@@ -49,6 +49,27 @@ func TestPCAsOperand(t *testing.T) {
 
 func TestStorePC(t *testing.T) {
 	const buf = vm.DataSegmentStart
+	for _, tt := range []struct {
+		name   string
+		opcode uint32
+	}{
+		{"STR PC", 0xE581F000},             // STR PC, [R1]
+		{"STR PC pre-indexed", 0xE5A1F000}, // STR PC, [R1, #0]!
+		{"STRB PC", 0xE5C1F000},            // STRB PC, [R1]: low byte of PC+12
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			v := vm.NewVM()
+			v.CPU.R[1] = buf
+			stepOne(t, v, tt.opcode)
+			want := uint32(pcPlus12)
+			if tt.name == "STRB PC" {
+				want &= 0xFF
+			}
+			if got, _ := v.Memory.ReadWord(buf); got != want {
+				t.Errorf("stored 0x%08X, want 0x%08X", got, want)
+			}
+		})
+	}
 	t.Run("STMIA with PC", func(t *testing.T) {
 		v := vm.NewVM()
 		v.CPU.R[1] = buf
