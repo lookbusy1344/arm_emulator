@@ -1030,15 +1030,15 @@ func handleWrite(vm *VM) error {
 
 func handleSeek(vm *VM) error {
 	fd := vm.CPU.GetRegister(0)
-	offset := int64(vm.CPU.GetRegister(1))
-	whence := int(vm.CPU.GetRegister(2))
+	offset := int64(AsInt32(vm.CPU.GetRegister(1))) // signed, so SEEK can move backwards
+	whence := vm.CPU.GetRegister(2)
 	f, err := vm.getFile(fd)
-	if err != nil {
+	if err != nil || whence > io.SeekEnd {
 		vm.CPU.SetRegister(0, SyscallErrorGeneral)
 		vm.CPU.IncrementPC()
 		return nil
 	}
-	npos, err := f.Seek(offset, whence)
+	npos, err := f.Seek(offset, int(whence))
 	if err != nil {
 		vm.CPU.SetRegister(0, SyscallErrorGeneral)
 	} else {
