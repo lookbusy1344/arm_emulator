@@ -79,9 +79,10 @@ func CalculateShiftCarry(value uint32, shiftAmount int, shiftType ShiftType, cur
 		return (value & (1 << (shiftAmount - 1))) != 0
 
 	case ShiftROR: // Rotate Right
-		shiftAmount = shiftAmount % 32
+		// A non-zero multiple of 32 rotates the value back into place; C takes bit 31.
+		shiftAmount = shiftAmount % BitsInWord
 		if shiftAmount == 0 {
-			return currentCarry
+			return (value & SignBitMask) != 0
 		}
 		return (value & (1 << (shiftAmount - 1))) != 0
 
