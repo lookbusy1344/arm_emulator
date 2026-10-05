@@ -2,7 +2,6 @@ package loader
 
 import (
 	"fmt"
-	"math"
 	"os"
 	"strings"
 
@@ -83,6 +82,25 @@ func LoadProgramIntoVM(machine *vm.VM, program *parser.Program, entryPoint uint3
 				maxAddr = dataAddr
 			}
 
+		case ".half":
+			// Write 16-bit halfwords
+			for _, arg := range directive.Args {
+				value, err := parser.ParseNumber(arg)
+				if err != nil {
+					return fmt.Errorf("invalid .half value: %s", arg)
+				}
+				if !fitsInBits(arg, value, halfwordBits) {
+					return fmt.Errorf(".half value out of range (-32768 to 65535): %s", arg)
+				}
+				if err := writeHalfwordUnsafe(machine.Memory, dataAddr, uint16(value)); err != nil { // #nosec G115 -- range checked above
+					return err
+				}
+				dataAddr += halfwordBytes
+			}
+			if dataAddr > maxAddr {
+				maxAddr = dataAddr
+			}
+
 		case ".byte":
 			// Write bytes
 			for _, arg := range directive.Args {
@@ -108,7 +126,7 @@ func LoadProgramIntoVM(machine *vm.VM, program *parser.Program, entryPoint uint3
 					if err != nil {
 						return fmt.Errorf("invalid .byte value: %s", arg)
 					}
-					if !fitsInByte(arg, parsed) {
+					if !fitsInBits(arg, parsed, byteBits) {
 						return fmt.Errorf(".byte value out of range (-128 to 255): %s", arg)
 					}
 					value = parsed
@@ -235,15 +253,32 @@ func LoadProgramIntoVM(machine *vm.VM, program *parser.Program, entryPoint uint3
 	return nil
 }
 
-// fitsInByte reports whether a parsed .byte argument lies in -128..255. ParseNumber
-// returns negatives in two's complement, so the sign comes from the source text.
-func fitsInByte(arg string, value uint32) bool {
-	const (
-		maxUnsignedByte = math.MaxUint8
-		minSignedByte   = math.MinInt8
-	)
+const (
+	byteBits      = 8
+	halfwordBits  = 16
+	halfwordBytes = 2
+)
+
+// fitsInBits reports whether a parsed data argument fits in a field of the given width,
+// read as unsigned or as signed. ParseNumber returns negatives in two's complement, so
+// the sign comes from the source text.
+func fitsInBits(arg string, value uint32, bits int) bool {
 	if strings.HasPrefix(strings.TrimSpace(arg), "-") {
-		return int32(value) >= minSignedByte // #nosec G115 -- reinterpret two's complement
+		return int32(value) >= -(1 << (bits - 1)) // #nosec G115 -- reinterpret two's complement
 	}
-	return value <= maxUnsignedByte
+	return value < 1<<bits
+}
+
+// writeHalfwordUnsafe writes a halfword in the memory's byte order without permission
+// or alignment checks.
+func writeHalfwordUnsafe(m *vm.Memory, addr uint32, value uint16) error {
+	const byteShift = 8
+	lo, hi := byte(value), byte(value>>byteShift) // #nosec G115 -- byte extraction
+	if !m.LittleEndian {
+		lo, hi = hi, lo
+	}
+	if err := m.WriteByteUnsafe(addr, lo); err != nil {
+		return err
+	}
+	return m.WriteByteUnsafe(addr+1, hi)
 }

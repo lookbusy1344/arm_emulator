@@ -93,3 +93,38 @@ func TestByteDirectiveOutOfRange(t *testing.T) {
 		})
 	}
 }
+
+func TestHalfDirectiveValues(t *testing.T) {
+	machine, program := load(t, `.org 0x8000
+_start:
+	SWI #0x00
+halves:
+	.half 0, 0xF800, 65535, -1, -32768, 0x1234
+`)
+	base := symbol(t, program, "halves")
+	want := []uint16{0, 0xF800, 0xFFFF, 0xFFFF, 0x8000, 0x1234}
+	for i, w := range want {
+		got, err := machine.Memory.ReadHalfword(base + uint32(i)*2)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if got != w {
+			t.Errorf(".half element %d = 0x%04X, want 0x%04X", i, got, w)
+		}
+	}
+}
+
+func TestHalfDirectiveOutOfRange(t *testing.T) {
+	for _, value := range []string{"65536", "-32769", "0x10000"} {
+		t.Run(value, func(t *testing.T) {
+			src := ".org 0x8000\n_start:\n\tSWI #0x00\n\t.half " + value + "\n"
+			program, err := parser.NewParser(src, "test.s").Parse()
+			if err != nil {
+				t.Fatalf("parse error: %v", err)
+			}
+			if err := loader.LoadProgramIntoVM(vm.NewVM(), program, 0x8000); err == nil {
+				t.Errorf(".half %s loaded, want range error", value)
+			}
+		})
+	}
+}
