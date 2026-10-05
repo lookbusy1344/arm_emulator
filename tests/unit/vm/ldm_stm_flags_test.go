@@ -6,20 +6,23 @@ import (
 	"github.com/lookbusy1344/arm-emulator/vm"
 )
 
-// TestLDM_WithSBit_RestoresCPSR tests that LDM with S bit and PC restores CPSR from SPSR
-func TestLDM_WithSBit_RestoresCPSR(t *testing.T) {
+// The VM runs only in user mode, which has no SPSR. LDM with the S bit and PC in the
+// list loads PC and leaves CPSR unchanged instead of restoring it from SPSR.
+
+// TestLDM_WithSBit_KeepsCPSR tests that LDM with S bit and PC leaves CPSR unchanged
+func TestLDM_WithSBit_KeepsCPSR(t *testing.T) {
 	v := vm.NewVM()
 	stackAddr := uint32(vm.StackSegmentStart + 0x1000) // 0x00041000
 	v.CPU.R[13] = stackAddr                            // SP
 	v.CPU.PC = 0x8000
 
-	// Set current CPSR flags (these should be replaced)
+	// Set current CPSR flags (these should be kept)
 	v.CPU.CPSR.N = false
 	v.CPU.CPSR.Z = false
 	v.CPU.CPSR.C = false
 	v.CPU.CPSR.V = false
 
-	// Set SPSR flags (these should be restored)
+	// Set SPSR flags (these should not be restored)
 	v.CPU.SPSR.N = true
 	v.CPU.SPSR.Z = true
 	v.CPU.SPSR.C = true
@@ -46,18 +49,9 @@ func TestLDM_WithSBit_RestoresCPSR(t *testing.T) {
 		t.Errorf("expected PC=0x00009000, got PC=0x%X", v.CPU.PC)
 	}
 
-	// Verify CPSR was restored from SPSR
-	if !v.CPU.CPSR.N {
-		t.Error("expected N flag to be set (restored from SPSR)")
-	}
-	if !v.CPU.CPSR.Z {
-		t.Error("expected Z flag to be set (restored from SPSR)")
-	}
-	if !v.CPU.CPSR.C {
-		t.Error("expected C flag to be set (restored from SPSR)")
-	}
-	if !v.CPU.CPSR.V {
-		t.Error("expected V flag to be set (restored from SPSR)")
+	// Verify CPSR kept its flags
+	if want := (vm.CPSR{}); v.CPU.CPSR != want {
+		t.Errorf("CPSR = %+v, want %+v (unchanged)", v.CPU.CPSR, want)
 	}
 }
 
@@ -199,17 +193,17 @@ func TestLDM_AllFlagCombinations(t *testing.T) {
 			v.CPU.R[13] = stackAddr // SP
 			v.CPU.PC = 0x8000
 
-			// Set CPSR to opposite of test values (should be overwritten)
-			v.CPU.CPSR.N = !tc.n
-			v.CPU.CPSR.Z = !tc.z
-			v.CPU.CPSR.C = !tc.c
-			v.CPU.CPSR.V = !tc.v
+			// Set CPSR to the test values (should be kept)
+			v.CPU.CPSR.N = tc.n
+			v.CPU.CPSR.Z = tc.z
+			v.CPU.CPSR.C = tc.c
+			v.CPU.CPSR.V = tc.v
 
-			// Set SPSR to test values (should be restored)
-			v.CPU.SPSR.N = tc.n
-			v.CPU.SPSR.Z = tc.z
-			v.CPU.SPSR.C = tc.c
-			v.CPU.SPSR.V = tc.v
+			// Set SPSR to the opposite (should not be restored)
+			v.CPU.SPSR.N = !tc.n
+			v.CPU.SPSR.Z = !tc.z
+			v.CPU.SPSR.C = !tc.c
+			v.CPU.SPSR.V = !tc.v
 
 			setupCodeWrite(v)
 			mustWriteWord(t, v, stackAddr, 0x9000) // PC
@@ -224,7 +218,7 @@ func TestLDM_AllFlagCombinations(t *testing.T) {
 				t.Errorf("expected PC=0x9000, got PC=0x%X", v.CPU.PC)
 			}
 
-			// Verify all flags were restored correctly
+			// Verify all flags were kept
 			if v.CPU.CPSR.N != tc.n {
 				t.Errorf("expected N=%v, got N=%v", tc.n, v.CPU.CPSR.N)
 			}
@@ -248,13 +242,13 @@ func TestLDM_SBit_MultipleRegisters(t *testing.T) {
 	v.CPU.R[13] = stackAddr // SP
 	v.CPU.PC = 0x8000
 
-	// Set current CPSR (should be replaced)
+	// Set current CPSR (should be kept)
 	v.CPU.CPSR.N = false
 	v.CPU.CPSR.Z = false
 	v.CPU.CPSR.C = false
 	v.CPU.CPSR.V = false
 
-	// Set SPSR (should be restored)
+	// Set SPSR (should not be restored)
 	v.CPU.SPSR.N = true
 	v.CPU.SPSR.Z = false
 	v.CPU.SPSR.C = true
@@ -291,18 +285,9 @@ func TestLDM_SBit_MultipleRegisters(t *testing.T) {
 		t.Errorf("expected PC=0x9000, got PC=0x%X", v.CPU.PC)
 	}
 
-	// Verify CPSR was restored
-	if !v.CPU.CPSR.N {
-		t.Error("expected N flag to be set")
-	}
-	if v.CPU.CPSR.Z {
-		t.Error("expected Z flag to be clear")
-	}
-	if !v.CPU.CPSR.C {
-		t.Error("expected C flag to be set")
-	}
-	if v.CPU.CPSR.V {
-		t.Error("expected V flag to be clear")
+	// Verify CPSR kept its flags
+	if want := (vm.CPSR{}); v.CPU.CPSR != want {
+		t.Errorf("CPSR = %+v, want %+v (unchanged)", v.CPU.CPSR, want)
 	}
 }
 
@@ -466,8 +451,9 @@ func TestRestoreCPSR_HelperMethod(t *testing.T) {
 	}
 }
 
-// TestIntegration_ExceptionHandlerSimulation tests a complete exception handler flow
-func TestIntegration_ExceptionHandlerSimulation(t *testing.T) {
+// TestIntegration_ExceptionReturnKeepsCPSR tests that an exception-return LDM in user
+// mode keeps the handler's flags even when SPSR holds saved ones
+func TestIntegration_ExceptionReturnKeepsCPSR(t *testing.T) {
 	v := vm.NewVM()
 	v.CPU.PC = 0x8000
 	stackAddr := uint32(vm.StackSegmentStart + 0x1000)
@@ -504,17 +490,8 @@ func TestIntegration_ExceptionHandlerSimulation(t *testing.T) {
 		t.Errorf("expected PC=0x9000, got PC=0x%X", v.CPU.PC)
 	}
 
-	// Verify CPSR was restored to pre-exception state
-	if v.CPU.CPSR.N != false {
-		t.Error("expected N flag restored to false")
-	}
-	if v.CPU.CPSR.Z != true {
-		t.Error("expected Z flag restored to true")
-	}
-	if v.CPU.CPSR.C != false {
-		t.Error("expected C flag restored to false")
-	}
-	if v.CPU.CPSR.V != false {
-		t.Error("expected V flag restored to false")
+	// Verify CPSR kept the handler's flags, not the saved ones
+	if want := (vm.CPSR{N: true, C: true, V: true}); v.CPU.CPSR != want {
+		t.Errorf("CPSR = %+v, want %+v (unchanged)", v.CPU.CPSR, want)
 	}
 }

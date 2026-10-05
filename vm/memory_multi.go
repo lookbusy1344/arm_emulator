@@ -8,7 +8,6 @@ import (
 func ExecuteLoadStoreMultiple(vm *VM, inst *Instruction) error {
 	load := (inst.Opcode >> LBitShift) & Mask1Bit      // L bit: 1=load, 0=store
 	writeBack := (inst.Opcode >> WBitShift) & Mask1Bit // W bit: write address back to base
-	psr := (inst.Opcode >> BBitShift) & Mask1Bit       // S bit: load/store PSR or force user mode
 	increment := (inst.Opcode >> UBitShift) & Mask1Bit // U bit: 1=increment, 0=decrement
 	preIndex := (inst.Opcode >> PBitShift) & Mask1Bit  // P bit: 1=pre-increment/decrement, 0=post
 
@@ -153,15 +152,9 @@ func ExecuteLoadStoreMultiple(vm *VM, inst *Instruction) error {
 		}
 	}
 
-	// Handle S bit (PSR transfer for LDM with PC)
-	// ARM6+ behavior: When loading PC with S bit set, restore CPSR from SPSR
-	// This simulates returning from an exception handler
-	if psr == 1 && load == 1 && pcLoaded {
-		// LDM with S bit and PC loaded: restore CPSR from SPSR (exception return)
-		vm.CPU.RestoreCPSR()
-	}
-	// Note: STM with S bit has no special behavior in this implementation
-	// (storing PC+12 is sufficient for exception handling)
+	// The S bit selects an exception return (LDM with PC) or a user-bank transfer.
+	// The VM runs only in user mode, which has no SPSR and no other bank, so the S
+	// bit has no effect.
 
 	// Increment PC (unless we loaded into PC)
 	if !pcLoaded {

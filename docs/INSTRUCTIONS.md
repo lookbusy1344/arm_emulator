@@ -561,7 +561,7 @@ BICS R3, R3, #0x0F    ; Clear lower 4 bits, update flags
 
 **Description:** Copies a value from the source operand into the destination register, performing no arithmetic or logical operation.
 Used for register-to-register transfers, loading immediate constants, and applying shift operations to values.
-The special case MOVS PC, LR is used to return from subroutines while restoring the CPSR flags from SPSR.
+With S set and PC as Rd (`MOVS PC, LR`, `SUBS PC, LR, #4`), the instruction branches and leaves CPSR unchanged. On hardware this is an exception return from SPSR; the emulator runs only in user mode, which has no SPSR.
 
 **Operation:** `Rd = operand2`
 
@@ -572,7 +572,7 @@ The special case MOVS PC, LR is used to return from subroutines while restoring 
 MOV R0, R1            ; R0 = R1
 MOV R2, #100          ; R2 = 100
 MOV R3, R4, LSL #2    ; R3 = R4 << 2
-MOVS PC, LR           ; Return from subroutine with flag restore
+MOVS PC, LR           ; Return from subroutine; flags unchanged
 MOVEQ R5, #1          ; If equal, R5 = 1
 MOVNE R6, #0          ; If not equal, R6 = 0
 MOVGT R7, R8          ; If greater than, R7 = R8
@@ -785,7 +785,7 @@ STRH R2, [R3, #6]     ; [R3 + 6] = R2[15:0]
 
 **Description:** Efficiently loads multiple registers from consecutive 32-bit memory locations in a single instruction, starting from the base address.
 Primarily used for function returns, context restoration, and bulk data loading from memory with automatic address incrementing or decrementing.
-The optional writeback (!) updates the base register, and the caret (^) suffix enables CPSR restoration for exception returns when PC is in the list.
+The optional writeback (!) updates the base register. The caret (^) suffix is accepted and has no effect (see S Bit below).
 
 **Modes:** IA (Increment After), IB (Increment Before), DA (Decrement After), DB (Decrement Before)
 
@@ -796,18 +796,12 @@ The optional writeback (!) updates the base register, and the caret (^) suffix e
 LDMIA R13!, {R0-R3}      ; Load R0-R3 from stack, increment R13
 LDMFD SP!, {R4-R6, PC}   ; Pop R4-R6 and return
 LDMIA R0, {R1-R4}        ; Load R1-R4 from memory at R0
-LDMFD SP!, {R0-R12, LR, PC}^  ; Exception return (restore CPSR from SPSR)
+LDMFD SP!, {R0-R12, LR, PC}^  ; Pop and return; ^ has no effect
 ```
 
 **Usage Note:** `LDMFD SP!` (Load Multiple Full Descending) is the standard way to pop registers from the stack.
 
-**S Bit (^ suffix):** When the `^` suffix is used with PC in the register list, the instruction performs an exception return by restoring the CPSR from SPSR. This simulates returning from an exception handler where the processor status needs to be restored along with the program counter. The S bit has no effect if PC is not in the register list.
-
-**Example Exception Return:**
-```arm
-; Exception handler epilogue
-LDMFD SP!, {R0-R12, LR, PC}^  ; Restore all registers and CPSR from SPSR
-```
+**S Bit (^ suffix):** The `^` suffix sets the S bit (bit 22). On hardware, with PC in the list it is an exception return that restores CPSR from SPSR; without PC it loads the user-mode registers. The emulator runs only in user mode, which has no SPSR and no other register bank, so the S bit has no effect and CPSR is unchanged.
 
 #### STM - Store Multiple
 
@@ -830,7 +824,7 @@ STMIA R0!, {R1-R4}      ; Store R1-R4 to memory at R0, increment R0
 
 **Usage Note:** `STMFD SP!` (Store Multiple Full Descending) is the standard way to push registers onto the stack.
 
-**S Bit (^ suffix):** The `^` suffix sets the S bit (bit 22) in the instruction encoding. For STM instructions, this bit has no special behavior in this implementation - registers are stored normally with PC stored as PC+12 when included in the register list. The S bit is primarily used with LDM instructions for exception returns.
+**S Bit (^ suffix):** The `^` suffix sets the S bit (bit 22) in the instruction encoding. It has no effect: registers are stored normally, with PC stored as PC+12 when it is in the register list.
 
 ---
 

@@ -100,16 +100,19 @@ func TestWritePC(t *testing.T) {
 			v.CPU.R[1] = vm.DataSegmentStart
 			mustWriteWord(t, v, vm.DataSegmentStart, target)
 		}, target, nil},
-		// With S set and PC as destination, CPSR is restored from SPSR (exception return).
-		{"MOVS PC, LR restores CPSR", 0xE1B0F00E, func(t *testing.T, v *vm.VM) {
+		// The VM runs only in user mode, which has no SPSR to return to. An S-suffixed
+		// write to PC branches and leaves CPSR as it was: neither restored from SPSR nor
+		// set from the result.
+		{"MOVS PC, LR keeps CPSR", 0xE1B0F00E, func(t *testing.T, v *vm.VM) {
 			v.CPU.R[vm.LR] = target
 			v.CPU.CPSR = vm.CPSR{N: true, C: true}
 			v.CPU.SPSR = vm.CPSR{Z: true, V: true}
-		}, target, &vm.CPSR{Z: true, V: true}},
-		{"SUBS PC, LR, #4 restores CPSR", 0xE25EF004, func(t *testing.T, v *vm.VM) {
+		}, target, &vm.CPSR{N: true, C: true}},
+		{"SUBS PC, LR, #4 keeps CPSR", 0xE25EF004, func(t *testing.T, v *vm.VM) {
 			v.CPU.R[vm.LR] = target + 4
-			v.CPU.SPSR = vm.CPSR{N: true, V: true}
-		}, target, &vm.CPSR{N: true, V: true}},
+			v.CPU.CPSR = vm.CPSR{Z: true, V: true}
+			v.CPU.SPSR = vm.CPSR{N: true, C: true}
+		}, target, &vm.CPSR{Z: true, V: true}},
 		{"MOVNE PC skipped", 0x11A0F001, func(t *testing.T, v *vm.VM) {
 			v.CPU.R[1] = target
 			v.CPU.CPSR.Z = true

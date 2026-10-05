@@ -176,11 +176,10 @@ func ExecuteDataProcessing(vm *VM, inst *Instruction) error {
 		}
 	}
 
-	// Update flags if requested. An S-suffixed write to PC is an exception return:
-	// CPSR is restored from SPSR instead.
-	if updateFlags && writeResult && rd == ARMRegisterPC {
-		vm.CPU.RestoreCPSR()
-	} else if updateFlags {
+	// Update flags if requested. An S-suffixed write to PC is an exception return,
+	// which needs an SPSR; user mode has none, so CPSR keeps its value.
+	exceptionReturn := writeResult && rd == ARMRegisterPC
+	if updateFlags && !exceptionReturn {
 		// Logical operations update N, Z, C (not V)
 		// Arithmetic operations update all flags
 		if opcode == OpAND || opcode == OpEOR || opcode == OpTST || opcode == OpTEQ ||

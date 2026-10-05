@@ -1330,19 +1330,9 @@ critical_function:
         LDMFD   SP!, {R1-R3, PC}
 ```
 
-**SPSR and Exception Handling (Advanced):**
+**SPSR and Exception Returns:**
 
-The emulator also supports the **SPSR** (Saved Program Status Register) and the `^` suffix for exception returns. This is primarily used by operating system exception handlers:
-
-```asm
-; Exception handler epilogue
-; The ^ suffix restores CPSR from SPSR when loading PC
-        LDMFD   SP!, {R0-R12, LR, PC}^  ; Exception return
-```
-
-**When to use each approach:**
-- **MRS/MSR**: For regular user code that needs to preserve flags
-- **SPSR/^**: For OS-level exception handlers (advanced use case)
+The emulator runs only in user mode, which has no SPSR. Exception-return forms such as `LDMFD SP!, {R0-R12, LR, PC}^` and `MOVS PC, LR` branch and leave CPSR unchanged. Use MRS/MSR to save and restore flags.
 
 **Note:** Most functions don't need to preserve flags - the caller typically expects flags to be modified. Only use flag preservation when:
 - You have a utility function that shouldn't affect calling code's conditionals
