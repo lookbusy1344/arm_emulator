@@ -33,8 +33,18 @@ func ExecuteDataProcessing(vm *VM, inst *Instruction) error {
 	rd := int((inst.Opcode >> RdShift) & Mask4Bit) // Destination register
 	rn := int((inst.Opcode >> RnShift) & Mask4Bit) // First operand register
 
+	// A register-specified shift takes an extra cycle, so R15 reads as the
+	// instruction address plus 12 instead of plus 8.
+	shiftByReg := immediate == 0 && (inst.Opcode>>Bit4Pos)&Mask1Bit == 1
+	readOperand := func(reg int) uint32 {
+		if shiftByReg && reg == ARMRegisterPC {
+			return vm.CPU.PC + PCStoreOffset
+		}
+		return vm.CPU.GetRegister(reg)
+	}
+
 	// Get first operand
-	op1 := vm.CPU.GetRegister(rn)
+	op1 := readOperand(rn)
 
 	// Get second operand (either immediate or register with shift)
 	var op2 uint32
@@ -55,13 +65,12 @@ func ExecuteDataProcessing(vm *VM, inst *Instruction) error {
 	} else {
 		// Register with optional shift
 		rm := int(inst.Opcode & Mask4Bit)
-		op2Value := vm.CPU.GetRegister(rm)
+		op2Value := readOperand(rm)
 
 		shiftType := ShiftType((inst.Opcode >> ShiftTypePos) & Mask2Bit)
-		shiftByReg := (inst.Opcode >> Bit4Pos) & Mask1Bit
 
 		var shiftAmount int
-		if shiftByReg == 1 {
+		if shiftByReg {
 			// Shift amount in the bottom byte of Rs
 			rs := int((inst.Opcode >> RsShift) & Mask4Bit)
 			shiftAmount = int(vm.CPU.GetRegister(rs) & ImmediateValueMask)
@@ -69,7 +78,7 @@ func ExecuteDataProcessing(vm *VM, inst *Instruction) error {
 			shiftType, shiftAmount = immediateShift(shiftType, int((inst.Opcode>>ShiftAmountPos)&Mask5Bit))
 		}
 
-		if shiftByReg == 1 && shiftAmount == 0 {
+		if shiftByReg && shiftAmount == 0 {
 			// A register shift by zero leaves the operand and carry unchanged
 			op2, shiftCarry = op2Value, vm.CPU.CPSR.C
 		} else {
@@ -167,8 +176,11 @@ func ExecuteDataProcessing(vm *VM, inst *Instruction) error {
 		}
 	}
 
-	// Update flags if requested
-	if updateFlags {
+	// Update flags if requested. An S-suffixed write to PC is an exception return:
+	// CPSR is restored from SPSR instead.
+	if updateFlags && writeResult && rd == ARMRegisterPC {
+		vm.CPU.RestoreCPSR()
+	} else if updateFlags {
 		// Logical operations update N, Z, C (not V)
 		// Arithmetic operations update all flags
 		if opcode == OpAND || opcode == OpEOR || opcode == OpTST || opcode == OpTEQ ||
