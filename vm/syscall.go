@@ -163,15 +163,9 @@ const (
 
 // FD table helpers
 //
-// Thread Safety: File descriptor table access is protected by fdMu. However, the returned
-// *os.File pointer is used after the lock is released. This is safe in the current design
-// because:
-// 1. The emulator executes guest programs single-threaded (one instruction at a time)
-// 2. File descriptors are never removed from the table once allocated (no close invalidation)
-// 3. Standard file descriptors (stdin/stdout/stderr) are never closed or replaced
-//
-// If multi-threaded guest program support is added in the future, file operations would need
-// additional synchronization or reference counting to prevent use-after-close scenarios.
+// Thread safety: fdMu guards the table. The *os.File that getFile returns is used after
+// the lock is released, which is safe because the guest runs one instruction at a time,
+// so no CLOSE can run while another syscall uses the file.
 func (vm *VM) getFile(fd uint32) (*os.File, error) {
 	vm.fdMu.Lock()
 	defer vm.fdMu.Unlock()
@@ -219,10 +213,15 @@ func (vm *VM) allocFD(f *os.File) uint32 {
 	return uint32(len(vm.files) - 1)
 }
 
+// closeFD closes a descriptor the guest opened. The standard descriptors map to the
+// host process's own stdin, stdout and stderr, so the guest cannot close them.
 func (vm *VM) closeFD(fd uint32) error {
 	vm.fdMu.Lock()
 	defer vm.fdMu.Unlock()
-	if int(fd) < 0 || int(fd) >= len(vm.files) || vm.files[fd] == nil {
+	if fd < FirstUserFD {
+		return errors.New("cannot close a standard descriptor")
+	}
+	if int(fd) >= len(vm.files) || vm.files[fd] == nil {
 		return errors.New("bad fd")
 	}
 	_ = vm.files[fd].Close()
