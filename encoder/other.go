@@ -8,81 +8,55 @@ import (
 	"github.com/lookbusy1344/arm-emulator/vm"
 )
 
-// encodeMultiply encodes MUL and MLA instructions
+// Operand counts for MUL Rd, Rm, Rs and MLA Rd, Rm, Rs, Rn.
+const (
+	mulOperands = 3
+	mlaOperands = 4
+)
+
+// encodeMultiply encodes MUL and MLA.
+//
+//	cccc 0000 00AS dddd nnnn ssss 1001 mmmm
+//
+// ARM2 requires Rd != Rm. The product commutes, so Rd == Rm swaps Rm and Rs.
 func (e *Encoder) encodeMultiply(inst *parser.Instruction, cond uint32) (uint32, error) {
 	mnemonic := strings.ToUpper(inst.Mnemonic)
-
-	if mnemonic == "MUL" {
-		if len(inst.Operands) < 3 {
-			return 0, fmt.Errorf("MUL requires 3 operands, got %d", len(inst.Operands))
-		}
-
-		rd, err := e.parseRegister(inst.Operands[0])
-		if err != nil {
-			return 0, err
-		}
-
-		rm, err := e.parseRegister(inst.Operands[1])
-		if err != nil {
-			return 0, err
-		}
-
-		rs, err := e.parseRegister(inst.Operands[2])
-		if err != nil {
-			return 0, err
-		}
-
-		// S bit
-		var sBit uint32
-		if inst.SetFlags {
-			sBit = 1
-		}
-
-		// Format: cccc 0000 00AS dddd 0000 ssss 1001 mmmm
-		instruction := (cond << ConditionShift) | (sBit << SBitShift) | (rd << RnShift) | (rs << RsShift) | (MultiplyMarker << Bit4) | rm
-
-		return instruction, nil
-
-	} else if mnemonic == "MLA" {
-		if len(inst.Operands) < 4 {
-			return 0, fmt.Errorf("MLA requires 4 operands, got %d", len(inst.Operands))
-		}
-
-		rd, err := e.parseRegister(inst.Operands[0])
-		if err != nil {
-			return 0, err
-		}
-
-		rm, err := e.parseRegister(inst.Operands[1])
-		if err != nil {
-			return 0, err
-		}
-
-		rs, err := e.parseRegister(inst.Operands[2])
-		if err != nil {
-			return 0, err
-		}
-
-		rn, err := e.parseRegister(inst.Operands[3])
-		if err != nil {
-			return 0, err
-		}
-
-		// S bit
-		var sBit uint32
-		if inst.SetFlags {
-			sBit = 1
-		}
-
-		// Format: cccc 0000 001S dddd nnnn ssss 1001 mmmm
-		// A bit (bit 21) = 1 for MLA
-		instruction := (cond << ConditionShift) | (1 << MultiplyABitShift) | (sBit << SBitShift) | (rd << RnShift) | (rn << RdShift) |
-			(rs << RsShift) | (MultiplyMarker << Bit4) | rm
-
-		return instruction, nil
+	accumulate := mnemonic == "MLA"
+	want := mulOperands
+	if accumulate {
+		want = mlaOperands
+	}
+	if len(inst.Operands) != want {
+		return 0, fmt.Errorf("%s requires %d operands, got %d", mnemonic, want, len(inst.Operands))
 	}
 
-	return 0, fmt.Errorf("unknown multiply instruction: %s", mnemonic)
+	regs := make([]uint32, want)
+	for i, op := range inst.Operands {
+		reg, err := e.parseRegister(op)
+		if err != nil {
+			return 0, err
+		}
+		if reg == RegisterPC {
+			return 0, fmt.Errorf("%s: PC cannot be used", mnemonic)
+		}
+		regs[i] = reg
+	}
+	rd, rm, rs := regs[0], regs[1], regs[2]
+	if rd == rm {
+		if rd == rs {
+			return 0, fmt.Errorf("%s: Rd must differ from Rm or Rs", mnemonic)
+		}
+		rm, rs = rs, rm
+	}
+
+	var bits uint32
+	if accumulate {
+		bits |= 1<<MultiplyABitShift | regs[3]<<RdShift
+	}
+	if inst.SetFlags {
+		bits |= 1 << SBitShift
+	}
+	return cond<<ConditionShift | bits | rd<<RnShift | rs<<RsShift | MultiplyMarker<<Bit4 | rm, nil
 }
 
 // encodeLoadStoreMultiple encodes LDM/STM instructions
