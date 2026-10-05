@@ -343,7 +343,7 @@ func (s *DebuggerService) Reset() error {
 
 	// Clear all breakpoints and watchpoints
 	s.debugger.Breakpoints.Clear()
-	// Note: WatchpointManager doesn't have Clear() - could add if needed
+	s.debugger.Watchpoints.Clear()
 
 	// Reset execution control
 	s.debugger.Running = false

@@ -147,3 +147,24 @@ func parse(t *testing.T, source string) *parser.Program {
 	}
 	return program
 }
+
+func TestResetClearsBreakpointsAndWatchpoints(t *testing.T) {
+	svc := newLoadedService(t, readerProgram)
+	if err := svc.AddBreakpoint(0x8004); err != nil {
+		t.Fatal(err)
+	}
+	if err := svc.AddWatchpoint(svc.GetSymbols()["buffer"], "write"); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := svc.Reset(); err != nil {
+		t.Fatal(err)
+	}
+
+	if bps := svc.GetBreakpoints(); len(bps) != 0 {
+		t.Errorf("breakpoints after Reset = %v, want none", bps)
+	}
+	if wps := svc.GetWatchpoints(); len(wps) != 0 {
+		t.Errorf("watchpoints after Reset = %v, want none", wps)
+	}
+}
