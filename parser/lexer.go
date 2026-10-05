@@ -42,6 +42,8 @@ const (
 	TokenLShift    // <<
 	TokenRShift    // >>
 	TokenEqual     // =
+	TokenLParen    // (
+	TokenRParen    // )
 
 	// Directives
 	TokenDirective // .org, .equ, .word, etc.
@@ -78,6 +80,8 @@ var tokenNames = map[TokenType]string{
 	TokenLShift:     "<<",
 	TokenRShift:     ">>",
 	TokenEqual:      "=",
+	TokenLParen:     "(",
+	TokenRParen:     ")",
 	TokenDirective:  "DIRECTIVE",
 	TokenCondition:  "CONDITION",
 }
@@ -422,6 +426,16 @@ func (l *Lexer) NextToken() Token {
 	case '~':
 		tok.Type = TokenTilde
 		tok.Literal = "~"
+		l.readChar()
+
+	case '(':
+		tok.Type = TokenLParen
+		tok.Literal = "("
+		l.readChar()
+
+	case ')':
+		tok.Type = TokenRParen
+		tok.Literal = ")"
 		l.readChar()
 
 	case '<':

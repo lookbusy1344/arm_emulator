@@ -328,15 +328,18 @@ func (p *Parser) handleDirective(d *Directive, program *Program) {
 
 	case ".equ", ".set":
 		// Define constant
-		if len(d.Args) >= 2 {
-			name := d.Args[0]
-			if value, err := ParseNumber(d.Args[1]); err == nil {
-				if err := p.symbolTable.Define(name, SymbolConstant, value, d.Pos); err != nil {
-					p.errors.AddError(NewError(d.Pos, ErrorDuplicateLabel, err.Error()))
-				}
-			} else {
-				p.errors.AddError(NewError(d.Pos, ErrorSyntax, fmt.Sprintf("invalid constant value: %s", d.Args[1])))
-			}
+		if len(d.Args) < 2 {
+			p.errors.AddError(NewError(d.Pos, ErrorSyntax, fmt.Sprintf("%s requires a name and a value", d.Name)))
+			return
+		}
+		name, expr := d.Args[0], strings.Join(d.Args[1:], " ")
+		value, err := EvaluateExpression(expr, p.lookupDefined)
+		if err != nil {
+			p.errors.AddError(NewError(d.Pos, ErrorSyntax, fmt.Sprintf("invalid constant value %q: %v", expr, err)))
+			return
+		}
+		if err := p.symbolTable.Define(name, SymbolConstant, value, d.Pos); err != nil {
+			p.errors.AddError(NewError(d.Pos, ErrorDuplicateLabel, err.Error()))
 		}
 
 	case ".word":
@@ -422,6 +425,15 @@ func (p *Parser) handleDirective(d *Directive, program *Program) {
 		// The encoder will place actual literals within this space
 		p.currentAddress += EstimatedLiteralsPerPool * 4
 	}
+}
+
+// lookupDefined resolves a symbol already defined at this point in the source.
+func (p *Parser) lookupDefined(name string) (uint32, bool) {
+	sym, ok := p.symbolTable.Lookup(name)
+	if !ok || !sym.Defined {
+		return 0, false
+	}
+	return sym.Value, true
 }
 
 // Limits on directive arguments.
