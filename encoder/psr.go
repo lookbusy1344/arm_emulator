@@ -18,7 +18,7 @@ const (
 	psrFieldMaskShift = 16
 )
 
-// encodePSRTransfer encodes MRS and MSR. Only CPSR is supported; the VM has no SPSR access.
+// encodePSRTransfer encodes MRS and MSR. The assembler accepts only CPSR.
 //
 //	MRS Rd, CPSR               cccc 0001 0000 1111 dddd 0000 0000 0000
 //	MSR CPSR_<fields>, Rm      cccc 0001 0010 ffff 1111 0000 0000 mmmm

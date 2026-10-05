@@ -277,3 +277,82 @@ func TestCPSR_RoundTripConversion(t *testing.T) {
 		t.Errorf("round trip failed: original=%+v, restored=%+v", original, restored)
 	}
 }
+
+// MSR encodings: cond AL, fields in bits 19-16, Rd field 1111, source R0 or #imm.
+const (
+	msrCPSRRegister  = 0xE120F000 // MSR CPSR_<fields>, R0
+	msrSPSRRegister  = 0xE160F000 // MSR SPSR_<fields>, R0
+	msrCPSRImmediate = 0xE320F000 // MSR CPSR_<fields>, #imm (rotation 0)
+	mrsR0SPSR        = 0xE14F0000 // MRS R0, SPSR
+	msrFieldShift    = 16
+	msrFieldControl  = 1 << 0
+	msrFieldExt      = 1 << 1
+	msrFieldStatus   = 1 << 2
+	msrFieldFlags    = 1 << 3
+	allFlagsBits     = 0xF0000000
+)
+
+func TestMSR_FieldMask(t *testing.T) {
+	tests := []struct {
+		name      string
+		fields    uint32
+		wantFlags bool // whether the NZCV write lands
+	}{
+		{"control only", msrFieldControl, false},
+		{"extension only", msrFieldExt, false},
+		{"status only", msrFieldStatus, false},
+		{"control, extension, status", msrFieldControl | msrFieldExt | msrFieldStatus, false},
+		{"flags only", msrFieldFlags, true},
+		{"flags and control", msrFieldFlags | msrFieldControl, true},
+		{"no fields", 0, false},
+	}
+	for _, tt := range tests {
+		for _, immediate := range []bool{false, true} {
+			name := tt.name + map[bool]string{false: "/register", true: "/immediate"}[immediate]
+			t.Run(name, func(t *testing.T) {
+				v := vm.NewVM()
+				v.CPU.CPSR = vm.CPSR{N: true, Z: true, C: true, V: true}
+				// Write all flags clear.
+				opcode := uint32(msrCPSRRegister) | tt.fields<<msrFieldShift
+				if immediate {
+					opcode = uint32(msrCPSRImmediate) | tt.fields<<msrFieldShift
+				}
+				v.CPU.R[0] = 0
+				stepOne(t, v, opcode)
+
+				want := vm.CPSR{N: true, Z: true, C: true, V: true}
+				if tt.wantFlags {
+					want = vm.CPSR{}
+				}
+				if v.CPU.CPSR != want {
+					t.Errorf("CPSR = %+v, want %+v", v.CPU.CPSR, want)
+				}
+			})
+		}
+	}
+}
+
+func TestMSR_SPSRLeavesCPSRAlone(t *testing.T) {
+	v := vm.NewVM()
+	v.CPU.R[0] = allFlagsBits
+	stepOne(t, v, msrSPSRRegister|msrFieldFlags<<msrFieldShift)
+
+	if v.CPU.CPSR != (vm.CPSR{}) {
+		t.Errorf("CPSR = %+v, want all clear", v.CPU.CPSR)
+	}
+	if want := (vm.CPSR{N: true, Z: true, C: true, V: true}); v.CPU.SPSR != want {
+		t.Errorf("SPSR = %+v, want %+v", v.CPU.SPSR, want)
+	}
+}
+
+func TestMRS_SPSR(t *testing.T) {
+	v := vm.NewVM()
+	v.CPU.CPSR = vm.CPSR{N: true}
+	v.CPU.SPSR = vm.CPSR{Z: true, V: true}
+	stepOne(t, v, mrsR0SPSR)
+
+	spsr := vm.CPSR{Z: true, V: true}
+	if want := spsr.ToUint32(); v.CPU.R[0] != want {
+		t.Errorf("R0 = 0x%08X, want SPSR 0x%08X", v.CPU.R[0], want)
+	}
+}
