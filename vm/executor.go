@@ -447,7 +447,10 @@ func (vm *VM) Decode(opcode uint32) (*Instruction, error) {
 			bit7 := (opcode >> Bit7Pos) & Mask1Bit
 			bit4 := (opcode >> Bit4Pos) & Mask1Bit
 			if bit25 == 0 && bit7 == 1 && bit4 == 1 {
-				// This is a halfword/signed transfer (LDRH, STRH, LDRSB, LDRSH)
+				// Halfword/signed transfer (LDRH, STRH, LDRSB, LDRSH)
+				if err := checkHalfwordTransfer(opcode); err != nil {
+					return nil, err
+				}
 				inst.Type = InstLoadStore
 			} else {
 				// Data processing

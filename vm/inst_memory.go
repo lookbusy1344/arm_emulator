@@ -99,10 +99,21 @@ func ExecuteLoadStore(v *VM, inst *Instruction) error {
 		var sizeStr string
 		var readSize uint64
 
-		if isHalfword {
-			// Load halfword
+		signed := isHalfword && bitSet(inst.Opcode, halfwordSignShift)
+		if isHalfword && !bitSet(inst.Opcode, halfwordHalfShift) {
+			// LDRSB: sign-extended byte
+			byteValue, err2 := vm.Memory.ReadByteAt(accessAddr)
+			value = uint32(int32(int8(byteValue))) // #nosec G115 -- sign extension
+			err = err2
+			sizeStr = "BYTE"
+			readSize = AlignmentByte
+		} else if isHalfword {
+			// LDRH, or LDRSH sign-extended
 			halfValue, err2 := vm.Memory.ReadHalfword(accessAddr)
 			value = uint32(halfValue)
+			if signed {
+				value = uint32(int32(int16(halfValue))) // #nosec G115 -- sign extension
+			}
 			err = err2
 			sizeStr = "HALF"
 			readSize = AlignmentHalfword

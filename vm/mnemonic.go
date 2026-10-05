@@ -1,5 +1,7 @@
 package vm
 
+import "fmt"
+
 // Instruction field positions used only to name instructions.
 const (
 	longMultiplySignedShift = 22 // Bit 22: U (signed) in long multiply
@@ -71,6 +73,19 @@ func halfwordMnemonic(opcode uint32) string {
 	default:
 		return pick(half, "LDRSH", "LDRSB")
 	}
+}
+
+// checkHalfwordTransfer rejects the encodings in the halfword group that the VM does
+// not execute: SWP/SWPB (S=0, H=0) and signed stores (S=1, L=0).
+func checkHalfwordTransfer(opcode uint32) error {
+	signed, half := bitSet(opcode, halfwordSignShift), bitSet(opcode, halfwordHalfShift)
+	switch {
+	case !signed && !half:
+		return fmt.Errorf("SWP is not supported (opcode 0x%08X)", opcode)
+	case signed && !bitSet(opcode, LBitShift):
+		return fmt.Errorf("signed store is undefined (opcode 0x%08X)", opcode)
+	}
+	return nil
 }
 
 func pick(cond bool, ifTrue, ifFalse string) string {
