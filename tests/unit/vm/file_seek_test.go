@@ -130,3 +130,36 @@ func TestSeekTellFileSizeBadDescriptor(t *testing.T) {
 		})
 	}
 }
+
+// A SEEK whose result does not fit in 32 bits fails and leaves the position unchanged.
+func TestSeekBeyond32BitsFailsWithoutMoving(t *testing.T) {
+	const (
+		fiveGiB  = 5 << 30
+		startPos = 3
+	)
+	v, fd := openTestFile(t, "abcdefgh")
+	if err := os.Truncate(filepath.Join(v.FilesystemRoot, "f.txt"), fiveGiB); err != nil {
+		t.Skipf("cannot create a sparse 5 GiB file: %v", err)
+	}
+	guestSeek(t, v, fd, startPos, seekStart)
+
+	if got := guestSeek(t, v, fd, 0, seekEnd); got != vm.SyscallErrorGeneral {
+		t.Errorf("SEEK to end of 5 GiB file = 0x%08X, want error", got)
+	}
+	v.CPU.R[0] = fd
+	stepSWI(t, v, swiTell)
+	if v.CPU.R[0] != startPos {
+		t.Errorf("TELL after failed SEEK = 0x%08X, want %d", v.CPU.R[0], startPos)
+	}
+
+	v.CPU.R[0] = fd
+	stepSWI(t, v, swiFileSize)
+	if v.CPU.R[0] != vm.SyscallErrorGeneral {
+		t.Errorf("FILE_SIZE of 5 GiB file = 0x%08X, want error", v.CPU.R[0])
+	}
+	v.CPU.R[0] = fd
+	stepSWI(t, v, swiTell)
+	if v.CPU.R[0] != startPos {
+		t.Errorf("TELL after FILE_SIZE = 0x%08X, want %d", v.CPU.R[0], startPos)
+	}
+}

@@ -1049,21 +1049,21 @@ func handleSeek(vm *VM) error {
 		vm.CPU.IncrementPC()
 		return nil
 	}
-	npos, err := f.Seek(offset, int(whence))
+	prev, err := f.Seek(0, io.SeekCurrent)
+	if err == nil {
+		var npos int64
+		npos, err = f.Seek(offset, int(whence))
+		// A position outside 0..0xFFFFFFFF cannot be returned in R0: undo the move.
+		if err == nil && (npos < 0 || npos > int64(Address32BitMax)) {
+			_, _ = f.Seek(prev, io.SeekStart)
+			err = errors.New("file position out of 32-bit range")
+		}
+		if err == nil {
+			vm.CPU.SetRegister(0, uint32(npos)) // #nosec G115 -- range checked above
+		}
+	}
 	if err != nil {
 		vm.CPU.SetRegister(0, SyscallErrorGeneral)
-	} else {
-		// Security: validate file position fits in 32-bit address space and is non-negative
-		// This check correctly handles the full int64 range from Go's Seek():
-		// - Rejects negative positions (npos < 0)
-		// - Rejects positions beyond 32-bit range (npos > Address32BitMax, i.e., npos >= 0x100000000)
-		// - Accepts only positions in [0, Address32BitMax] which safely fit in ARM2's 32-bit address space
-		if npos < 0 || npos > int64(Address32BitMax) {
-			vm.CPU.SetRegister(0, SyscallErrorGeneral)
-		} else {
-			//nolint:gosec // G115: File position validated above to fit in 32-bit range
-			vm.CPU.SetRegister(0, uint32(npos))
-		}
 	}
 	vm.CPU.IncrementPC()
 	return nil
