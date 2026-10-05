@@ -119,6 +119,14 @@ Update base register after access:
 LDR     R0, [R1], #4        ; R0 = memory[R1]; R1 += 4
 ```
 
+### 7. PC-Relative Label
+
+Access a label within reach of the instruction (±4095 bytes, ±255 for halfwords):
+```asm
+LDR     R0, value           ; R0 = memory[value]
+STR     R1, value           ; memory[value] = R1
+```
+
 ### 7. Register Offset
 
 Offset from another register:

@@ -42,6 +42,17 @@ func (e *Encoder) encodeMemory(inst *parser.Instruction, cond uint32) (uint32, e
 	// Parse addressing mode
 	addrMode := inst.Operands[1]
 
+	// A bare label or expression is a PC-relative address: LDR Rd, label
+	if !strings.HasPrefix(strings.TrimSpace(addrMode), "[") && len(inst.Operands) == 2 {
+		addrMode, err = e.pcRelativeAddress(addrMode, strings.HasSuffix(mnemonic, "H"))
+		if err != nil {
+			return 0, err
+		}
+		rewritten := *inst
+		rewritten.Operands = []string{inst.Operands[0], addrMode}
+		inst = &rewritten
+	}
+
 	// Check for post-indexed addressing: [Rn], offset
 	// Parser splits this into two operands: "[Rn]" and "offset"
 	if len(inst.Operands) > 2 && strings.HasSuffix(addrMode, "]") && !strings.HasSuffix(addrMode, "]!") {
@@ -174,6 +185,24 @@ func (e *Encoder) encodeAddressingMode(cond, lBit, bBit, rd uint32, addrMode str
 		(rn << RnShift) | (rd << RdShift) | offsetField
 
 	return instruction, nil
+}
+
+// pcRelativeAddress turns a label expression into [PC, #offset] for the instruction
+// being encoded. Halfword transfers reach ±255 bytes, the others ±4095.
+func (e *Encoder) pcRelativeAddress(expr string, halfword bool) (string, error) {
+	target, err := e.evaluateExpression(expr)
+	if err != nil {
+		return "", fmt.Errorf("invalid addressing mode: %s", expr)
+	}
+	limit := int64(MaxOffset12Bit)
+	if halfword {
+		limit = MaxOffsetHalfword
+	}
+	offset := int64(target) - int64(e.currentAddr+vm.ARMPipelineOffset)
+	if offset < -limit || offset > limit {
+		return "", fmt.Errorf("label %s out of range for PC-relative access: offset %d (max ±%d)", expr, offset, limit)
+	}
+	return fmt.Sprintf("[PC, #%d]", offset), nil
 }
 
 // splitOffsetSign separates the sign from a load/store offset. It accepts #-4, -#4,

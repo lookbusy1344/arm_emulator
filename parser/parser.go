@@ -603,6 +603,11 @@ func (p *Parser) parsePseudoOperand() string {
 	parts = append(parts, "=")
 	p.nextToken()
 
+	if p.currentToken.Type == TokenMinus {
+		parts = append(parts, "-")
+		p.nextToken()
+	}
+
 	if p.currentToken.Type == TokenIdentifier || p.currentToken.Type == TokenNumber {
 		parts = append(parts, p.currentToken.Literal)
 		p.nextToken()
