@@ -294,14 +294,13 @@ func (vm *VM) Step() error {
 			vm.State = stateBefore
 			return err
 		}
-		// Don't overwrite terminal states (Halted, Breakpoint) set by syscalls
-		if vm.State != StateHalted && vm.State != StateBreakpoint {
-			vm.State = StateError
-			vm.LastError = fmt.Errorf("execute failed at PC=0x%08X: %w", decoded.Address, err)
-		} else {
-			// Exit and breakpoint SWIs report through err but did execute.
+		// Exit and breakpoint SWIs report through err but did execute.
+		if errors.Is(err, ErrProgramExited) || errors.Is(err, ErrBreakpointHit) {
 			vm.recordExecution(decoded, true)
+			return err
 		}
+		vm.State = StateError
+		vm.LastError = fmt.Errorf("execute failed at PC=0x%08X: %w", decoded.Address, err)
 		return err
 	}
 

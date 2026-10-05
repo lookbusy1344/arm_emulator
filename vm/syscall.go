@@ -108,6 +108,13 @@ func readLineWithLimit(reader *bufio.Reader, maxSize int) (string, error) {
 // again when execution resumes.
 var ErrInputInterrupted = errors.New("input interrupted")
 
+// ErrProgramExited and ErrBreakpointHit end execution after an EXIT or BREAKPOINT SWI.
+// The instruction has executed; the VM is Halted or at a breakpoint, not in error.
+var (
+	ErrProgramExited = errors.New("program exited")
+	ErrBreakpointHit = errors.New("breakpoint hit")
+)
+
 // SWI (Software Interrupt) syscall numbers
 const (
 	// Console I/O
@@ -338,7 +345,7 @@ func handleExit(vm *VM) error {
 	//nolint:gosec // G115: Exit code conversion uint32->int32
 	vm.ExitCode = int32(exitCode)
 	vm.State = StateHalted
-	return fmt.Errorf("program exited with code %d", exitCode)
+	return fmt.Errorf("%w with code %d", ErrProgramExited, exitCode)
 }
 
 func handleWriteChar(vm *VM) error {
@@ -649,7 +656,7 @@ func handleDebugPrint(vm *VM) error {
 
 func handleBreakpoint(vm *VM) error {
 	vm.State = StateBreakpoint
-	return fmt.Errorf("breakpoint hit at PC=0x%08X", vm.CPU.PC)
+	return fmt.Errorf("%w at PC=0x%08X", ErrBreakpointHit, vm.CPU.PC)
 }
 
 func handleDumpRegisters(vm *VM) error {
