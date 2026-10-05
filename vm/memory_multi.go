@@ -129,8 +129,10 @@ func ExecuteLoadStoreMultiple(vm *VM, inst *Instruction) error {
 		addr += MultiRegisterWordSize
 	}
 
-	// Write back to base register if requested
-	if writeBack == 1 && rn != ARMRegisterPC {
+	// Write back to base register if requested. When an LDM loads the base, the
+	// loaded value wins and the write-back is dropped.
+	baseLoaded := load == 1 && regList&(1<<rn) != 0
+	if writeBack == 1 && rn != ARMRegisterPC && !baseLoaded {
 		// If modifying SP (R13), use SetSPWithTrace for bounds validation
 		if rn == ARMRegisterSP {
 			if err := vm.CPU.SetSPWithTrace(vm, newBase, inst.Address); err != nil {

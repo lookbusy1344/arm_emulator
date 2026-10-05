@@ -1473,7 +1473,7 @@ func TestLDM_IncludingPC_Return(t *testing.T) {
 
 func TestLDM_BaseInList_Writeback(t *testing.T) {
 	// LDMIA R0!, {R0, R1} - base register in list with writeback
-	// ARM2 behavior: writeback happens AFTER loading, so R0 gets writeback value
+	// The loaded value wins: writeback is suppressed when the base is loaded
 	v := vm.NewVM()
 	v.CPU.R[0] = 0x10000
 	v.CPU.PC = 0x8000
@@ -1488,13 +1488,38 @@ func TestLDM_BaseInList_Writeback(t *testing.T) {
 	mustWriteWord(t, v, 0x8000, opcode)
 	mustStep(t, v)
 
-	// Expected: R0 gets writeback value (0x10000 + 8), not loaded value
-	// This is ARM2 behavior: load happens first, then writeback overwrites
-	if v.CPU.R[0] != 0x10008 {
-		t.Errorf("expected R0=0x10008 (writeback), got R0=0x%X", v.CPU.R[0])
+	if v.CPU.R[0] != 0xDEADBEEF {
+		t.Errorf("expected R0=0xDEADBEEF (loaded value), got R0=0x%X", v.CPU.R[0])
 	}
 	if v.CPU.R[1] != 0xCAFEBABE {
 		t.Errorf("expected R1=0xCAFEBABE, got R1=0x%X", v.CPU.R[1])
+	}
+}
+
+func TestLDMDB_BaseInList_KeepsLoadedValue(t *testing.T) {
+	const base = vm.DataSegmentStart + 0x10
+	v := vm.NewVM()
+	v.CPU.R[2] = base
+	mustWriteWord(t, v, base-8, 0x11111111) // R1
+	mustWriteWord(t, v, base-4, 0x22222222) // R2
+	stepOne(t, v, 0xE9320006)               // LDMDB R2!, {R1, R2}
+
+	if v.CPU.R[1] != 0x11111111 || v.CPU.R[2] != 0x22222222 {
+		t.Errorf("R1=0x%08X R2=0x%08X, want loaded values", v.CPU.R[1], v.CPU.R[2])
+	}
+}
+
+func TestSTM_BaseInList_StillWritesBack(t *testing.T) {
+	const base = vm.DataSegmentStart
+	v := vm.NewVM()
+	v.CPU.R[0], v.CPU.R[1] = base, 0x5A5A5A5A
+	stepOne(t, v, 0xE8A00003) // STMIA R0!, {R0, R1}
+
+	if v.CPU.R[0] != base+8 {
+		t.Errorf("R0 = 0x%08X, want written-back 0x%08X", v.CPU.R[0], uint32(base+8))
+	}
+	if got, _ := v.Memory.ReadWord(base); got != base {
+		t.Errorf("stored R0 = 0x%08X, want original base 0x%08X", got, uint32(base))
 	}
 }
 
