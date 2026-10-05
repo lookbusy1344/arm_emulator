@@ -280,3 +280,13 @@ func TestEncodingError_UsableWithErrorsAs(t *testing.T) {
 		t.Error("position should be preserved")
 	}
 }
+
+// A bare sign is not an operand.
+func TestEncodeBareSignOperandFails(t *testing.T) {
+	for _, operand := range []string{"-", "#-", "+", " - "} {
+		inst := &parser.Instruction{Mnemonic: "MOV", Operands: []string{"R0", operand}}
+		if got, err := newTestEncoder().EncodeInstruction(inst, 0x8000); err == nil {
+			t.Errorf("MOV R0, %q encoded as 0x%08X, want error", operand, got)
+		}
+	}
+}
