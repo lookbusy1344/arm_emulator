@@ -94,55 +94,22 @@ func ExecuteDataProcessing(vm *VM, inst *Instruction) error {
 		carry = shiftCarry
 
 	case OpSUB:
-		result = op1 - op2
-		carry = CalculateSubCarry(op1, op2)
-		overflow = CalculateSubOverflow(op1, op2, result)
+		result, carry, overflow = AddWithCarry(op1, ^op2, true)
 
 	case OpRSB:
-		result = op2 - op1
-		carry = CalculateSubCarry(op2, op1)
-		overflow = CalculateSubOverflow(op2, op1, result)
+		result, carry, overflow = AddWithCarry(op2, ^op1, true)
 
 	case OpADD:
-		result = op1 + op2
-		carry = CalculateAddCarry(op1, op2, result)
-		overflow = CalculateAddOverflow(op1, op2, result)
+		result, carry, overflow = AddWithCarry(op1, op2, false)
 
 	case OpADC:
-		carryIn := uint32(0)
-		if vm.CPU.CPSR.C {
-			carryIn = 1
-		}
-		result = op1 + op2 + carryIn
-		// Check if carry occurred from either addition
-		temp := op1 + op2
-		carry = CalculateAddCarry(op1, op2, temp) || CalculateAddCarry(temp, carryIn, result)
-		// Overflow considers all three inputs (op1, op2, and carry)
-		tempOverflow := CalculateAddOverflow(op1, op2, temp)
-		finalOverflow := CalculateAddOverflow(temp, carryIn, result)
-		overflow = tempOverflow || finalOverflow
+		result, carry, overflow = AddWithCarry(op1, op2, vm.CPU.CPSR.C)
 
 	case OpSBC:
-		carryIn := uint32(1)
-		if !vm.CPU.CPSR.C {
-			carryIn = 0
-		}
-		result = op1 - op2 - (1 - carryIn)
-		carry = CalculateSubCarry(op1, op2+1-carryIn)
-		// Overflow considers all inputs including borrow (NOT carry)
-		temp := op1 - op2
-		tempOverflow := CalculateSubOverflow(op1, op2, temp)
-		finalOverflow := CalculateSubOverflow(temp, 1-carryIn, result)
-		overflow = tempOverflow || finalOverflow
+		result, carry, overflow = AddWithCarry(op1, ^op2, vm.CPU.CPSR.C)
 
 	case OpRSC:
-		carryIn := uint32(1)
-		if !vm.CPU.CPSR.C {
-			carryIn = 0
-		}
-		result = op2 - op1 - (1 - carryIn)
-		carry = CalculateSubCarry(op2, op1+1-carryIn)
-		overflow = CalculateSubOverflow(op2, op1+(1-carryIn), result)
+		result, carry, overflow = AddWithCarry(op2, ^op1, vm.CPU.CPSR.C)
 
 	case OpTST:
 		result = op1 & op2
@@ -157,16 +124,12 @@ func ExecuteDataProcessing(vm *VM, inst *Instruction) error {
 		updateFlags = true // TEQ always sets flags
 
 	case OpCMP:
-		result = op1 - op2
-		carry = CalculateSubCarry(op1, op2)
-		overflow = CalculateSubOverflow(op1, op2, result)
+		result, carry, overflow = AddWithCarry(op1, ^op2, true)
 		writeResult = false
 		updateFlags = true // CMP always sets flags
 
 	case OpCMN:
-		result = op1 + op2
-		carry = CalculateAddCarry(op1, op2, result)
-		overflow = CalculateAddOverflow(op1, op2, result)
+		result, carry, overflow = AddWithCarry(op1, op2, false)
 		writeResult = false
 		updateFlags = true // CMN always sets flags
 

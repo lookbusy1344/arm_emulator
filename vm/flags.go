@@ -1,5 +1,7 @@
 package vm
 
+import "math/bits"
+
 // Flag calculation helpers for ARM2 CPSR flags
 
 // UpdateFlagsNZ updates the N (negative) and Z (zero) flags based on a result
@@ -21,47 +23,18 @@ func (c *CPSR) UpdateFlagsNZCV(result uint32, carry, overflow bool) {
 	c.V = overflow
 }
 
-// CalculateAddCarry calculates the carry flag for addition
-// Returns true if unsigned overflow occurred
-func CalculateAddCarry(a, b, result uint32) bool {
-	// Carry occurs if result < a (unsigned overflow)
-	return result < a
-}
-
-// CalculateAddOverflow calculates the overflow flag for addition
-// Returns true if signed overflow occurred
-func CalculateAddOverflow(a, b, result uint32) bool {
-	// Overflow occurs when:
-	// - Adding two positive numbers yields a negative result
-	// - Adding two negative numbers yields a positive result
-	// This can be detected by checking if sign bits of operands match
-	// but differ from the result's sign bit
-	aSign := (a >> SignBitPos) & Mask1Bit
-	bSign := (b >> SignBitPos) & Mask1Bit
-	resultSign := (result >> SignBitPos) & Mask1Bit
-
-	return (aSign == bSign) && (aSign != resultSign)
-}
-
-// CalculateSubCarry calculates the carry flag for subtraction
-// In ARM, carry flag is set when no borrow occurs (inverted from typical x86)
-// Returns true if NO borrow occurred (a >= b in unsigned arithmetic)
-func CalculateSubCarry(a, b uint32) bool {
-	// Carry is set if a >= b (no borrow needed)
-	return a >= b
-}
-
-// CalculateSubOverflow calculates the overflow flag for subtraction
-// Returns true if signed overflow occurred
-func CalculateSubOverflow(a, b, result uint32) bool {
-	// Overflow occurs when:
-	// - Subtracting a negative from a positive yields a negative
-	// - Subtracting a positive from a negative yields a positive
-	aSign := (a >> SignBitPos) & Mask1Bit
-	bSign := (b >> SignBitPos) & Mask1Bit
-	resultSign := (result >> SignBitPos) & Mask1Bit
-
-	return (aSign != bSign) && (aSign != resultSign)
+// AddWithCarry returns a + b + carryIn with the carry out (unsigned overflow) and the
+// overflow (signed overflow) of the whole sum. Subtraction a - b - !C is
+// AddWithCarry(a, ^b, C).
+func AddWithCarry(a, b uint32, carryIn bool) (result uint32, carry, overflow bool) {
+	var c uint32
+	if carryIn {
+		c = 1
+	}
+	result, carryOut := bits.Add32(a, b, c)
+	// Signed overflow: both operands differ in sign from the result.
+	overflow = ((a^result)&(b^result))&SignBitMask != 0
+	return result, carryOut != 0, overflow
 }
 
 // CalculateShiftCarry calculates the carry flag for shift operations
