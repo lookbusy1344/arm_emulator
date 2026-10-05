@@ -752,6 +752,10 @@ func (vm *VM) ValidatePath(path string) (string, error) {
 		if !os.IsNotExist(err) {
 			return "", fmt.Errorf("symlink resolution failed: %w", err)
 		}
+		// A dangling symlink would let a create follow it to any target.
+		if info, lerr := os.Lstat(fullPath); lerr == nil && info.Mode()&os.ModeSymlink != 0 {
+			return "", fmt.Errorf("path '%s' is a dangling symlink", path)
+		}
 		// Path doesn't exist - check parent directory
 		parentDir := filepath.Dir(fullPath)
 		resolvedPath, err = filepath.EvalSymlinks(parentDir)
@@ -784,6 +788,29 @@ func (vm *VM) ValidatePath(path string) (string, error) {
 	}
 
 	return fullPath, nil
+}
+
+// fileModeFlags maps the OPEN mode in R1 to os.OpenFile flags.
+var fileModeFlags = map[uint32]int{
+	FileModeRead:   os.O_RDONLY,
+	FileModeWrite:  os.O_CREATE | os.O_TRUNC | os.O_WRONLY,
+	FileModeAppend: os.O_CREATE | os.O_APPEND | os.O_RDWR,
+}
+
+// openInRoot opens a path that ValidatePath returned. os.Root resolves it inside the
+// filesystem root and refuses any symlink or component that leads outside, so a file
+// that changes after validation still cannot escape.
+func (vm *VM) openInRoot(validatedPath string, flags int) (*os.File, error) {
+	rel, err := filepath.Rel(vm.FilesystemRoot, validatedPath)
+	if err != nil {
+		return nil, err
+	}
+	root, err := os.OpenRoot(vm.FilesystemRoot)
+	if err != nil {
+		return nil, err
+	}
+	defer func() { _ = root.Close() }()
+	return root.OpenFile(rel, flags, FilePermDefault)
 }
 
 // File operation handlers
@@ -838,17 +865,10 @@ func handleOpen(vm *VM) error {
 		return nil
 	}
 
-	switch mode {
-	case FileModeRead:
-		//nolint:gosec // G304: File path is validated by ValidatePath above
-		file, err = os.Open(validatedPath)
-	case FileModeWrite:
-		//nolint:gosec // G304,G302: File path is validated by ValidatePath above
-		file, err = os.OpenFile(validatedPath, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, FilePermDefault)
-	case FileModeAppend:
-		//nolint:gosec // G304,G302: File path is validated by ValidatePath above
-		file, err = os.OpenFile(validatedPath, os.O_CREATE|os.O_APPEND|os.O_RDWR, FilePermDefault)
-	default:
+	flags, ok := fileModeFlags[mode]
+	if ok {
+		file, err = vm.openInRoot(validatedPath, flags)
+	} else {
 		err = errors.New("bad mode")
 	}
 	if err != nil {
