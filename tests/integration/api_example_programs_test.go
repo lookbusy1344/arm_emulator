@@ -196,16 +196,7 @@ waitLoop:
 	for {
 		remaining := time.Until(deadline)
 		if remaining <= 0 {
-			// Timeout occurred - check actual session state via API as fallback
-			if c.server != nil && c.sessionID != "" {
-				if session, err := c.server.GetSession(c.sessionID); err == nil {
-					actualState := string(session.Service.GetExecutionState())
-					if actualState == targetState {
-						// State matches - we just missed the WebSocket update
-						return StateUpdate{Data: map[string]interface{}{"status": actualState}}, nil
-					}
-				}
-			}
+			// The broadcaster never drops state events, so a timeout is a failure.
 			return StateUpdate{}, fmt.Errorf("timeout waiting for state %q", targetState)
 		}
 

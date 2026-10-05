@@ -175,11 +175,7 @@ func (c *WebSocketClient) forwardEventsFromSubscription(sub *Subscription) {
 	}
 
 	for event := range sub.Channel {
-		select {
-		case c.send <- event:
-		default:
-			// Client is too slow, skip this event
-		}
+		deliver(c.send, event)
 	}
 }
 

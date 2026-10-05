@@ -84,13 +84,7 @@ func (b *Broadcaster) run() {
 					continue
 				}
 
-				// Non-blocking send to avoid slow clients blocking the broadcaster
-				select {
-				case sub.Channel <- event:
-				default:
-					// Client is too slow, skip this event
-					// In production, we might want to disconnect slow clients
-				}
+				deliver(sub.Channel, event)
 			}
 			b.mu.RUnlock()
 
@@ -133,11 +127,26 @@ func (b *Broadcaster) Unsubscribe(sub *Subscription) {
 
 // Broadcast sends an event to all matching subscriptions
 func (b *Broadcaster) Broadcast(event BroadcastEvent) {
-	select {
-	case b.broadcast <- event:
-	default:
-		// Broadcast channel is full, drop event
-		// This prevents blocking the caller if the broadcaster is overwhelmed
+	deliver(b.broadcast, event)
+}
+
+// deliver queues event on ch without blocking. When ch is full an output event is
+// dropped, while a state or execution event displaces the oldest queued event, so a
+// client that falls behind an output burst still learns the latest state.
+func deliver(ch chan BroadcastEvent, event BroadcastEvent) {
+	for {
+		select {
+		case ch <- event:
+			return
+		default:
+		}
+		if event.Type == EventTypeOutput {
+			return
+		}
+		select {
+		case <-ch:
+		default:
+		}
 	}
 }
 
