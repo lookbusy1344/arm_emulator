@@ -7,7 +7,6 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
-	"time"
 
 	"github.com/lookbusy1344/arm-emulator/api"
 )
@@ -712,8 +711,34 @@ func loadProgram(t *testing.T, server *api.Server, sessionID string, program str
 		t.Fatalf("Failed to load program: %d %s", w.Code, w.Body.String())
 	}
 
-	// Wait a bit for program to load
-	time.Sleep(10 * time.Millisecond)
+}
+
+// sessionStatus fetches the session's execution status.
+func sessionStatus(t *testing.T, server *api.Server, sessionID string) api.SessionStatusResponse {
+	t.Helper()
+	req := httptest.NewRequest(http.MethodGet, fmt.Sprintf("/api/v1/session/%s", sessionID), nil)
+	w := httptest.NewRecorder()
+	server.Handler().ServeHTTP(w, req)
+	if w.Code != http.StatusOK {
+		t.Fatalf("status: %d %s", w.Code, w.Body.String())
+	}
+	var status api.SessionStatusResponse
+	if err := json.NewDecoder(w.Body).Decode(&status); err != nil {
+		t.Fatalf("decode status: %v", err)
+	}
+	return status
+}
+
+// waitForState polls the session until it reaches state and returns that status.
+// Reading the status clears its last-write fields, so use the returned value.
+func waitForState(t *testing.T, server *api.Server, sessionID, state string) api.SessionStatusResponse {
+	t.Helper()
+	var status api.SessionStatusResponse
+	waitUntil(t, "state "+state, func() bool {
+		status = sessionStatus(t, server, sessionID)
+		return status.State == state
+	})
+	return status
 }
 
 // TestStopExecution tests stop execution
@@ -732,7 +757,7 @@ func TestStopExecution(t *testing.T) {
 	server.Handler().ServeHTTP(w, req)
 
 	// Give it time to start
-	time.Sleep(20 * time.Millisecond)
+	waitUntil(t, "execution to start", func() bool { return sessionStatus(t, server, sessionID).Cycles > 0 })
 
 	// Stop execution
 	req = httptest.NewRequest(http.MethodPost,
@@ -794,7 +819,7 @@ func TestStopDuringBreakpoint(t *testing.T) {
 	server.Handler().ServeHTTP(w, req)
 
 	// Wait for breakpoint to be hit
-	time.Sleep(20 * time.Millisecond)
+	waitForState(t, server, sessionID, "breakpoint")
 
 	// Verify we're at breakpoint
 	req = httptest.NewRequest(http.MethodGet,
@@ -870,7 +895,7 @@ func TestRunExecution(t *testing.T) {
 	}
 
 	// Wait for program to complete
-	time.Sleep(100 * time.Millisecond)
+	waitForState(t, server, sessionID, "halted")
 
 	// Get final registers - R0 should be 42 if program actually ran
 	req = httptest.NewRequest(http.MethodGet,
@@ -1083,7 +1108,7 @@ func TestStatistics(t *testing.T) {
 	w = httptest.NewRecorder()
 	server.Handler().ServeHTTP(w, req)
 
-	time.Sleep(50 * time.Millisecond)
+	waitForState(t, server, sessionID, "halted")
 
 	// Get statistics
 	req = httptest.NewRequest(http.MethodGet,
@@ -1268,7 +1293,7 @@ message:
 	}
 
 	// Wait for program to complete
-	time.Sleep(100 * time.Millisecond)
+	waitForState(t, server, sessionID, "halted")
 
 	// Get console output
 	req = httptest.NewRequest(http.MethodGet,
@@ -1311,7 +1336,7 @@ func TestConsoleOutputEmpty(t *testing.T) {
 	w := httptest.NewRecorder()
 	server.Handler().ServeHTTP(w, req)
 
-	time.Sleep(50 * time.Millisecond)
+	waitForState(t, server, sessionID, "halted")
 
 	// Get console output (should be empty)
 	req = httptest.NewRequest(http.MethodGet,
@@ -1359,7 +1384,7 @@ func TestReRunProgram(t *testing.T) {
 	}
 
 	// Wait for program to complete
-	time.Sleep(100 * time.Millisecond)
+	waitForState(t, server, sessionID, "halted")
 
 	// Check registers after first run
 	req = httptest.NewRequest(http.MethodGet,
@@ -1392,7 +1417,7 @@ func TestReRunProgram(t *testing.T) {
 	}
 
 	// Wait for program to complete
-	time.Sleep(100 * time.Millisecond)
+	waitForState(t, server, sessionID, "halted")
 
 	// Check registers after second run
 	req = httptest.NewRequest(http.MethodGet,
@@ -1421,7 +1446,7 @@ func TestReRunProgram(t *testing.T) {
 		t.Fatalf("Expected status 200 for third run, got %d: %s", w.Code, w.Body.String())
 	}
 
-	time.Sleep(100 * time.Millisecond)
+	waitForState(t, server, sessionID, "halted")
 
 	req = httptest.NewRequest(http.MethodGet,
 		fmt.Sprintf("/api/v1/session/%s/registers", sessionID), nil)
@@ -1595,22 +1620,7 @@ data_area:
 	server.Handler().ServeHTTP(w, req)
 
 	// Wait for program to complete
-	time.Sleep(50 * time.Millisecond)
-
-	// Get session status
-	req = httptest.NewRequest(http.MethodGet,
-		fmt.Sprintf("/api/v1/session/%s", sessionID), nil)
-	w = httptest.NewRecorder()
-	server.Handler().ServeHTTP(w, req)
-
-	if w.Code != http.StatusOK {
-		t.Fatalf("Expected status 200, got %d: %s", w.Code, w.Body.String())
-	}
-
-	var status api.SessionStatusResponse
-	if err := json.NewDecoder(w.Body).Decode(&status); err != nil {
-		t.Fatalf("Failed to decode status: %v", err)
-	}
+	status := waitForState(t, server, sessionID, "halted")
 
 	// Verify write was tracked
 	if !status.HasWrite {
@@ -1649,22 +1659,7 @@ data_area:
 	server.Handler().ServeHTTP(w, req)
 
 	// Wait for program to complete
-	time.Sleep(50 * time.Millisecond)
-
-	// Get session status
-	req = httptest.NewRequest(http.MethodGet,
-		fmt.Sprintf("/api/v1/session/%s", sessionID), nil)
-	w = httptest.NewRecorder()
-	server.Handler().ServeHTTP(w, req)
-
-	if w.Code != http.StatusOK {
-		t.Fatalf("Expected status 200, got %d: %s", w.Code, w.Body.String())
-	}
-
-	var status api.SessionStatusResponse
-	if err := json.NewDecoder(w.Body).Decode(&status); err != nil {
-		t.Fatalf("Failed to decode status: %v", err)
-	}
+	status := waitForState(t, server, sessionID, "halted")
 
 	// Verify write was tracked
 	if !status.HasWrite {

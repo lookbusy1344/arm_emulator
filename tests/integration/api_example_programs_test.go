@@ -82,11 +82,33 @@ func NewWebSocketTestClient(t *testing.T, wsURL string, server *api.Server, sess
 		if err := conn.WriteJSON(subReq); err != nil {
 			t.Fatalf("Failed to send subscription: %v", err)
 		}
-		// Give subscription time to register
-		time.Sleep(50 * time.Millisecond)
+		client.waitUntilSubscribed(t)
 	}
 
 	return client
+}
+
+// subscribedProbe is a state broadcast only to confirm the subscription is live.
+const subscribedProbe = "subscribed-probe"
+
+// waitUntilSubscribed broadcasts a probe state until the client receives it. The
+// server does not acknowledge subscriptions.
+func (c *WebSocketTestClient) waitUntilSubscribed(t *testing.T) {
+	t.Helper()
+	deadline := time.Now().Add(2 * time.Second)
+	for {
+		c.server.GetBroadcaster().BroadcastState(c.sessionID, map[string]interface{}{"status": subscribedProbe})
+		time.Sleep(5 * time.Millisecond)
+		c.mu.Lock()
+		seen := c.seenStates[subscribedProbe]
+		c.mu.Unlock()
+		if seen {
+			return
+		}
+		if time.Now().After(deadline) {
+			t.Fatal("WebSocket subscription did not take effect")
+		}
+	}
 }
 
 // receiveLoop receives WebSocket messages in background

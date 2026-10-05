@@ -147,26 +147,14 @@ func TestBroadcaster(t *testing.T) {
 		sub1 := broadcaster.Subscribe("test", []api.EventType{})
 		sub2 := broadcaster.Subscribe("test", []api.EventType{})
 
-		// Allow time for subscriptions to register
-		time.Sleep(10 * time.Millisecond)
-
-		if count := broadcaster.SubscriptionCount(); count != 2 {
-			t.Errorf("Expected 2 subscriptions, got %d", count)
-		}
+		// The broadcaster registers subscriptions on its own goroutine.
+		eventually(t, "2 subscriptions", func() bool { return broadcaster.SubscriptionCount() == 2 })
 
 		broadcaster.Unsubscribe(sub1)
-		time.Sleep(10 * time.Millisecond) // Allow time for unsubscribe to process
-
-		if count := broadcaster.SubscriptionCount(); count != 1 {
-			t.Errorf("Expected 1 subscription, got %d", count)
-		}
+		eventually(t, "1 subscription", func() bool { return broadcaster.SubscriptionCount() == 1 })
 
 		broadcaster.Unsubscribe(sub2)
-		time.Sleep(10 * time.Millisecond) // Allow time for unsubscribe to process
-
-		if count := broadcaster.SubscriptionCount(); count != 0 {
-			t.Errorf("Expected 0 subscriptions, got %d", count)
-		}
+		eventually(t, "0 subscriptions", func() bool { return broadcaster.SubscriptionCount() == 0 })
 	})
 }
 
@@ -304,19 +292,26 @@ func TestWebSocketEndpoint(t *testing.T) {
 			t.Fatalf("Failed to send subscription: %v", err)
 		}
 
-		// Give subscription time to register
-		time.Sleep(50 * time.Millisecond)
+		// The subscription has no acknowledgement, so broadcast until the client
+		// receives the event.
+		stop := make(chan struct{})
+		defer close(stop)
+		go func() {
+			ticker := time.NewTicker(10 * time.Millisecond)
+			defer ticker.Stop()
+			for {
+				server.GetBroadcaster().BroadcastOutput("test-ws-session", "stdout", "Test message")
+				select {
+				case <-stop:
+					return
+				case <-ticker.C:
+				}
+			}
+		}()
 
-		// Trigger an event by broadcasting directly
-		// (In real usage, this would come from VM execution)
-		server.GetBroadcaster().BroadcastOutput("test-ws-session", "stdout", "Test message")
-
-		// Set read deadline
-		if err := conn.SetReadDeadline(time.Now().Add(500 * time.Millisecond)); err != nil {
+		if err := conn.SetReadDeadline(time.Now().Add(2 * time.Second)); err != nil {
 			t.Fatalf("Failed to set read deadline: %v", err)
 		}
-
-		// Read the event
 		_, message, err := conn.ReadMessage()
 		if err != nil {
 			t.Fatalf("Failed to read message: %v", err)
@@ -335,4 +330,16 @@ func TestWebSocketEndpoint(t *testing.T) {
 			t.Errorf("Expected sessionId 'test-ws-session', got '%v'", event["sessionId"])
 		}
 	})
+}
+
+// eventually polls cond until it holds or two seconds pass.
+func eventually(t *testing.T, what string, cond func() bool) {
+	t.Helper()
+	deadline := time.Now().Add(2 * time.Second)
+	for !cond() {
+		if time.Now().After(deadline) {
+			t.Fatalf("timed out waiting for %s", what)
+		}
+		time.Sleep(time.Millisecond)
+	}
 }

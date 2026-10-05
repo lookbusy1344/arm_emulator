@@ -75,9 +75,6 @@ loop:
 		errChan <- svc.RunUntilHalt()
 	}()
 
-	// Wait a bit for execution
-	time.Sleep(10 * time.Millisecond)
-
 	// Wait for completion
 	select {
 	case err := <-errChan:
