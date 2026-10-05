@@ -109,17 +109,17 @@ func (e *Encoder) encodeLoadStoreMultiple(inst *parser.Instruction, cond uint32,
 		} else {
 			pBit, uBit = 1, 1 // IB
 		}
-	case strings.Contains(mnemonic, "FA"): // Full Ascending
-		if isStore {
-			pBit, uBit = 0, 1 // IA
-		} else {
-			pBit, uBit = 1, 0 // DB
-		}
-	case strings.Contains(mnemonic, "EA"): // Empty Ascending
+	case strings.Contains(mnemonic, "FA"): // Full Ascending (STMFA = STMIB, LDMFA = LDMDA)
 		if isStore {
 			pBit, uBit = 1, 1 // IB
 		} else {
 			pBit, uBit = 0, 0 // DA
+		}
+	case strings.Contains(mnemonic, "EA"): // Empty Ascending (STMEA = STMIA, LDMEA = LDMDB)
+		if isStore {
+			pBit, uBit = 0, 1 // IA
+		} else {
+			pBit, uBit = 1, 0 // DB
 		}
 	default:
 		// Default to IA
