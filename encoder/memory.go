@@ -112,9 +112,10 @@ func (e *Encoder) encodeAddressingMode(cond, lBit, bBit, rd uint32, addrMode str
 		pBit = 0
 	}
 
-	// W bit: 1 for writeback (also set for post-indexed)
+	// W bit: pre-indexed writeback. Post-indexed always writes back; W=1 there
+	// would select the user-mode (LDRT/STRT) form.
 	var wBit uint32
-	if writeBack || postIndexed {
+	if writeBack && !postIndexed {
 		wBit = 1
 	}
 
@@ -123,18 +124,10 @@ func (e *Encoder) encodeAddressingMode(cond, lBit, bBit, rd uint32, addrMode str
 
 	if len(parts) > 1 {
 		// Has offset
-		offsetStr := strings.TrimSpace(strings.Join(parts[1:], ","))
-
-		// Check if offset is negative
-		uBit = 1 // Default: add
-		if strings.HasPrefix(offsetStr, "-") {
-			uBit = 0 // Subtract
-			offsetStr = strings.TrimPrefix(offsetStr, "-")
-		} else {
-			offsetStr = strings.TrimPrefix(offsetStr, "+") // Remove optional +
+		offsetStr, subtract := splitOffsetSign(strings.Join(parts[1:], ","))
+		if subtract {
+			uBit = 0
 		}
-
-		offsetStr = strings.TrimSpace(offsetStr)
 
 		// Check if it's a register or immediate
 		if strings.HasPrefix(offsetStr, "#") || isNumeric(offsetStr) {
@@ -181,6 +174,29 @@ func (e *Encoder) encodeAddressingMode(cond, lBit, bBit, rd uint32, addrMode str
 		(rn << RnShift) | (rd << RdShift) | offsetField
 
 	return instruction, nil
+}
+
+// splitOffsetSign separates the sign from a load/store offset. It accepts #-4, -#4,
+// #+4, -4, -R2 and +R2, and returns the magnitude ("#4", "4" or "R2") and whether the
+// offset subtracts. A second sign stays in the magnitude and fails to parse.
+func splitOffsetSign(offset string) (magnitude string, subtract bool) {
+	s := strings.TrimSpace(offset)
+	hash := strings.HasPrefix(s, "#")
+	s = strings.TrimSpace(strings.TrimPrefix(s, "#"))
+	switch {
+	case strings.HasPrefix(s, "-"):
+		subtract, s = true, s[1:]
+	case strings.HasPrefix(s, "+"):
+		s = s[1:]
+	}
+	s = strings.TrimSpace(s)
+	if !hash && strings.HasPrefix(s, "#") {
+		hash, s = true, strings.TrimSpace(s[1:])
+	}
+	if hash {
+		return "#" + s, subtract
+	}
+	return s, subtract
 }
 
 // encodeLDRPseudo encodes LDR Rd, =value or =label (pseudo-instruction)
@@ -346,13 +362,11 @@ func (e *Encoder) encodeMemoryHalfword(inst *parser.Instruction, cond, rd, lBit 
 		}
 		rn = rnReg
 
-		offsetStr := strings.TrimSpace(parts[1])
+		offsetStr, subtract := splitOffsetSign(parts[1])
+		if subtract {
+			uBit = 0
+		}
 		if strings.HasPrefix(offsetStr, "#") || isNumeric(offsetStr) {
-			// Check if offset is negative
-			if strings.HasPrefix(offsetStr, "-") {
-				uBit = 0 // Subtract
-				offsetStr = strings.TrimPrefix(offsetStr, "-")
-			}
 			offsetVal, err := e.parseImmediate(offsetStr)
 			if err != nil {
 				return 0, err
@@ -378,13 +392,11 @@ func (e *Encoder) encodeMemoryHalfword(inst *parser.Instruction, cond, rd, lBit 
 		rn = rnReg
 
 		if len(parts) > 1 {
-			offsetStr := strings.TrimSpace(parts[1])
+			offsetStr, subtract := splitOffsetSign(parts[1])
+			if subtract {
+				uBit = 0
+			}
 			if strings.HasPrefix(offsetStr, "#") || isNumeric(offsetStr) {
-				// Check if offset is negative
-				if strings.HasPrefix(offsetStr, "-") {
-					uBit = 0 // Subtract
-					offsetStr = strings.TrimPrefix(offsetStr, "-")
-				}
 				offsetVal, err := e.parseImmediate(offsetStr)
 				if err != nil {
 					return 0, err
