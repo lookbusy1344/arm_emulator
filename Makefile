@@ -11,7 +11,7 @@ DATE=$(shell date -u +"%Y-%m-%dT%H:%M:%SZ")
 # Build flags
 LDFLAGS=-ldflags "-X main.Version=$(VERSION) -X main.Commit=$(COMMIT) -X main.Date=$(DATE)"
 
-.PHONY: all build clean test fmt lint run install help
+.PHONY: all build clean test fuzz fmt lint run install help
 
 all: build
 
@@ -32,6 +32,18 @@ test:
 	@echo "Running tests..."
 	go clean -testcache
 	go test ./...
+
+## fuzz: Run each fuzz target for FUZZTIME (default 30s)
+FUZZTIME ?= 30s
+FUZZ_TARGETS := ./tests/unit/parser:FuzzParse ./tests/unit/parser:FuzzEvaluateExpression \
+	./tests/unit/vm:FuzzStep ./tests/unit/debugger:FuzzDebuggerExpression \
+	./tests/integration:FuzzAssembleAndRun
+fuzz:
+	@for target in $(FUZZ_TARGETS); do \
+		pkg=$${target%%:*}; name=$${target##*:}; \
+		echo "Fuzzing $$name in $$pkg for $(FUZZTIME)..."; \
+		go test $$pkg -run '^$$' -fuzz "^$$name\$$" -fuzztime $(FUZZTIME) || exit 1; \
+	done
 
 ## fmt: Format all Go files
 fmt:
