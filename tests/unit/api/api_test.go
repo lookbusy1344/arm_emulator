@@ -1378,7 +1378,7 @@ func TestReRunProgram(t *testing.T) {
 
 	expectedPC1 := uint32(0x8008) // PC after SWI
 	if regs1.PC != expectedPC1 {
-		t.Logf("After first run: PC = 0x%08X (expected 0x%08X)", regs1.PC, expectedPC1)
+		t.Errorf("After first run: PC = 0x%08X, want 0x%08X", regs1.PC, expectedPC1)
 	}
 
 	// Second run without explicit reset - should auto-reset and run again

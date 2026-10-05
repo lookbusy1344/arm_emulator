@@ -310,13 +310,6 @@ func openHostDescriptors(t *testing.T) int {
 	return len(entries)
 }
 
-// Test 10: File position validation for >4GB files
-func TestFileSeek_Over4GB(t *testing.T) {
-	t.Skip("Skipping >4GB file test - requires large file creation")
-	// This test would require creating a >4GB file which is resource-intensive
-	// The validation logic is in place and tested via code review
-}
-
 // Test 11: Per-VM stdin reader (race condition fix)
 func TestStdinReader_PerVMInstance(t *testing.T) {
 	// Create multiple VM instances concurrently
@@ -391,58 +384,74 @@ func TestStringLengthLimits_Standardization(t *testing.T) {
 	}
 }
 
-// Test 13: Verify read size limit at exactly 1MB (should succeed)
-func TestReadSyscall_ExactlyAtLimit(t *testing.T) {
-	machine := vm.NewVM()
-	machine.CPU.SetRegister(0, 0)          // fd 0 (stdin)
-	machine.CPU.SetRegister(1, 0x00100000) // buffer address (higher to avoid issues)
-	machine.CPU.SetRegister(2, 1024*1024)  // Exactly 1MB - should be allowed
+// bigBufferAddr maps a 1 MiB read-write segment so transfers at the size limit can
+// complete.
+const bigBufferAddr = 0x01000000
 
-	inst := &vm.Instruction{
-		Opcode: 0xEF000012, // SWI 0x12 (READ)
-		Type:   vm.InstSWI,
-	}
-
-	err := vm.ExecuteSWI(machine, inst)
-	if err != nil {
-		t.Fatalf("ExecuteSWI failed: %v", err)
-	}
-
-	// At exactly 1MB, it should succeed (though read will fail due to stdin)
-	// We're just testing the size check, not actual reading
-	result := machine.CPU.GetRegister(0)
-	// Result will be 0xFFFFFFFF due to stdin read failure, but not due to size limit
-	// The important thing is it didn't reject it before trying to read
-	t.Logf("Read result: 0x%08X (expected error from stdin, not size check)", result)
+func mapBigBuffer(t *testing.T, v *vm.VM) {
+	t.Helper()
+	v.Memory.AddSegment("big", bigBufferAddr, vm.MaxReadSize, vm.PermRead|vm.PermWrite)
 }
 
-// Test 14: Verify write size limit at exactly 1MB (should succeed)
+// Test 13: READ accepts exactly MaxReadSize and rejects one byte more without reading
+func TestReadSyscall_ExactlyAtLimit(t *testing.T) {
+	for _, tt := range []struct {
+		name   string
+		length uint32
+		want   uint32
+		rest   string // stdin left after the call
+	}{
+		{"at limit", vm.MaxReadSize, 3, ""},
+		{"over limit", vm.MaxReadSize + 1, vm.SyscallErrorGeneral, "abc"},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			v := vm.NewVM()
+			mapBigBuffer(t, v)
+			stdin := strings.NewReader("abc")
+			v.SetStdinReader(stdin)
+			v.CPU.PC = vm.CodeSegmentStart
+			v.CPU.R[0], v.CPU.R[1], v.CPU.R[2] = vm.StdIn, bigBufferAddr, tt.length
+			stepSWI(t, v, swiRead)
+			if v.CPU.R[0] != tt.want {
+				t.Errorf("READ(%d) = 0x%08X, want 0x%08X", tt.length, v.CPU.R[0], tt.want)
+			}
+			if rest := stdin.Len(); rest != len(tt.rest) {
+				t.Errorf("stdin has %d bytes left, want %d", rest, len(tt.rest))
+			}
+		})
+	}
+}
+
+// Test 14: WRITE accepts exactly MaxWriteSize and rejects one byte more without writing
 func TestWriteSyscall_ExactlyAtLimit(t *testing.T) {
-	machine := vm.NewVM()
-	var output bytes.Buffer
-	machine.OutputWriter = &output
-
-	// Allocate 1MB of memory for the buffer
-	bufferAddr := uint32(0x01000000)
-
-	machine.CPU.SetRegister(0, 1)          // fd 1 (stdout)
-	machine.CPU.SetRegister(1, bufferAddr) // buffer address
-	machine.CPU.SetRegister(2, 1024*1024)  // Exactly 1MB
-
-	inst := &vm.Instruction{
-		Opcode: 0xEF000013, // SWI 0x13 (WRITE)
-		Type:   vm.InstSWI,
+	for _, tt := range []struct {
+		name   string
+		length uint32
+		want   uint32
+	}{
+		{"at limit", vm.MaxWriteSize, vm.MaxWriteSize},
+		{"over limit", vm.MaxWriteSize + 1, vm.SyscallErrorGeneral},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			v := vm.NewVM()
+			mapBigBuffer(t, v)
+			var output bytes.Buffer
+			v.OutputWriter = &output
+			v.CPU.PC = vm.CodeSegmentStart
+			v.CPU.R[0], v.CPU.R[1], v.CPU.R[2] = vm.StdOut, bigBufferAddr, tt.length
+			stepSWI(t, v, swiWrite)
+			if v.CPU.R[0] != tt.want {
+				t.Errorf("WRITE(%d) = 0x%08X, want 0x%08X", tt.length, v.CPU.R[0], tt.want)
+			}
+			wantLen := 0
+			if tt.want != vm.SyscallErrorGeneral {
+				wantLen = int(tt.length)
+			}
+			if output.Len() != wantLen {
+				t.Errorf("wrote %d bytes, want %d", output.Len(), wantLen)
+			}
+		})
 	}
-
-	err := vm.ExecuteSWI(machine, inst)
-	if err != nil {
-		t.Fatalf("ExecuteSWI failed: %v", err)
-	}
-
-	// At exactly 1MB, it should attempt to write (though it will fail reading the buffer)
-	// We're testing that the size check allows it through
-	result := machine.CPU.GetRegister(0)
-	t.Logf("Write result: 0x%08X", result)
 }
 
 // Test 15: Buffer address overflow check in handleRead

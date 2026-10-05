@@ -1,6 +1,7 @@
 package vm_test
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/lookbusy1344/arm-emulator/vm"
@@ -1585,142 +1586,88 @@ func TestSTM_WithPC_And_LR(t *testing.T) {
 // Priority 4, Section 11: Alignment and Memory Protection Tests
 // ============================================================================
 
+// stepExpectingFault runs opcode at the code start and checks that it faults with an
+// error containing want, leaves the VM in StateError and does not change R0.
+func stepExpectingFault(t *testing.T, v *vm.VM, opcode uint32, want string) {
+	t.Helper()
+	const sentinel = 0xA5A5A5A5
+	v.CPU.R[0] = sentinel
+	v.CPU.PC = vm.CodeSegmentStart
+	if err := v.Memory.WriteWord(vm.CodeSegmentStart, opcode); err != nil {
+		t.Fatal(err)
+	}
+	err := v.Step()
+	if err == nil || !strings.Contains(err.Error(), want) {
+		t.Fatalf("Step() error = %v, want one containing %q", err, want)
+	}
+	if v.State != vm.StateError {
+		t.Errorf("State = %v, want StateError", v.State)
+	}
+	if v.CPU.R[0] != sentinel && opcode&(1<<20) != 0 {
+		t.Errorf("R0 = 0x%08X, want unchanged", v.CPU.R[0])
+	}
+}
+
+// Memory is strictly aligned: unaligned word and halfword accesses fault.
 func TestLDR_UnalignedWord(t *testing.T) {
-	// Test unaligned word access behavior
 	v := vm.NewVM()
-	v.CPU.R[1] = 0x10001 // Unaligned address (not multiple of 4)
-	v.CPU.PC = 0x8000
-
-	setupCodeWrite(v)
-	// Write test data
-	v.Memory.WriteWord(0x10000, 0x11223344)
-	v.Memory.WriteWord(0x10004, 0x55667788)
-
-	// LDR R0, [R1]
-	// On ARM2, unaligned word access is implementation-defined
-	// This emulator likely rotates the result or returns an error
-	opcode := uint32(0xE5910000) // LDR R0, [R1]
-	v.Memory.WriteWord(0x8000, opcode)
-
-	// This test just verifies it doesn't crash
-	// The behavior is implementation-specific
-	v.Step()
-
-	// Just verify some value was loaded (don't check specific value)
-	// This documents that unaligned access is handled somehow
-	t.Logf("Unaligned LDR result: R0=0x%X", v.CPU.R[0])
+	v.CPU.R[1] = vm.DataSegmentStart + 1
+	stepExpectingFault(t, v, 0xE5910000, "unaligned word") // LDR R0, [R1]
 }
 
 func TestLDRH_UnalignedHalfword(t *testing.T) {
-	// Test unaligned halfword access
 	v := vm.NewVM()
-	v.CPU.R[1] = 0x10001 // Odd address (not multiple of 2)
-	v.CPU.PC = 0x8000
-
-	setupCodeWrite(v)
-	v.Memory.WriteWord(0x10000, 0x11223344)
-
-	// LDRH R0, [R1]
-	// Unaligned halfword behavior is implementation-defined
-	opcode := uint32(0xE1D100B0) // LDRH R0, [R1]
-	v.Memory.WriteWord(0x8000, opcode)
-
-	v.Step()
-	t.Logf("Unaligned LDRH result: R0=0x%X", v.CPU.R[0])
+	v.CPU.R[1] = vm.DataSegmentStart + 1
+	stepExpectingFault(t, v, 0xE1D100B0, "unaligned halfword") // LDRH R0, [R1]
 }
 
 func TestSTR_UnalignedWord(t *testing.T) {
-	// Test unaligned word store
 	v := vm.NewVM()
-	v.CPU.R[0] = 0xDEADBEEF
-	v.CPU.R[1] = 0x10002 // Unaligned address
-	v.CPU.PC = 0x8000
-
-	setupCodeWrite(v)
-
-	// STR R0, [R1]
-	opcode := uint32(0xE5810000) // STR R0, [R1]
-	v.Memory.WriteWord(0x8000, opcode)
-
-	v.Step()
-
-	// Just verify it doesn't crash
-	// Read back and log the result
-	val, err := v.Memory.ReadWord(0x10000)
-	if err == nil {
-		t.Logf("Memory after unaligned STR: [0x10000]=0x%X", val)
+	v.CPU.R[1] = vm.DataSegmentStart + 2
+	stepExpectingFault(t, v, 0xE5810000, "unaligned word") // STR R0, [R1]
+	for addr := uint32(vm.DataSegmentStart); addr < vm.DataSegmentStart+8; addr += 4 {
+		if got, _ := v.Memory.ReadWord(addr); got != 0 {
+			t.Errorf("[0x%X] = 0x%08X, want 0 (no partial store)", addr, got)
+		}
 	}
 }
 
 func TestSTRH_UnalignedHalfword(t *testing.T) {
-	// Test unaligned halfword store
 	v := vm.NewVM()
-	v.CPU.R[0] = 0xBEEF
-	v.CPU.R[1] = 0x10001 // Odd address
-	v.CPU.PC = 0x8000
-
-	setupCodeWrite(v)
-
-	// STRH R0, [R1]
-	opcode := uint32(0xE1C100B0) // STRH R0, [R1]
-	v.Memory.WriteWord(0x8000, opcode)
-
-	v.Step()
-	t.Logf("Unaligned STRH completed without crash")
+	v.CPU.R[1] = vm.DataSegmentStart + 1
+	stepExpectingFault(t, v, 0xE1C100B0, "unaligned halfword") // STRH R0, [R1]
+	if got, _ := v.Memory.ReadWord(vm.DataSegmentStart); got != 0 {
+		t.Errorf("[data] = 0x%08X, want 0 (no partial store)", got)
+	}
 }
 
+// Address 0 is below the code segment and unmapped unless a program uses .org 0.
 func TestMemory_WriteProtection(t *testing.T) {
-	// Test writing to read-only memory segment
-	// This test documents the current behavior (may not have protection)
 	v := vm.NewVM()
-	v.CPU.R[0] = 0xDEADBEEF
-	v.CPU.R[1] = 0x0 // Try to write to address 0 (typically code segment)
-	v.CPU.PC = 0x8000
-
-	setupCodeWrite(v)
-
-	// STR R0, [R1]
-	opcode := uint32(0xE5810000) // STR R0, [R1]
-	v.Memory.WriteWord(0x8000, opcode)
-
-	// Currently the emulator may allow this
-	// This test documents the behavior
-	v.Step()
-	t.Logf("Write to address 0 completed (protection may not be implemented)")
+	v.CPU.R[1] = 0
+	stepExpectingFault(t, v, 0xE5810000, "not mapped") // STR R0, [R1]
 }
 
+// Only the code segment is executable.
 func TestMemory_ExecuteProtection(t *testing.T) {
-	// Test executing from data segment
-	// ARM2 doesn't have NX protection, so this should work
+	const movR0R0 = 0xE1A00000
 	v := vm.NewVM()
-	v.CPU.PC = 0x20000 // Data area
-
-	setupCodeWrite(v)
-
-	// Write a NOP instruction to data area
-	// MOV R0, R0 (NOP equivalent)
-	opcode := uint32(0xE1A00000)
-	v.Memory.WriteWord(0x20000, opcode)
-
-	v.Step()
-
-	// Should execute without error (ARM2 has no execute protection)
-	t.Logf("Execute from data segment completed (no NX protection in ARM2)")
+	if err := v.Memory.WriteWord(vm.DataSegmentStart, movR0R0); err != nil {
+		t.Fatal(err)
+	}
+	v.CPU.PC = vm.DataSegmentStart
+	err := v.Step()
+	if err == nil || !strings.Contains(err.Error(), "execute permission denied") {
+		t.Fatalf("Step() error = %v, want execute permission denied", err)
+	}
+	if v.CPU.PC != vm.DataSegmentStart {
+		t.Errorf("PC = 0x%08X, want unchanged", v.CPU.PC)
+	}
 }
 
 func TestMemory_NoReadPermission(t *testing.T) {
-	// Test reading from invalid/unmapped memory
+	const topWord = 0xFFFFFFFC
 	v := vm.NewVM()
-	v.CPU.R[1] = 0xFFFFFFFF // Very high address (likely unmapped)
-	v.CPU.PC = 0x8000
-
-	setupCodeWrite(v)
-
-	// LDR R0, [R1]
-	opcode := uint32(0xE5910000) // LDR R0, [R1]
-	v.Memory.WriteWord(0x8000, opcode)
-
-	// This should either return an error or wrap around
-	v.Step()
-	t.Logf("Read from high address: R0=0x%X (may be invalid or wrapped)", v.CPU.R[0])
+	v.CPU.R[1] = topWord
+	stepExpectingFault(t, v, 0xE5910000, "not mapped") // LDR R0, [R1]
 }

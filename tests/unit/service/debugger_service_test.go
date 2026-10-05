@@ -1,6 +1,7 @@
 package service_test
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/lookbusy1344/arm-emulator/parser"
@@ -978,47 +979,37 @@ main:
 	}
 }
 
+// Debugger commands and expressions work on the reset machine before a program loads.
 func TestDebuggerService_ExecuteCommand_NoProgram(t *testing.T) {
 	machine := vm.NewVM()
-	machine.InitializeStack(vm.StackSegmentStart + vm.StackSegmentSize) // Valid stack top
+	if err := machine.InitializeStack(vm.StackSegmentStart + vm.StackSegmentSize); err != nil {
+		t.Fatal(err)
+	}
+	machine.CPU.R[3] = 0x1234
 	svc := service.NewDebuggerService(machine)
 
-	// Try to execute command without loading a program
-	// Note: ExecuteCommand currently doesn't check for program loaded, so this will succeed
-	// but may produce unexpected results. This test documents current behavior.
 	output, err := svc.ExecuteCommand("info registers")
-
-	// Command should work even without program loaded (debugger exists)
 	if err != nil {
-		t.Logf("ExecuteCommand returned error (acceptable): %v", err)
+		t.Fatalf("ExecuteCommand: %v", err)
 	}
-
-	// Should still produce some output (even if it's just register dump)
-	if output == "" && err == nil {
-		t.Error("Expected either output or error when executing command")
+	for _, want := range []string{"R0", "R3", "1234", "PC"} {
+		if !strings.Contains(output, want) {
+			t.Errorf("register dump lacks %q:\n%s", want, output)
+		}
 	}
 }
 
 func TestDebuggerService_EvaluateExpression_NoProgram(t *testing.T) {
 	machine := vm.NewVM()
-	machine.InitializeStack(vm.StackSegmentStart + vm.StackSegmentSize) // Valid stack top
+	machine.CPU.R[0], machine.CPU.R[1] = 40, 2
 	svc := service.NewDebuggerService(machine)
 
-	// Try to evaluate expression without loading a program
-	// The evaluator might not be initialized without a program loaded
 	result, err := svc.EvaluateExpression("R0 + R1")
-
-	// If evaluator is not initialized, we should get an error
-	// Otherwise the expression should evaluate (registers start at 0)
 	if err != nil {
-		// Expected behavior - no evaluator without program
-		if result != 0 {
-			t.Errorf("Expected result 0 on error, got %d", result)
-		}
-	} else {
-		// Alternative behavior - evaluator exists but registers are 0
-		// This is acceptable - documents actual behavior
-		t.Logf("EvaluateExpression succeeded without program loaded, result: %d", result)
+		t.Fatalf("EvaluateExpression: %v", err)
+	}
+	if result != 42 {
+		t.Errorf("R0 + R1 = %d, want 42", result)
 	}
 }
 
@@ -1054,7 +1045,6 @@ main:
 		{"+ R1", "Missing left operand", true},
 		{"R0 + + R1", "Double operator", true},
 		{"INVALID_REG", "Invalid register name", true},
-		{"R0 & R1", "Bitwise AND operator", false}, // May or may not be supported
 		{"", "Empty expression", true},
 		{"R0 R1", "Missing operator", true},
 		{"(R0 + R1", "Unclosed parenthesis", true},
@@ -1062,17 +1052,16 @@ main:
 	}
 
 	for _, tc := range invalidExpressions {
-		result, err := svc.EvaluateExpression(tc.expr)
-		if err == nil {
-			if tc.mustFail {
-				t.Errorf("Expected error for invalid expression '%s' (%s), but got result %d",
-					tc.expr, tc.description, result)
-			} else {
-				// Some expressions might be valid in the implementation
-				t.Logf("Expression '%s' (%s) succeeded with result %d (acceptable)",
-					tc.expr, tc.description, result)
-			}
+		if result, err := svc.EvaluateExpression(tc.expr); err == nil {
+			t.Errorf("Expected error for invalid expression '%s' (%s), but got result %d",
+				tc.expr, tc.description, result)
 		}
+	}
+
+	// Bitwise AND is supported.
+	svc.GetVM().CPU.R[0], svc.GetVM().CPU.R[1] = 0b1100, 0b1010
+	if result, err := svc.EvaluateExpression("R0 & R1"); err != nil || result != 0b1000 {
+		t.Errorf("R0 & R1 = %d, %v; want 8", result, err)
 	}
 }
 
