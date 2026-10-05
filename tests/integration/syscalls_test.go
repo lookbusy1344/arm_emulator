@@ -6,6 +6,7 @@ import (
 	"io"
 	"os"
 	"strings"
+	"sync"
 	"testing"
 
 	"github.com/lookbusy1344/arm-emulator/loader"
@@ -44,6 +45,18 @@ func runAssemblyWithInput(t *testing.T, code string, stdin string) (stdout strin
 	rErr, wErr, _ := os.Pipe()
 	os.Stdout = wOut
 	os.Stderr = wErr
+
+	// Drain the pipes while the program runs; a full pipe would block its writes.
+	var outBuf, errBuf bytes.Buffer
+	var drained sync.WaitGroup
+	drained.Go(func() { _, _ = io.Copy(&outBuf, rOut) })
+	drained.Go(func() { _, _ = io.Copy(&errBuf, rErr) })
+	collect := sync.OnceFunc(func() {
+		_ = wOut.Close()
+		_ = wErr.Close()
+		drained.Wait()
+	})
+	defer collect()
 
 	defer func() {
 		os.Stdout = oldStdout
@@ -103,13 +116,7 @@ func runAssemblyWithInput(t *testing.T, code string, stdin string) (stdout strin
 		}
 	}
 
-	// Close write ends and read output
-	wOut.Close()
-	wErr.Close()
-
-	var outBuf, errBuf bytes.Buffer
-	io.Copy(&outBuf, rOut)
-	io.Copy(&errBuf, rErr)
+	collect()
 
 	// Return captured output along with any error
 	return outBuf.String(), errBuf.String(), machine.ExitCode, execErr
