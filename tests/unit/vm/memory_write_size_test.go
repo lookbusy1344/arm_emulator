@@ -17,8 +17,8 @@ func TestSTRB_TracksWriteSize(t *testing.T) {
 	// STRB R0, [R1] (E5C10000)
 	opcode := uint32(0xE5C10000)
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x8000, opcode)
-	v.Step()
+	mustWriteWord(t, v, 0x8000, opcode)
+	mustStep(t, v)
 
 	// Verify the byte was written
 	value, _ := v.Memory.ReadByteAt(0x20000)
@@ -51,8 +51,8 @@ func TestSTRH_TracksWriteSize(t *testing.T) {
 	// STRH R0, [R1] (E1C100B0) - store halfword, immediate offset 0
 	opcode := uint32(0xE1C100B0)
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x8000, opcode)
-	v.Step()
+	mustWriteWord(t, v, 0x8000, opcode)
+	mustStep(t, v)
 
 	// Verify the halfword was written
 	value, _ := v.Memory.ReadHalfword(0x20000)
@@ -85,8 +85,8 @@ func TestSTR_TracksWriteSize(t *testing.T) {
 	// STR R0, [R1] (E5810000)
 	opcode := uint32(0xE5810000)
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x8000, opcode)
-	v.Step()
+	mustWriteWord(t, v, 0x8000, opcode)
+	mustStep(t, v)
 
 	// Verify the word was written
 	value, _ := v.Memory.ReadWord(0x20000)
@@ -118,8 +118,8 @@ func TestMemoryWriteSize_ClearedOnReset(t *testing.T) {
 	// Execute STRB to set write tracking
 	opcode := uint32(0xE5C10000) // STRB R0, [R1]
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x8000, opcode)
-	v.Step()
+	mustWriteWord(t, v, 0x8000, opcode)
+	mustStep(t, v)
 
 	// Verify write was tracked
 	if !v.HasMemoryWrite || v.LastMemoryWriteSize != 1 {

@@ -19,8 +19,8 @@ func TestLSL_ImmediateShift(t *testing.T) {
 	// MOV R0, R1, LSL #4 (E1A00201)
 	opcode := uint32(0xE1A00201)
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x8000, opcode)
-	v.Step()
+	mustWriteWord(t, v, 0x8000, opcode)
+	mustStep(t, v)
 
 	// 0x10 << 4 = 0x100
 	if v.CPU.R[0] != 0x100 {
@@ -37,8 +37,8 @@ func TestLSL_ZeroShift(t *testing.T) {
 	// MOV R0, R1, LSL #0 (E1A00001)
 	opcode := uint32(0xE1A00001)
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x8000, opcode)
-	v.Step()
+	mustWriteWord(t, v, 0x8000, opcode)
+	mustStep(t, v)
 
 	if v.CPU.R[0] != 0x12345678 {
 		t.Errorf("expected R0=0x12345678, got R0=0x%X", v.CPU.R[0])
@@ -54,8 +54,8 @@ func TestLSL_CarryOut(t *testing.T) {
 	// MOVS R0, R1, LSL #1 (E1B00081)
 	opcode := uint32(0xE1B00081)
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x8000, opcode)
-	v.Step()
+	mustWriteWord(t, v, 0x8000, opcode)
+	mustStep(t, v)
 
 	if v.CPU.R[0] != 0 {
 		t.Errorf("expected R0=0, got R0=0x%X", v.CPU.R[0])
@@ -77,8 +77,8 @@ func TestLSL_MaxShift(t *testing.T) {
 	// MOV R0, R1, LSL #31 (E1A00F81)
 	opcode := uint32(0xE1A00F81)
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x8000, opcode)
-	v.Step()
+	mustWriteWord(t, v, 0x8000, opcode)
+	mustStep(t, v)
 
 	if v.CPU.R[0] != 0x80000000 {
 		t.Errorf("expected R0=0x80000000, got R0=0x%X", v.CPU.R[0])
@@ -95,8 +95,8 @@ func TestLSL_RegisterShift(t *testing.T) {
 	// MOV R0, R1, LSL R2 (E1A00211)
 	opcode := uint32(0xE1A00211)
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x8000, opcode)
-	v.Step()
+	mustWriteWord(t, v, 0x8000, opcode)
+	mustStep(t, v)
 
 	if v.CPU.R[0] != 0x100 {
 		t.Errorf("expected R0=0x100, got R0=0x%X", v.CPU.R[0])
@@ -113,8 +113,8 @@ func TestLSL_RegisterShiftOver32(t *testing.T) {
 	// MOV R0, R1, LSL R2 (E1A00211)
 	opcode := uint32(0xE1A00211)
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x8000, opcode)
-	v.Step()
+	mustWriteWord(t, v, 0x8000, opcode)
+	mustStep(t, v)
 
 	if v.CPU.R[0] != 0 {
 		t.Errorf("expected R0=0 (shift > 32), got R0=0x%X", v.CPU.R[0])
@@ -131,8 +131,8 @@ func TestLSL_InADD(t *testing.T) {
 	// ADD R0, R1, R2, LSL #2 (E0810102)
 	opcode := uint32(0xE0810102)
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x8000, opcode)
-	v.Step()
+	mustWriteWord(t, v, 0x8000, opcode)
+	mustStep(t, v)
 
 	// 10 + 20 = 30
 	if v.CPU.R[0] != 30 {
@@ -153,8 +153,8 @@ func TestLSR_ImmediateShift(t *testing.T) {
 	// MOV R0, R1, LSR #4 (E1A00221)
 	opcode := uint32(0xE1A00221)
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x8000, opcode)
-	v.Step()
+	mustWriteWord(t, v, 0x8000, opcode)
+	mustStep(t, v)
 
 	// 0x100 >> 4 = 0x10
 	if v.CPU.R[0] != 0x10 {
@@ -171,8 +171,8 @@ func TestLSR_SignBit(t *testing.T) {
 	// MOV R0, R1, LSR #1 (E1A000A1) - bits[6:5]=01 for LSR, bits[11:7]=00001 for shift by 1
 	opcode := uint32(0xE1A000A1)
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x8000, opcode)
-	v.Step()
+	mustWriteWord(t, v, 0x8000, opcode)
+	mustStep(t, v)
 
 	// 0x80000000 >> 1 = 0x40000000 (logical, not sign-extended)
 	if v.CPU.R[0] != 0x40000000 {
@@ -189,8 +189,8 @@ func TestLSR_CarryOut(t *testing.T) {
 	// MOVS R0, R1, LSR #1 (E1B000A1) - S bit set, LSR #1
 	opcode := uint32(0xE1B000A1)
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x8000, opcode)
-	v.Step()
+	mustWriteWord(t, v, 0x8000, opcode)
+	mustStep(t, v)
 
 	if v.CPU.R[0] != 0 {
 		t.Errorf("expected R0=0, got R0=0x%X", v.CPU.R[0])
@@ -210,8 +210,8 @@ func TestLSR_FullShift(t *testing.T) {
 	// bits[11:7]=00000, bits[6:5]=01 (LSR), bit[4]=0
 	opcode := uint32(0xE1A00021)
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x8000, opcode)
-	v.Step()
+	mustWriteWord(t, v, 0x8000, opcode)
+	mustStep(t, v)
 
 	if v.CPU.R[0] != 0 {
 		t.Errorf("expected R0=0, got R0=0x%X", v.CPU.R[0])
@@ -228,8 +228,8 @@ func TestLSR_RegisterShift(t *testing.T) {
 	// MOV R0, R1, LSR R2 (E1A00231)
 	opcode := uint32(0xE1A00231)
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x8000, opcode)
-	v.Step()
+	mustWriteWord(t, v, 0x8000, opcode)
+	mustStep(t, v)
 
 	if v.CPU.R[0] != 0xFF {
 		t.Errorf("expected R0=0xFF, got R0=0x%X", v.CPU.R[0])
@@ -249,8 +249,8 @@ func TestASR_PositiveNumber(t *testing.T) {
 	// MOV R0, R1, ASR #4 (E1A00241)
 	opcode := uint32(0xE1A00241)
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x8000, opcode)
-	v.Step()
+	mustWriteWord(t, v, 0x8000, opcode)
+	mustStep(t, v)
 
 	// 0x1000 >> 4 = 0x100 (arithmetic, but positive)
 	if v.CPU.R[0] != 0x100 {
@@ -267,8 +267,8 @@ func TestASR_NegativeNumber(t *testing.T) {
 	// MOV R0, R1, ASR #4 (E1A00241)
 	opcode := uint32(0xE1A00241)
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x8000, opcode)
-	v.Step()
+	mustWriteWord(t, v, 0x8000, opcode)
+	mustStep(t, v)
 
 	// 0x80000000 ASR 4 = 0xF8000000 (sign-extended)
 	if v.CPU.R[0] != 0xF8000000 {
@@ -285,8 +285,8 @@ func TestASR_PreserveSign(t *testing.T) {
 	// MOV R0, R1, ASR #1 (E1A000C1)
 	opcode := uint32(0xE1A000C1)
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x8000, opcode)
-	v.Step()
+	mustWriteWord(t, v, 0x8000, opcode)
+	mustStep(t, v)
 
 	// -2 ASR 1 = -1 (0xFFFFFFFF)
 	if v.CPU.R[0] != 0xFFFFFFFF {
@@ -303,8 +303,8 @@ func TestASR_CarryOut(t *testing.T) {
 	// MOVS R0, R1, ASR #1 (E1B000C1)
 	opcode := uint32(0xE1B000C1)
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x8000, opcode)
-	v.Step()
+	mustWriteWord(t, v, 0x8000, opcode)
+	mustStep(t, v)
 
 	if v.CPU.R[0] != 1 {
 		t.Errorf("expected R0=1, got R0=0x%X", v.CPU.R[0])
@@ -324,8 +324,8 @@ func TestASR_RegisterShift(t *testing.T) {
 	// MOV R0, R1, ASR R2 (E1A00251)
 	opcode := uint32(0xE1A00251)
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x8000, opcode)
-	v.Step()
+	mustWriteWord(t, v, 0x8000, opcode)
+	mustStep(t, v)
 
 	// 0x80000000 ASR 8 = 0xFF800000
 	if v.CPU.R[0] != 0xFF800000 {
@@ -342,8 +342,8 @@ func TestASR_FullShift(t *testing.T) {
 	// ASR #32 is encoded as 0 in shift field
 	opcode := uint32(0xE1A00041)
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x8000, opcode)
-	v.Step()
+	mustWriteWord(t, v, 0x8000, opcode)
+	mustStep(t, v)
 
 	// All bits become sign bit (0xFFFFFFFF for negative)
 	if v.CPU.R[0] != 0xFFFFFFFF {
@@ -364,8 +364,8 @@ func TestROR_ImmediateRotate(t *testing.T) {
 	// MOV R0, R1, ROR #4 (E1A00261)
 	opcode := uint32(0xE1A00261)
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x8000, opcode)
-	v.Step()
+	mustWriteWord(t, v, 0x8000, opcode)
+	mustStep(t, v)
 
 	// 0x12345678 ROR 4 = 0x81234567
 	if v.CPU.R[0] != 0x81234567 {
@@ -382,8 +382,8 @@ func TestROR_8BitRotate(t *testing.T) {
 	// MOV R0, R1, ROR #8 (E1A00461)
 	opcode := uint32(0xE1A00461)
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x8000, opcode)
-	v.Step()
+	mustWriteWord(t, v, 0x8000, opcode)
+	mustStep(t, v)
 
 	// 0x12345678 ROR 8 = 0x78123456
 	if v.CPU.R[0] != 0x78123456 {
@@ -402,8 +402,8 @@ func TestROR_FullRotation(t *testing.T) {
 	v.CPU.R[2] = 32
 	opcode := uint32(0xE1A00271) // MOV R0, R1, ROR R2
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x8000, opcode)
-	v.Step()
+	mustWriteWord(t, v, 0x8000, opcode)
+	mustStep(t, v)
 
 	// ROR by 32 should return original value
 	if v.CPU.R[0] != 0xABCDEF01 {
@@ -420,8 +420,8 @@ func TestROR_CarryOut(t *testing.T) {
 	// MOVS R0, R1, ROR #1 (E1B000E1)
 	opcode := uint32(0xE1B000E1)
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x8000, opcode)
-	v.Step()
+	mustWriteWord(t, v, 0x8000, opcode)
+	mustStep(t, v)
 
 	// 0x00000001 ROR 1 = 0x80000000
 	if v.CPU.R[0] != 0x80000000 {
@@ -442,8 +442,8 @@ func TestROR_RegisterShift(t *testing.T) {
 	// MOV R0, R1, ROR R2 (E1A00271)
 	opcode := uint32(0xE1A00271)
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x8000, opcode)
-	v.Step()
+	mustWriteWord(t, v, 0x8000, opcode)
+	mustStep(t, v)
 
 	// 0xFF000000 ROR 8 = 0x00FF0000
 	if v.CPU.R[0] != 0x00FF0000 {
@@ -461,8 +461,8 @@ func TestROR_InDataProcessing(t *testing.T) {
 	// ADD R0, R1, R2, ROR #4 (E0810262)
 	opcode := uint32(0xE0810262)
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x8000, opcode)
-	v.Step()
+	mustWriteWord(t, v, 0x8000, opcode)
+	mustStep(t, v)
 
 	// 10 + (0x12345678 ROR 4) = 10 + 0x81234567
 	expected := uint32(10 + 0x81234567)
@@ -485,8 +485,8 @@ func TestRRX_WithCarryClear(t *testing.T) {
 	// MOVS R0, R1, RRX (E1B00061 with ROR #0 encoding means RRX)
 	opcode := uint32(0xE1B00061)
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x8000, opcode)
-	v.Step()
+	mustWriteWord(t, v, 0x8000, opcode)
+	mustStep(t, v)
 
 	// RRX shifts right by 1 and puts old C in bit 31
 	// 0x00000001 RRX with C=0 = 0x00000000, C=1
@@ -508,8 +508,8 @@ func TestRRX_WithCarrySet(t *testing.T) {
 	// MOVS R0, R1, RRX (E1B00061)
 	opcode := uint32(0xE1B00061)
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x8000, opcode)
-	v.Step()
+	mustWriteWord(t, v, 0x8000, opcode)
+	mustStep(t, v)
 
 	// RRX with C=1 puts 1 in bit 31
 	// 0x00000000 RRX with C=1 = 0x80000000, C=0
@@ -531,8 +531,8 @@ func TestRRX_MultipleOperations(t *testing.T) {
 	// First RRX: 0x00000003 RRX with C=0 = 0x00000001, C=1
 	opcode := uint32(0xE1B00061)
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x8000, opcode)
-	v.Step()
+	mustWriteWord(t, v, 0x8000, opcode)
+	mustStep(t, v)
 
 	if v.CPU.R[0] != 0x00000001 {
 		t.Errorf("expected R0=0x00000001 after first RRX, got R0=0x%X", v.CPU.R[0])
@@ -555,8 +555,8 @@ func TestShifts_CompareTypes(t *testing.T) {
 	// LSR #1
 	opcode := uint32(0xE1A00061)
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x8000, opcode)
-	v.Step()
+	mustWriteWord(t, v, 0x8000, opcode)
+	mustStep(t, v)
 
 	lsrResult := v.CPU.R[0]
 
@@ -568,8 +568,8 @@ func TestShifts_CompareTypes(t *testing.T) {
 	// ASR #1
 	opcode = uint32(0xE1A000C1)
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x8000, opcode)
-	v.Step()
+	mustWriteWord(t, v, 0x8000, opcode)
+	mustStep(t, v)
 
 	asrResult := v.CPU.R[0]
 
@@ -593,8 +593,8 @@ func TestShifts_InComplexExpression(t *testing.T) {
 	// ADD R0, R1, R2, LSL R3 (E0810312)
 	opcode := uint32(0xE0810312)
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x8000, opcode)
-	v.Step()
+	mustWriteWord(t, v, 0x8000, opcode)
+	mustStep(t, v)
 
 	// 100 + (5 << 3) = 100 + 40 = 140
 	if v.CPU.R[0] != 140 {
@@ -612,8 +612,8 @@ func TestShifts_ZeroAmount(t *testing.T) {
 	// MOV R0, R1, LSL R2 (E1A00211)
 	opcode := uint32(0xE1A00211)
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x8000, opcode)
-	v.Step()
+	mustWriteWord(t, v, 0x8000, opcode)
+	mustStep(t, v)
 
 	// Shift by 0 should preserve value
 	if v.CPU.R[0] != 0x12345678 {

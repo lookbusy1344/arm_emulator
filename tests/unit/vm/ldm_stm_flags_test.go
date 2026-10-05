@@ -26,15 +26,15 @@ func TestLDM_WithSBit_RestoresCPSR(t *testing.T) {
 	v.CPU.SPSR.V = true
 
 	setupCodeWrite(v)
-	v.Memory.WriteWord(stackAddr, 0xAAAA0000)   // R0
-	v.Memory.WriteWord(stackAddr+4, 0x00009000) // PC (return address)
+	mustWriteWord(t, v, stackAddr, 0xAAAA0000)   // R0
+	mustWriteWord(t, v, stackAddr+4, 0x00009000) // PC (return address)
 
 	// LDMIA SP!, {R0, PC}^ - S bit set (bit 22)
 	// Base encoding: LDMIA SP!, {R0, PC} = 0xE8BD8001
 	// With S bit: 0xE8FD8001 (bit 22 set)
 	opcode := uint32(0xE8FD8001) // LDMIA SP!, {R0, PC}^
-	v.Memory.WriteWord(0x8000, opcode)
-	v.Step()
+	mustWriteWord(t, v, 0x8000, opcode)
+	mustStep(t, v)
 
 	// Verify R0 was loaded
 	if v.CPU.R[0] != 0xAAAA0000 {
@@ -81,13 +81,13 @@ func TestLDM_WithoutSBit_PreservesCPSR(t *testing.T) {
 	v.CPU.SPSR.V = true
 
 	setupCodeWrite(v)
-	v.Memory.WriteWord(stackAddr, 0xAAAA0000) // R0
-	v.Memory.WriteWord(stackAddr+4, 0x9000)   // PC
+	mustWriteWord(t, v, stackAddr, 0xAAAA0000) // R0
+	mustWriteWord(t, v, stackAddr+4, 0x9000)   // PC
 
 	// LDMIA SP!, {R0, PC} - NO S bit
 	opcode := uint32(0xE8BD8001) // LDMIA SP!, {R0, PC}
-	v.Memory.WriteWord(0x8000, opcode)
-	v.Step()
+	mustWriteWord(t, v, 0x8000, opcode)
+	mustStep(t, v)
 
 	// Verify R0 and PC were loaded
 	if v.CPU.R[0] != 0xAAAA0000 {
@@ -132,15 +132,15 @@ func TestLDM_WithSBit_NoPCLoad_NoCPSRRestore(t *testing.T) {
 	v.CPU.SPSR.V = true
 
 	setupCodeWrite(v)
-	v.Memory.WriteWord(stackAddr, 0xAAAA0000)   // R0
-	v.Memory.WriteWord(stackAddr+4, 0xBBBB0001) // R1
+	mustWriteWord(t, v, stackAddr, 0xAAAA0000)   // R0
+	mustWriteWord(t, v, stackAddr+4, 0xBBBB0001) // R1
 
 	// LDMIA SP!, {R0, R1}^ - S bit set but NO PC in list
 	// Base encoding: LDMIA SP!, {R0, R1} = 0xE8BD0003
 	// With S bit: 0xE8FD0003 (bit 22 set)
 	opcode := uint32(0xE8FD0003) // LDMIA SP!, {R0, R1}^
-	v.Memory.WriteWord(0x8000, opcode)
-	v.Step()
+	mustWriteWord(t, v, 0x8000, opcode)
+	mustStep(t, v)
 
 	// Verify registers were loaded
 	if v.CPU.R[0] != 0xAAAA0000 {
@@ -212,12 +212,12 @@ func TestLDM_AllFlagCombinations(t *testing.T) {
 			v.CPU.SPSR.V = tc.v
 
 			setupCodeWrite(v)
-			v.Memory.WriteWord(stackAddr, 0x9000) // PC
+			mustWriteWord(t, v, stackAddr, 0x9000) // PC
 
 			// LDMIA SP!, {PC}^ - S bit set
 			opcode := uint32(0xE8FD8000) // LDMIA SP!, {PC}^
-			v.Memory.WriteWord(0x8000, opcode)
-			v.Step()
+			mustWriteWord(t, v, 0x8000, opcode)
+			mustStep(t, v)
 
 			// Verify PC was loaded
 			if v.CPU.PC != 0x9000 {
@@ -261,18 +261,18 @@ func TestLDM_SBit_MultipleRegisters(t *testing.T) {
 	v.CPU.SPSR.V = false
 
 	setupCodeWrite(v)
-	v.Memory.WriteWord(stackAddr, 0x11111111)    // R0
-	v.Memory.WriteWord(stackAddr+4, 0x22222222)  // R1
-	v.Memory.WriteWord(stackAddr+8, 0x33333333)  // R2
-	v.Memory.WriteWord(stackAddr+12, 0x44444444) // R3
-	v.Memory.WriteWord(stackAddr+16, 0x9000)     // PC
+	mustWriteWord(t, v, stackAddr, 0x11111111)    // R0
+	mustWriteWord(t, v, stackAddr+4, 0x22222222)  // R1
+	mustWriteWord(t, v, stackAddr+8, 0x33333333)  // R2
+	mustWriteWord(t, v, stackAddr+12, 0x44444444) // R3
+	mustWriteWord(t, v, stackAddr+16, 0x9000)     // PC
 
 	// LDMIA SP!, {R0-R3, PC}^ - S bit set
 	// Register list: R0-R3, PC = 0x800F
 	// With S bit: 0xE8FD800F
 	opcode := uint32(0xE8FD800F) // LDMIA SP!, {R0-R3, PC}^
-	v.Memory.WriteWord(0x8000, opcode)
-	v.Step()
+	mustWriteWord(t, v, 0x8000, opcode)
+	mustStep(t, v)
 
 	// Verify all registers were loaded
 	if v.CPU.R[0] != 0x11111111 {
@@ -333,8 +333,8 @@ func TestSTM_WithSBit_NoEffect(t *testing.T) {
 	// Base encoding: STMDB SP!, {R0, R1} = 0xE92D0003
 	// With S bit: 0xE96D0003 (bit 22 set)
 	opcode := uint32(0xE96D0003) // STMDB SP!, {R0, R1}^
-	v.Memory.WriteWord(0x8000, opcode)
-	v.Step()
+	mustWriteWord(t, v, 0x8000, opcode)
+	mustStep(t, v)
 
 	// Verify registers were stored (SP decremented by 8 for 2 registers)
 	expectedAddr := stackAddr - 8
@@ -491,13 +491,13 @@ func TestIntegration_ExceptionHandlerSimulation(t *testing.T) {
 	v.CPU.CPSR.V = true
 
 	// Step 3: Prepare stack for exception return
-	v.Memory.WriteWord(stackAddr, 0x9000) // Return address (PC)
+	mustWriteWord(t, v, stackAddr, 0x9000) // Return address (PC)
 
 	// Step 4: Execute LDM with S bit to return from exception
 	// LDMIA SP!, {PC}^
 	opcode := uint32(0xE8FD8000)
-	v.Memory.WriteWord(0x8000, opcode)
-	v.Step()
+	mustWriteWord(t, v, 0x8000, opcode)
+	mustStep(t, v)
 
 	// Verify PC was restored
 	if v.CPU.PC != 0x9000 {

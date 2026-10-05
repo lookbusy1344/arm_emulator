@@ -48,8 +48,8 @@ func TestFlags_ADD_NZCV(t *testing.T) {
 			// ADDS R0, R1, R2 (with S bit set)
 			opcode := uint32(0xE0910002) // ADD with S=1
 			setupCodeWrite(v)
-			v.Memory.WriteWord(0x8000, opcode)
-			v.Step()
+			mustWriteWord(t, v, 0x8000, opcode)
+			mustStep(t, v)
 
 			checkFlag(t, "N", tt.expectN, v.CPU.CPSR.N)
 			checkFlag(t, "Z", tt.expectZ, v.CPU.CPSR.Z)
@@ -86,8 +86,8 @@ func TestFlags_SUB_NZCV(t *testing.T) {
 			// SUBS R0, R1, R2
 			opcode := uint32(0xE0510002) // SUB with S=1
 			setupCodeWrite(v)
-			v.Memory.WriteWord(0x8000, opcode)
-			v.Step()
+			mustWriteWord(t, v, 0x8000, opcode)
+			mustStep(t, v)
 
 			checkFlag(t, "N", tt.expectN, v.CPU.CPSR.N)
 			checkFlag(t, "Z", tt.expectZ, v.CPU.CPSR.Z)
@@ -107,8 +107,8 @@ func TestFlags_ADC_WithCarry(t *testing.T) {
 	// ADCS R0, R1, R2
 	opcode := uint32(0xE0B10002) // ADC with S=1
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x8000, opcode)
-	v.Step()
+	mustWriteWord(t, v, 0x8000, opcode)
+	mustStep(t, v)
 
 	// Expected: 0xFFFFFFFF + 1 + 1(carry) = 1, carry out
 	if v.CPU.R[0] != 1 {
@@ -132,8 +132,8 @@ func TestFlags_SBC_WithBorrow(t *testing.T) {
 	// SBCS R0, R1, R2
 	opcode := uint32(0xE0D10002) // SBC with S=1
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x8000, opcode)
-	v.Step()
+	mustWriteWord(t, v, 0x8000, opcode)
+	mustStep(t, v)
 
 	// Expected: 10 - 5 - 1(borrow) = 4
 	if v.CPU.R[0] != 4 {
@@ -150,8 +150,8 @@ func TestFlags_RSB_NZCV(t *testing.T) {
 	// RSBS R0, R1, R2 (reverse subtract: R2 - R1)
 	opcode := uint32(0xE0710002) // RSB with S=1
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x8000, opcode)
-	v.Step()
+	mustWriteWord(t, v, 0x8000, opcode)
+	mustStep(t, v)
 
 	// Expected: 10 - 5 = 5
 	if v.CPU.R[0] != 5 {
@@ -178,8 +178,8 @@ func TestFlags_RSC_WithCarry(t *testing.T) {
 	// RSCS R0, R1, R2
 	opcode := uint32(0xE0F10002) // RSC with S=1
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x8000, opcode)
-	v.Step()
+	mustWriteWord(t, v, 0x8000, opcode)
+	mustStep(t, v)
 
 	// Expected: 10 - 5 - 0(no borrow) = 5
 	if v.CPU.R[0] != 5 {
@@ -199,8 +199,8 @@ func TestFlags_AND_NZC(t *testing.T) {
 	// ANDS R0, R1, R2
 	opcode := uint32(0xE0110002) // AND with S=1
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x8000, opcode)
-	v.Step()
+	mustWriteWord(t, v, 0x8000, opcode)
+	mustStep(t, v)
 
 	// Expected: all bits clear, zero result
 	if v.CPU.R[0] != 0 {
@@ -227,8 +227,8 @@ func TestFlags_ORR_NZC(t *testing.T) {
 	// ORRS R0, R1, R2
 	opcode := uint32(0xE1910002) // ORR with S=1
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x8000, opcode)
-	v.Step()
+	mustWriteWord(t, v, 0x8000, opcode)
+	mustStep(t, v)
 
 	// Expected: 0x80000001, negative
 	if v.CPU.R[0] != 0x80000001 {
@@ -255,8 +255,8 @@ func TestFlags_EOR_NZC(t *testing.T) {
 	// EORS R0, R1, R2
 	opcode := uint32(0xE0310002) // EOR with S=1
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x8000, opcode)
-	v.Step()
+	mustWriteWord(t, v, 0x8000, opcode)
+	mustStep(t, v)
 
 	// Expected: XOR results in 0
 	if v.CPU.R[0] != 0 {
@@ -283,8 +283,8 @@ func TestFlags_BIC_NZC(t *testing.T) {
 	// BICS R0, R1, R2 (bit clear: R1 AND NOT R2)
 	opcode := uint32(0xE1D10002) // BIC with S=1
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x8000, opcode)
-	v.Step()
+	mustWriteWord(t, v, 0x8000, opcode)
+	mustStep(t, v)
 
 	// Expected: 0xFFFFFFFF AND NOT 0x7FFFFFFF = 0x80000000 (negative)
 	if v.CPU.R[0] != 0x80000000 {
@@ -312,8 +312,8 @@ func TestFlags_CMP_AlwaysSetsFlags(t *testing.T) {
 	// CMP R1, R2 (compare by subtraction, always sets flags)
 	opcode := uint32(0xE1510002) // CMP (SUB with S=1, no destination)
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x8000, opcode)
-	v.Step()
+	mustWriteWord(t, v, 0x8000, opcode)
+	mustStep(t, v)
 
 	// Expected: 10 - 10 = 0, Z flag set
 	if !v.CPU.CPSR.Z {
@@ -336,8 +336,8 @@ func TestFlags_CMN_AlwaysSetsFlags(t *testing.T) {
 	// CMN R1, R2 (compare negative: add and set flags)
 	opcode := uint32(0xE1710002) // CMN (ADD with S=1, no destination)
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x8000, opcode)
-	v.Step()
+	mustWriteWord(t, v, 0x8000, opcode)
+	mustStep(t, v)
 
 	// Expected: 10 + (-10) = 0, Z flag set
 	if !v.CPU.CPSR.Z {
@@ -356,8 +356,8 @@ func TestFlags_TST_AlwaysSetsFlags(t *testing.T) {
 	// TST R1, R2 (test bits: AND and set flags, no destination)
 	opcode := uint32(0xE1110002) // TST (AND with S=1, no destination)
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x8000, opcode)
-	v.Step()
+	mustWriteWord(t, v, 0x8000, opcode)
+	mustStep(t, v)
 
 	// Expected: 0xFF00FF00 AND 0x00FF00FF = 0, Z flag set
 	if !v.CPU.CPSR.Z {
@@ -377,8 +377,8 @@ func TestFlags_TEQ_AlwaysSetsFlags(t *testing.T) {
 	// TEQ R1, R2 (test equivalence: XOR and set flags, no destination)
 	opcode := uint32(0xE1310002) // TEQ (EOR with S=1, no destination)
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x8000, opcode)
-	v.Step()
+	mustWriteWord(t, v, 0x8000, opcode)
+	mustStep(t, v)
 
 	// Expected: identical values XOR to 0, Z flag set
 	if !v.CPU.CPSR.Z {
@@ -412,8 +412,8 @@ func TestFlags_MUL_NZ_Only(t *testing.T) {
 			// MULS R0, R1, R2
 			opcode := uint32(0xE0100291) // MUL with S=1
 			setupCodeWrite(v)
-			v.Memory.WriteWord(0x8000, opcode)
-			v.Step()
+			mustWriteWord(t, v, 0x8000, opcode)
+			mustStep(t, v)
 
 			checkFlag(t, "N", tt.expectN, v.CPU.CPSR.N)
 			checkFlag(t, "Z", tt.expectZ, v.CPU.CPSR.Z)
@@ -442,8 +442,8 @@ func TestFlags_MLA_NZ_Only(t *testing.T) {
 	// Bits: cond=1110, 000000, A=1, S=1, Rd=0000, Rn=0011, Rs=0010, 1001, Rm=0001
 	opcode := uint32(0xE0303291) // MLA with S=1
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x8000, opcode)
-	v.Step()
+	mustWriteWord(t, v, 0x8000, opcode)
+	mustStep(t, v)
 
 	// Expected: 5 * 10 + 100 = 150
 	if v.CPU.R[0] != 150 {
@@ -474,8 +474,8 @@ func TestFlags_ShiftCarry_LSL(t *testing.T) {
 	// MOVS R0, R1, LSL #1 (shift left, bit 31 goes to carry)
 	opcode := uint32(0xE1B00081) // MOV with S=1, LSL #1
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x8000, opcode)
-	v.Step()
+	mustWriteWord(t, v, 0x8000, opcode)
+	mustStep(t, v)
 
 	// Expected: result = 0x00000002, carry out from bit 31 = 1
 	if v.CPU.R[0] != 0x00000002 {
@@ -494,8 +494,8 @@ func TestFlags_ShiftCarry_LSR(t *testing.T) {
 	// MOVS R0, R1, LSR #1 (shift right, bit 0 goes to carry)
 	opcode := uint32(0xE1B000A1) // MOV with S=1, LSR #1
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x8000, opcode)
-	v.Step()
+	mustWriteWord(t, v, 0x8000, opcode)
+	mustStep(t, v)
 
 	// Expected: result = 0x00000001, carry out from bit 0 = 1
 	if v.CPU.R[0] != 0x00000001 {
@@ -514,8 +514,8 @@ func TestFlags_ShiftCarry_ASR(t *testing.T) {
 	// MOVS R0, R1, ASR #1 (arithmetic shift right, sign extend)
 	opcode := uint32(0xE1B000C1) // MOV with S=1, ASR #1
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x8000, opcode)
-	v.Step()
+	mustWriteWord(t, v, 0x8000, opcode)
+	mustStep(t, v)
 
 	// Expected: result = 0xC0000000 (sign extended), carry = 1
 	if v.CPU.R[0] != 0xC0000000 {
@@ -537,8 +537,8 @@ func TestFlags_ShiftCarry_ROR(t *testing.T) {
 	// MOVS R0, R1, ROR #1 (rotate right, bit 0 to carry and bit 31)
 	opcode := uint32(0xE1B000E1) // MOV with S=1, ROR #1
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x8000, opcode)
-	v.Step()
+	mustWriteWord(t, v, 0x8000, opcode)
+	mustStep(t, v)
 
 	// Expected: result = 0x80000000, carry = 1
 	if v.CPU.R[0] != 0x80000000 {
@@ -568,8 +568,8 @@ func TestFlags_NoUpdate_WithoutSBit(t *testing.T) {
 	// ADD R0, R1, R2 (without S bit)
 	opcode := uint32(0xE0810002) // ADD with S=0
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x8000, opcode)
-	v.Step()
+	mustWriteWord(t, v, 0x8000, opcode)
+	mustStep(t, v)
 
 	// Expected: R0 = 20, but flags should be unchanged
 	if v.CPU.R[0] != 20 {

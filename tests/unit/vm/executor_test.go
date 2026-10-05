@@ -608,7 +608,7 @@ func TestStepSetsStateToBreakpoint(t *testing.T) {
 
 	// Load a simple NOP instruction (MOV R0, R0) at 0x8000
 	// ARM encoding: 0xE1A00000
-	v.Memory.WriteWord(0x8000, 0xE1A00000)
+	mustWriteWord(t, v, 0x8000, 0xE1A00000)
 	v.CPU.PC = 0x8000
 
 	// Set initial state to Halted (default after initialization)
@@ -631,7 +631,7 @@ func TestStepPreservesHaltedStateFromExit(t *testing.T) {
 
 	// Load SWI #0 (EXIT) instruction at 0x8000
 	// ARM encoding: 0xEF000000
-	v.Memory.WriteWord(0x8000, 0xEF000000)
+	mustWriteWord(t, v, 0x8000, 0xEF000000)
 	v.CPU.PC = 0x8000
 	v.State = vm.StateHalted
 

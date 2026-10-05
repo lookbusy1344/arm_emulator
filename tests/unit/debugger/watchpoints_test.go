@@ -157,7 +157,9 @@ func TestWatchpointManager_CheckWatchpoints_Memory(t *testing.T) {
 	wp := wm.AddWatchpoint(debugger.WatchWrite, "[0x00020000]", addr, false, 0)
 
 	// Initialize watchpoint
-	machine.Memory.WriteWord(addr, 0x12345678)
+	if err := machine.Memory.WriteWord(addr, 0x12345678); err != nil {
+		t.Fatal(err)
+	}
 	err := wm.InitializeWatchpoint(wp.ID, machine)
 	if err != nil {
 		t.Fatalf("InitializeWatchpoint failed: %v", err)
@@ -170,7 +172,9 @@ func TestWatchpointManager_CheckWatchpoints_Memory(t *testing.T) {
 	}
 
 	// Change value
-	machine.Memory.WriteWord(addr, 0xABCDEF00)
+	if err := machine.Memory.WriteWord(addr, 0xABCDEF00); err != nil {
+		t.Fatal(err)
+	}
 	triggered, changed = wm.CheckWatchpoints(machine)
 	if triggered == nil || !changed {
 		t.Fatal("Should trigger when value changes")

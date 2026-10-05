@@ -123,7 +123,7 @@ func TestReallocateDataCopy(t *testing.T) {
 	// First allocate some memory
 	v.CPU.R[0] = 100 // Size
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x8000, 0xEF000020) // SWI #0x20 (ALLOCATE)
+	mustWriteWord(t, v, 0x8000, 0xEF000020) // SWI #0x20 (ALLOCATE)
 	err := v.Step()
 	if err != nil {
 		t.Fatalf("initial allocation failed: %v", err)
@@ -147,7 +147,7 @@ func TestReallocateDataCopy(t *testing.T) {
 	v.CPU.R[1] = 200     // New size (larger)
 	v.CPU.PC = 0x8004
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x8004, 0xEF000022) // SWI #0x22 (REALLOCATE)
+	mustWriteWord(t, v, 0x8004, 0xEF000022) // SWI #0x22 (REALLOCATE)
 	err = v.Step()
 	if err != nil {
 		t.Fatalf("reallocation failed: %v", err)
@@ -189,13 +189,13 @@ func TestReallocateShrink(t *testing.T) {
 	// Allocate 100 bytes
 	v.CPU.R[0] = 100
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x8000, 0xEF000020)
-	v.Step()
+	mustWriteWord(t, v, 0x8000, 0xEF000020)
+	mustStep(t, v)
 	oldAddr := v.CPU.R[0]
 
 	// Write more than 50 bytes of data
 	for i := uint32(0); i < 100; i++ {
-		v.Memory.WriteByteAt(oldAddr+i, byte(i&0xFF))
+		mustWriteByte(t, v, oldAddr+i, byte(i&0xFF))
 	}
 
 	// Reallocate to smaller size (50 bytes)
@@ -203,8 +203,8 @@ func TestReallocateShrink(t *testing.T) {
 	v.CPU.R[1] = 50
 	v.CPU.PC = 0x8004
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x8004, 0xEF000022)
-	v.Step()
+	mustWriteWord(t, v, 0x8004, 0xEF000022)
+	mustStep(t, v)
 
 	newAddr := v.CPU.R[0]
 	if newAddr == 0 {
@@ -231,7 +231,7 @@ func TestReallocateNullPointer(t *testing.T) {
 	v.CPU.R[0] = 0   // NULL pointer
 	v.CPU.R[1] = 100 // Size
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x8000, 0xEF000022) // SWI #0x22 (REALLOCATE)
+	mustWriteWord(t, v, 0x8000, 0xEF000022) // SWI #0x22 (REALLOCATE)
 	err := v.Step()
 	if err != nil {
 		t.Fatalf("reallocate with NULL failed: %v", err)
@@ -258,8 +258,8 @@ func TestReallocateInvalidAddress(t *testing.T) {
 	v.CPU.R[0] = 0x35000 // Some address in heap (but not allocated)
 	v.CPU.R[1] = 100     // Size
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x8000, 0xEF000022) // SWI #0x22 (REALLOCATE)
-	v.Step()
+	mustWriteWord(t, v, 0x8000, 0xEF000022) // SWI #0x22 (REALLOCATE)
+	mustStep(t, v)
 
 	result := v.CPU.R[0]
 	if result != 0 {
@@ -276,8 +276,8 @@ func TestReallocateAllocationFailure(t *testing.T) {
 	// First allocate some memory
 	v.CPU.R[0] = 100
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x8000, 0xEF000020)
-	v.Step()
+	mustWriteWord(t, v, 0x8000, 0xEF000020)
+	mustStep(t, v)
 	oldAddr := v.CPU.R[0]
 
 	// Try to reallocate to a size that will fail (larger than heap segment)
@@ -285,8 +285,8 @@ func TestReallocateAllocationFailure(t *testing.T) {
 	v.CPU.R[1] = 0x00020000 // Larger than heap segment (64KB)
 	v.CPU.PC = 0x8004
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x8004, 0xEF000022)
-	v.Step()
+	mustWriteWord(t, v, 0x8004, 0xEF000022)
+	mustStep(t, v)
 
 	result := v.CPU.R[0]
 	if result != 0 {
@@ -308,7 +308,7 @@ func TestHeapOverflowCheck(t *testing.T) {
 	// If NextHeapAddress is 0x30000 and we add 0xFFFFFFFF, it would overflow
 	v.CPU.R[0] = 0xFFFFFFFF // Maximum uint32
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x8000, 0xEF000020) // SWI #0x20 (ALLOCATE)
+	mustWriteWord(t, v, 0x8000, 0xEF000020) // SWI #0x20 (ALLOCATE)
 	err := v.Step()
 	if err != nil {
 		t.Fatalf("allocate syscall failed: %v", err)

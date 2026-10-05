@@ -314,7 +314,7 @@ func TestLDR_AllConditions(t *testing.T) {
 			v := vm.NewVM()
 			addr := uint32(0x20000) // Data segment start
 			setupDataWrite(v)
-			v.Memory.WriteWord(addr, 0xDEADBEEF)
+			mustWriteWord(t, v, addr, 0xDEADBEEF)
 			v.CPU.R[1] = addr
 			v.CPU.R[0] = 0x11111111 // Initial value
 			v.CPU.CPSR = makeCPSR(tt.setupCPSR)
@@ -422,7 +422,7 @@ func TestSTR_AllConditions(t *testing.T) {
 			v := vm.NewVM()
 			addr := uint32(0x20000) // Data segment start
 			setupDataWrite(v)
-			v.Memory.WriteWord(addr, 0xFFFFFFFF) // Pre-fill with pattern
+			mustWriteWord(t, v, addr, 0xFFFFFFFF) // Pre-fill with pattern
 			v.CPU.R[0] = 0x12345678
 			v.CPU.R[1] = addr
 			v.CPU.CPSR = makeCPSR(tt.setupCPSR)

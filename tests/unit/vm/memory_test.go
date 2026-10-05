@@ -15,13 +15,13 @@ func TestLDR_ImmediateOffset(t *testing.T) {
 
 	// Write test data to memory
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x20004, 0x12345678)
+	mustWriteWord(t, v, 0x20004, 0x12345678)
 
 	// LDR R0, [R1, #4] (E5910004)
 	opcode := uint32(0xE5910004)
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x8000, opcode)
-	v.Step()
+	mustWriteWord(t, v, 0x8000, opcode)
+	mustStep(t, v)
 
 	if v.CPU.R[0] != 0x12345678 {
 		t.Errorf("expected R0=0x12345678, got R0=0x%X", v.CPU.R[0])
@@ -38,8 +38,8 @@ func TestSTR_ImmediateOffset(t *testing.T) {
 	// STR R0, [R1, #4] (E5810004)
 	opcode := uint32(0xE5810004)
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x8000, opcode)
-	v.Step()
+	mustWriteWord(t, v, 0x8000, opcode)
+	mustStep(t, v)
 
 	value, _ := v.Memory.ReadWord(0x20004)
 	if value != 0xDEADBEEF {
@@ -54,13 +54,13 @@ func TestLDRB_LoadByte(t *testing.T) {
 	v.CPU.PC = 0x8000
 
 	// Write test data
-	v.Memory.WriteByteAt(0x20000, 0xAB)
+	mustWriteByte(t, v, 0x20000, 0xAB)
 
 	// LDRB R0, [R1] (E5D10000)
 	opcode := uint32(0xE5D10000)
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x8000, opcode)
-	v.Step()
+	mustWriteWord(t, v, 0x8000, opcode)
+	mustStep(t, v)
 
 	if v.CPU.R[0] != 0xAB {
 		t.Errorf("expected R0=0xAB, got R0=0x%X", v.CPU.R[0])
@@ -77,8 +77,8 @@ func TestSTRB_StoreByte(t *testing.T) {
 	// STRB R0, [R1] (E5C10000)
 	opcode := uint32(0xE5C10000)
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x8000, opcode)
-	v.Step()
+	mustWriteWord(t, v, 0x8000, opcode)
+	mustStep(t, v)
 
 	value, _ := v.Memory.ReadByteAt(0x20000)
 	if value != 0x78 {
@@ -93,13 +93,13 @@ func TestLDR_PreIndexed(t *testing.T) {
 	v.CPU.PC = 0x8000
 
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x20004, 0xCAFEBABE)
+	mustWriteWord(t, v, 0x20004, 0xCAFEBABE)
 
 	// LDR R0, [R1, #4]! (E5B10004) - pre-indexed with writeback
 	opcode := uint32(0xE5B10004)
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x8000, opcode)
-	v.Step()
+	mustWriteWord(t, v, 0x8000, opcode)
+	mustStep(t, v)
 
 	if v.CPU.R[0] != 0xCAFEBABE {
 		t.Errorf("expected R0=0xCAFEBABE, got R0=0x%X", v.CPU.R[0])
@@ -117,13 +117,13 @@ func TestLDR_PostIndexed(t *testing.T) {
 	v.CPU.PC = 0x8000
 
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x20000, 0x11223344)
+	mustWriteWord(t, v, 0x20000, 0x11223344)
 
 	// LDR R0, [R1], #4 (E4910004) - post-indexed
 	opcode := uint32(0xE4910004)
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x8000, opcode)
-	v.Step()
+	mustWriteWord(t, v, 0x8000, opcode)
+	mustStep(t, v)
 
 	if v.CPU.R[0] != 0x11223344 {
 		t.Errorf("expected R0=0x11223344, got R0=0x%X", v.CPU.R[0])
@@ -142,18 +142,18 @@ func TestLDM_MultipleRegisters(t *testing.T) {
 
 	// Write test data
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x20000, 0x11111111)
+	mustWriteWord(t, v, 0x20000, 0x11111111)
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x20004, 0x22222222)
+	mustWriteWord(t, v, 0x20004, 0x22222222)
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x20008, 0x33333333)
+	mustWriteWord(t, v, 0x20008, 0x33333333)
 
 	// LDMIA R0, {R1, R2, R3} (E890000E)
 	// Register list: bits 1,2,3 set = 0x0E
 	opcode := uint32(0xE890000E)
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x8000, opcode)
-	v.Step()
+	mustWriteWord(t, v, 0x8000, opcode)
+	mustStep(t, v)
 
 	if v.CPU.R[1] != 0x11111111 {
 		t.Errorf("expected R1=0x11111111, got R1=0x%X", v.CPU.R[1])
@@ -178,8 +178,8 @@ func TestSTM_MultipleRegisters(t *testing.T) {
 	// Register list: bits 1,2 set = 0x06
 	opcode := uint32(0xE8800006)
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x8000, opcode)
-	v.Step()
+	mustWriteWord(t, v, 0x8000, opcode)
+	mustStep(t, v)
 
 	val1, _ := v.Memory.ReadWord(0x20000)
 	val2, _ := v.Memory.ReadWord(0x20004)
@@ -199,15 +199,15 @@ func TestLDM_WithWriteback(t *testing.T) {
 	v.CPU.PC = 0x8000
 
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x20000, 0x11111111)
+	mustWriteWord(t, v, 0x20000, 0x11111111)
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x20004, 0x22222222)
+	mustWriteWord(t, v, 0x20004, 0x22222222)
 
 	// LDMIA R0!, {R1, R2} (E8B00006) - with writeback
 	opcode := uint32(0xE8B00006)
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x8000, opcode)
-	v.Step()
+	mustWriteWord(t, v, 0x8000, opcode)
+	mustStep(t, v)
 
 	if v.CPU.R[1] != 0x11111111 {
 		t.Errorf("expected R1=0x11111111, got R1=0x%X", v.CPU.R[1])
@@ -255,7 +255,7 @@ func TestLDRH_ImmediateOffset(t *testing.T) {
 
 	// Write test data to memory
 	setupCodeWrite(v)
-	v.Memory.WriteHalfword(0x20004, 0xABCD)
+	mustWriteHalfword(t, v, 0x20004, 0xABCD)
 
 	// LDRH R0, [R1, #4] - opcode pattern for halfword load
 	// Bits: cond=1110, 000P=0001, U=1, B=0, W=0, L=1, Rn=0001, Rd=0000, offset=0100, 1011, offset=0100
@@ -263,8 +263,8 @@ func TestLDRH_ImmediateOffset(t *testing.T) {
 	// Pre-indexed (P=1), Add offset (U=1), No writeback (W=0), Load (L=1)
 	opcode := uint32(0xE1D100B4) // LDRH R0, [R1, #4]
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x8000, opcode)
-	v.Step()
+	mustWriteWord(t, v, 0x8000, opcode)
+	mustStep(t, v)
 
 	if v.CPU.R[0] != 0xABCD {
 		t.Errorf("expected R0=0xABCD, got R0=0x%X", v.CPU.R[0])
@@ -278,13 +278,13 @@ func TestLDRH_PreIndexed(t *testing.T) {
 	v.CPU.PC = 0x8000
 
 	setupCodeWrite(v)
-	v.Memory.WriteHalfword(0x20004, 0x1234)
+	mustWriteHalfword(t, v, 0x20004, 0x1234)
 
 	// LDRH R0, [R1, #4]! - with writeback (W=1)
 	opcode := uint32(0xE1F100B4)
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x8000, opcode)
-	v.Step()
+	mustWriteWord(t, v, 0x8000, opcode)
+	mustStep(t, v)
 
 	if v.CPU.R[0] != 0x1234 {
 		t.Errorf("expected R0=0x1234, got R0=0x%X", v.CPU.R[0])
@@ -301,13 +301,13 @@ func TestLDRH_PostIndexed(t *testing.T) {
 	v.CPU.PC = 0x8000
 
 	setupCodeWrite(v)
-	v.Memory.WriteHalfword(0x20000, 0x5678)
+	mustWriteHalfword(t, v, 0x20000, 0x5678)
 
 	// LDRH R0, [R1], #4 - post-indexed (P=0)
 	opcode := uint32(0xE0D100B4)
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x8000, opcode)
-	v.Step()
+	mustWriteWord(t, v, 0x8000, opcode)
+	mustStep(t, v)
 
 	if v.CPU.R[0] != 0x5678 {
 		t.Errorf("expected R0=0x5678, got R0=0x%X", v.CPU.R[0])
@@ -325,13 +325,13 @@ func TestLDRH_RegisterOffset(t *testing.T) {
 	v.CPU.PC = 0x8000
 
 	setupCodeWrite(v)
-	v.Memory.WriteHalfword(0x20006, 0x9ABC)
+	mustWriteHalfword(t, v, 0x20006, 0x9ABC)
 
 	// LDRH R0, [R1, R2] - register offset
 	opcode := uint32(0xE19100B2)
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x8000, opcode)
-	v.Step()
+	mustWriteWord(t, v, 0x8000, opcode)
+	mustStep(t, v)
 
 	if v.CPU.R[0] != 0x9ABC {
 		t.Errorf("expected R0=0x9ABC, got R0=0x%X", v.CPU.R[0])
@@ -345,13 +345,13 @@ func TestLDRH_NegativeOffset(t *testing.T) {
 	v.CPU.PC = 0x8000
 
 	setupCodeWrite(v)
-	v.Memory.WriteHalfword(0x20004, 0xFEDC)
+	mustWriteHalfword(t, v, 0x20004, 0xFEDC)
 
 	// LDRH R0, [R1, #-4] - subtract offset (U=0)
 	opcode := uint32(0xE15100B4)
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x8000, opcode)
-	v.Step()
+	mustWriteWord(t, v, 0x8000, opcode)
+	mustStep(t, v)
 
 	if v.CPU.R[0] != 0xFEDC {
 		t.Errorf("expected R0=0xFEDC, got R0=0x%X", v.CPU.R[0])
@@ -366,13 +366,13 @@ func TestLDRH_ZeroExtend(t *testing.T) {
 	v.CPU.PC = 0x8000
 
 	setupCodeWrite(v)
-	v.Memory.WriteHalfword(0x20000, 0x00FF)
+	mustWriteHalfword(t, v, 0x20000, 0x00FF)
 
 	// LDRH R0, [R1]
 	opcode := uint32(0xE1D100B0)
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x8000, opcode)
-	v.Step()
+	mustWriteWord(t, v, 0x8000, opcode)
+	mustStep(t, v)
 
 	// Should be zero-extended to 0x000000FF, not sign-extended
 	if v.CPU.R[0] != 0x000000FF {
@@ -394,8 +394,8 @@ func TestSTRH_ImmediateOffset(t *testing.T) {
 	// STRH R0, [R1, #4] - store only lower 16 bits
 	opcode := uint32(0xE1C100B4)
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x8000, opcode)
-	v.Step()
+	mustWriteWord(t, v, 0x8000, opcode)
+	mustStep(t, v)
 
 	value, _ := v.Memory.ReadHalfword(0x20004)
 	if value != 0x5678 {
@@ -413,8 +413,8 @@ func TestSTRH_PreIndexed(t *testing.T) {
 	// STRH R0, [R1, #4]! - with writeback (W=1)
 	opcode := uint32(0xE1E100B4)
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x8000, opcode)
-	v.Step()
+	mustWriteWord(t, v, 0x8000, opcode)
+	mustStep(t, v)
 
 	value, _ := v.Memory.ReadHalfword(0x20004)
 	if value != 0xEF01 {
@@ -435,8 +435,8 @@ func TestSTRH_PostIndexed(t *testing.T) {
 	// STRH R0, [R1], #4 - post-indexed (P=0)
 	opcode := uint32(0xE0C100B4)
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x8000, opcode)
-	v.Step()
+	mustWriteWord(t, v, 0x8000, opcode)
+	mustStep(t, v)
 
 	value, _ := v.Memory.ReadHalfword(0x20000)
 	if value != 0x3344 {
@@ -458,8 +458,8 @@ func TestSTRH_RegisterOffset(t *testing.T) {
 	// STRH R0, [R1, R2]
 	opcode := uint32(0xE18100B2)
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x8000, opcode)
-	v.Step()
+	mustWriteWord(t, v, 0x8000, opcode)
+	mustStep(t, v)
 
 	value, _ := v.Memory.ReadHalfword(0x20008)
 	if value != 0xAAAA {
@@ -477,8 +477,8 @@ func TestSTRH_NegativeOffset(t *testing.T) {
 	// STRH R0, [R1, #-4] - subtract offset (U=0)
 	opcode := uint32(0xE14100B4)
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x8000, opcode)
-	v.Step()
+	mustWriteWord(t, v, 0x8000, opcode)
+	mustStep(t, v)
 
 	value, _ := v.Memory.ReadHalfword(0x20004)
 	if value != 0xCCCC {
@@ -496,8 +496,8 @@ func TestSTRH_TruncateUpper16Bits(t *testing.T) {
 	// STRH R0, [R1]
 	opcode := uint32(0xE1C100B0)
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x8000, opcode)
-	v.Step()
+	mustWriteWord(t, v, 0x8000, opcode)
+	mustStep(t, v)
 
 	value, _ := v.Memory.ReadHalfword(0x20000)
 	if value != 0x0000 {
@@ -517,7 +517,7 @@ func TestLDR_RegisterOffset_Negative(t *testing.T) {
 	v.CPU.PC = 0x8000
 
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x20000, 0x87654321)
+	mustWriteWord(t, v, 0x20000, 0x87654321)
 
 	// LDR R0, [R1, -R2]
 	// Format: cccc 011P UBWL nnnn dddd oooo oooo oooo
@@ -525,8 +525,8 @@ func TestLDR_RegisterOffset_Negative(t *testing.T) {
 	// Rn=R1, Rd=R0, Rm=R2 (no shift)
 	opcode := uint32(0xE7110002)
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x8000, opcode)
-	v.Step()
+	mustWriteWord(t, v, 0x8000, opcode)
+	mustStep(t, v)
 
 	if v.CPU.R[0] != 0x87654321 {
 		t.Errorf("expected R0=0x87654321, got R0=0x%X", v.CPU.R[0])
@@ -541,7 +541,7 @@ func TestLDR_ScaledRegisterOffset_LSL(t *testing.T) {
 	v.CPU.PC = 0x8000
 
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x2000C, 0xABCDEF12)
+	mustWriteWord(t, v, 0x2000C, 0xABCDEF12)
 
 	// LDR R0, [R1, R2, LSL #2]
 	// Format: cccc 011P UBWL nnnn dddd ssss s00t mmmm
@@ -549,8 +549,8 @@ func TestLDR_ScaledRegisterOffset_LSL(t *testing.T) {
 	// offset = (2 << 7) | (0 << 5) | 2 = 0x102
 	opcode := uint32(0xE7910102)
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x8000, opcode)
-	v.Step()
+	mustWriteWord(t, v, 0x8000, opcode)
+	mustStep(t, v)
 
 	if v.CPU.R[0] != 0xABCDEF12 {
 		t.Errorf("expected R0=0xABCDEF12, got R0=0x%X", v.CPU.R[0])
@@ -565,15 +565,15 @@ func TestLDR_ScaledRegisterOffset_LSR(t *testing.T) {
 	v.CPU.PC = 0x8000
 
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x20004, 0x11223344)
+	mustWriteWord(t, v, 0x20004, 0x11223344)
 
 	// LDR R0, [R1, R2, LSR #2]
 	// shift amount=2 (bits 11:7), shift type=01 (LSR, bits 6:5), Rm=R2
 	// offset = (2 << 7) | (1 << 5) | 2 = 0x122
 	opcode := uint32(0xE7910122)
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x8000, opcode)
-	v.Step()
+	mustWriteWord(t, v, 0x8000, opcode)
+	mustStep(t, v)
 
 	if v.CPU.R[0] != 0x11223344 {
 		t.Errorf("expected R0=0x11223344, got R0=0x%X", v.CPU.R[0])
@@ -588,15 +588,15 @@ func TestLDR_ScaledRegisterOffset_ASR(t *testing.T) {
 	v.CPU.PC = 0x8000
 
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x20008, 0x55667788)
+	mustWriteWord(t, v, 0x20008, 0x55667788)
 
 	// LDR R0, [R1, R2, ASR #2]
 	// shift amount=2 (bits 11:7), shift type=10 (ASR, bits 6:5), Rm=R2
 	// offset = (2 << 7) | (2 << 5) | 2 = 0x142
 	opcode := uint32(0xE7910142)
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x8000, opcode)
-	v.Step()
+	mustWriteWord(t, v, 0x8000, opcode)
+	mustStep(t, v)
 
 	if v.CPU.R[0] != 0x55667788 {
 		t.Errorf("expected R0=0x55667788, got R0=0x%X", v.CPU.R[0])
@@ -615,15 +615,15 @@ func TestLDR_ScaledRegisterOffset_ROR(t *testing.T) {
 	v.CPU.R[2] = 16
 
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x20004, 0x99AABBCC)
+	mustWriteWord(t, v, 0x20004, 0x99AABBCC)
 
 	// LDR R0, [R1, R2, ROR #2]
 	// shift amount=2 (bits 11:7), shift type=11 (ROR, bits 6:5), Rm=R2
 	// offset = (2 << 7) | (3 << 5) | 2 = 0x162
 	opcode := uint32(0xE7910162)
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x8000, opcode)
-	v.Step()
+	mustWriteWord(t, v, 0x8000, opcode)
+	mustStep(t, v)
 
 	if v.CPU.R[0] != 0x99AABBCC {
 		t.Errorf("expected R0=0x99AABBCC, got R0=0x%X", v.CPU.R[0])
@@ -638,14 +638,14 @@ func TestLDR_PreIndexedRegisterOffset(t *testing.T) {
 	v.CPU.PC = 0x8000
 
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x20008, 0xFEDCBA98)
+	mustWriteWord(t, v, 0x20008, 0xFEDCBA98)
 
 	// LDR R0, [R1, R2]!
 	// Format: P=1, U=1, W=1 (writeback)
 	opcode := uint32(0xE7B10002)
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x8000, opcode)
-	v.Step()
+	mustWriteWord(t, v, 0x8000, opcode)
+	mustStep(t, v)
 
 	if v.CPU.R[0] != 0xFEDCBA98 {
 		t.Errorf("expected R0=0xFEDCBA98, got R0=0x%X", v.CPU.R[0])
@@ -663,14 +663,14 @@ func TestLDR_PreIndexedScaledOffset(t *testing.T) {
 	v.CPU.PC = 0x8000
 
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x20008, 0x13579BDF)
+	mustWriteWord(t, v, 0x20008, 0x13579BDF)
 
 	// LDR R0, [R1, R2, LSL #2]!
 	// P=1, U=1, W=1, offset = (2 << 7) | (0 << 5) | 2
 	opcode := uint32(0xE7B10102)
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x8000, opcode)
-	v.Step()
+	mustWriteWord(t, v, 0x8000, opcode)
+	mustStep(t, v)
 
 	if v.CPU.R[0] != 0x13579BDF {
 		t.Errorf("expected R0=0x13579BDF, got R0=0x%X", v.CPU.R[0])
@@ -688,14 +688,14 @@ func TestLDR_PostIndexedRegisterOffset(t *testing.T) {
 	v.CPU.PC = 0x8000
 
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x20000, 0x2468ACE0)
+	mustWriteWord(t, v, 0x20000, 0x2468ACE0)
 
 	// LDR R0, [R1], R2
 	// Format: P=0, U=1, W=0 (post-indexed always has W implicitly)
 	opcode := uint32(0xE6910002)
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x8000, opcode)
-	v.Step()
+	mustWriteWord(t, v, 0x8000, opcode)
+	mustStep(t, v)
 
 	if v.CPU.R[0] != 0x2468ACE0 {
 		t.Errorf("expected R0=0x2468ACE0, got R0=0x%X", v.CPU.R[0])
@@ -713,14 +713,14 @@ func TestLDR_PostIndexedScaledOffset(t *testing.T) {
 	v.CPU.PC = 0x8000
 
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x20000, 0x369CF258)
+	mustWriteWord(t, v, 0x20000, 0x369CF258)
 
 	// LDR R0, [R1], R2, LSL #1
 	// P=0, U=1, W=0, offset = (1 << 7) | (0 << 5) | 2
 	opcode := uint32(0xE6910082)
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x8000, opcode)
-	v.Step()
+	mustWriteWord(t, v, 0x8000, opcode)
+	mustStep(t, v)
 
 	if v.CPU.R[0] != 0x369CF258 {
 		t.Errorf("expected R0=0x369CF258, got R0=0x%X", v.CPU.R[0])
@@ -745,8 +745,8 @@ func TestSTR_PreIndexed(t *testing.T) {
 	// Format: P=1, U=1, B=0, W=1, L=0, immediate offset=8
 	opcode := uint32(0xE5A10008)
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x8000, opcode)
-	v.Step()
+	mustWriteWord(t, v, 0x8000, opcode)
+	mustStep(t, v)
 
 	value, _ := v.Memory.ReadWord(0x20008)
 	if value != 0xCAFEBABE {
@@ -768,8 +768,8 @@ func TestSTR_PostIndexed(t *testing.T) {
 	// Format: P=0, U=1, B=0, W=0, L=0
 	opcode := uint32(0xE4810004)
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x8000, opcode)
-	v.Step()
+	mustWriteWord(t, v, 0x8000, opcode)
+	mustStep(t, v)
 
 	value, _ := v.Memory.ReadWord(0x20000)
 	if value != 0x11223344 {
@@ -792,8 +792,8 @@ func TestSTR_RegisterOffset(t *testing.T) {
 	// Format: I=1, P=1, U=1, B=0, W=0, L=0
 	opcode := uint32(0xE7810002)
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x8000, opcode)
-	v.Step()
+	mustWriteWord(t, v, 0x8000, opcode)
+	mustStep(t, v)
 
 	value, _ := v.Memory.ReadWord(0x2000C)
 	if value != 0xDEADBEEF {
@@ -813,8 +813,8 @@ func TestSTR_RegisterOffset_Negative(t *testing.T) {
 	// Format: I=1, P=1, U=0 (subtract), B=0, W=0, L=0
 	opcode := uint32(0xE7010002)
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x8000, opcode)
-	v.Step()
+	mustWriteWord(t, v, 0x8000, opcode)
+	mustStep(t, v)
 
 	value, _ := v.Memory.ReadWord(0x20000)
 	if value != 0xABCDEF01 {
@@ -834,8 +834,8 @@ func TestSTR_ScaledRegisterOffset_LSL(t *testing.T) {
 	// offset = (2 << 7) | (0 << 5) | 2 = 0x102
 	opcode := uint32(0xE7810102)
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x8000, opcode)
-	v.Step()
+	mustWriteWord(t, v, 0x8000, opcode)
+	mustStep(t, v)
 
 	value, _ := v.Memory.ReadWord(0x20010)
 	if value != 0x12345678 {
@@ -855,8 +855,8 @@ func TestSTR_ScaledRegisterOffset_LSR(t *testing.T) {
 	// offset = (2 << 7) | (1 << 5) | 2 = 0x122
 	opcode := uint32(0xE7810122)
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x8000, opcode)
-	v.Step()
+	mustWriteWord(t, v, 0x8000, opcode)
+	mustStep(t, v)
 
 	value, _ := v.Memory.ReadWord(0x20004)
 	if value != 0x55AA55AA {
@@ -876,8 +876,8 @@ func TestSTR_ScaledRegisterOffset_ASR(t *testing.T) {
 	// offset = (2 << 7) | (2 << 5) | 2 = 0x142
 	opcode := uint32(0xE7810142)
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x8000, opcode)
-	v.Step()
+	mustWriteWord(t, v, 0x8000, opcode)
+	mustStep(t, v)
 
 	value, _ := v.Memory.ReadWord(0x20008)
 	if value != 0xBBCCDDEE {
@@ -897,8 +897,8 @@ func TestSTR_ScaledRegisterOffset_ROR(t *testing.T) {
 	// offset = (2 << 7) | (3 << 5) | 2 = 0x162
 	opcode := uint32(0xE7810162)
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x8000, opcode)
-	v.Step()
+	mustWriteWord(t, v, 0x8000, opcode)
+	mustStep(t, v)
 
 	value, _ := v.Memory.ReadWord(0x20004)
 	if value != 0xFF00FF00 {
@@ -918,8 +918,8 @@ func TestSTR_PreIndexedRegisterOffset(t *testing.T) {
 	// Format: P=1, U=1, W=1
 	opcode := uint32(0xE7A10002)
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x8000, opcode)
-	v.Step()
+	mustWriteWord(t, v, 0x8000, opcode)
+	mustStep(t, v)
 
 	value, _ := v.Memory.ReadWord(0x20008)
 	if value != 0x98765432 {
@@ -942,8 +942,8 @@ func TestSTR_PostIndexedRegisterOffset(t *testing.T) {
 	// Format: P=0, U=1
 	opcode := uint32(0xE6810002)
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x8000, opcode)
-	v.Step()
+	mustWriteWord(t, v, 0x8000, opcode)
+	mustStep(t, v)
 
 	value, _ := v.Memory.ReadWord(0x20000)
 	if value != 0x13572468 {
@@ -964,14 +964,14 @@ func TestLDRB_ImmediateOffset_Negative(t *testing.T) {
 	v.CPU.R[1] = 0x20008
 	v.CPU.PC = 0x8000
 
-	v.Memory.WriteByteAt(0x20004, 0x7F)
+	mustWriteByte(t, v, 0x20004, 0x7F)
 
 	// LDRB R0, [R1, #-4]
 	// Format: P=1, U=0 (subtract), B=1, W=0, L=1, offset=4
 	opcode := uint32(0xE5510004)
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x8000, opcode)
-	v.Step()
+	mustWriteWord(t, v, 0x8000, opcode)
+	mustStep(t, v)
 
 	if v.CPU.R[0] != 0x7F {
 		t.Errorf("expected R0=0x7F, got R0=0x%X", v.CPU.R[0])
@@ -984,14 +984,14 @@ func TestLDRB_PreIndexed(t *testing.T) {
 	v.CPU.R[1] = 0x20000
 	v.CPU.PC = 0x8000
 
-	v.Memory.WriteByteAt(0x20004, 0x9A)
+	mustWriteByte(t, v, 0x20004, 0x9A)
 
 	// LDRB R0, [R1, #4]!
 	// Format: P=1, U=1, B=1, W=1, L=1
 	opcode := uint32(0xE5F10004)
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x8000, opcode)
-	v.Step()
+	mustWriteWord(t, v, 0x8000, opcode)
+	mustStep(t, v)
 
 	if v.CPU.R[0] != 0x9A {
 		t.Errorf("expected R0=0x9A, got R0=0x%X", v.CPU.R[0])
@@ -1007,14 +1007,14 @@ func TestLDRB_PostIndexed(t *testing.T) {
 	v.CPU.R[1] = 0x20000
 	v.CPU.PC = 0x8000
 
-	v.Memory.WriteByteAt(0x20000, 0xBC)
+	mustWriteByte(t, v, 0x20000, 0xBC)
 
 	// LDRB R0, [R1], #4
 	// Format: P=0, U=1, B=1, W=0, L=1
 	opcode := uint32(0xE4D10004)
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x8000, opcode)
-	v.Step()
+	mustWriteWord(t, v, 0x8000, opcode)
+	mustStep(t, v)
 
 	if v.CPU.R[0] != 0xBC {
 		t.Errorf("expected R0=0xBC, got R0=0x%X", v.CPU.R[0])
@@ -1031,14 +1031,14 @@ func TestLDRB_RegisterOffset(t *testing.T) {
 	v.CPU.R[2] = 7
 	v.CPU.PC = 0x8000
 
-	v.Memory.WriteByteAt(0x20007, 0xDE)
+	mustWriteByte(t, v, 0x20007, 0xDE)
 
 	// LDRB R0, [R1, R2]
 	// Format: I=1, P=1, U=1, B=1, W=0, L=1
 	opcode := uint32(0xE7D10002)
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x8000, opcode)
-	v.Step()
+	mustWriteWord(t, v, 0x8000, opcode)
+	mustStep(t, v)
 
 	if v.CPU.R[0] != 0xDE {
 		t.Errorf("expected R0=0xDE, got R0=0x%X", v.CPU.R[0])
@@ -1052,14 +1052,14 @@ func TestLDRB_ScaledRegisterOffset(t *testing.T) {
 	v.CPU.R[2] = 3 // Will be shifted left by 2 = 12
 	v.CPU.PC = 0x8000
 
-	v.Memory.WriteByteAt(0x2000C, 0xEF)
+	mustWriteByte(t, v, 0x2000C, 0xEF)
 
 	// LDRB R0, [R1, R2, LSL #2]
 	// offset = (2 << 7) | (0 << 5) | 2 = 0x102
 	opcode := uint32(0xE7D10102)
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x8000, opcode)
-	v.Step()
+	mustWriteWord(t, v, 0x8000, opcode)
+	mustStep(t, v)
 
 	if v.CPU.R[0] != 0xEF {
 		t.Errorf("expected R0=0xEF, got R0=0x%X", v.CPU.R[0])
@@ -1077,8 +1077,8 @@ func TestSTRB_ImmediateOffset_Negative(t *testing.T) {
 	// Format: P=1, U=0 (subtract), B=1, W=0, L=0, offset=4
 	opcode := uint32(0xE5410004)
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x8000, opcode)
-	v.Step()
+	mustWriteWord(t, v, 0x8000, opcode)
+	mustStep(t, v)
 
 	value, _ := v.Memory.ReadByteAt(0x20004)
 	if value != 0x78 {
@@ -1097,8 +1097,8 @@ func TestSTRB_PreIndexed(t *testing.T) {
 	// Format: P=1, U=1, B=1, W=1, L=0
 	opcode := uint32(0xE5E10004)
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x8000, opcode)
-	v.Step()
+	mustWriteWord(t, v, 0x8000, opcode)
+	mustStep(t, v)
 
 	value, _ := v.Memory.ReadByteAt(0x20004)
 	if value != 0xDD {
@@ -1120,8 +1120,8 @@ func TestSTRB_PostIndexed(t *testing.T) {
 	// Format: P=0, U=1, B=1, W=0, L=0
 	opcode := uint32(0xE4C10004)
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x8000, opcode)
-	v.Step()
+	mustWriteWord(t, v, 0x8000, opcode)
+	mustStep(t, v)
 
 	value, _ := v.Memory.ReadByteAt(0x20000)
 	if value != 0x98 {
@@ -1144,8 +1144,8 @@ func TestSTRB_RegisterOffset(t *testing.T) {
 	// Format: I=1, P=1, U=1, B=1, W=0, L=0
 	opcode := uint32(0xE7C10002)
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x8000, opcode)
-	v.Step()
+	mustWriteWord(t, v, 0x8000, opcode)
+	mustStep(t, v)
 
 	value, _ := v.Memory.ReadByteAt(0x20005)
 	if value != 0x44 {
@@ -1165,8 +1165,8 @@ func TestSTRB_ScaledRegisterOffset(t *testing.T) {
 	// offset = (2 << 7) | (0 << 5) | 2 = 0x102
 	opcode := uint32(0xE7C10102)
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x8000, opcode)
-	v.Step()
+	mustWriteWord(t, v, 0x8000, opcode)
+	mustStep(t, v)
 
 	value, _ := v.Memory.ReadByteAt(0x20008)
 	if value != 0x88 {
@@ -1192,8 +1192,8 @@ func TestSTM_IB_IncrementBefore(t *testing.T) {
 	// Register list: bits 1,2 set = 0x06
 	opcode := uint32(0xE9800006)
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x8000, opcode)
-	v.Step()
+	mustWriteWord(t, v, 0x8000, opcode)
+	mustStep(t, v)
 
 	val1, _ := v.Memory.ReadWord(0x20004)
 	val2, _ := v.Memory.ReadWord(0x20008)
@@ -1221,8 +1221,8 @@ func TestSTM_DA_DecrementAfter(t *testing.T) {
 	// P=0 (decrement after), U=0 (decrement), S=0, W=0, L=0
 	opcode := uint32(0xE8000006)
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x8000, opcode)
-	v.Step()
+	mustWriteWord(t, v, 0x8000, opcode)
+	mustStep(t, v)
 
 	val1, _ := v.Memory.ReadWord(0x20004)
 	val2, _ := v.Memory.ReadWord(0x20008)
@@ -1247,8 +1247,8 @@ func TestSTM_DB_DecrementBefore(t *testing.T) {
 	// P=1 (decrement before), U=0 (decrement), S=0, W=0, L=0
 	opcode := uint32(0xE9000006)
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x8000, opcode)
-	v.Step()
+	mustWriteWord(t, v, 0x8000, opcode)
+	mustStep(t, v)
 
 	val1, _ := v.Memory.ReadWord(0x20000)
 	val2, _ := v.Memory.ReadWord(0x20004)
@@ -1273,8 +1273,8 @@ func TestSTM_WithWriteback(t *testing.T) {
 	// P=0, U=1, S=0, W=1 (writeback), L=0
 	opcode := uint32(0xE8A00006)
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x8000, opcode)
-	v.Step()
+	mustWriteWord(t, v, 0x8000, opcode)
+	mustStep(t, v)
 
 	val1, _ := v.Memory.ReadWord(0x20000)
 	val2, _ := v.Memory.ReadWord(0x20004)
@@ -1297,16 +1297,16 @@ func TestLDM_IB_IncrementBefore(t *testing.T) {
 	v.CPU.PC = 0x8000
 
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x20004, 0x77777777)
+	mustWriteWord(t, v, 0x20004, 0x77777777)
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x20008, 0x88888888)
+	mustWriteWord(t, v, 0x20008, 0x88888888)
 
 	// LDMIB R0, {R1, R2}
 	// P=1, U=1, S=0, W=0, L=1 (load)
 	opcode := uint32(0xE9900006)
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x8000, opcode)
-	v.Step()
+	mustWriteWord(t, v, 0x8000, opcode)
+	mustStep(t, v)
 
 	if v.CPU.R[1] != 0x77777777 {
 		t.Errorf("expected R1=0x77777777, got R1=0x%X", v.CPU.R[1])
@@ -1323,16 +1323,16 @@ func TestLDM_DB_DecrementBefore(t *testing.T) {
 	v.CPU.PC = 0x8000
 
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x20000, 0x99999999)
+	mustWriteWord(t, v, 0x20000, 0x99999999)
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x20004, 0xAAAAAAAA)
+	mustWriteWord(t, v, 0x20004, 0xAAAAAAAA)
 
 	// LDMDB R0, {R1, R2}
 	// P=1, U=0 (decrement), S=0, W=0, L=1
 	opcode := uint32(0xE9100006)
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x8000, opcode)
-	v.Step()
+	mustWriteWord(t, v, 0x8000, opcode)
+	mustStep(t, v)
 
 	if v.CPU.R[1] != 0x99999999 {
 		t.Errorf("expected R1=0x99999999, got R1=0x%X", v.CPU.R[1])
@@ -1353,13 +1353,13 @@ func TestLDM_SingleRegister(t *testing.T) {
 	v.CPU.PC = 0x8000
 
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x10000, 0xDEADBEEF)
+	mustWriteWord(t, v, 0x10000, 0xDEADBEEF)
 
 	// LDMIA R0, {R1}
 	// Register list: bit 1 = 0x0002
 	opcode := uint32(0xE8900002) // LDMIA R0, {R1}
-	v.Memory.WriteWord(0x8000, opcode)
-	v.Step()
+	mustWriteWord(t, v, 0x8000, opcode)
+	mustStep(t, v)
 
 	if v.CPU.R[1] != 0xDEADBEEF {
 		t.Errorf("expected R1=0xDEADBEEF, got R1=0x%X", v.CPU.R[1])
@@ -1373,15 +1373,15 @@ func TestLDM_NonContiguous(t *testing.T) {
 	v.CPU.PC = 0x8000
 
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x10000, 0x11111111) // R1
-	v.Memory.WriteWord(0x10004, 0x33333333) // R3
-	v.Memory.WriteWord(0x10008, 0x55555555) // R5
+	mustWriteWord(t, v, 0x10000, 0x11111111) // R1
+	mustWriteWord(t, v, 0x10004, 0x33333333) // R3
+	mustWriteWord(t, v, 0x10008, 0x55555555) // R5
 
 	// LDMIA R0, {R1, R3, R5}
 	// Register list: bits 1, 3, 5 = 0x002A
 	opcode := uint32(0xE890002A) // LDMIA R0, {R1, R3, R5}
-	v.Memory.WriteWord(0x8000, opcode)
-	v.Step()
+	mustWriteWord(t, v, 0x8000, opcode)
+	mustStep(t, v)
 
 	if v.CPU.R[1] != 0x11111111 {
 		t.Errorf("expected R1=0x11111111, got R1=0x%X", v.CPU.R[1])
@@ -1408,17 +1408,17 @@ func TestLDM_AllRegisters(t *testing.T) {
 	for i := uint32(0); i < 16; i++ {
 		if i == 13 {
 			// Use valid SP value for R13
-			v.Memory.WriteWord(baseAddr+i*4, validSP)
+			mustWriteWord(t, v, baseAddr+i*4, validSP)
 		} else {
-			v.Memory.WriteWord(baseAddr+i*4, 0x1000+i*0x100)
+			mustWriteWord(t, v, baseAddr+i*4, 0x1000+i*0x100)
 		}
 	}
 
 	// LDMIA R0, {R0-R15}
 	// Register list: all bits set = 0xFFFF
 	opcode := uint32(0xE890FFFF) // LDMIA R0, {R0-R15}
-	v.Memory.WriteWord(0x8000, opcode)
-	v.Step()
+	mustWriteWord(t, v, 0x8000, opcode)
+	mustStep(t, v)
 
 	// R0 should be loaded (ARM2 behavior: writeback before transfer)
 	if v.CPU.R[0] != 0x1000 {
@@ -1447,17 +1447,17 @@ func TestLDM_IncludingPC_Return(t *testing.T) {
 	v.CPU.PC = 0x8000
 
 	setupCodeWrite(v)
-	v.Memory.WriteWord(initialSP, 0xAAAA0000)    // R0
-	v.Memory.WriteWord(initialSP+4, 0xBBBB0001)  // R1
-	v.Memory.WriteWord(initialSP+8, 0xCCCC0002)  // R2
-	v.Memory.WriteWord(initialSP+12, 0xDDDD0003) // R3
-	v.Memory.WriteWord(initialSP+16, 0x00009000) // PC
+	mustWriteWord(t, v, initialSP, 0xAAAA0000)    // R0
+	mustWriteWord(t, v, initialSP+4, 0xBBBB0001)  // R1
+	mustWriteWord(t, v, initialSP+8, 0xCCCC0002)  // R2
+	mustWriteWord(t, v, initialSP+12, 0xDDDD0003) // R3
+	mustWriteWord(t, v, initialSP+16, 0x00009000) // PC
 
 	// LDMIA SP!, {R0-R3, PC}
 	// Register list: R0-R3, PC = 0x800F
 	opcode := uint32(0xE8BD800F) // LDMIA SP!, {R0-R3, PC}
-	v.Memory.WriteWord(0x8000, opcode)
-	v.Step()
+	mustWriteWord(t, v, 0x8000, opcode)
+	mustStep(t, v)
 
 	if v.CPU.R[0] != 0xAAAA0000 {
 		t.Errorf("expected R0=0xAAAA0000, got R0=0x%X", v.CPU.R[0])
@@ -1479,14 +1479,14 @@ func TestLDM_BaseInList_Writeback(t *testing.T) {
 	v.CPU.PC = 0x8000
 
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x10000, 0xDEADBEEF) // R0 value
-	v.Memory.WriteWord(0x10004, 0xCAFEBABE) // R1 value
+	mustWriteWord(t, v, 0x10000, 0xDEADBEEF) // R0 value
+	mustWriteWord(t, v, 0x10004, 0xCAFEBABE) // R1 value
 
 	// LDMIA R0!, {R0, R1}
 	// Register list: bits 0, 1 = 0x0003
 	opcode := uint32(0xE8B00003) // LDMIA R0!, {R0, R1} with writeback
-	v.Memory.WriteWord(0x8000, opcode)
-	v.Step()
+	mustWriteWord(t, v, 0x8000, opcode)
+	mustStep(t, v)
 
 	// Expected: R0 gets writeback value (0x10000 + 8), not loaded value
 	// This is ARM2 behavior: load happens first, then writeback overwrites
@@ -1512,8 +1512,8 @@ func TestSTM_ReverseOrder(t *testing.T) {
 	// STMIA R0, {R1-R3}
 	// Register list: bits 1-3 = 0x000E
 	opcode := uint32(0xE880000E) // STMIA R0, {R1-R3}
-	v.Memory.WriteWord(0x8000, opcode)
-	v.Step()
+	mustWriteWord(t, v, 0x8000, opcode)
+	mustStep(t, v)
 
 	// Verify order: R1 at lowest address, then R2, then R3
 	val1, _ := v.Memory.ReadWord(0x10000)
@@ -1548,8 +1548,8 @@ func TestSTM_WithPC_And_LR(t *testing.T) {
 	// STMDB SP!, {R0-R3, LR, PC}
 	// Register list: R0-R3 (0x000F) + LR (bit 14) + PC (bit 15) = 0xC00F
 	opcode := uint32(0xE92DC00F) // STMDB SP!, {R0-R3, LR, PC}
-	v.Memory.WriteWord(0x8000, opcode)
-	v.Step()
+	mustWriteWord(t, v, 0x8000, opcode)
+	mustStep(t, v)
 
 	// 6 registers * 4 bytes = 24 bytes
 	// SP should be decremented by 24

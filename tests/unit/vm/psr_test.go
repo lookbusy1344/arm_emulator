@@ -20,8 +20,8 @@ func TestMRS_Basic(t *testing.T) {
 	// Bits: cond=1110, 00010, PSR=0, 00, 1111, Rd=0000, 0000 0000 0000
 	opcode := uint32(0xE10F0000)
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x8000, opcode)
-	v.Step()
+	mustWriteWord(t, v, 0x8000, opcode)
+	mustStep(t, v)
 
 	// Expected CPSR value: N=1 (bit 31), Z=0 (bit 30), C=1 (bit 29), V=0 (bit 28)
 	// 0xA0000000
@@ -43,8 +43,8 @@ func TestMRS_AllFlagsSet(t *testing.T) {
 	// MRS R1, CPSR (E10F1000)
 	opcode := uint32(0xE10F1000)
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x8000, opcode)
-	v.Step()
+	mustWriteWord(t, v, 0x8000, opcode)
+	mustStep(t, v)
 
 	// All flags set: 0xF0000000
 	expectedCPSR := uint32(0xF0000000)
@@ -62,8 +62,8 @@ func TestMRS_NoFlagsSet(t *testing.T) {
 	// MRS R2, CPSR (E10F2000)
 	opcode := uint32(0xE10F2000)
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x8000, opcode)
-	v.Step()
+	mustWriteWord(t, v, 0x8000, opcode)
+	mustStep(t, v)
 
 	// No flags set: 0x00000000
 	if v.CPU.R[2] != 0 {
@@ -79,7 +79,7 @@ func TestMRS_InvalidDestination(t *testing.T) {
 	// MRS R15, CPSR (E10FF000)
 	opcode := uint32(0xE10FF000)
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x8000, opcode)
+	mustWriteWord(t, v, 0x8000, opcode)
 	err := v.Step()
 
 	// Should fail with error
@@ -99,8 +99,8 @@ func TestMSR_Register(t *testing.T) {
 	// Bits: cond=1110, 00010, PSR=0, 10, mask=1001, 1111, 0000 0000, Rm=0000
 	opcode := uint32(0xE129F000)
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x8000, opcode)
-	v.Step()
+	mustWriteWord(t, v, 0x8000, opcode)
+	mustStep(t, v)
 
 	// Check flags were updated
 	if !v.CPU.CPSR.N {
@@ -126,8 +126,8 @@ func TestMSR_AllFlags(t *testing.T) {
 	// MSR CPSR_f, R1 (E129F001)
 	opcode := uint32(0xE129F001)
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x8000, opcode)
-	v.Step()
+	mustWriteWord(t, v, 0x8000, opcode)
+	mustStep(t, v)
 
 	// All flags should be set
 	if !v.CPU.CPSR.N || !v.CPU.CPSR.Z || !v.CPU.CPSR.C || !v.CPU.CPSR.V {
@@ -150,8 +150,8 @@ func TestMSR_ClearFlags(t *testing.T) {
 	// MSR CPSR_f, R2 (E129F002)
 	opcode := uint32(0xE129F002)
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x8000, opcode)
-	v.Step()
+	mustWriteWord(t, v, 0x8000, opcode)
+	mustStep(t, v)
 
 	// All flags should be clear
 	if v.CPU.CPSR.N || v.CPU.CPSR.Z || v.CPU.CPSR.C || v.CPU.CPSR.V {
@@ -168,7 +168,7 @@ func TestMSR_InvalidSource(t *testing.T) {
 	// MSR CPSR_f, R15 (E129F00F)
 	opcode := uint32(0xE129F00F)
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x8000, opcode)
+	mustWriteWord(t, v, 0x8000, opcode)
 	err := v.Step()
 
 	// Should fail with error
@@ -189,8 +189,8 @@ func TestMRS_MSR_RoundTrip(t *testing.T) {
 
 	// MRS R0, CPSR (E10F0000)
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x8000, 0xE10F0000)
-	v.Step()
+	mustWriteWord(t, v, 0x8000, 0xE10F0000)
+	mustStep(t, v)
 
 	// Save the value
 	savedCPSR := v.CPU.R[0]
@@ -202,8 +202,8 @@ func TestMRS_MSR_RoundTrip(t *testing.T) {
 	v.CPU.CPSR.V = false
 
 	// MSR CPSR, R0 (E129F000)
-	v.Memory.WriteWord(0x8004, 0xE129F000)
-	v.Step()
+	mustWriteWord(t, v, 0x8004, 0xE129F000)
+	mustStep(t, v)
 
 	// Flags should be restored
 	if v.CPU.CPSR.N != false || v.CPU.CPSR.Z != true || v.CPU.CPSR.C != false || v.CPU.CPSR.V != true {
@@ -212,8 +212,8 @@ func TestMRS_MSR_RoundTrip(t *testing.T) {
 	}
 
 	// Read again and compare
-	v.Memory.WriteWord(0x8008, 0xE10F1000) // MRS R1, CPSR
-	v.Step()
+	mustWriteWord(t, v, 0x8008, 0xE10F1000) // MRS R1, CPSR
+	mustStep(t, v)
 
 	if v.CPU.R[1] != savedCPSR {
 		t.Errorf("expected R1=0x%08X (saved CPSR), got R1=0x%08X", savedCPSR, v.CPU.R[1])
@@ -232,8 +232,8 @@ func TestMSR_Immediate(t *testing.T) {
 	// Pattern: E329 F20F
 	opcode := uint32(0xE329F20F)
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x8000, opcode)
-	v.Step()
+	mustWriteWord(t, v, 0x8000, opcode)
+	mustStep(t, v)
 
 	// All flags should be set
 	if !v.CPU.CPSR.N || !v.CPU.CPSR.Z || !v.CPU.CPSR.C || !v.CPU.CPSR.V {

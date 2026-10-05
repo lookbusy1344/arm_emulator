@@ -20,8 +20,8 @@ func TestEdge_ZeroOperands(t *testing.T) {
 
 	opcode := uint32(0xE0810002) // ADD R0, R1, R2
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x8000, opcode)
-	v.Step()
+	mustWriteWord(t, v, 0x8000, opcode)
+	mustStep(t, v)
 
 	if v.CPU.R[0] != 0 {
 		t.Errorf("expected R0=0, got R0=%d", v.CPU.R[0])
@@ -37,8 +37,8 @@ func TestEdge_MaxPositive(t *testing.T) {
 	// MOV R0, R1
 	opcode := uint32(0xE1A00001)
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x8000, opcode)
-	v.Step()
+	mustWriteWord(t, v, 0x8000, opcode)
+	mustStep(t, v)
 
 	if v.CPU.R[0] != 0x7FFFFFFF {
 		t.Errorf("expected R0=0x7FFFFFFF, got R0=0x%X", v.CPU.R[0])
@@ -54,8 +54,8 @@ func TestEdge_MaxNegative(t *testing.T) {
 	// MOV R0, R1
 	opcode := uint32(0xE1A00001)
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x8000, opcode)
-	v.Step()
+	mustWriteWord(t, v, 0x8000, opcode)
+	mustStep(t, v)
 
 	if v.CPU.R[0] != 0x80000000 {
 		t.Errorf("expected R0=0x80000000, got R0=0x%X", v.CPU.R[0])
@@ -72,8 +72,8 @@ func TestEdge_SignedOverflowPosPos(t *testing.T) {
 	// ADDS R0, R1, R2
 	opcode := uint32(0xE0B10002)
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x8000, opcode)
-	v.Step()
+	mustWriteWord(t, v, 0x8000, opcode)
+	mustStep(t, v)
 
 	if v.CPU.R[0] != 0x80000000 {
 		t.Errorf("expected R0=0x80000000, got R0=0x%X", v.CPU.R[0])
@@ -93,8 +93,8 @@ func TestEdge_SignedOverflowNegNeg(t *testing.T) {
 	// ADDS R0, R1, R2
 	opcode := uint32(0xE0B10002)
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x8000, opcode)
-	v.Step()
+	mustWriteWord(t, v, 0x8000, opcode)
+	mustStep(t, v)
 
 	if v.CPU.R[0] != 0x7FFFFFFF {
 		t.Errorf("expected R0=0x7FFFFFFF, got R0=0x%X", v.CPU.R[0])
@@ -114,8 +114,8 @@ func TestEdge_UnsignedOverflow(t *testing.T) {
 	// ADDS R0, R1, R2
 	opcode := uint32(0xE0B10002)
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x8000, opcode)
-	v.Step()
+	mustWriteWord(t, v, 0x8000, opcode)
+	mustStep(t, v)
 
 	if v.CPU.R[0] != 0 {
 		t.Errorf("expected R0=0, got R0=0x%X", v.CPU.R[0])
@@ -135,8 +135,8 @@ func TestEdge_Underflow(t *testing.T) {
 	// SUBS R0, R1, R2
 	opcode := uint32(0xE0510002)
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x8000, opcode)
-	v.Step()
+	mustWriteWord(t, v, 0x8000, opcode)
+	mustStep(t, v)
 
 	// 0 - 1 = -1 (0xFFFFFFFF)
 	if v.CPU.R[0] != 0xFFFFFFFF {
@@ -157,8 +157,8 @@ func TestEdge_SignedUnderflow(t *testing.T) {
 	// SUBS R0, R1, R2 (INT32_MIN - 1 should overflow)
 	opcode := uint32(0xE0510002)
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x8000, opcode)
-	v.Step()
+	mustWriteWord(t, v, 0x8000, opcode)
+	mustStep(t, v)
 
 	if v.CPU.R[0] != 0x7FFFFFFF {
 		t.Errorf("expected R0=0x7FFFFFFF, got R0=0x%X", v.CPU.R[0])
@@ -177,8 +177,8 @@ func TestEdge_AllOnes(t *testing.T) {
 	// MOV R0, R1
 	opcode := uint32(0xE1A00001)
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x8000, opcode)
-	v.Step()
+	mustWriteWord(t, v, 0x8000, opcode)
+	mustStep(t, v)
 
 	if v.CPU.R[0] != 0xFFFFFFFF {
 		t.Errorf("expected R0=0xFFFFFFFF, got R0=0x%X", v.CPU.R[0])
@@ -195,8 +195,8 @@ func TestEdge_AlternatingBits1(t *testing.T) {
 	// ORR R0, R1, R2 (should result in all ones)
 	opcode := uint32(0xE1810002)
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x8000, opcode)
-	v.Step()
+	mustWriteWord(t, v, 0x8000, opcode)
+	mustStep(t, v)
 
 	if v.CPU.R[0] != 0xFFFFFFFF {
 		t.Errorf("expected R0=0xFFFFFFFF, got R0=0x%X", v.CPU.R[0])
@@ -212,8 +212,8 @@ func TestEdge_AlternatingBits2(t *testing.T) {
 	// AND R0, R1, R2 (should result in zero)
 	opcode := uint32(0xE0010002)
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x8000, opcode)
-	v.Step()
+	mustWriteWord(t, v, 0x8000, opcode)
+	mustStep(t, v)
 
 	if v.CPU.R[0] != 0 {
 		t.Errorf("expected R0=0, got R0=0x%X", v.CPU.R[0])
@@ -231,8 +231,8 @@ func TestEdge_SingleBitSet(t *testing.T) {
 		// MOV R0, R1
 		opcode := uint32(0xE1A00001)
 		setupCodeWrite(v)
-		v.Memory.WriteWord(0x8000, opcode)
-		v.Step()
+		mustWriteWord(t, v, 0x8000, opcode)
+		mustStep(t, v)
 
 		expected := uint32(1 << i)
 		if v.CPU.R[0] != expected {
@@ -250,8 +250,8 @@ func TestEdge_StackPointer(t *testing.T) {
 	// MOV R0, R13 (MOV R0, SP)
 	opcode := uint32(0xE1A0000D)
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x8000, opcode)
-	v.Step()
+	mustWriteWord(t, v, 0x8000, opcode)
+	mustStep(t, v)
 
 	if v.CPU.R[0] != 0x10000 {
 		t.Errorf("expected R0=0x10000, got R0=0x%X", v.CPU.R[0])
@@ -266,8 +266,8 @@ func TestEdge_LinkRegister(t *testing.T) {
 	// MOV R0, R14 (MOV R0, LR)
 	opcode := uint32(0xE1A0000E)
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x8000, opcode)
-	v.Step()
+	mustWriteWord(t, v, 0x8000, opcode)
+	mustStep(t, v)
 
 	if v.CPU.R[0] != 0x8100 {
 		t.Errorf("expected R0=0x8100, got R0=0x%X", v.CPU.R[0])
@@ -282,8 +282,8 @@ func TestEdge_ProgramCounter(t *testing.T) {
 	// PC reads as current instruction + 8
 	opcode := uint32(0xE1A0000F)
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x8000, opcode)
-	v.Step()
+	mustWriteWord(t, v, 0x8000, opcode)
+	mustStep(t, v)
 
 	// PC should be current + 8 (pipeline effect)
 	expected := uint32(0x8000 + 8)
@@ -302,8 +302,8 @@ func TestEdge_ShiftByZero(t *testing.T) {
 	// MOV R0, R1, LSL R2 (shift by 0)
 	opcode := uint32(0xE1A00211)
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x8000, opcode)
-	v.Step()
+	mustWriteWord(t, v, 0x8000, opcode)
+	mustStep(t, v)
 
 	if v.CPU.R[0] != 0x12345678 {
 		t.Errorf("expected R0=0x12345678, got R0=0x%X", v.CPU.R[0])
@@ -319,8 +319,8 @@ func TestEdge_ShiftBy32(t *testing.T) {
 	// MOV R0, R1, LSL R2 (shift by 32 = 0)
 	opcode := uint32(0xE1A00211)
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x8000, opcode)
-	v.Step()
+	mustWriteWord(t, v, 0x8000, opcode)
+	mustStep(t, v)
 
 	if v.CPU.R[0] != 0 {
 		t.Errorf("expected R0=0 (shift by 32), got R0=0x%X", v.CPU.R[0])
@@ -336,8 +336,8 @@ func TestEdge_ShiftGreaterThan32(t *testing.T) {
 	// MOV R0, R1, LSL R2 (shift > 32 = 0)
 	opcode := uint32(0xE1A00211)
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x8000, opcode)
-	v.Step()
+	mustWriteWord(t, v, 0x8000, opcode)
+	mustStep(t, v)
 
 	if v.CPU.R[0] != 0 {
 		t.Errorf("expected R0=0 (shift > 32), got R0=0x%X", v.CPU.R[0])
@@ -357,8 +357,8 @@ func TestEdge_AllFlagsSet(t *testing.T) {
 	// MOV R0, R1 (should not affect flags)
 	opcode := uint32(0xE1A00001)
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x8000, opcode)
-	v.Step()
+	mustWriteWord(t, v, 0x8000, opcode)
+	mustStep(t, v)
 
 	if !v.CPU.CPSR.N || !v.CPU.CPSR.Z || !v.CPU.CPSR.C || !v.CPU.CPSR.V {
 		t.Error("MOV without S should not affect flags")
@@ -377,8 +377,8 @@ func TestEdge_AllFlagsClear(t *testing.T) {
 	// MOV R0, R1 (should not affect flags)
 	opcode := uint32(0xE1A00001)
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x8000, opcode)
-	v.Step()
+	mustWriteWord(t, v, 0x8000, opcode)
+	mustStep(t, v)
 
 	if v.CPU.CPSR.N || v.CPU.CPSR.Z || v.CPU.CPSR.C || v.CPU.CPSR.V {
 		t.Error("MOV without S should not affect flags")
@@ -395,8 +395,8 @@ func TestEdge_CMP_NoWrite(t *testing.T) {
 	// CMP R0, R1 (should not modify R0)
 	opcode := uint32(0xE1500001)
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x8000, opcode)
-	v.Step()
+	mustWriteWord(t, v, 0x8000, opcode)
+	mustStep(t, v)
 
 	if v.CPU.R[0] != 42 {
 		t.Errorf("CMP should not modify R0, expected 42, got %d", v.CPU.R[0])
@@ -412,8 +412,8 @@ func TestEdge_TST_NoWrite(t *testing.T) {
 	// TST R0, R1 (should not modify R0)
 	opcode := uint32(0xE1100001)
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x8000, opcode)
-	v.Step()
+	mustWriteWord(t, v, 0x8000, opcode)
+	mustStep(t, v)
 
 	if v.CPU.R[0] != 0xFF {
 		t.Errorf("TST should not modify R0, expected 0xFF, got 0x%X", v.CPU.R[0])
@@ -429,8 +429,8 @@ func TestEdge_SameRegisterSrcDst(t *testing.T) {
 	// ADD R0, R0, R0 (R0 = R0 + R0)
 	opcode := uint32(0xE0800000)
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x8000, opcode)
-	v.Step()
+	mustWriteWord(t, v, 0x8000, opcode)
+	mustStep(t, v)
 
 	if v.CPU.R[0] != 20 {
 		t.Errorf("expected R0=20, got R0=%d", v.CPU.R[0])
@@ -445,8 +445,8 @@ func TestEdge_TripleSameRegister(t *testing.T) {
 	// ADD R5, R5, R5 (R5 = R5 + R5)
 	opcode := uint32(0xE0855005)
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x8000, opcode)
-	v.Step()
+	mustWriteWord(t, v, 0x8000, opcode)
+	mustStep(t, v)
 
 	if v.CPU.R[5] != 6 {
 		t.Errorf("expected R5=6, got R5=%d", v.CPU.R[5])
@@ -463,8 +463,8 @@ func TestEdge_ImmediateRotation(t *testing.T) {
 	// Encoded as: rotation=4 (4*2=8), value=0xFF
 	opcode := uint32(0xE3A004FF) // MOV R0, #0xFF000000
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x8000, opcode)
-	v.Step()
+	mustWriteWord(t, v, 0x8000, opcode)
+	mustStep(t, v)
 
 	if v.CPU.R[0] != 0xFF000000 {
 		t.Errorf("expected R0=0xFF000000, got R0=0x%X", v.CPU.R[0])
@@ -480,8 +480,8 @@ func TestEdge_RSB_Negate(t *testing.T) {
 	// RSB R0, R1, #0 (R0 = 0 - R1, negate R1)
 	opcode := uint32(0xE2610000)
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x8000, opcode)
-	v.Step()
+	mustWriteWord(t, v, 0x8000, opcode)
+	mustStep(t, v)
 
 	// -42 in two's complement
 	expected := uint32(^uint32(42) + 1)
@@ -499,8 +499,8 @@ func TestEdge_MVN_Zeros(t *testing.T) {
 	// MVN R0, R1
 	opcode := uint32(0xE1E00001)
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x8000, opcode)
-	v.Step()
+	mustWriteWord(t, v, 0x8000, opcode)
+	mustStep(t, v)
 
 	if v.CPU.R[0] != 0xFFFFFFFF {
 		t.Errorf("expected R0=0xFFFFFFFF, got R0=0x%X", v.CPU.R[0])
@@ -517,8 +517,8 @@ func TestEdge_BIC_ClearAll(t *testing.T) {
 	// BIC R0, R1, R2 (clear all bits)
 	opcode := uint32(0xE1C10002)
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x8000, opcode)
-	v.Step()
+	mustWriteWord(t, v, 0x8000, opcode)
+	mustStep(t, v)
 
 	if v.CPU.R[0] != 0 {
 		t.Errorf("expected R0=0, got R0=0x%X", v.CPU.R[0])
@@ -536,8 +536,8 @@ func TestEdge_ADC_CarryPropagation(t *testing.T) {
 	// ADCS R0, R1, R2 (0xFFFFFFFF + 0 + 1 = 0 with carry)
 	opcode := uint32(0xE0B10002)
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x8000, opcode)
-	v.Step()
+	mustWriteWord(t, v, 0x8000, opcode)
+	mustStep(t, v)
 
 	if v.CPU.R[0] != 0 {
 		t.Errorf("expected R0=0, got R0=0x%X", v.CPU.R[0])
@@ -561,8 +561,8 @@ func TestEdge_SBC_BorrowChain(t *testing.T) {
 	// SBCS R0, R1, R2 (0 - 0 - 1 = -1)
 	opcode := uint32(0xE0D10002)
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x8000, opcode)
-	v.Step()
+	mustWriteWord(t, v, 0x8000, opcode)
+	mustStep(t, v)
 
 	if v.CPU.R[0] != 0xFFFFFFFF {
 		t.Errorf("expected R0=0xFFFFFFFF, got R0=0x%X", v.CPU.R[0])

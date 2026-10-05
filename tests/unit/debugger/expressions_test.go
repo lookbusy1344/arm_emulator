@@ -126,9 +126,12 @@ func TestExpressionEvaluator_Memory(t *testing.T) {
 	}
 
 	// Write test values to memory
-	machine.Memory.WriteWord(dataAddr, 0x12345678)
-	machine.Memory.WriteWord(dataAddr+0x1000, 0xABCDEF00)
-
+	if err := machine.Memory.WriteWord(dataAddr, 0x12345678); err != nil {
+		t.Fatal(err)
+	}
+	if err := machine.Memory.WriteWord(dataAddr+0x1000, 0xABCDEF00); err != nil {
+		t.Fatal(err)
+	}
 	tests := []struct {
 		name string
 		expr string

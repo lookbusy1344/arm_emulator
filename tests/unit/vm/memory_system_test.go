@@ -222,7 +222,7 @@ func TestMemory_LittleEndian_Word(t *testing.T) {
 	v := vm.NewVM()
 
 	// Write a word
-	v.Memory.WriteWord(0x20000, 0x12345678)
+	mustWriteWord(t, v, 0x20000, 0x12345678)
 
 	// Read individual bytes (little-endian)
 	b0, _ := v.Memory.ReadByteAt(0x20000)
@@ -248,7 +248,7 @@ func TestMemory_LittleEndian_Halfword(t *testing.T) {
 	v := vm.NewVM()
 
 	// Write a halfword
-	v.Memory.WriteHalfword(0x20000, 0x1234)
+	mustWriteHalfword(t, v, 0x20000, 0x1234)
 
 	// Read individual bytes
 	b0, _ := v.Memory.ReadByteAt(0x20000)
@@ -266,10 +266,10 @@ func TestMemory_LittleEndian_BytesToWord(t *testing.T) {
 	v := vm.NewVM()
 
 	// Write individual bytes
-	v.Memory.WriteByteAt(0x20000, 0x78)
-	v.Memory.WriteByteAt(0x20001, 0x56)
-	v.Memory.WriteByteAt(0x20002, 0x34)
-	v.Memory.WriteByteAt(0x20003, 0x12)
+	mustWriteByte(t, v, 0x20000, 0x78)
+	mustWriteByte(t, v, 0x20001, 0x56)
+	mustWriteByte(t, v, 0x20002, 0x34)
+	mustWriteByte(t, v, 0x20003, 0x12)
 
 	// Read as word
 	value, _ := v.Memory.ReadWord(0x20000)
@@ -314,10 +314,10 @@ func TestMemory_OverwriteData(t *testing.T) {
 	addr := uint32(0x20000)
 
 	// Write initial value
-	v.Memory.WriteWord(addr, 0xAAAAAAAA)
+	mustWriteWord(t, v, addr, 0xAAAAAAAA)
 
 	// Overwrite
-	v.Memory.WriteWord(addr, 0xBBBBBBBB)
+	mustWriteWord(t, v, addr, 0xBBBBBBBB)
 
 	// Read back
 	value, _ := v.Memory.ReadWord(addr)
@@ -333,10 +333,10 @@ func TestMemory_PartialOverwrite(t *testing.T) {
 	addr := uint32(0x20000)
 
 	// Write word
-	v.Memory.WriteWord(addr, 0x12345678)
+	mustWriteWord(t, v, addr, 0x12345678)
 
 	// Overwrite middle byte
-	v.Memory.WriteByteAt(addr+1, 0xAA)
+	mustWriteByte(t, v, addr+1, 0xAA)
 
 	// Read word
 	value, _ := v.Memory.ReadWord(addr)
@@ -355,12 +355,12 @@ func TestMemory_ClearRange(t *testing.T) {
 
 	// Write some data
 	for i := uint32(0); i < 10; i++ {
-		v.Memory.WriteByteAt(0x20000+i, 0xFF)
+		mustWriteByte(t, v, 0x20000+i, 0xFF)
 	}
 
 	// Clear it
 	for i := uint32(0); i < 10; i++ {
-		v.Memory.WriteByteAt(0x20000+i, 0x00)
+		mustWriteByte(t, v, 0x20000+i, 0x00)
 	}
 
 	// Verify cleared
@@ -381,7 +381,7 @@ func TestMemory_FillPattern(t *testing.T) {
 		// Safe conversion: i is from loop [0, 4), always >= 0
 		// #nosec G115 -- i is loop index, guaranteed non-negative and within bounds
 		offset := uint32(i)
-		v.Memory.WriteByteAt(0x20000+offset, pattern[i])
+		mustWriteByte(t, v, 0x20000+offset, pattern[i])
 	}
 
 	// Verify pattern
@@ -410,7 +410,7 @@ func TestMemory_StackGrowth_Down(t *testing.T) {
 	// Push values (stack grows down)
 	for i := uint32(0); i < 10; i++ {
 		sp -= 4
-		v.Memory.WriteWord(sp, i*10)
+		mustWriteWord(t, v, sp, i*10)
 	}
 
 	// Pop values back
@@ -443,7 +443,7 @@ func TestMemory_LargeBlock_Write(t *testing.T) {
 	baseAddr := uint32(0x20000)
 	for i := uint32(0); i < 256; i++ {
 		addr := baseAddr + (i * 4)
-		v.Memory.WriteWord(addr, i)
+		mustWriteWord(t, v, addr, i)
 	}
 
 	// Verify random samples
@@ -464,9 +464,9 @@ func TestMemory_AlternatingPattern(t *testing.T) {
 	for i := uint32(0); i < 16; i++ {
 		addr := 0x20000 + (i * 4)
 		if i%2 == 0 {
-			v.Memory.WriteWord(addr, 0xAAAAAAAA)
+			mustWriteWord(t, v, addr, 0xAAAAAAAA)
 		} else {
-			v.Memory.WriteWord(addr, 0x55555555)
+			mustWriteWord(t, v, addr, 0x55555555)
 		}
 	}
 
@@ -496,10 +496,10 @@ func TestMemory_MixedWordByteAccess(t *testing.T) {
 	v := vm.NewVM()
 
 	// Write word
-	v.Memory.WriteWord(0x20000, 0x12345678)
+	mustWriteWord(t, v, 0x20000, 0x12345678)
 
 	// Modify one byte
-	v.Memory.WriteByteAt(0x20002, 0xAB)
+	mustWriteByte(t, v, 0x20002, 0xAB)
 
 	// Read word
 	value, _ := v.Memory.ReadWord(0x20000)
@@ -513,8 +513,8 @@ func TestMemory_MixedHalfwordAccess(t *testing.T) {
 	v := vm.NewVM()
 
 	// Write two halfwords
-	v.Memory.WriteHalfword(0x20000, 0x1234)
-	v.Memory.WriteHalfword(0x20002, 0x5678)
+	mustWriteHalfword(t, v, 0x20000, 0x1234)
+	mustWriteHalfword(t, v, 0x20002, 0x5678)
 
 	// Read as word
 	value, _ := v.Memory.ReadWord(0x20000)

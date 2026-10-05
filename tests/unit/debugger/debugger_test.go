@@ -342,8 +342,9 @@ func TestExamineMemory(t *testing.T) {
 
 	// Write test data to memory - use data segment address
 	testAddr := uint32(0x00020000) // Data segment start
-	machine.Memory.WriteWord(testAddr, 0x12345678)
-
+	if err := machine.Memory.WriteWord(testAddr, 0x12345678); err != nil {
+		t.Fatal(err)
+	}
 	err := dbg.ExecuteCommand("x 0x00020000")
 	if err != nil {
 		t.Fatalf("Failed to execute examine: %v", err)

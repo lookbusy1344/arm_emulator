@@ -30,8 +30,8 @@ func TestADD_PC_AsSource(t *testing.T) {
 	// Rn=R15 (PC), Rd=R0, immediate=8
 	opcode := uint32(0xE28F0008) // 1110 0010 1000 1111 0000 0000 0000 1000
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x8000, opcode)
-	v.Step()
+	mustWriteWord(t, v, 0x8000, opcode)
+	mustStep(t, v)
 
 	// Expected: PC reads as 0x8000 + 8 = 0x8008, then + 8 = 0x8010
 	if v.CPU.R[0] != 0x8010 {
@@ -49,8 +49,8 @@ func TestMOV_PC_AsSource(t *testing.T) {
 	// Opcode: MOV (1101), I=0, S=0, Rn=0 (ignored), Rd=R0, Rm=R15
 	opcode := uint32(0xE1A0000F) // 1110 0001 1010 0000 0000 0000 0000 1111
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x8000, opcode)
-	v.Step()
+	mustWriteWord(t, v, 0x8000, opcode)
+	mustStep(t, v)
 
 	// Expected: PC + 8 = 0x8008
 	if v.CPU.R[0] != 0x8008 {
@@ -66,13 +66,13 @@ func TestLDR_PC_Relative(t *testing.T) {
 
 	// Write test data at PC + 8 + 4 = 0x800C
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x800C, 0x12345678)
+	mustWriteWord(t, v, 0x800C, 0x12345678)
 
 	// LDR R0, [PC, #4]
 	// Opcode: LDR, I=0, P=1, U=1, W=0, Rn=PC, Rd=R0, offset=4
 	opcode := uint32(0xE59F0004) // 1110 0101 1001 1111 0000 0000 0000 0100
-	v.Memory.WriteWord(0x8000, opcode)
-	v.Step()
+	mustWriteWord(t, v, 0x8000, opcode)
+	mustStep(t, v)
 
 	// Expected: load from (PC + 8) + 4 = 0x8008 + 4 = 0x800C
 	if v.CPU.R[0] != 0x12345678 {
@@ -91,8 +91,8 @@ func TestSTR_PC_AsSource(t *testing.T) {
 	// Opcode: STR, I=0, P=1, U=1, W=0, Rn=R1, Rd=PC, offset=0
 	opcode := uint32(0xE581F000) // 1110 0101 1000 0001 1111 0000 0000 0000
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x8000, opcode)
-	v.Step()
+	mustWriteWord(t, v, 0x8000, opcode)
+	mustStep(t, v)
 
 	// Expected: PC + 8 stored (ARM2 stores PC+8 for STR)
 	// Note: Different ARM implementations vary
@@ -119,8 +119,8 @@ func TestMOV_PC_AsBranch(t *testing.T) {
 	// Opcode: MOV (1101), I=0, S=0, Rn=0, Rd=PC, Rm=LR
 	opcode := uint32(0xE1A0F00E) // 1110 0001 1010 0000 1111 0000 0000 1110
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x8000, opcode)
-	v.Step()
+	mustWriteWord(t, v, 0x8000, opcode)
+	mustStep(t, v)
 
 	// Expected: PC set to 0x9000
 	if v.CPU.PC != 0x9000 {
@@ -138,8 +138,8 @@ func TestADD_PC_AsBranch(t *testing.T) {
 	// Opcode: ADD (0100), I=0, S=0, Rn=PC, Rd=PC, Rm=R0
 	opcode := uint32(0xE08FF000) // 1110 0000 1000 1111 1111 0000 0000 0000
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x8000, opcode)
-	v.Step()
+	mustWriteWord(t, v, 0x8000, opcode)
+	mustStep(t, v)
 
 	// Expected: PC = (PC + 8) + R0 = 0x8008 + 0x100 = 0x8108
 	if v.CPU.PC != 0x8108 {
@@ -156,18 +156,18 @@ func TestLDM_WithPC(t *testing.T) {
 
 	// Setup stack with values to load
 	setupCodeWrite(v)
-	v.Memory.WriteWord(initialSP, 0xAAAAAAAA)    // R0
-	v.Memory.WriteWord(initialSP+4, 0xBBBBBBBB)  // R1
-	v.Memory.WriteWord(initialSP+8, 0xCCCCCCCC)  // R2
-	v.Memory.WriteWord(initialSP+12, 0xDDDDDDDD) // R3
-	v.Memory.WriteWord(initialSP+16, 0x00008100) // PC (return address)
+	mustWriteWord(t, v, initialSP, 0xAAAAAAAA)    // R0
+	mustWriteWord(t, v, initialSP+4, 0xBBBBBBBB)  // R1
+	mustWriteWord(t, v, initialSP+8, 0xCCCCCCCC)  // R2
+	mustWriteWord(t, v, initialSP+12, 0xDDDDDDDD) // R3
+	mustWriteWord(t, v, initialSP+16, 0x00008100) // PC (return address)
 
 	// LDMIA SP!, {R0-R3, PC}
 	// Opcode: LDM, P=0, U=1, S=0, W=1 (writeback), Rn=SP, register list includes R0-R3, PC
 	// Register list: bits 0-3 for R0-R3, bit 15 for PC = 0x800F
 	opcode := uint32(0xE8BD800F) // 1110 1000 1011 1101 1000 0000 0000 1111
-	v.Memory.WriteWord(0x8000, opcode)
-	v.Step()
+	mustWriteWord(t, v, 0x8000, opcode)
+	mustStep(t, v)
 
 	// Expected: R0-R3 loaded, PC set to 0x8100, SP incremented by 20 (5 words)
 	if v.CPU.R[0] != 0xAAAAAAAA {
@@ -204,8 +204,8 @@ func TestADD_SP_Adjustment(t *testing.T) {
 	// Opcode: ADD (0100), I=1, S=0, Rn=SP, Rd=SP, immediate=16
 	opcode := uint32(0xE28DD010) // 1110 0010 1000 1101 1101 0000 0001 0000
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x8000, opcode)
-	v.Step()
+	mustWriteWord(t, v, 0x8000, opcode)
+	mustStep(t, v)
 
 	// Expected: SP = initialSP + 16
 	expectedSP := initialSP + 16
@@ -225,8 +225,8 @@ func TestSUB_SP_Adjustment(t *testing.T) {
 	// Opcode: SUB (0010), I=1, S=0, Rn=SP, Rd=SP, immediate=32 (0x20)
 	opcode := uint32(0xE24DD020) // 1110 0010 0100 1101 1101 0000 0010 0000
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x8000, opcode)
-	v.Step()
+	mustWriteWord(t, v, 0x8000, opcode)
+	mustStep(t, v)
 
 	// Expected: SP = initialSP - 32
 	expectedSP := initialSP - 32
@@ -246,8 +246,8 @@ func TestMOV_SP_Copy(t *testing.T) {
 	// Opcode: MOV (1101), I=0, S=0, Rn=0, Rd=R0, Rm=SP
 	opcode := uint32(0xE1A0000D) // 1110 0001 1010 0000 0000 0000 0000 1101
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x8000, opcode)
-	v.Step()
+	mustWriteWord(t, v, 0x8000, opcode)
+	mustStep(t, v)
 
 	// Expected: R0 = SP
 	if v.CPU.R[0] != validSP {
@@ -268,8 +268,8 @@ func TestMOV_SP_Set(t *testing.T) {
 	// Opcode: MOV (1101), I=0, S=0, Rn=0, Rd=SP, Rm=R0
 	opcode := uint32(0xE1A0D000) // 1110 0001 1010 0000 1101 0000 0000 0000
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x8000, opcode)
-	v.Step()
+	mustWriteWord(t, v, 0x8000, opcode)
+	mustStep(t, v)
 
 	// Expected: SP = R0 = newSP
 	if v.CPU.R[13] != newSP {
@@ -289,8 +289,8 @@ func TestMOV_LR_Save(t *testing.T) {
 	// Opcode: MOV (1101), I=0, S=0, Rn=0, Rd=R0, Rm=LR
 	opcode := uint32(0xE1A0000E) // 1110 0001 1010 0000 0000 0000 0000 1110
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x8000, opcode)
-	v.Step()
+	mustWriteWord(t, v, 0x8000, opcode)
+	mustStep(t, v)
 
 	// Expected: R0 = LR = 0x8100
 	if v.CPU.R[0] != 0x8100 {
@@ -309,8 +309,8 @@ func TestMOV_LR_Restore(t *testing.T) {
 	// Opcode: MOV (1101), I=0, S=0, Rn=0, Rd=LR, Rm=R0
 	opcode := uint32(0xE1A0E000) // 1110 0001 1010 0000 1110 0000 0000 0000
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x8000, opcode)
-	v.Step()
+	mustWriteWord(t, v, 0x8000, opcode)
+	mustStep(t, v)
 
 	// Expected: LR = R0 = 0x8200
 	if v.CPU.R[14] != 0x8200 {
@@ -329,8 +329,8 @@ func TestSTR_LR_Save(t *testing.T) {
 	// Opcode: STR, I=0, P=1 (pre-indexed), U=0 (subtract), W=1 (writeback), Rn=SP, Rd=LR, offset=4
 	opcode := uint32(0xE52DE004) // 1110 0101 0010 1101 1110 0000 0000 0100
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x8000, opcode)
-	v.Step()
+	mustWriteWord(t, v, 0x8000, opcode)
+	mustStep(t, v)
 
 	// Expected: LR stored at SP - 4 = 0xFFFC, SP updated to 0xFFFC
 	val, err := v.Memory.ReadWord(0xFFFC)
@@ -353,13 +353,13 @@ func TestLDR_LR_Restore(t *testing.T) {
 
 	// Write return address to stack
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x10000, 0x8200)
+	mustWriteWord(t, v, 0x10000, 0x8200)
 
 	// LDR LR, [SP], #4
 	// Opcode: LDR, I=0, P=0 (post-indexed), U=1 (add), W=0, Rn=SP, Rd=LR, offset=4
 	opcode := uint32(0xE49DE004) // 1110 0100 1001 1101 1110 0000 0000 0100
-	v.Memory.WriteWord(0x8000, opcode)
-	v.Step()
+	mustWriteWord(t, v, 0x8000, opcode)
+	mustStep(t, v)
 
 	// Expected: LR loaded from 0x10000, SP incremented to 0x10004
 	if v.CPU.R[14] != 0x8200 {

@@ -399,7 +399,9 @@ main:
 
 	// Execute until we've pushed values (3 instructions)
 	for i := 0; i < 3; i++ {
-		svc.Step()
+		if err := svc.Step(); err != nil {
+			t.Fatalf("Step: %v", err)
+		}
 	}
 
 	// Get current SP to verify push happened
@@ -964,9 +966,12 @@ main:
 	}
 
 	// Execute first two instructions to set R0=42, R1=10
-	svc.Step()
-	svc.Step()
-
+	if err := svc.Step(); err != nil {
+		t.Fatalf("Step: %v", err)
+	}
+	if err := svc.Step(); err != nil {
+		t.Fatalf("Step: %v", err)
+	}
 	// Evaluate "R0 + R1" and verify the actual result value
 	result, err := svc.EvaluateExpression("R0 + R1")
 	if err != nil {
@@ -1090,10 +1095,15 @@ main:
 	}
 
 	// Execute first three instructions to set R0=10, R1=20, R2=5
-	svc.Step()
-	svc.Step()
-	svc.Step()
-
+	if err := svc.Step(); err != nil {
+		t.Fatalf("Step: %v", err)
+	}
+	if err := svc.Step(); err != nil {
+		t.Fatalf("Step: %v", err)
+	}
+	if err := svc.Step(); err != nil {
+		t.Fatalf("Step: %v", err)
+	}
 	tests := []struct {
 		name       string
 		expression string

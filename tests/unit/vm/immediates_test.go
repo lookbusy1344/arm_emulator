@@ -42,8 +42,8 @@ func TestImmediate_ZeroRotation(t *testing.T) {
 		// Immediate encoding: rotation (bits 11-8) = 0, value (bits 7-0)
 		opcode := uint32(0xE3A00000) | tc.immediate
 		setupCodeWrite(v)
-		v.Memory.WriteWord(0x8000, opcode)
-		v.Step()
+		mustWriteWord(t, v, 0x8000, opcode)
+		mustStep(t, v)
 
 		if v.CPU.R[0] != tc.expected {
 			t.Errorf("immediate %d: expected R0=%d, got R0=%d", tc.immediate, tc.expected, v.CPU.R[0])
@@ -76,8 +76,8 @@ func TestImmediate_CommonValues(t *testing.T) {
 		v.CPU.PC = 0x8000
 
 		setupCodeWrite(v)
-		v.Memory.WriteWord(0x8000, tc.opcode)
-		v.Step()
+		mustWriteWord(t, v, 0x8000, tc.opcode)
+		mustStep(t, v)
 
 		if v.CPU.R[0] != tc.expected {
 			t.Errorf("%s: expected R0=0x%X, got R0=0x%X (%s)", tc.name, tc.expected, v.CPU.R[0], tc.comment)
@@ -99,8 +99,8 @@ func TestImmediate_AllRotations(t *testing.T) {
 		opcode := uint32(0xE3A00000) | rotateField | immediate
 
 		setupCodeWrite(v)
-		v.Memory.WriteWord(0x8000, opcode)
-		v.Step()
+		mustWriteWord(t, v, 0x8000, opcode)
+		mustStep(t, v)
 
 		// Calculate expected value: 0x80 rotated right by (rotation * 2) bits
 		rotateAmount := (rotation * 2) % 32
@@ -120,8 +120,8 @@ func TestImmediate_MaxValue(t *testing.T) {
 	// MOV R0, #0xFF (no rotation)
 	opcode := uint32(0xE3A000FF)
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x8000, opcode)
-	v.Step()
+	mustWriteWord(t, v, 0x8000, opcode)
+	mustStep(t, v)
 
 	if v.CPU.R[0] != 0xFF {
 		t.Errorf("expected R0=0xFF, got R0=0x%X", v.CPU.R[0])
@@ -138,8 +138,8 @@ func TestImmediate_InArithmetic(t *testing.T) {
 	// Use rotation to encode 0x100 (1 ROR 24)
 	opcode := uint32(0xE2810C01) // ADD, I=1, Rn=R1, Rd=R0, rotation=12, imm=1
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x8000, opcode)
-	v.Step()
+	mustWriteWord(t, v, 0x8000, opcode)
+	mustStep(t, v)
 
 	// Expected: 100 + 0x100 = 356
 	expected := uint32(100 + 0x100)
@@ -158,8 +158,8 @@ func TestImmediate_NegativePattern(t *testing.T) {
 	// MVN (1111), I=1, S=0, Rn=0, Rd=R0, immediate=0
 	opcode := uint32(0xE3E00000)
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x8000, opcode)
-	v.Step()
+	mustWriteWord(t, v, 0x8000, opcode)
+	mustStep(t, v)
 
 	if v.CPU.R[0] != 0xFFFFFFFF {
 		t.Errorf("expected R0=0xFFFFFFFF, got R0=0x%X", v.CPU.R[0])
@@ -184,8 +184,8 @@ func TestImmediate_BitwisePatterns(t *testing.T) {
 		v.CPU.PC = 0x8000
 
 		setupCodeWrite(v)
-		v.Memory.WriteWord(0x8000, tc.opcode)
-		v.Step()
+		mustWriteWord(t, v, 0x8000, tc.opcode)
+		mustStep(t, v)
 
 		if v.CPU.R[0] != tc.expected {
 			t.Errorf("%s: expected R0=0x%X, got R0=0x%X", tc.name, tc.expected, v.CPU.R[0])
@@ -216,8 +216,8 @@ func TestImmediate_EdgeRotations(t *testing.T) {
 		opcode := uint32(0xE3A00000) | rotateField | tc.value
 
 		setupCodeWrite(v)
-		v.Memory.WriteWord(0x8000, opcode)
-		v.Step()
+		mustWriteWord(t, v, 0x8000, opcode)
+		mustStep(t, v)
 
 		if v.CPU.R[0] != tc.expected {
 			t.Errorf("rotation=%d, value=0x%X: expected R0=0x%X, got R0=0x%X",
@@ -236,8 +236,8 @@ func TestImmediate_CompareOperations(t *testing.T) {
 	// Use rotation to encode 0x100
 	opcode := uint32(0xE3510C01) // CMP (1010), I=1, S=1, Rn=R1, rotation=12, imm=1
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x8000, opcode)
-	v.Step()
+	mustWriteWord(t, v, 0x8000, opcode)
+	mustStep(t, v)
 
 	// Expected: R1 - 0x100 = 0, so Z flag should be set
 	if !v.CPU.CPSR.Z {
@@ -258,8 +258,8 @@ func TestImmediate_SubtractLarge(t *testing.T) {
 	// Use rotation=4 (ROR 8) to encode 0xFF000000
 	opcode := uint32(0xE24104FF) // SUB, I=1, Rn=R1, Rd=R0, rotation=4, imm=0xFF
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x8000, opcode)
-	v.Step()
+	mustWriteWord(t, v, 0x8000, opcode)
+	mustStep(t, v)
 
 	// Expected: 0xFF000000 - 0xFF000000 = 0
 	if v.CPU.R[0] != 0 {

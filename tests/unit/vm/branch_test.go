@@ -14,8 +14,8 @@ func TestB_Forward(t *testing.T) {
 	// B +16 (EA000003) - offset of 3 words = 12 bytes, +8 for pipeline = 20
 	opcode := uint32(0xEA000003)
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x8000, opcode)
-	v.Step()
+	mustWriteWord(t, v, 0x8000, opcode)
+	mustStep(t, v)
 
 	// PC should be 0x8000 + 8 (pipeline) + 12 (offset*4) = 0x8014
 	expected := uint32(0x8014)
@@ -32,8 +32,8 @@ func TestB_Backward(t *testing.T) {
 	// B -8 (EAFFFFFE) - offset of -2 words
 	opcode := uint32(0xEAFFFFFE)
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x8010, opcode)
-	v.Step()
+	mustWriteWord(t, v, 0x8010, opcode)
+	mustStep(t, v)
 
 	// PC should be 0x8010 + 8 (pipeline) - 8 (offset*4) = 0x8010
 	expected := uint32(0x8010)
@@ -50,8 +50,8 @@ func TestBL_BranchWithLink(t *testing.T) {
 	// BL +8 (EB000001)
 	opcode := uint32(0xEB000001)
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x8000, opcode)
-	v.Step()
+	mustWriteWord(t, v, 0x8000, opcode)
+	mustStep(t, v)
 
 	// LR should contain return address (PC + 4)
 	expectedLR := uint32(0x8004)
@@ -75,8 +75,8 @@ func TestB_ConditionalEQ(t *testing.T) {
 	// BEQ +4 (0A000000)
 	opcode := uint32(0x0A000000)
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x8000, opcode)
-	v.Step()
+	mustWriteWord(t, v, 0x8000, opcode)
+	mustStep(t, v)
 
 	// Should branch because Z is set
 	expectedPC := uint32(0x8008)
@@ -94,8 +94,8 @@ func TestB_ConditionalNE_NotTaken(t *testing.T) {
 	// BNE +4 (1A000000)
 	opcode := uint32(0x1A000000)
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x8000, opcode)
-	v.Step()
+	mustWriteWord(t, v, 0x8000, opcode)
+	mustStep(t, v)
 
 	// Should NOT branch because Z is set (condition fails)
 	expectedPC := uint32(0x8004) // Just PC+4
@@ -115,8 +115,8 @@ func TestB_ConditionalGT(t *testing.T) {
 	// BGT +8 (CA000001)
 	opcode := uint32(0xCA000001)
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x8000, opcode)
-	v.Step()
+	mustWriteWord(t, v, 0x8000, opcode)
+	mustStep(t, v)
 
 	// Should branch
 	expectedPC := uint32(0x800C)
@@ -134,8 +134,8 @@ func TestB_LongOffset(t *testing.T) {
 	// This is (EA7FFFFF)
 	opcode := uint32(0xEA7FFFFF)
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x8000, opcode)
-	v.Step()
+	mustWriteWord(t, v, 0x8000, opcode)
+	mustStep(t, v)
 
 	// Offset is 0x7FFFFF << 2 = 0x1FFFFFC
 	// PC = 0x8000 + 8 + 0x1FFFFFC = 0x2008004
@@ -159,8 +159,8 @@ func TestBX_Register(t *testing.T) {
 	// Bits: cond=1110, 00010010, 1111, 1111, 1111, 0001, Rm=0000
 	opcode := uint32(0xE12FFF10)
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x8000, opcode)
-	v.Step()
+	mustWriteWord(t, v, 0x8000, opcode)
+	mustStep(t, v)
 
 	// PC should be set to R0 value (bit 0 cleared for ARM/Thumb)
 	expectedPC := uint32(0x9000)
@@ -179,8 +179,8 @@ func TestBX_ReturnFromSubroutine(t *testing.T) {
 	// R14 (LR) = 0xE in binary = 1110
 	opcode := uint32(0xE12FFF1E)
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x9000, opcode)
-	v.Step()
+	mustWriteWord(t, v, 0x9000, opcode)
+	mustStep(t, v)
 
 	// PC should be set to LR value
 	expectedPC := uint32(0x8100)
@@ -199,8 +199,8 @@ func TestBX_Conditional(t *testing.T) {
 	// BXEQ R1 (012FFF11) - condition code 0000 (EQ)
 	opcode := uint32(0x012FFF11)
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x8000, opcode)
-	v.Step()
+	mustWriteWord(t, v, 0x8000, opcode)
+	mustStep(t, v)
 
 	// Should branch because Z is set
 	expectedPC := uint32(0xA000)
@@ -219,8 +219,8 @@ func TestBX_ConditionalNotTaken(t *testing.T) {
 	// BXEQ R1 (012FFF11)
 	opcode := uint32(0x012FFF11)
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x8000, opcode)
-	v.Step()
+	mustWriteWord(t, v, 0x8000, opcode)
+	mustStep(t, v)
 
 	// Should NOT branch, just increment PC
 	expectedPC := uint32(0x8004)
@@ -238,8 +238,8 @@ func TestBX_ClearBit0(t *testing.T) {
 	// BX R2 (E12FFF12)
 	opcode := uint32(0xE12FFF12)
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x8000, opcode)
-	v.Step()
+	mustWriteWord(t, v, 0x8000, opcode)
+	mustStep(t, v)
 
 	// PC should have bit 0 cleared (aligned to halfword)
 	expectedPC := uint32(0x8100)
@@ -257,8 +257,8 @@ func TestBX_FromHighRegister(t *testing.T) {
 	// BX R12 (E12FFF1C)
 	opcode := uint32(0xE12FFF1C)
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x8000, opcode)
-	v.Step()
+	mustWriteWord(t, v, 0x8000, opcode)
+	mustStep(t, v)
 
 	expectedPC := uint32(0xB000)
 	if v.CPU.PC != expectedPC {

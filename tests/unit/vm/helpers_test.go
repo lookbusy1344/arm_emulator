@@ -2,6 +2,7 @@ package vm_test
 
 import (
 	"io"
+	"testing"
 
 	"github.com/lookbusy1344/arm-emulator/vm"
 )
@@ -27,4 +28,33 @@ func setupDataWrite(v *vm.VM) {
 // Helper function to create a stdin pipe for testing
 func createStdinPipe() (*io.PipeReader, *io.PipeWriter) {
 	return io.Pipe()
+}
+
+// mustStep executes one instruction and fails the test if it returns an error.
+func mustStep(t testing.TB, v *vm.VM) {
+	t.Helper()
+	if err := v.Step(); err != nil {
+		t.Fatalf("Step at PC=0x%08X: %v", v.CPU.PC, err)
+	}
+}
+
+func mustWriteWord(t testing.TB, v *vm.VM, addr, value uint32) {
+	t.Helper()
+	if err := v.Memory.WriteWord(addr, value); err != nil {
+		t.Fatalf("WriteWord(0x%08X): %v", addr, err)
+	}
+}
+
+func mustWriteHalfword(t testing.TB, v *vm.VM, addr uint32, value uint16) {
+	t.Helper()
+	if err := v.Memory.WriteHalfword(addr, value); err != nil {
+		t.Fatalf("WriteHalfword(0x%08X): %v", addr, err)
+	}
+}
+
+func mustWriteByte(t testing.TB, v *vm.VM, addr uint32, value byte) {
+	t.Helper()
+	if err := v.Memory.WriteByteAt(addr, value); err != nil {
+		t.Fatalf("WriteByteAt(0x%08X): %v", addr, err)
+	}
 }

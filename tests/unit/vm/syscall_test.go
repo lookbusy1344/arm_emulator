@@ -17,7 +17,7 @@ func TestSWI_Exit(t *testing.T) {
 	// SWI #0 (EF000000)
 	opcode := uint32(0xEF000000)
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x8000, opcode)
+	mustWriteWord(t, v, 0x8000, opcode)
 	err := v.Step()
 
 	// Should return error with exit code
@@ -40,7 +40,7 @@ func TestSWI_Allocate(t *testing.T) {
 	// SWI #0x20 (EF000020)
 	opcode := uint32(0xEF000020)
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x8000, opcode)
+	mustWriteWord(t, v, 0x8000, opcode)
 	err := v.Step()
 
 	if err != nil {
@@ -67,8 +67,8 @@ func TestSWI_AllocateAndFree(t *testing.T) {
 
 	// SWI #0x20 (allocate)
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x8000, 0xEF000020)
-	v.Step()
+	mustWriteWord(t, v, 0x8000, 0xEF000020)
+	mustStep(t, v)
 
 	addr := v.CPU.R[0]
 	if addr == 0 {
@@ -81,7 +81,7 @@ func TestSWI_AllocateAndFree(t *testing.T) {
 
 	// SWI #0x21 (free)
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x8004, 0xEF000021)
+	mustWriteWord(t, v, 0x8004, 0xEF000021)
 	err := v.Step()
 
 	if err != nil {
@@ -102,8 +102,8 @@ func TestSWI_FreeInvalidAddress(t *testing.T) {
 
 	// SWI #0x21 (free)
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x8000, 0xEF000021)
-	v.Step()
+	mustWriteWord(t, v, 0x8000, 0xEF000021)
+	mustStep(t, v)
 
 	// R0 should be 0xFFFFFFFF (error)
 	if v.CPU.R[0] != 0xFFFFFFFF {
@@ -119,7 +119,7 @@ func TestSWI_GetTime(t *testing.T) {
 	// SWI #0x30 (EF000030)
 	opcode := uint32(0xEF000030)
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x8000, opcode)
+	mustWriteWord(t, v, 0x8000, opcode)
 	err := v.Step()
 
 	if err != nil {
@@ -135,8 +135,8 @@ func TestSWI_GetTime(t *testing.T) {
 	// Call again and verify time advances
 	v.CPU.PC = 0x8004
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x8004, opcode)
-	v.Step()
+	mustWriteWord(t, v, 0x8004, opcode)
+	mustStep(t, v)
 
 	timestamp2 := v.CPU.R[0]
 	if timestamp2 < timestamp1 {
@@ -157,7 +157,7 @@ func TestSWI_GetRandom(t *testing.T) {
 	// SWI #0x31 (EF000031)
 	opcode := uint32(0xEF000031)
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x8000, opcode)
+	mustWriteWord(t, v, 0x8000, opcode)
 	err := v.Step()
 
 	if err != nil {
@@ -170,8 +170,8 @@ func TestSWI_GetRandom(t *testing.T) {
 	// Call again
 	v.CPU.PC = 0x8004
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x8004, opcode)
-	v.Step()
+	mustWriteWord(t, v, 0x8004, opcode)
+	mustStep(t, v)
 
 	random2 := v.CPU.R[0]
 
@@ -190,9 +190,9 @@ func TestSWI_DebugPrint(t *testing.T) {
 	msgAddr := uint32(0x10000)
 	msg := "Debug test message"
 	for i, c := range msg {
-		v.Memory.WriteByteAt(msgAddr+uint32(i), byte(c))
+		mustWriteByte(t, v, msgAddr+uint32(i), byte(c))
 	}
-	v.Memory.WriteByteAt(msgAddr+uint32(len(msg)), 0) // Null terminator
+	mustWriteByte(t, v, msgAddr+uint32(len(msg)), 0) // Null terminator
 
 	v.CPU.R[0] = msgAddr
 	v.CPU.PC = 0x8000
@@ -200,7 +200,7 @@ func TestSWI_DebugPrint(t *testing.T) {
 	// SWI #0xF0 (EF0000F0)
 	opcode := uint32(0xEF0000F0)
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x8000, opcode)
+	mustWriteWord(t, v, 0x8000, opcode)
 
 	// Note: This will print to stderr, but we can't easily capture it in tests
 	// We just verify it doesn't error
@@ -225,7 +225,7 @@ func TestSWI_DebugPrint_InvalidAddress(t *testing.T) {
 	// SWI #0xF0 (EF0000F0)
 	opcode := uint32(0xEF0000F0)
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x8000, opcode)
+	mustWriteWord(t, v, 0x8000, opcode)
 	err := v.Step()
 
 	// Should return error for invalid address
@@ -242,7 +242,7 @@ func TestSWI_Breakpoint(t *testing.T) {
 	// SWI #0xF1 (EF0000F1)
 	opcode := uint32(0xEF0000F1)
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x8000, opcode)
+	mustWriteWord(t, v, 0x8000, opcode)
 	err := v.Step()
 
 	// Should return error for breakpoint
@@ -272,7 +272,7 @@ func TestSWI_DumpRegisters(t *testing.T) {
 	// SWI #0xF2 (EF0000F2)
 	opcode := uint32(0xEF0000F2)
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x8000, opcode)
+	mustWriteWord(t, v, 0x8000, opcode)
 
 	// Note: This will print to stdout, but we can't easily capture it in tests
 	// We just verify it doesn't error
@@ -298,7 +298,7 @@ func TestSWI_DumpMemory(t *testing.T) {
 	testData := []byte{0x00, 0x11, 0x22, 0x33, 0x44, 0x55, 0x66, 0x77,
 		0x88, 0x99, 0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF}
 	for i, b := range testData {
-		v.Memory.WriteByteAt(testAddr+uint32(i), b)
+		mustWriteByte(t, v, testAddr+uint32(i), b)
 	}
 
 	v.CPU.R[0] = testAddr
@@ -308,7 +308,7 @@ func TestSWI_DumpMemory(t *testing.T) {
 	// SWI #0xF3 (EF0000F3)
 	opcode := uint32(0xEF0000F3)
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x8000, opcode)
+	mustWriteWord(t, v, 0x8000, opcode)
 
 	// Note: This will print to stdout, but we can't easily capture it in tests
 	// We just verify it doesn't error
@@ -337,7 +337,7 @@ func TestSWI_DumpMemory_LargeLength(t *testing.T) {
 	// SWI #0xF3 (EF0000F3)
 	opcode := uint32(0xEF0000F3)
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x8000, opcode)
+	mustWriteWord(t, v, 0x8000, opcode)
 
 	// Should still work, but only dump up to 1KB
 	err := v.Step()
@@ -363,7 +363,7 @@ func TestSWI_MultipleAllocations(t *testing.T) {
 		v.CPU.PC = 0x8000 + uint32(i*4)
 
 		setupCodeWrite(v)
-		v.Memory.WriteWord(v.CPU.PC, 0xEF000020)
+		mustWriteWord(t, v, v.CPU.PC, 0xEF000020)
 		err := v.Step()
 
 		if err != nil {
@@ -398,8 +398,8 @@ func TestSWI_AllocateZero(t *testing.T) {
 	v.CPU.PC = 0x8000
 
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x8000, 0xEF000020)
-	v.Step()
+	mustWriteWord(t, v, 0x8000, 0xEF000020)
+	mustStep(t, v)
 
 	// Should return NULL (0) for invalid size
 	if v.CPU.R[0] != 0 {
@@ -414,7 +414,7 @@ func TestSWI_UnimplementedSyscall(t *testing.T) {
 
 	// SWI #0xFF (unimplemented)
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x8000, 0xEF0000FF)
+	mustWriteWord(t, v, 0x8000, 0xEF0000FF)
 	err := v.Step()
 
 	// Should return error
@@ -432,8 +432,8 @@ func TestSWI_Reallocate(t *testing.T) {
 	v.CPU.PC = 0x8000
 	allocOpcode := uint32(0xEF000020) // SWI #0x20
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x8000, allocOpcode)
-	v.Step()
+	mustWriteWord(t, v, 0x8000, allocOpcode)
+	mustStep(t, v)
 
 	oldAddr := v.CPU.R[0]
 	if oldAddr == 0 {
@@ -446,7 +446,7 @@ func TestSWI_Reallocate(t *testing.T) {
 	v.CPU.PC = 0x8004
 
 	reallocOpcode := uint32(0xEF000022) // SWI #0x22
-	v.Memory.WriteWord(0x8004, reallocOpcode)
+	mustWriteWord(t, v, 0x8004, reallocOpcode)
 	err := v.Step()
 
 	if err != nil {
@@ -468,7 +468,7 @@ func TestSWI_GetArguments(t *testing.T) {
 	// SWI #0x32 (EF000032)
 	opcode := uint32(0xEF000032)
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x8000, opcode)
+	mustWriteWord(t, v, 0x8000, opcode)
 	err := v.Step()
 
 	if err != nil {
@@ -496,7 +496,7 @@ func TestSWI_GetArguments_Empty(t *testing.T) {
 	// SWI #0x32 (EF000032)
 	opcode := uint32(0xEF000032)
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x8000, opcode)
+	mustWriteWord(t, v, 0x8000, opcode)
 	err := v.Step()
 
 	if err != nil {
@@ -517,7 +517,7 @@ func TestSWI_GetEnvironment(t *testing.T) {
 	// SWI #0x33 (EF000033)
 	opcode := uint32(0xEF000033)
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x8000, opcode)
+	mustWriteWord(t, v, 0x8000, opcode)
 	err := v.Step()
 
 	if err != nil {
@@ -545,9 +545,9 @@ func TestSWI_Assert_Pass(t *testing.T) {
 	msgAddr := uint32(0x10000)
 	msg := "Test assertion"
 	for i, c := range msg {
-		v.Memory.WriteByteAt(msgAddr+uint32(i), byte(c))
+		mustWriteByte(t, v, msgAddr+uint32(i), byte(c))
 	}
-	v.Memory.WriteByteAt(msgAddr+uint32(len(msg)), 0) // Null terminator
+	mustWriteByte(t, v, msgAddr+uint32(len(msg)), 0) // Null terminator
 
 	v.CPU.R[0] = 1 // Condition is true
 	v.CPU.R[1] = msgAddr
@@ -556,7 +556,7 @@ func TestSWI_Assert_Pass(t *testing.T) {
 	// SWI #0xF4 (EF0000F4)
 	opcode := uint32(0xEF0000F4)
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x8000, opcode)
+	mustWriteWord(t, v, 0x8000, opcode)
 	err := v.Step()
 
 	if err != nil {
@@ -577,9 +577,9 @@ func TestSWI_Assert_Fail(t *testing.T) {
 	msgAddr := uint32(0x10000)
 	msg := "Assertion failed message"
 	for i, c := range msg {
-		v.Memory.WriteByteAt(msgAddr+uint32(i), byte(c))
+		mustWriteByte(t, v, msgAddr+uint32(i), byte(c))
 	}
-	v.Memory.WriteByteAt(msgAddr+uint32(len(msg)), 0) // Null terminator
+	mustWriteByte(t, v, msgAddr+uint32(len(msg)), 0) // Null terminator
 
 	v.CPU.R[0] = 0 // Condition is false
 	v.CPU.R[1] = msgAddr
@@ -588,7 +588,7 @@ func TestSWI_Assert_Fail(t *testing.T) {
 	// SWI #0xF4 (EF0000F4)
 	opcode := uint32(0xEF0000F4)
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x8000, opcode)
+	mustWriteWord(t, v, 0x8000, opcode)
 	err := v.Step()
 
 	if err == nil {
@@ -701,7 +701,7 @@ func TestReadStringSetsMemoryTracking(t *testing.T) {
 
 	// Execute SWI #0x05 (READ_STRING) in goroutine
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x8000, 0xEF000005)
+	mustWriteWord(t, v, 0x8000, 0xEF000005)
 
 	// Write test input to stdin in goroutine (after VM starts reading)
 	testInput := "hello"
@@ -750,7 +750,7 @@ func TestReadStringErrorNoTracking(t *testing.T) {
 
 	// Execute SWI #0x05 (READ_STRING)
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x8000, 0xEF000005)
+	mustWriteWord(t, v, 0x8000, 0xEF000005)
 	err := v.Step()
 
 	if err != nil {
@@ -794,16 +794,16 @@ func TestReadSetsMemoryTracking(t *testing.T) {
 	filename := "testfile.txt"
 	setupDataWrite(v)
 	for i, ch := range []byte(filename) {
-		v.Memory.WriteByteAt(filenameAddr+uint32(i), ch)
+		mustWriteByte(t, v, filenameAddr+uint32(i), ch)
 	}
-	v.Memory.WriteByteAt(filenameAddr+uint32(len(filename)), 0) // Null terminator
+	mustWriteByte(t, v, filenameAddr+uint32(len(filename)), 0) // Null terminator
 
 	// Open file (SWI #0x10)
 	v.CPU.R[0] = filenameAddr    // Filename address
 	v.CPU.R[1] = vm.FileModeRead // Read mode
 	v.CPU.PC = 0x8000
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x8000, 0xEF000010) // SWI #0x10 (OPEN)
+	mustWriteWord(t, v, 0x8000, 0xEF000010) // SWI #0x10 (OPEN)
 	if err := v.Step(); err != nil {
 		t.Fatalf("OPEN failed: %v", err)
 	}
@@ -827,7 +827,7 @@ func TestReadSetsMemoryTracking(t *testing.T) {
 	v.LastMemoryWriteSize = 0
 
 	// Execute SWI #0x12 (READ)
-	v.Memory.WriteWord(0x8004, 0xEF000012)
+	mustWriteWord(t, v, 0x8004, 0xEF000012)
 	err := v.Step()
 
 	if err != nil {
@@ -862,7 +862,7 @@ func TestReallocateSetsMemoryTracking(t *testing.T) {
 	// Allocate 64 bytes (SWI #0x20)
 	v.CPU.R[0] = 64
 	setupCodeWrite(v)
-	v.Memory.WriteWord(0x8000, 0xEF000020) // SWI #0x20 (ALLOCATE)
+	mustWriteWord(t, v, 0x8000, 0xEF000020) // SWI #0x20 (ALLOCATE)
 	if err := v.Step(); err != nil {
 		t.Fatalf("ALLOCATE failed: %v", err)
 	}
@@ -875,7 +875,7 @@ func TestReallocateSetsMemoryTracking(t *testing.T) {
 	// Write some data to old allocation
 	setupDataWrite(v)
 	for i := uint32(0); i < 10; i++ {
-		v.Memory.WriteByteAt(oldAddr+i, byte('A'+i))
+		mustWriteByte(t, v, oldAddr+i, byte('A'+i))
 	}
 
 	// Now reallocate to 128 bytes (SWI #0x22)
@@ -889,7 +889,7 @@ func TestReallocateSetsMemoryTracking(t *testing.T) {
 	v.LastMemoryWriteSize = 0
 
 	// Execute SWI #0x22 (REALLOCATE)
-	v.Memory.WriteWord(0x8004, 0xEF000022)
+	mustWriteWord(t, v, 0x8004, 0xEF000022)
 	err := v.Step()
 
 	if err != nil {
