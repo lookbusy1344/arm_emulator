@@ -14,6 +14,7 @@ The Avalonia GUI is ready for use when a user on Windows, macOS or Linux can:
 6. Interact with a program through the console, including programs that wait for input.
 7. See every failure as a message in the window. No backend or API error crashes the app.
 8. Keep preferences and recent files across restarts.
+9. Work in a window that looks and behaves like a native desktop app on each platform, to the standard of the Swift GUI.
 
 ## Current state
 
@@ -66,7 +67,7 @@ Makes the app safe to use for a single file. Each task is a small TDD change.
 
 - An error bar below the toolbar, bound to `ErrorMessage`, with a dismiss button that clears it.
 - Show multi-line assembler errors in full and keep them selectable for copying.
-- **Tests:** view-model tests that a dismiss command clears `ErrorMessage`. A headless UI test (Phase 3) checks that the bar becomes visible.
+- **Tests:** view-model tests that a dismiss command clears `ErrorMessage`. A headless UI test (Phase 4) checks that the bar becomes visible.
 
 ### 1.2 Report command failures instead of crashing (done)
 
@@ -153,9 +154,100 @@ Makes the app safe to use for a single file. Each task is a small TDD change.
 
 **Exit criteria:** preferences and recent files survive a restart; `ARMEmulator prog.s` opens and loads the file; no edit is lost without a prompt; long output arrives intact.
 
-## Phase 3: Verification
+## Phase 3: Visual design
 
-### 3.1 Headless UI tests
+Brings the look and layout up to the standard of the Swift GUI. The Swift app uses native split views, an SF Symbols toolbar, a compact view picker for the inspector panels, monospaced 10–11 pt data views and system colours. The Avalonia app today shows the problems below (screenshot of 2026-10-06):
+
+| Problem | Where |
+|---------|-------|
+| Inspector tab headers use the large Fluent tab style and wrap onto three rows, taking a third of the panel | `RightPanelView.axaml` |
+| Toolbar icons are emoji-like glyphs; separators are text dashes; button widths vary; the status light is a bare dot | `ToolbarView.axaml` |
+| Splitters are 5 px dark bars; every panel draws its own border and corner radius, so frames nest | `MainWindow.axaml`, panel views |
+| Register values render in a proportional font: `FontFamily="monospace"` does not resolve on macOS | `RegistersView.axaml` and other data views |
+| Register cards leave large gaps; hex and decimal stack vertically | `RegistersView.axaml` |
+| The editor has no current-line or PC-line highlight; the gutter has no theme colours | `EditorView`, `EditorGutterMargin` |
+| The console has a heavy header and border; the input row looks like a form | `ConsoleView.axaml` |
+| Shortcuts use `Ctrl` on macOS, where the platform uses `⌘` | `MainWindow.axaml` key bindings |
+| No empty state: a fresh window is a blank editor and zeroed registers | Main window |
+
+Every task checks light and dark themes, and 100 % and 200 % scaling.
+
+### 3.1 Theme resources
+
+- One resource dictionary (`Themes/`) holds the design tokens. Views use the tokens, never literal colours or sizes.
+- **Colours:** semantic names (window background, panel background, divider, secondary text, accent, changed-register highlight, memory-write highlight, breakpoint, PC marker, error), with `ThemeVariant` light and dark entries.
+- **Spacing and type:** a spacing scale (4 / 8 / 12 / 16), UI font sizes (11 / 12 / 13), and a data font size (11, from settings for the editor).
+- **Monospace font:** a fallback list (`SF Mono, Menlo, Cascadia Mono, Consolas, DejaVu Sans Mono`), or a bundled font (JetBrains Mono, SIL Open Font License) for identical rendering on all platforms. **Decision needed.**
+- Use `FluentTheme` with `DensityStyle="Compact"`.
+- **Tests:** a test fails if any `.axaml` file under `Views/` sets a literal colour (`#…`, named colours) outside `Themes/`.
+
+### 3.2 Toolbar
+
+- Vector icons from one icon set (Fluent System Icons, MIT licence), embedded as `StreamGeometry` resources and tinted by theme. Icons follow the Swift set: Load (document), Run (play; continue at a breakpoint), Pause, Step, Step Over, Step Out, Reset (counter-clockwise arrow), Show PC.
+- Uniform button size, icon over label or icon beside label, real separators, and tooltips showing the platform shortcut.
+- The status indicator becomes a labelled pill (e.g. "Idle", "Running", "Breakpoint") in the theme's state colours.
+
+### 3.3 Window layout
+
+- Thin dividers: 1 px visible line with a wider hit area for dragging.
+- Panels sit flush against the dividers; drop the per-panel border and corner radius.
+- Minimum window size 800 × 600, as in Swift. Persist window size, position and splitter positions in settings (with 2.1).
+
+### 3.4 Inspector navigation
+
+- Replace the wrapping `TabControl` with a compact header: a "View:" selector with icon and label per panel (Registers, Memory, Stack, Disassembly, Evaluator, Watchpoints, Breakpoints), as in Swift.
+- Persist the selected panel in settings.
+
+### 3.5 Registers and status
+
+- A compact monospace table: name, hex and decimal on one row per register.
+- A status strip below it with VM state and N, Z, C, V flags as small pills, as in Swift's `StatusView`.
+- Changed-register highlight uses the theme colour and fades out over the existing 1.5 s.
+
+### 3.6 Memory, stack and disassembly
+
+- Monospace tables with column headers, consistent row height and subtle alternate-row shading.
+- PC, SP, breakpoint and memory-write markers use theme colours and the same glyphs as the editor gutter.
+- Address-entry and jump buttons in a compact header row matching 3.4.
+
+### 3.7 Editor
+
+- Monospace font and size from settings.
+- Current-line highlight, and a full-width PC-line background in addition to the gutter arrow.
+- Vector breakpoint and PC glyphs, a gutter background and separator from the theme, and line numbers in secondary text.
+- Syntax colours defined for light and dark themes (the `.xshd` file references theme colours).
+
+### 3.8 Console
+
+- Monospace output on a terminal-style background.
+- An inline input row with a prompt marker; the waiting-for-input state highlights the input row rather than the whole panel border.
+
+### 3.9 Dialogs
+
+- Preferences, About and Examples use the theme spacing, a standard button row (default and cancel), and the platform's button order.
+
+### 3.10 Empty and connection states
+
+- An empty-editor hint: "Open a file (⌘O) or choose an example (⇧⌘E)".
+- A connection view shown while the backend starts or after it fails, with the error and a retry button (uses 1.6), in place of a blank window.
+- The error bar (1.1) uses the theme's error colours and an icon.
+
+### 3.11 Platform conventions
+
+- Key gestures use the platform modifier: `⌘` on macOS, `Ctrl` elsewhere (Avalonia `PlatformHotkeyConfiguration` or per-platform bindings).
+- macOS: a native application menu (`NativeMenu`) with About, Preferences (⌘,) and Quit, plus File, Debug and Window menus. Windows and Linux keep the in-window menu bar.
+- Debug menu items mirror the toolbar, with shortcuts shown.
+
+### 3.12 Visual verification
+
+- Screenshot tests with Avalonia.Headless rendering the main window and each panel to PNG in light and dark themes, compared against reviewed baselines with a small pixel tolerance.
+- A side-by-side review against the Swift GUI for each panel before closing the phase.
+
+**Exit criteria:** every row in the problem table is closed; screenshot baselines exist for light and dark themes; a side-by-side review against the Swift GUI finds no layout or typography gap.
+
+## Phase 4: Verification
+
+### 4.1 Headless UI tests
 
 Use `Avalonia.Headless.XUnit` (already referenced) with mocked services for:
 
@@ -166,7 +258,7 @@ Use `Avalonia.Headless.XUnit` (already referenced) with mocked services for:
 - Console input is sent and cleared.
 - Panels bind to their child view models (memory, stack and disassembly show data).
 
-### 3.2 Integration suite
+### 4.2 Integration suite
 
 - Fix the three integration fixtures. **Decision needed:**
   - Add `.org 0x8000` to the breakpoint test.
@@ -175,16 +267,16 @@ Use `Avalonia.Headless.XUnit` (already referenced) with mocked services for:
 - Replace `[Fact(Skip = ...)]` with a trait-filtered run that starts a backend: CI builds the Go binary, starts it on a free port and runs `dotnet test --filter-trait Category=Integration` against it.
 - Add a WebSocket integration test: subscribe, step, and receive a state event with registers.
 
-### 3.3 Cross-platform CI
+### 4.3 Cross-platform CI
 
 - Run the Avalonia unit tests on macOS and Windows as well as Ubuntu.
 - Run the headless UI tests on all three.
 
 **Exit criteria:** integration tests run unskipped in CI; headless UI tests cover the flows above on three platforms.
 
-## Phase 4: Parity and polish
+## Phase 5: Parity and polish
 
-### 4.1 Parity check against the Swift GUI
+### 5.1 Parity check against the Swift GUI
 
 Check each item against the Swift GUI and record the result in this file:
 
@@ -200,14 +292,13 @@ Check each item against the Swift GUI and record the result in this file:
 | Files | Examples browser search and preview |
 | Shortcuts | Every Swift shortcut has an Avalonia binding; `KEYBOARD_SHORTCUTS.md` matches the bindings |
 
-### 4.2 Accessibility and layout
+### 5.2 Accessibility
 
 - Keyboard navigation through every panel; automation names on controls (partly done).
-- Minimum window size and splitter positions persisted in settings.
 
 **Exit criteria:** every parity row is checked and either matches or has a tracked follow-up.
 
-## Phase 5: Release
+## Phase 6: Release
 
 - Verify the release workflow artefacts on each platform: the app starts the bundled backend, loads an example and runs it.
 - macOS: bundle name, icon, signing status documented; backend in `Contents/Resources`.
@@ -228,12 +319,14 @@ These are backend behaviours the GUI works around today. Each needs a Go change 
 
 1. Phase 1 in task order. 1.1 and 1.2 first: they make every later failure visible.
 2. Phase 2.1 and 2.2 together (one settings file), then 2.3–2.7 in any order.
-3. Phase 3 alongside Phase 2: each Phase 2 task adds its headless test once 3.1's harness exists.
-4. Phase 4, then Phase 5.
+3. Phase 3 after Phase 1, alongside Phase 2. 3.1 (theme resources) comes first; every later view task builds on it.
+4. Phase 4 alongside Phases 2 and 3: each task adds its headless test once 4.1's harness exists. Screenshot baselines (3.12) wait for Phase 3 to settle.
+5. Phase 5, then Phase 6.
 
 ## Open decisions
 
-- Integration fixture fixes (3.2).
+- Monospace font: platform fallback list or a bundled font (3.1).
+- Integration fixture fixes (4.2).
 - Whether backend items are fixed in Go or stay as GUI workarounds.
 - Settings file location on macOS: `~/Library/Application Support` (via `ApplicationData`) or a shared location with the Swift GUI's `UserDefaults`. Sharing is not practical; separate files are assumed.
 - Whether to keep the old implementation plan in `docs/` for reference or delete it.
