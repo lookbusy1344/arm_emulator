@@ -12,10 +12,12 @@ namespace ARMEmulator.Tests;
 internal static class ReactiveUIInitializer
 {
 	[ModuleInitializer]
-	internal static void Initialize() =>
+	internal static void Initialize()
+	{
 		RxAppBuilder.CreateReactiveUIBuilder()
 			.WithMainThreadScheduler(CurrentThreadScheduler.Instance)
 			.WithTaskPoolScheduler(CurrentThreadScheduler.Instance)
 			.WithCoreServices()
 			.BuildApp();
+	}
 }

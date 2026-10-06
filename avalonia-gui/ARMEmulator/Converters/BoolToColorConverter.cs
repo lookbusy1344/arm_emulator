@@ -12,7 +12,7 @@ public class BoolToColorConverter : IValueConverter
 {
 	public static readonly BoolToColorConverter Instance = new();
 
-	private static readonly IBrush TrueBrush = new SolidColorBrush(Color.FromRgb(0, 200, 0));
+	private static readonly Color TrueColor = Color.FromRgb(0, 200, 0);
 	private static readonly IBrush FalseBrush = Brushes.Gray;
 
 	public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
@@ -21,7 +21,8 @@ public class BoolToColorConverter : IValueConverter
 			return FalseBrush;
 		}
 
-		return boolValue ? TrueBrush : FalseBrush;
+		// A brush belongs to the thread that creates it, so each call makes its own
+		return boolValue ? new SolidColorBrush(TrueColor) : FalseBrush;
 	}
 
 	public object? ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)

@@ -1,5 +1,6 @@
 using System.Globalization;
 using ARMEmulator.Converters;
+using ARMEmulator.Tests.Ui;
 using Avalonia.Media;
 using AwesomeAssertions;
 using Xunit;
@@ -15,16 +16,16 @@ public class BoolToColorConverterTests
 	private readonly CultureInfo culture = CultureInfo.InvariantCulture;
 
 	[Fact]
-	public void Convert_TrueValue_ReturnsGreenBrush()
-	{
-		var result = converter.Convert(true, typeof(IBrush), null, culture);
+	public Task Convert_TrueValue_ReturnsGreenBrush() =>
+		UiTest.RunOnUiThread(() => {
+			var result = converter.Convert(true, typeof(IBrush), null, culture);
 
-		result.Should().BeOfType<SolidColorBrush>();
-		var brush = (SolidColorBrush)result!;
-		brush.Color.G.Should().Be(200); // Green component
-		brush.Color.R.Should().Be(0);
-		brush.Color.B.Should().Be(0);
-	}
+			result.Should().BeOfType<SolidColorBrush>();
+			var brush = (SolidColorBrush)result!;
+			brush.Color.G.Should().Be(200); // Green component
+			brush.Color.R.Should().Be(0);
+			brush.Color.B.Should().Be(0);
+		});
 
 	[Fact]
 	public void Convert_FalseValue_ReturnsGrayBrush()

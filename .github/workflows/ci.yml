@@ -113,20 +113,24 @@ jobs:
         if: runner.os != 'Windows'
         run: go build -o arm-emulator
 
-      # The integration tests run against this backend instead of skipping. Windows runs the unit and UI tests only.
-      - name: Start Go backend
+      # The integration tests run against a backend started in this step, because the runner ends background
+      # processes when a step finishes. Windows runs the unit and UI tests only.
+      - name: Run Avalonia tests (with backend)
         if: runner.os != 'Windows'
+        working-directory: avalonia-gui
         run: |
           port=$(python3 -c 'import socket; s = socket.socket(); s.bind(("", 0)); print(s.getsockname()[1])')
-          ./arm-emulator -api-server -port "$port" > backend.log 2>&1 &
-          echo "ARM_EMULATOR_URL=http://localhost:$port" >> "$GITHUB_ENV"
+          ../arm-emulator -api-server -port "$port" > ../backend.log 2>&1 &
+          backend_pid=$!
+          trap 'kill $backend_pid' EXIT
           for attempt in $(seq 1 50); do
-            curl -sf "http://localhost:$port/health" && exit 0
+            curl -sf "http://localhost:$port/health" && break
             sleep 0.2
           done
-          cat backend.log
-          exit 1
+          curl -sf "http://localhost:$port/health" || { cat ../backend.log; exit 1; }
+          ARM_EMULATOR_URL="http://localhost:$port" dotnet test --no-build --verbosity normal
 
-      - name: Run Avalonia tests
+      - name: Run Avalonia tests (without backend)
+        if: runner.os == 'Windows'
         working-directory: avalonia-gui
         run: dotnet test --no-build --verbosity normal

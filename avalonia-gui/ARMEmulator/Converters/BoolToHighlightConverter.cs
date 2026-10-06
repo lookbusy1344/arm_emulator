@@ -9,13 +9,14 @@ namespace ARMEmulator.Converters;
 /// </summary>
 public class BoolToHighlightConverter : IValueConverter
 {
-	private static readonly IBrush HighlightBrush = new SolidColorBrush(Color.FromRgb(255, 255, 200)); // Light yellow
+	private static readonly Color HighlightColor = Color.FromRgb(255, 255, 200); // Light yellow
 	private static readonly IBrush NormalBrush = Brushes.Transparent;
 
 	public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
 	{
 		if (value is bool isHighlighted && isHighlighted) {
-			return HighlightBrush;
+			// A brush belongs to the thread that creates it, so each call makes its own
+			return new SolidColorBrush(HighlightColor);
 		}
 
 		return NormalBrush;

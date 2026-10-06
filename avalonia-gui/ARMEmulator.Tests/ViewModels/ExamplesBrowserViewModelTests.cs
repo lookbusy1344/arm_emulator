@@ -1,8 +1,11 @@
+using System.Reactive.Linq;
+using System.Reactive.Threading.Tasks;
 using ARMEmulator.Models;
 using ARMEmulator.Services;
 using ARMEmulator.ViewModels;
 using AwesomeAssertions;
 using NSubstitute;
+using ReactiveUI.Reactive;
 
 namespace ARMEmulator.Tests.ViewModels;
 
@@ -11,6 +14,8 @@ namespace ARMEmulator.Tests.ViewModels;
 /// </summary>
 public sealed class ExamplesBrowserViewModelTests
 {
+	private static readonly TimeSpan FilterTimeout = TimeSpan.FromSeconds(10);
+
 	[Fact]
 	public async Task Constructor_LoadsExamplesAsync()
 	{
@@ -48,8 +53,9 @@ public sealed class ExamplesBrowserViewModelTests
 		await vm.LoadExamplesAsync();
 
 		// Act
+		var filtered = vm.WhenAnyValue(x => x.FilteredExamples).Skip(1).FirstAsync().ToTask(TestContext.Current.CancellationToken);
 		vm.SearchText = "fib";
-		await Task.Delay(350, TestContext.Current.CancellationToken); // Wait for throttle
+		_ = await filtered.WaitAsync(FilterTimeout, TestContext.Current.CancellationToken); // The search is throttled
 
 		// Assert
 		vm.FilteredExamples.Should().HaveCount(1);
@@ -70,8 +76,9 @@ public sealed class ExamplesBrowserViewModelTests
 		await vm.LoadExamplesAsync();
 
 		// Act
+		var filtered = vm.WhenAnyValue(x => x.FilteredExamples).Skip(1).FirstAsync().ToTask(TestContext.Current.CancellationToken);
 		vm.SearchText = "HELLO";
-		await Task.Delay(350, TestContext.Current.CancellationToken); // Wait for throttle
+		_ = await filtered.WaitAsync(FilterTimeout, TestContext.Current.CancellationToken); // The search is throttled
 
 		// Assert
 		vm.FilteredExamples.Should().HaveCount(1);
@@ -92,8 +99,9 @@ public sealed class ExamplesBrowserViewModelTests
 		await vm.LoadExamplesAsync();
 
 		// Act
+		var filtered = vm.WhenAnyValue(x => x.FilteredExamples).Skip(1).FirstAsync().ToTask(TestContext.Current.CancellationToken);
 		vm.SearchText = "loop";
-		await Task.Delay(350, TestContext.Current.CancellationToken); // Wait for throttle
+		_ = await filtered.WaitAsync(FilterTimeout, TestContext.Current.CancellationToken); // The search is throttled
 
 		// Assert
 		vm.FilteredExamples.Should().HaveCount(2);
@@ -113,8 +121,9 @@ public sealed class ExamplesBrowserViewModelTests
 		await vm.LoadExamplesAsync();
 
 		// Act
+		var previewLoaded = vm.WhenAnyValue(x => x.PreviewContent).Where(content => content.Contains("MOV R0, #42", StringComparison.Ordinal)).FirstAsync().ToTask(TestContext.Current.CancellationToken);
 		vm.SelectedExample = vm.Examples[0];
-		await Task.Delay(150, TestContext.Current.CancellationToken); // Wait for debounce
+		_ = await previewLoaded.WaitAsync(FilterTimeout, TestContext.Current.CancellationToken); // The preview load is debounced
 
 		// Assert
 		vm.PreviewContent.Should().Contain("MOV R0, #42");

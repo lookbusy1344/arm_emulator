@@ -1,5 +1,6 @@
 using System.Globalization;
 using ARMEmulator.Converters;
+using ARMEmulator.Tests.Ui;
 using Avalonia.Media;
 using AwesomeAssertions;
 using Xunit;
@@ -15,18 +16,18 @@ public class RegisterHighlightConverterTests
 	private readonly CultureInfo culture = CultureInfo.InvariantCulture;
 
 	[Fact]
-	public void Convert_RegisterInChangedSet_ReturnsHighlightBrush()
-	{
-		var registerName = "R0";
-		var changedRegisters = ImmutableHashSet.Create("R0", "R1", "R2");
+	public Task Convert_RegisterInChangedSet_ReturnsHighlightBrush() =>
+		UiTest.RunOnUiThread(() => {
+			var registerName = "R0";
+			var changedRegisters = ImmutableHashSet.Create("R0", "R1", "R2");
 
-		var result = converter.Convert([registerName, changedRegisters], typeof(IBrush), null, culture);
+			var result = converter.Convert([registerName, changedRegisters], typeof(IBrush), null, culture);
 
-		result.Should().BeOfType<SolidColorBrush>();
-		var brush = (SolidColorBrush)result!;
-		brush.Color.A.Should().Be(128); // Semi-transparent green
-		brush.Color.G.Should().Be(255);
-	}
+			result.Should().BeOfType<SolidColorBrush>();
+			var brush = (SolidColorBrush)result!;
+			brush.Color.A.Should().Be(128); // Semi-transparent green
+			brush.Color.G.Should().Be(255);
+		});
 
 	[Fact]
 	public void Convert_RegisterNotInChangedSet_ReturnsTransparentBrush()
@@ -51,26 +52,26 @@ public class RegisterHighlightConverterTests
 	}
 
 	[Fact]
-	public void Convert_CpsrInChangedSet_ReturnsHighlightBrush()
-	{
-		var registerName = "CPSR";
-		var changedRegisters = ImmutableHashSet.Create("CPSR");
+	public Task Convert_CpsrInChangedSet_ReturnsHighlightBrush() =>
+		UiTest.RunOnUiThread(() => {
+			var registerName = "CPSR";
+			var changedRegisters = ImmutableHashSet.Create("CPSR");
 
-		var result = converter.Convert([registerName, changedRegisters], typeof(IBrush), null, culture);
+			var result = converter.Convert([registerName, changedRegisters], typeof(IBrush), null, culture);
 
-		result.Should().BeOfType<SolidColorBrush>();
-	}
+			result.Should().BeOfType<SolidColorBrush>();
+		});
 
 	[Fact]
-	public void Convert_SpecialRegisterInChangedSet_ReturnsHighlightBrush()
-	{
-		var registerName = "PC";
-		var changedRegisters = ImmutableHashSet.Create("PC");
+	public Task Convert_SpecialRegisterInChangedSet_ReturnsHighlightBrush() =>
+		UiTest.RunOnUiThread(() => {
+			var registerName = "PC";
+			var changedRegisters = ImmutableHashSet.Create("PC");
 
-		var result = converter.Convert([registerName, changedRegisters], typeof(IBrush), null, culture);
+			var result = converter.Convert([registerName, changedRegisters], typeof(IBrush), null, culture);
 
-		result.Should().BeOfType<SolidColorBrush>();
-	}
+			result.Should().BeOfType<SolidColorBrush>();
+		});
 
 	[Fact]
 	public void Convert_InvalidValueCount_ReturnsTransparentBrush()

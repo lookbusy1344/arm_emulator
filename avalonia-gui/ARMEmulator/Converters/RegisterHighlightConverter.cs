@@ -13,7 +13,7 @@ public class RegisterHighlightConverter : IMultiValueConverter
 	public static readonly RegisterHighlightConverter Instance = new();
 
 	// Green highlight for changed registers
-	private static readonly IBrush HighlightBrush = new SolidColorBrush(Color.FromArgb(128, 0, 255, 0));
+	private static readonly Color HighlightColor = Color.FromArgb(128, 0, 255, 0);
 	private static readonly IBrush NormalBrush = Brushes.Transparent;
 
 	public object? Convert(IList<object?> values, Type targetType, object? parameter, CultureInfo culture)
@@ -32,6 +32,6 @@ public class RegisterHighlightConverter : IMultiValueConverter
 			return NormalBrush;
 		}
 
-		return changedRegisters.Contains(registerName) ? HighlightBrush : NormalBrush;
+		return changedRegisters.Contains(registerName) ? new SolidColorBrush(HighlightColor) : NormalBrush;
 	}
 }

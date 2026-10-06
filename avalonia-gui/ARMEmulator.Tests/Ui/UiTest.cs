@@ -10,6 +10,21 @@ internal static class UiTest
 {
 	private static readonly Lazy<HeadlessUnitTestSession> Session = new(() => HeadlessUnitTestSession.StartNew(typeof(TestAppBuilder)));
 
+	/// <summary>
+	/// Starts the session. Run once per test assembly, before any test touches Avalonia: the first thread to use the
+	/// dispatcher owns it, and the session must be that thread.
+	/// </summary>
+	internal static void EnsureStarted() => _ = Session.Value;
+
+	/// <summary>Runs <paramref name="body"/> on the UI thread. Avalonia objects such as brushes may only be read there.</summary>
+	public static Task RunOnUiThread(Action body) =>
+		Session.Value.Dispatch(
+			() => {
+				body();
+				return true;
+			},
+			TestContext.Current.CancellationToken);
+
 	/// <summary>Shows a main window over mocked services, runs <paramref name="body"/> against it, then closes it.</summary>
 	public static Task RunAsync(Func<MainWindowHarness, Task> body) =>
 		Session.Value.Dispatch(

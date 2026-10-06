@@ -6,7 +6,11 @@ namespace ARMEmulator.Tests.Services;
 
 public sealed class StartupArgumentsTests
 {
-	private const string WorkingDirectory = "/home/user/work";
+	private static readonly string WorkingDirectory = Path.Combine(Path.GetTempPath(), "work");
+
+	private static string InWorkingDirectory(string name) => Path.Combine(WorkingDirectory, name);
+	private static readonly string AbsoluteOne = Path.Combine(Path.GetTempPath(), "a", "one.s");
+	private static readonly string AbsoluteTwo = Path.Combine(Path.GetTempPath(), "b", "two.s");
 
 	[Fact]
 	public void FindSourceFile_WithNoArguments_ReturnsNull() =>
@@ -14,20 +18,20 @@ public sealed class StartupArgumentsTests
 
 	[Fact]
 	public void FindSourceFile_ReturnsTheFirstAssemblyFile() =>
-		StartupArguments.FindSourceFile(["/a/one.s", "/b/two.s"], WorkingDirectory).Should().Be("/a/one.s");
+		StartupArguments.FindSourceFile([AbsoluteOne, AbsoluteTwo], WorkingDirectory).Should().Be(AbsoluteOne);
 
 	[Fact]
 	public void FindSourceFile_IgnoresFlagsAndOtherFiles() =>
 		StartupArguments.FindSourceFile(["--verbose", "notes.txt", "-x.s", "prog.s"], WorkingDirectory)
-			.Should().Be("/home/user/work/prog.s");
+			.Should().Be(InWorkingDirectory("prog.s"));
 
 	[Fact]
 	public void FindSourceFile_ResolvesRelativePathsAgainstTheWorkingDirectory() =>
-		StartupArguments.FindSourceFile(["examples/../prog.s"], WorkingDirectory).Should().Be("/home/user/work/prog.s");
+		StartupArguments.FindSourceFile(["examples/../prog.s"], WorkingDirectory).Should().Be(InWorkingDirectory("prog.s"));
 
 	[Fact]
 	public void FindSourceFile_MatchesTheExtensionIgnoringCase() =>
-		StartupArguments.FindSourceFile(["PROG.S"], WorkingDirectory).Should().Be("/home/user/work/PROG.S");
+		StartupArguments.FindSourceFile(["PROG.S"], WorkingDirectory).Should().Be(InWorkingDirectory("PROG.S"));
 
 	[Fact]
 	public void FindSourceFile_RequiresTheExtensionToEndTheName() =>
