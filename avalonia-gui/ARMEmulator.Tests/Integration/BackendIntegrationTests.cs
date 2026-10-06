@@ -13,6 +13,8 @@ namespace ARMEmulator.Tests.Integration;
 [Trait("Category", "Integration")]
 public sealed class BackendIntegrationTests : IDisposable
 {
+	private const uint ProgramBase = 0x00008000;
+
 	private readonly HttpClient _httpClient;
 	private readonly ApiClient _apiClient;
 	private readonly CancellationTokenSource _cts;
@@ -27,10 +29,8 @@ public sealed class BackendIntegrationTests : IDisposable
 		_cts = new CancellationTokenSource();
 	}
 
-#pragma warning disable xUnit1004 // Integration tests are skipped by default
-	[Fact(Skip = "Requires running backend at localhost:8080 - remove Skip to enable")]
+	[Fact(SkipUnless = nameof(BackendAvailability.IsRunning), SkipType = typeof(BackendAvailability), Skip = BackendAvailability.SkipReason)]
 	public async Task HealthCheck_BackendAvailable_ReturnsVersion()
-#pragma warning restore xUnit1004
 	{
 		// Act
 		var version = await _apiClient.GetVersionAsync(_cts.Token);
@@ -41,13 +41,12 @@ public sealed class BackendIntegrationTests : IDisposable
 		version.Commit.Should().NotBeNullOrEmpty();
 	}
 
-#pragma warning disable xUnit1004
-	[Fact(Skip = "Requires running backend at localhost:8080 - remove Skip to enable")]
+	[Fact(SkipUnless = nameof(BackendAvailability.IsRunning), SkipType = typeof(BackendAvailability), Skip = BackendAvailability.SkipReason)]
 	public async Task FullExecutionCycle_LoadStepRun_CompletesSuccessfully()
-#pragma warning restore xUnit1004
 	{
 		// Arrange - Simple program that adds two numbers
 		const string program = """
+            .org 0x8000
             .text
             .global _start
 
@@ -66,11 +65,12 @@ public sealed class BackendIntegrationTests : IDisposable
 		try {
 			// Act - Load program
 			var loadResponse = await _apiClient.LoadProgramAsync(session.SessionId, program, _cts.Token);
-			loadResponse.Symbols.Should().ContainKey("_start");
+			loadResponse.Symbols.Should().ContainKey("_start").WhoseValue.Should().Be(ProgramBase);
 
-			// Act - Get initial status
+			// Act - Get initial status (a loaded, unstarted program reports halted at its entry point)
 			var status = await _apiClient.GetStatusAsync(session.SessionId, _cts.Token);
-			status.State.Should().Be(VMState.Idle);
+			status.State.Should().Be(VMState.Halted);
+			status.PC.Should().Be(ProgramBase);
 
 			// Act - Step through first instruction (MOV R0, #5)
 			var registers = await _apiClient.StepAsync(session.SessionId, _cts.Token);
@@ -100,10 +100,8 @@ public sealed class BackendIntegrationTests : IDisposable
 		}
 	}
 
-#pragma warning disable xUnit1004
-	[Fact(Skip = "Requires running backend at localhost:8080 - remove Skip to enable")]
+	[Fact(SkipUnless = nameof(BackendAvailability.IsRunning), SkipType = typeof(BackendAvailability), Skip = BackendAvailability.SkipReason)]
 	public async Task LoadProgram_WithSyntaxError_ThrowsProgramLoadException()
-#pragma warning restore xUnit1004
 	{
 		// Arrange
 		const string invalidProgram = """
@@ -127,13 +125,12 @@ public sealed class BackendIntegrationTests : IDisposable
 		}
 	}
 
-#pragma warning disable xUnit1004
-	[Fact(Skip = "Requires running backend at localhost:8080 - remove Skip to enable")]
+	[Fact(SkipUnless = nameof(BackendAvailability.IsRunning), SkipType = typeof(BackendAvailability), Skip = BackendAvailability.SkipReason)]
 	public async Task Breakpoints_AddAndRemove_WorksCorrectly()
-#pragma warning restore xUnit1004
 	{
 		// Arrange
 		const string program = """
+            .org 0x8000
             .text
             .global _start
 
@@ -168,18 +165,17 @@ public sealed class BackendIntegrationTests : IDisposable
 		}
 	}
 
-#pragma warning disable xUnit1004
-	[Fact(Skip = "Requires running backend at localhost:8080 - remove Skip to enable")]
+	[Fact(SkipUnless = nameof(BackendAvailability.IsRunning), SkipType = typeof(BackendAvailability), Skip = BackendAvailability.SkipReason)]
 	public async Task Memory_ReadAndWrite_ReturnsCorrectData()
-#pragma warning restore xUnit1004
 	{
 		// Arrange
 		const string program = """
+            .org 0x8000
             .text
             .global _start
 
             _start:
-                MOV R0, #0x12345678
+                LDR R0, =0x12345678
                 SWI 0
             """;
 
@@ -194,21 +190,23 @@ public sealed class BackendIntegrationTests : IDisposable
 			// Act - Read memory at PC (program start)
 			var memory = await _apiClient.GetMemoryAsync(session.SessionId, 0x00008000, 16, _cts.Token);
 
-			// Assert - Should have read 16 bytes
+			// Assert - LDR R0, [PC, #0] = 0xE59F0000 at 0x8000 (little-endian), SWI at 0x8004,
+			// literal pool word 0x12345678 at 0x8008 (PC reads 8 ahead, so offset 0 reaches it)
 			memory.Length.Should().Be(16);
+			memory.AsSpan(0, 4).ToArray().Should().Equal(0x00, 0x00, 0x9F, 0xE5);
+			memory.AsSpan(8, 4).ToArray().Should().Equal(0x78, 0x56, 0x34, 0x12);
 		}
 		finally {
 			await _apiClient.DestroySessionAsync(session.SessionId, _cts.Token);
 		}
 	}
 
-#pragma warning disable xUnit1004
-	[Fact(Skip = "Requires running backend at localhost:8080 - remove Skip to enable")]
+	[Fact(SkipUnless = nameof(BackendAvailability.IsRunning), SkipType = typeof(BackendAvailability), Skip = BackendAvailability.SkipReason)]
 	public async Task Disassembly_GetInstructions_ReturnsFormattedCode()
-#pragma warning restore xUnit1004
 	{
 		// Arrange
 		const string program = """
+            .org 0x8000
             .text
             .global _start
 
@@ -237,10 +235,8 @@ public sealed class BackendIntegrationTests : IDisposable
 		}
 	}
 
-#pragma warning disable xUnit1004
-	[Fact(Skip = "Requires running backend at localhost:8080 - remove Skip to enable")]
+	[Fact(SkipUnless = nameof(BackendAvailability.IsRunning), SkipType = typeof(BackendAvailability), Skip = BackendAvailability.SkipReason)]
 	public async Task ExpressionEvaluation_ValidExpression_ReturnsValue()
-#pragma warning restore xUnit1004
 	{
 		// Arrange
 		const string program = """
@@ -267,10 +263,8 @@ public sealed class BackendIntegrationTests : IDisposable
 		}
 	}
 
-#pragma warning disable xUnit1004
-	[Fact(Skip = "Requires running backend at localhost:8080 - remove Skip to enable")]
+	[Fact(SkipUnless = nameof(BackendAvailability.IsRunning), SkipType = typeof(BackendAvailability), Skip = BackendAvailability.SkipReason)]
 	public async Task ExpressionEvaluation_InvalidExpression_ThrowsException()
-#pragma warning restore xUnit1004
 	{
 		// Arrange
 		var session = await _apiClient.CreateSessionAsync(_cts.Token);
@@ -290,10 +284,8 @@ public sealed class BackendIntegrationTests : IDisposable
 		}
 	}
 
-#pragma warning disable xUnit1004
-	[Fact(Skip = "Requires running backend at localhost:8080 - remove Skip to enable")]
+	[Fact(SkipUnless = nameof(BackendAvailability.IsRunning), SkipType = typeof(BackendAvailability), Skip = BackendAvailability.SkipReason)]
 	public async Task SessionNotFound_ThrowsSessionNotFoundException()
-#pragma warning restore xUnit1004
 	{
 		// Arrange
 		const string nonExistentSessionId = "does-not-exist";
