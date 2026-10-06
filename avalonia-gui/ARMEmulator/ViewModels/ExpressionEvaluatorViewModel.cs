@@ -2,7 +2,7 @@ using System.Globalization;
 using System.Reactive;
 using ARMEmulator.Models;
 using ARMEmulator.Services;
-using ReactiveUI;
+using ReactiveUI.Reactive;
 
 // ReactiveUI uses reflection for WhenAnyValue and RaiseAndSetIfChanged, which triggers IL2026 warnings
 // This is acceptable since we don't use AOT compilation for this project

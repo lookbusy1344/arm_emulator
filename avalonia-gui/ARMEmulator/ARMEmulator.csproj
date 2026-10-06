@@ -42,7 +42,7 @@
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
-    <PackageReference Include="Roslynator.Analyzers" Version="5.0.0">
+    <PackageReference Include="Roslynator.Analyzers" Version="5.0.1">
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
@@ -56,18 +56,14 @@
     <PackageReference Include="Avalonia.Fonts.Inter" Version="12.1.*" />
 
     <!-- MVVM - ReactiveUI -->
-    <PackageReference Include="ReactiveUI" Version="23.*" />
-    <PackageReference Include="ReactiveUI.Avalonia" Version="12.0.*" />
+    <PackageReference Include="ReactiveUI.Reactive" Version="26.*" />
+    <PackageReference Include="ReactiveUI.Avalonia.Reactive" Version="12.1.*" />
 
     <!-- Syntax Highlighting -->
     <PackageReference Include="Avalonia.AvaloniaEdit" Version="12.*" />
 
     <!-- Reactive Extensions -->
     <PackageReference Include="System.Reactive" Version="7.*" />
-
-    <!-- DI & Configuration -->
-    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.*" />
-    <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="10.*" />
   </ItemGroup>
 
   <!-- Backend Binary Bundling (Phase 10) -->

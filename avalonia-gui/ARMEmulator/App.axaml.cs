@@ -33,8 +33,8 @@ public partial class App : Application
 #pragma warning disable CA2000 // Owned by the application lifetime and disposed in the Exit handler below
 		var backend = new BackendManager(settings.BackendUrl);
 		var http = new HttpClient { BaseAddress = baseUri };
-#pragma warning restore CA2000
 		var ws = new WebSocketClient(BackendEndpoints.WebSocketUri(baseUri).ToString());
+#pragma warning restore CA2000
 		var viewModel = new MainWindowViewModel(new ApiClient(http), ws, new FileService());
 
 		desktop.MainWindow = new MainWindow(viewModel);

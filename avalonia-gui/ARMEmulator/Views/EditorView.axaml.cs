@@ -9,8 +9,8 @@ using ARMEmulator.ViewModels;
 using Avalonia.Controls;
 using AvaloniaEdit.Highlighting;
 using AvaloniaEdit.Highlighting.Xshd;
-using ReactiveUI;
-using ReactiveUI.Avalonia;
+using ReactiveUI.Avalonia.Reactive;
+using ReactiveUI.Reactive;
 
 // ReactiveUI uses reflection for WhenAnyValue and WhenActivated, which triggers IL2026 warnings
 // This is acceptable since we don't use AOT compilation for this project
@@ -61,11 +61,11 @@ public partial class EditorView : ReactiveUserControl<MainWindowViewModel>
 				.Subscribe(lines => gutterMargin.BreakpointLines = lines)
 				.DisposeWith(disposables);
 
-			// Bind PC (address-based) to gutter (line-based)
+			// Bind PC (address-based) to gutter (line-based). RegisterState is immutable and replaced on change.
 			_ = this.WhenAnyValue(
-					x => x.ViewModel!.Registers.PC,
+					x => x.ViewModel!.Registers,
 					x => x.ViewModel!.AddressToLine,
-					(pc, addressToLine) => addressToLine.TryGetValue(pc, out var line) ? line : (int?)null)
+					(registers, addressToLine) => addressToLine.TryGetValue(registers.PC, out var line) ? line : (int?)null)
 				.Subscribe(line => gutterMargin.CurrentPCLine = line)
 				.DisposeWith(disposables);
 

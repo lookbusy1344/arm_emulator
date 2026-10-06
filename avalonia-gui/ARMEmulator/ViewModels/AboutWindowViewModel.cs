@@ -1,6 +1,6 @@
 using System.Reflection;
 using ARMEmulator.Services;
-using ReactiveUI;
+using ReactiveUI.Reactive;
 
 // ReactiveUI uses reflection for WhenAnyValue and RaiseAndSetIfChanged
 #pragma warning disable IL2026

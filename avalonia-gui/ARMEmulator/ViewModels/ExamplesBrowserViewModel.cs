@@ -3,7 +3,7 @@ using System.Reactive.Disposables.Fluent;
 using System.Reactive.Linq;
 using ARMEmulator.Models;
 using ARMEmulator.Services;
-using ReactiveUI;
+using ReactiveUI.Reactive;
 
 // ReactiveUI uses reflection for WhenAnyValue and RaiseAndSetIfChanged
 #pragma warning disable IL2026

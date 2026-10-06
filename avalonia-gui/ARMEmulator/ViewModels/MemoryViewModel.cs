@@ -4,7 +4,7 @@ using System.Reactive.Disposables;
 using System.Reactive.Disposables.Fluent;
 using ARMEmulator.Models;
 using ARMEmulator.Services;
-using ReactiveUI;
+using ReactiveUI.Reactive;
 
 // ReactiveUI uses reflection which triggers IL2026 warnings
 #pragma warning disable IL2026

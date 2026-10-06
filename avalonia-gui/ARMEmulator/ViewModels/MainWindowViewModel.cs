@@ -6,7 +6,7 @@ using ARMEmulator.Models;
 using ARMEmulator.Services;
 using ARMEmulator.Views;
 using Avalonia.Controls;
-using ReactiveUI;
+using ReactiveUI.Reactive;
 
 // ReactiveUI uses reflection for WhenAnyValue and RaiseAndSetIfChanged, which triggers IL2026 warnings
 // This is acceptable since we don't use AOT compilation for this project
@@ -85,13 +85,11 @@ public class MainWindowViewModel : ReactiveObject, IDisposable
 			.DisposeWith(disposables);
 
 		// Set up status indicator properties
-		statusColorHelper = this.WhenAnyValue(x => x.Status, x => x.IsConnected)
-			.Select(tuple => GetStatusColor(tuple.Item1, tuple.Item2))
+		statusColorHelper = this.WhenAnyValue(x => x.Status, x => x.IsConnected, GetStatusColor)
 			.ToProperty(this, x => x.StatusColor)
 			.DisposeWith(disposables);
 
-		statusTextHelper = this.WhenAnyValue(x => x.Status, x => x.IsConnected)
-			.Select(tuple => GetStatusText(tuple.Item1, tuple.Item2))
+		statusTextHelper = this.WhenAnyValue(x => x.Status, x => x.IsConnected, GetStatusText)
 			.ToProperty(this, x => x.StatusText)
 			.DisposeWith(disposables);
 
@@ -537,9 +535,9 @@ public class MainWindowViewModel : ReactiveObject, IDisposable
 			.Subscribe(Memory.UpdateMemoryWrite)
 			.DisposeWith(disposables);
 
-		_ = this.WhenAnyValue(x => x.Registers, x => x.Status)
-			.Where(x => x.Item2 != VMState.Running && SessionId is not null)
-			.Select(x => x.Item1)
+		_ = this.WhenAnyValue(x => x.Registers, x => x.Status, static (registers, status) => (registers, status))
+			.Where(x => x.status != VMState.Running && SessionId is not null)
+			.Select(static x => x.registers)
 			.DistinctUntilChanged()
 			.SelectMany(async _ => {
 				await Stack.RefreshStackAsync();
