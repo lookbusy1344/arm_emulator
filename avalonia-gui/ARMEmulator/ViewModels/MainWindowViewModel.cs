@@ -25,6 +25,7 @@ public class MainWindowViewModel : ReactiveObject, IDisposable
 	private readonly IFileService fileService;
 	private readonly CompositeDisposable disposables = [];
 	private readonly Subject<string> registerHighlightTrigger = new();
+	private readonly Subject<int> scrollToLineRequests = new();
 	private static readonly TimeSpan HighlightDuration = TimeSpan.FromSeconds(1.5);
 
 	// Window reference for showing dialogs (set by MainWindow)
@@ -278,6 +279,9 @@ public class MainWindowViewModel : ReactiveObject, IDisposable
 	public ReactiveCommand<Unit, Unit> ResetCommand { get; }
 	public ReactiveCommand<Unit, Unit> LoadProgramCommand { get; }
 	public ReactiveCommand<Unit, Unit> ShowPcCommand { get; }
+
+	/// <summary>Source line numbers the editor should bring into view, emitted when the PC moves or Show PC runs.</summary>
+	public IObservable<int> ScrollToLineRequests => scrollToLineRequests;
 	public ReactiveCommand<Unit, Unit> SendInputCommand { get; }
 
 	// File operation commands
@@ -426,6 +430,7 @@ public class MainWindowViewModel : ReactiveObject, IDisposable
 
 		var newRegisters = await api.StepAsync(SessionId, ct);
 		UpdateRegisters(newRegisters);
+		RequestScrollToPc();
 	}
 
 	private async Task StepOverAsync(CancellationToken ct)
@@ -436,6 +441,7 @@ public class MainWindowViewModel : ReactiveObject, IDisposable
 
 		var newRegisters = await api.StepOverAsync(SessionId, ct);
 		UpdateRegisters(newRegisters);
+		RequestScrollToPc();
 	}
 
 	private async Task StepOutAsync(CancellationToken ct)
@@ -446,6 +452,7 @@ public class MainWindowViewModel : ReactiveObject, IDisposable
 
 		var newRegisters = await api.StepOutAsync(SessionId, ct);
 		UpdateRegisters(newRegisters);
+		RequestScrollToPc();
 	}
 
 	private async Task ResetAsync(CancellationToken ct)
@@ -567,8 +574,15 @@ public class MainWindowViewModel : ReactiveObject, IDisposable
 
 	private Task ShowPcAsync(CancellationToken ct)
 	{
-		// TODO: Implement scroll-to-PC logic (will be handled by EditorView)
+		RequestScrollToPc();
 		return Task.CompletedTask;
+	}
+
+	private void RequestScrollToPc()
+	{
+		if (AddressToLine.TryGetValue(Registers.PC, out var line)) {
+			scrollToLineRequests.OnNext(line);
+		}
 	}
 
 	/// <summary>
@@ -805,6 +819,10 @@ public class MainWindowViewModel : ReactiveObject, IDisposable
 
 		Status = status.State;
 		LastMemoryWrite = status.LastWrite;
+		if (status.State != VMState.Running) {
+			RequestScrollToPc();
+		}
+
 		return true;
 	}
 
@@ -825,6 +843,7 @@ public class MainWindowViewModel : ReactiveObject, IDisposable
 	private bool SetStatus(VMState state)
 	{
 		Status = state;
+		RequestScrollToPc();
 		return true;
 	}
 
@@ -832,6 +851,7 @@ public class MainWindowViewModel : ReactiveObject, IDisposable
 	{
 		Status = state;
 		ErrorMessage = msg;
+		RequestScrollToPc();
 		return true;
 	}
 
@@ -938,6 +958,7 @@ public class MainWindowViewModel : ReactiveObject, IDisposable
 	public void Dispose()
 	{
 		registerHighlightTrigger.Dispose();
+		scrollToLineRequests.Dispose();
 		disposables.Dispose();
 		GC.SuppressFinalize(this);
 	}

@@ -75,12 +75,12 @@ Makes the app safe to use for a single file. Each task is a small TDD change.
 - Gutter clicks run `ToggleBreakpointCommand`, so a failed breakpoint call is reported, not thrown from an event handler.
 - **Tests:** for each command, the API throws `ApiException` or `SessionNotFoundException`, and the test asserts the exact `ErrorMessage` and that the state is unchanged.
 
-### 1.3 Reset restarts the program
+### 1.3 Reset restarts the program (done)
 
 - `ResetAsync` calls `RestartAsync`, clears the console, refreshes registers and status, sets `Idle` and clears register highlights. This matches Swift's `reset()`.
 - **Tests:** reset calls `/restart` and not `/reset`. State after reset equals the state after load. A failure reports "Failed to restart: …".
 
-### 1.4 Follow the PC in the editor
+### 1.4 Follow the PC in the editor (done)
 
 - `ShowPcCommand` scrolls the editor to the line mapped from the PC.
 - After each step, and after any state event that stops the VM, the editor scrolls to the PC line if it lies outside the visible range.

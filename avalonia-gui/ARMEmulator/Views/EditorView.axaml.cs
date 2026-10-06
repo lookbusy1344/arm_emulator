@@ -69,6 +69,12 @@ public partial class EditorView : ReactiveUserControl<MainWindowViewModel>
 				.Subscribe(line => gutterMargin.CurrentPCLine = line)
 				.DisposeWith(disposables);
 
+			// Scroll to the PC line when the view model asks
+			_ = (ViewModel?.ScrollToLineRequests
+				.ObserveOn(RxSchedulers.MainThreadScheduler)
+				.Subscribe(ScrollToLineIfHidden)
+				.DisposeWith(disposables));
+
 			// Handle gutter clicks to toggle breakpoints
 			gutterMargin.LineClicked += OnGutterLineClicked;
 			_ = Disposable.Create(() => gutterMargin.LineClicked -= OnGutterLineClicked).DisposeWith(disposables);
@@ -83,6 +89,18 @@ public partial class EditorView : ReactiveUserControl<MainWindowViewModel>
 			.Where(addressToLine.ContainsKey)
 			.Select(addr => addressToLine[addr])
 			.ToImmutableHashSet();
+	}
+
+	private void ScrollToLineIfHidden(int line)
+	{
+		var textView = TextEditor.TextArea.TextView;
+		var isVisible = textView.VisualLinesValid
+			&& textView.VisualLines.Count > 0
+			&& line >= textView.VisualLines[0].FirstDocumentLine.LineNumber
+			&& line <= textView.VisualLines[^1].LastDocumentLine.LineNumber;
+		if (!isVisible && line <= TextEditor.Document.LineCount) {
+			TextEditor.ScrollTo(line, column: 0);
+		}
 	}
 
 	private void OnGutterLineClicked(object? sender, int lineNumber) =>

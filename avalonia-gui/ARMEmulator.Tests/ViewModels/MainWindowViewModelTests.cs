@@ -629,6 +629,96 @@ public class MainWindowViewModelTests : IDisposable
 		viewModel.ConsoleOutput.Should().Be("Hello");
 	}
 
+	private const uint PcAddress = 0x8004;
+	private const int PcLine = 7;
+
+	private MainWindowViewModel CreateViewModelWithSourceMap()
+	{
+		var viewModel = new MainWindowViewModel(mockApi, mockWs, mockFileService) {
+			SessionId = "test-session",
+			AddressToLine = ImmutableDictionary<uint, int>.Empty.Add(PcAddress, PcLine)
+		};
+		viewModel.UpdateRegisters(RegisterState.Create(pc: PcAddress));
+		return viewModel;
+	}
+
+	[Fact]
+	public async Task ShowPcCommand_EmitsLineMappedFromPc()
+	{
+		using var viewModel = CreateViewModelWithSourceMap();
+		var lines = new List<int>();
+		using var subscription = viewModel.ScrollToLineRequests.Subscribe(lines.Add);
+
+		await viewModel.ShowPcCommand.Execute();
+
+		lines.Should().Equal(PcLine);
+	}
+
+	[Fact]
+	public async Task ShowPcCommand_EmitsNothing_WhenPcHasNoSourceLine()
+	{
+		using var viewModel = CreateViewModelWithSourceMap();
+		viewModel.UpdateRegisters(RegisterState.Create(pc: 0x9000));
+		var lines = new List<int>();
+		using var subscription = viewModel.ScrollToLineRequests.Subscribe(lines.Add);
+
+		await viewModel.ShowPcCommand.Execute();
+
+		lines.Should().BeEmpty();
+	}
+
+	[Fact]
+	public async Task StepCommand_EmitsLineOfNewPc()
+	{
+		using var viewModel = CreateViewModelWithSourceMap();
+		const uint nextAddress = 0x8008;
+		const int nextLine = 9;
+		viewModel.AddressToLine = viewModel.AddressToLine.Add(nextAddress, nextLine);
+		mockApi.StepAsync("test-session", Arg.Any<CancellationToken>()).Returns(RegisterState.Create(pc: nextAddress));
+		var lines = new List<int>();
+		using var subscription = viewModel.ScrollToLineRequests.Subscribe(lines.Add);
+
+		await viewModel.StepCommand.Execute();
+
+		lines.Should().Equal(nextLine);
+	}
+
+	[Fact]
+	public void StateEvent_StoppingVm_EmitsPcLine()
+	{
+		using var viewModel = CreateViewModelWithSourceMap();
+		var lines = new List<int>();
+		using var subscription = viewModel.ScrollToLineRequests.Subscribe(lines.Add);
+
+		eventsSubject.OnNext(new StateEvent("test-session", new VMStatus(VMState.Breakpoint, PcAddress, 3), RegisterState.Create(pc: PcAddress)));
+
+		lines.Should().Equal(PcLine);
+	}
+
+	[Fact]
+	public void StateEvent_WhileRunning_EmitsNothing()
+	{
+		using var viewModel = CreateViewModelWithSourceMap();
+		var lines = new List<int>();
+		using var subscription = viewModel.ScrollToLineRequests.Subscribe(lines.Add);
+
+		eventsSubject.OnNext(new StateEvent("test-session", new VMStatus(VMState.Running, PcAddress, 3), RegisterState.Create(pc: PcAddress)));
+
+		lines.Should().BeEmpty();
+	}
+
+	[Fact]
+	public void ExecutionEvent_Halted_EmitsPcLine()
+	{
+		using var viewModel = CreateViewModelWithSourceMap();
+		var lines = new List<int>();
+		using var subscription = viewModel.ScrollToLineRequests.Subscribe(lines.Add);
+
+		eventsSubject.OnNext(new ExecutionEvent("test-session", ExecutionEventType.Halted));
+
+		lines.Should().Equal(PcLine);
+	}
+
 	[Fact]
 	public async Task ShowPCCommand_CanExecuteWithoutSession()
 	{
