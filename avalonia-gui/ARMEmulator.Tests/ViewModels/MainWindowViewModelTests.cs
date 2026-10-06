@@ -580,17 +580,53 @@ public class MainWindowViewModelTests : IDisposable
 	}
 
 	[Fact]
-	public async Task ResetCommand_CallsApi()
+	public async Task ResetCommand_RestartsProgramAndNotReset()
 	{
-		// Arrange
 		using var viewModel = new MainWindowViewModel(mockApi, mockWs, mockFileService);
 		viewModel.SessionId = "test-session";
+		mockApi.GetRegistersAsync("test-session", Arg.Any<CancellationToken>()).Returns(RegisterState.Create());
 
-		// Act
 		await viewModel.ResetCommand.Execute();
 
-		// Assert
-		await mockApi.Received(1).ResetAsync("test-session", Arg.Any<CancellationToken>());
+		await mockApi.Received(1).RestartAsync("test-session", Arg.Any<CancellationToken>());
+		await mockApi.DidNotReceive().ResetAsync(Arg.Any<string>(), Arg.Any<CancellationToken>());
+	}
+
+	[Fact]
+	public async Task ResetCommand_RestoresStateToPostLoad()
+	{
+		using var viewModel = new MainWindowViewModel(mockApi, mockWs, mockFileService);
+		viewModel.SessionId = "test-session";
+		viewModel.ConsoleOutput = "Hello";
+		viewModel.Status = VMState.Halted;
+		viewModel.UpdateRegisters(RegisterState.Create(r0: 5));
+		var freshRegisters = RegisterState.Create(r0: 0);
+		mockApi.GetRegistersAsync("test-session", Arg.Any<CancellationToken>()).Returns(freshRegisters);
+
+		await viewModel.ResetCommand.Execute();
+
+		viewModel.ConsoleOutput.Should().BeEmpty();
+		viewModel.Registers.Should().Be(freshRegisters);
+		viewModel.PreviousRegisters.Should().BeNull();
+		viewModel.ChangedRegisters.Should().BeEmpty();
+		viewModel.LastMemoryWrite.Should().BeNull();
+		viewModel.Status.Should().Be(VMState.Idle);
+		viewModel.ErrorMessage.Should().BeNull();
+	}
+
+	[Fact]
+	public async Task ResetCommand_ReportsRestartFailure()
+	{
+		using var viewModel = new MainWindowViewModel(mockApi, mockWs, mockFileService);
+		viewModel.SessionId = "test-session";
+		viewModel.ConsoleOutput = "Hello";
+		mockApi.RestartAsync("test-session", Arg.Any<CancellationToken>())
+			.Returns(Task.FromException(new ApiException("boom")));
+
+		await viewModel.ResetCommand.Execute();
+
+		viewModel.ErrorMessage.Should().Be("Failed to restart: boom");
+		viewModel.ConsoleOutput.Should().Be("Hello");
 	}
 
 	[Fact]

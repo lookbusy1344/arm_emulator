@@ -454,7 +454,26 @@ public class MainWindowViewModel : ReactiveObject, IDisposable
 			return;
 		}
 
-		await api.ResetAsync(SessionId, ct);
+		try {
+			await api.RestartAsync(SessionId, ct);
+			var registers = await api.GetRegistersAsync(SessionId, ct);
+
+			ConsoleOutput = "";
+			ClearRegisterHighlights();
+			Registers = registers;
+			Status = VMState.Idle;
+			ErrorMessage = null;
+		}
+		catch (ApiException ex) {
+			ErrorMessage = $"Failed to restart: {ex.Message}";
+		}
+	}
+
+	private void ClearRegisterHighlights()
+	{
+		PreviousRegisters = null;
+		ChangedRegisters = [];
+		LastMemoryWrite = null;
 	}
 
 	/// <summary>
@@ -479,10 +498,8 @@ public class MainWindowViewModel : ReactiveObject, IDisposable
 			ValidBreakpointLines = [.. sourceMap.Select(e => e.LineNumber)];
 
 			// A new program starts without highlights carried over from the previous one
-			PreviousRegisters = null;
-			ChangedRegisters = [];
+			ClearRegisterHighlights();
 			Registers = registers;
-			LastMemoryWrite = null;
 
 			// The backend reports "halted" for a loaded program that has not run; the GUI treats it as ready
 			Status = VMState.Idle;
