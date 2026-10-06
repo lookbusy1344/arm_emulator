@@ -521,7 +521,8 @@ public partial class MainWindowViewModel : ReactiveObject, IDisposable
 			LineToAddress = sourceMap.ToImmutableDictionary(e => e.LineNumber, e => e.Address);
 			ValidBreakpointLines = [.. sourceMap.Select(e => e.LineNumber)];
 
-			// A new program starts without highlights carried over from the previous one
+			// A new program starts without output or highlights carried over from the previous one
+			ConsoleOutput = "";
 			ClearRegisterHighlights();
 			Registers = registers;
 
@@ -902,9 +903,22 @@ public partial class MainWindowViewModel : ReactiveObject, IDisposable
 		return true;
 	}
 
+	/// <summary>Console text kept for long-running programs; older text is dropped first.</summary>
+	public const int MaxConsoleCharacters = 200_000;
+
+	private static string TrimToCap(string text)
+	{
+		if (text.Length <= MaxConsoleCharacters) {
+			return text;
+		}
+
+		var cut = text.Length - MaxConsoleCharacters;
+		return text[(char.IsLowSurrogate(text[cut]) ? cut + 1 : cut)..];
+	}
+
 	private bool AppendOutput(string content)
 	{
-		ConsoleOutput += content;
+		ConsoleOutput = TrimToCap(ConsoleOutput + content);
 		return true;
 	}
 

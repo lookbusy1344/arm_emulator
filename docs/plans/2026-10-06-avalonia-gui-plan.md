@@ -146,7 +146,7 @@ Makes the app safe to use for a single file. Each task is a small TDD change.
 - Accumulate frames until `EndOfMessage`, then decode the whole message once.
 - **Tests:** a message split across frames, a multi-byte UTF-8 character split at a frame boundary, and a message larger than the buffer.
 
-### 2.7 Console behaviour
+### 2.7 Console behaviour (done)
 
 - Clear the console on load and restart.
 - Cap retained console text (named constant) to keep long-running programs responsive.

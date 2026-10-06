@@ -345,4 +345,73 @@ public sealed class MainWindowViewModelLoadTests : IDisposable
 
 		_ = api.DidNotReceiveWithAnyArgs().GetDisassemblyAsync(default!, default, default, Ct);
 	}
+
+	// Console
+
+	[Fact]
+	public async Task LoadProgram_Success_ClearsTheConsole()
+	{
+		StubSuccessfulLoad(Program, RegisterState.Create());
+		using var vm = CreateViewModel();
+		vm.SourceCode = Program;
+		events.OnNext(new OutputEvent(SessionId, OutputStreamType.Stdout, "old output\n"));
+
+		await vm.LoadProgramCommand.Execute();
+
+		vm.ConsoleOutput.Should().BeEmpty();
+	}
+
+	[Fact]
+	public async Task LoadProgram_Failure_KeepsTheConsole()
+	{
+		api.LoadProgramAsync(SessionId, Program, Arg.Any<CancellationToken>())
+			.ThrowsAsync(new ProgramLoadException(["line 2: bad"]));
+		using var vm = CreateViewModel();
+		vm.SourceCode = Program;
+		events.OnNext(new OutputEvent(SessionId, OutputStreamType.Stdout, "old output\n"));
+
+		await vm.LoadProgramCommand.Execute();
+
+		vm.ConsoleOutput.Should().Be("old output\n");
+	}
+
+	[Fact]
+	public void ConsoleOutput_BelowTheCap_KeepsEverything()
+	{
+		using var vm = CreateViewModel();
+
+		events.OnNext(new OutputEvent(SessionId, OutputStreamType.Stdout, "one\n"));
+		events.OnNext(new OutputEvent(SessionId, OutputStreamType.Stdout, "two\n"));
+
+		vm.ConsoleOutput.Should().Be("one\ntwo\n");
+	}
+
+	[Fact]
+	public void ConsoleOutput_AboveTheCap_KeepsTheNewestText()
+	{
+		const int extra = 10;
+		using var vm = CreateViewModel();
+		var older = new string('a', MainWindowViewModel.MaxConsoleCharacters);
+		var newer = new string('b', extra);
+
+		events.OnNext(new OutputEvent(SessionId, OutputStreamType.Stdout, older));
+		events.OnNext(new OutputEvent(SessionId, OutputStreamType.Stdout, newer));
+
+		vm.ConsoleOutput.Length.Should().Be(MainWindowViewModel.MaxConsoleCharacters);
+		vm.ConsoleOutput.Should().EndWith(newer);
+		vm.ConsoleOutput.Should().StartWith(new string('a', MainWindowViewModel.MaxConsoleCharacters - extra));
+	}
+
+	[Fact]
+	public void ConsoleOutput_CutThroughASurrogatePair_DropsTheOrphanedHalf()
+	{
+		const string emoji = "\U0001F600";
+		using var vm = CreateViewModel();
+		var tail = new string('z', MainWindowViewModel.MaxConsoleCharacters - 1);
+
+		// The text is 6 characters over the cap, so the cut falls between the two halves of the pair
+		events.OnNext(new OutputEvent(SessionId, OutputStreamType.Stdout, "aaaaa" + emoji + tail));
+
+		vm.ConsoleOutput.Should().Be(tail);
+	}
 }
