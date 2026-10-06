@@ -166,4 +166,29 @@ public sealed class JsonSettingsStoreTests : IDisposable
 
 		result.Warning.Should().Be(DamagedWarning);
 	}
+
+	[Fact]
+	public void SaveThenLoad_RoundTripsRecentFilesInOrder()
+	{
+		var settings = Custom with { RecentFiles = ["/p/b.s", "/p/a.s"] };
+		var store = CreateStore();
+
+		store.Save(settings);
+
+		store.Load().Settings.RecentFiles.Should().Equal("/p/b.s", "/p/a.s");
+	}
+
+	[Fact]
+	public void Load_WithFileFromBeforeRecentFiles_LoadsEmptyList()
+	{
+		WriteSettingsFile("""
+			{ "BackendUrl": "http://localhost:8080", "EditorFontSize": 12, "Theme": "Auto",
+			  "RecentFilesLimit": 3, "AutoScrollToMemoryWrites": true }
+			""");
+
+		var result = CreateStore().Load();
+
+		result.Settings.RecentFiles.Should().BeEmpty();
+		result.Warning.Should().BeNull();
+	}
 }

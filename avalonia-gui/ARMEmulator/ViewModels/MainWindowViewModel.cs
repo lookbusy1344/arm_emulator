@@ -2,6 +2,7 @@ using System.Reactive;
 using System.Reactive.Disposables;
 using System.Reactive.Disposables.Fluent;
 using System.Reactive.Subjects;
+using ARMEmulator.Collections;
 using ARMEmulator.Models;
 using ARMEmulator.Services;
 using ARMEmulator.Views;
@@ -38,6 +39,9 @@ public partial class MainWindowViewModel : ReactiveObject, IDisposable
 	public MainWindowViewModel(IApiClient api, IWebSocketClient ws, IFileService fileService, ISettingsStore? settingsStore = null)
 	{
 		this.settingsStore = settingsStore;
+		_ = fileService.RecentFilesChanged
+			.Subscribe(_ => OnRecentFilesChanged())
+			.DisposeWith(disposables);
 		this.api = api;
 		this.ws = ws;
 		this.fileService = fileService;
@@ -938,20 +942,37 @@ public partial class MainWindowViewModel : ReactiveObject, IDisposable
 	/// <summary>Applies the settings, then persists them. A failed save is reported and the settings stay applied.</summary>
 	public void SaveSettings(AppSettings settings)
 	{
-		ApplySettings(settings);
+		var withRecentFiles = settings with { RecentFiles = RecentFilePaths() };
+		ApplySettings(withRecentFiles);
+		PersistSettings(withRecentFiles, "settings");
+	}
 
+	private EquatableArray<string> RecentFilePaths() => [.. fileService.RecentFiles.Select(f => f.Path)];
+
+	private void OnRecentFilesChanged()
+	{
+		this.RaisePropertyChanged(nameof(RecentFiles));
+		PersistSettings(Settings with { RecentFiles = RecentFilePaths() }, "recent files");
+	}
+
+	private void PersistSettings(AppSettings toSave, string what)
+	{
 		try {
-			settingsStore?.Save(settings);
+			settingsStore?.Save(toSave);
 		}
 		catch (IOException ex) {
-			ErrorMessage = $"Failed to save settings: {ex.Message}";
+			ErrorMessage = $"Failed to save {what}: {ex.Message}";
 		}
 	}
+
+	/// <summary>Drops recent files that no longer exist. Called when the recent files menu opens.</summary>
+	public void RefreshRecentFiles() => fileService.RemoveMissingRecentFiles();
 
 	/// <summary>Applies the settings to the view models without persisting them.</summary>
 	public void ApplySettings(AppSettings settings)
 	{
 		Settings = settings;
+		fileService.RecentFilesLimit = settings.RecentFilesLimit;
 		Memory.AutoScrollToWrites = settings.AutoScrollToMemoryWrites;
 	}
 
@@ -972,7 +993,12 @@ public partial class MainWindowViewModel : ReactiveObject, IDisposable
 			var content = await File.ReadAllTextAsync(path, ct);
 			SourceCode = content;
 			fileService.CurrentFilePath = path;
+			fileService.AddRecentFile(path);
 			await LoadProgramAsync(ct);
+		}
+		catch (Exception ex) when (ex is FileNotFoundException or DirectoryNotFoundException) {
+			ErrorMessage = $"File not found: {path}";
+			fileService.RemoveRecentFile(path);
 		}
 		catch (Exception ex) {
 			ErrorMessage = $"Failed to open {path}: {ex.Message}";

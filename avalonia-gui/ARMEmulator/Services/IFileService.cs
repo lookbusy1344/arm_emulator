@@ -1,3 +1,4 @@
+using System.Reactive;
 using Avalonia.Controls;
 
 namespace ARMEmulator.Services;
@@ -25,9 +26,34 @@ public interface IFileService
 	Task<string?> SaveFileAsync(Window parent, string content, string? currentPath);
 
 	/// <summary>
-	/// List of recently opened files (most recent first).
+	/// Snapshot of the recently opened files (most recent first). Each change produces a new list.
 	/// </summary>
 	IReadOnlyList<RecentFile> RecentFiles { get; }
+
+	/// <summary>
+	/// Maximum number of recent files kept. Lowering it drops the oldest entries.
+	/// </summary>
+	int RecentFilesLimit { get; set; }
+
+	/// <summary>
+	/// Emits after the recent files list changes. Does not emit for <see cref="LoadRecentFiles"/>.
+	/// </summary>
+	IObservable<Unit> RecentFilesChanged { get; }
+
+	/// <summary>
+	/// Replaces the list with stored paths (most recent first) without notifying.
+	/// </summary>
+	void LoadRecentFiles(IEnumerable<string> paths);
+
+	/// <summary>
+	/// Removes one entry from the recent files list.
+	/// </summary>
+	void RemoveRecentFile(string path);
+
+	/// <summary>
+	/// Removes entries whose file no longer exists.
+	/// </summary>
+	void RemoveMissingRecentFiles();
 
 	/// <summary>
 	/// Adds a file to the recent files list.

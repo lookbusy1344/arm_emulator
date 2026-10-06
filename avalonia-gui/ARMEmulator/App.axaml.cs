@@ -40,7 +40,9 @@ public partial class App : Application
 		var http = new HttpClient { BaseAddress = baseUri };
 		var ws = new WebSocketClient(BackendEndpoints.WebSocketUri(baseUri).ToString());
 #pragma warning restore CA2000
-		var viewModel = new MainWindowViewModel(new ApiClient(http), ws, new FileService(), settingsStore);
+		var fileService = new FileService { RecentFilesLimit = settings.RecentFilesLimit };
+		fileService.LoadRecentFiles(settings.RecentFiles);
+		var viewModel = new MainWindowViewModel(new ApiClient(http), ws, fileService, settingsStore);
 		viewModel.ApplySettings(settings);
 
 		_ = viewModel.WhenAnyValue(x => x.Settings)
@@ -49,6 +51,7 @@ public partial class App : Application
 		desktop.MainWindow = new MainWindow(viewModel);
 		desktop.Exit += (_, _) => {
 			themeService.Dispose();
+			fileService.Dispose();
 			themeDetector.Dispose();
 			viewModel.Dispose();
 			ws.Dispose();

@@ -47,6 +47,7 @@ public sealed class JsonSettingsStore(string path) : ISettingsStore
 }
 
 [JsonSerializable(typeof(AppSettings))]
+[JsonSerializable(typeof(string))]
 [JsonSourceGenerationOptions(
 	WriteIndented = true,
 	UseStringEnumConverter = true,

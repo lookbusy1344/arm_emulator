@@ -125,4 +125,12 @@ public class AppSettingsTests
 
 		settings.Validate().BackendUrl.Should().Be("https://example.org:9000");
 	}
+
+	[Fact]
+	public void Validate_TrimsRecentFilesToTheLimit()
+	{
+		var settings = AppSettings.Default with { RecentFilesLimit = 2, RecentFiles = ["/a.s", "/b.s", "/c.s"] };
+
+		settings.Validate().RecentFiles.Should().Equal("/a.s", "/b.s");
+	}
 }

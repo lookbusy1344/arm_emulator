@@ -14,7 +14,7 @@ public sealed class FileServiceTests
 	[Fact]
 	public void Constructor_InitializesEmptyRecentFiles()
 	{
-		var service = new FileService();
+		using var service = new FileService();
 		service.RecentFiles.Should().BeEmpty();
 		service.CurrentFilePath.Should().BeNull();
 	}
@@ -22,7 +22,7 @@ public sealed class FileServiceTests
 	[Fact]
 	public void AddRecentFile_AddsToList()
 	{
-		var service = new FileService();
+		using var service = new FileService();
 		service.AddRecentFile("/path/to/test.s");
 
 		service.RecentFiles.Should().HaveCount(1);
@@ -33,7 +33,7 @@ public sealed class FileServiceTests
 	[Fact]
 	public void AddRecentFile_MostRecentFirst()
 	{
-		var service = new FileService();
+		using var service = new FileService();
 		service.AddRecentFile("/path/one.s");
 		service.AddRecentFile("/path/two.s");
 
@@ -45,7 +45,7 @@ public sealed class FileServiceTests
 	[Fact]
 	public void AddRecentFile_RemovesDuplicates()
 	{
-		var service = new FileService();
+		using var service = new FileService();
 		service.AddRecentFile("/path/test.s");
 		service.AddRecentFile("/path/other.s");
 		service.AddRecentFile("/path/test.s"); // Duplicate
@@ -57,7 +57,7 @@ public sealed class FileServiceTests
 	[Fact]
 	public void AddRecentFile_LimitsToMaximum()
 	{
-		var service = new FileService();
+		using var service = new FileService();
 
 		// Add more than the maximum
 		for (int i = 0; i < 15; ++i) {
@@ -71,7 +71,7 @@ public sealed class FileServiceTests
 	[Fact]
 	public void ClearRecentFiles_RemovesAll()
 	{
-		var service = new FileService();
+		using var service = new FileService();
 		service.AddRecentFile("/path/one.s");
 		service.AddRecentFile("/path/two.s");
 
@@ -83,7 +83,7 @@ public sealed class FileServiceTests
 	[Fact]
 	public void CurrentFilePath_CanBeSetAndRead()
 	{
-		var service = new FileService();
+		using var service = new FileService();
 		service.CurrentFilePath.Should().BeNull();
 
 		service.CurrentFilePath = "/path/test.s";

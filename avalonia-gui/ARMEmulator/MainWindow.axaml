@@ -58,7 +58,7 @@
                 <MenuItem Header="_Save" Command="{Binding SaveFileCommand}" InputGesture="Ctrl+S" />
                 <MenuItem Header="Save _As..." Command="{Binding SaveAsCommand}" InputGesture="Ctrl+Shift+S" />
                 <Separator />
-                <MenuItem Header="_Recent Files" ItemsSource="{Binding RecentFiles}">
+                <MenuItem Header="_Recent Files" SubmenuOpened="RecentFilesMenu_SubmenuOpened" ItemsSource="{Binding RecentFiles}">
                     <MenuItem.ItemTemplate>
                         <DataTemplate>
                             <MenuItem Header="{Binding FileName}" Command="{Binding $parent[Window].((vm:MainWindowViewModel)DataContext).OpenRecentFileCommand}" CommandParameter="{Binding Path}" />

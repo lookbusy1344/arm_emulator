@@ -1,4 +1,6 @@
 using System.Diagnostics.CodeAnalysis;
+using System.Reactive;
+using System.Reactive.Linq;
 using System.Reactive.Subjects;
 using ARMEmulator.Collections;
 using ARMEmulator.Models;
@@ -44,6 +46,8 @@ public sealed class MainWindowViewModelLoadTests : IDisposable
 	public MainWindowViewModelLoadTests()
 	{
 		ws.Events.Returns(events);
+		files.RecentFilesChanged.Returns(Observable.Never<Unit>());
+		files.RecentFiles.Returns([]);
 		api.GetMemoryAsync(default!, default, default, default).ReturnsForAnyArgs(ImmutableArray<byte>.Empty);
 		api.GetDisassemblyAsync(default!, default, default, default).ReturnsForAnyArgs(ImmutableArray<DisassemblyInstruction>.Empty);
 	}

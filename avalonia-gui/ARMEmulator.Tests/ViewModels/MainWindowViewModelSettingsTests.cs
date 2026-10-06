@@ -1,4 +1,5 @@
 using System.Diagnostics.CodeAnalysis;
+using System.Reactive;
 using System.Reactive.Subjects;
 using ARMEmulator.Models;
 using ARMEmulator.Services;
@@ -31,9 +32,20 @@ public sealed class MainWindowViewModelSettingsTests : IDisposable
 		AutoScrollToMemoryWrites = false
 	};
 
-	public MainWindowViewModelSettingsTests() => ws.Events.Returns(events);
+	private readonly Subject<Unit> recentFilesChanged = new();
 
-	public void Dispose() => events.Dispose();
+	public MainWindowViewModelSettingsTests()
+	{
+		ws.Events.Returns(events);
+		files.RecentFilesChanged.Returns(recentFilesChanged);
+		files.RecentFiles.Returns([]);
+	}
+
+	public void Dispose()
+	{
+		events.Dispose();
+		recentFilesChanged.Dispose();
+	}
 
 	private MainWindowViewModel CreateViewModel() => new(api, ws, files, store);
 
@@ -79,5 +91,100 @@ public sealed class MainWindowViewModelSettingsTests : IDisposable
 
 		vm.Settings.Should().Be(Changed);
 		store.DidNotReceiveWithAnyArgs().Save(default!);
+	}
+
+	[Fact]
+	public void ApplySettings_SetsTheRecentFilesLimit()
+	{
+		using var vm = CreateViewModel();
+
+		vm.ApplySettings(Changed with { RecentFilesLimit = 4 });
+
+		files.RecentFilesLimit.Should().Be(4);
+	}
+
+	[Fact]
+	public void SaveSettings_KeepsTheCurrentRecentFiles()
+	{
+		files.RecentFiles.Returns([new RecentFile("/p/b.s", DateTime.MinValue), new RecentFile("/p/a.s", DateTime.MinValue)]);
+		using var vm = CreateViewModel();
+
+		vm.SaveSettings(Changed);
+
+		store.Received(1).Save(Changed with { RecentFiles = ["/p/b.s", "/p/a.s"] });
+	}
+
+	[Fact]
+	public void RecentFilesChange_PersistsThePathsWithTheCurrentSettings()
+	{
+		using var vm = CreateViewModel();
+		vm.ApplySettings(Changed);
+		files.RecentFiles.Returns([new RecentFile("/p/a.s", DateTime.MinValue)]);
+
+		recentFilesChanged.OnNext(Unit.Default);
+
+		store.Received(1).Save(Changed with { RecentFiles = ["/p/a.s"] });
+	}
+
+	[Fact]
+	public void RecentFilesChange_RaisesPropertyChangedForTheMenu()
+	{
+		using var vm = CreateViewModel();
+		var raised = new List<string?>();
+		vm.PropertyChanged += (_, e) => raised.Add(e.PropertyName);
+
+		recentFilesChanged.OnNext(Unit.Default);
+
+		raised.Should().Contain(nameof(MainWindowViewModel.RecentFiles));
+	}
+
+	[Fact]
+	public void RecentFilesChange_WhenStoreFails_ReportsError()
+	{
+		store.When(s => s.Save(Arg.Any<AppSettings>())).Throw(new IOException("disk full"));
+		using var vm = CreateViewModel();
+
+		recentFilesChanged.OnNext(Unit.Default);
+
+		vm.ErrorMessage.Should().Be("Failed to save recent files: disk full");
+	}
+
+	[Fact]
+	public void RefreshRecentFiles_RemovesMissingEntries()
+	{
+		using var vm = CreateViewModel();
+
+		vm.RefreshRecentFiles();
+
+		files.Received(1).RemoveMissingRecentFiles();
+	}
+
+	[Fact]
+	public void OpenRecentFile_WhenFileIsGone_ReportsItAndRemovesTheEntry()
+	{
+		const string missing = "/definitely/not/here.s";
+		using var vm = CreateViewModel();
+
+		((System.Windows.Input.ICommand)vm.OpenRecentFileCommand).Execute(missing);
+
+		vm.ErrorMessage.Should().Be("File not found: /definitely/not/here.s");
+		files.Received(1).RemoveRecentFile(missing);
+	}
+
+	[Fact]
+	public void OpenRecentFile_WhenFileExists_MovesItToTheTopOfTheList()
+	{
+		var path = Path.GetTempFileName();
+		try {
+			using var vm = CreateViewModel();
+			vm.SessionId = null;
+
+			((System.Windows.Input.ICommand)vm.OpenRecentFileCommand).Execute(path);
+
+			files.Received(1).AddRecentFile(path);
+		}
+		finally {
+			File.Delete(path);
+		}
 	}
 }

@@ -1,3 +1,5 @@
+using System.Reactive;
+using System.Reactive.Subjects;
 using Avalonia.Controls;
 using Avalonia.Platform.Storage;
 
@@ -7,12 +9,26 @@ namespace ARMEmulator.Services;
 /// File service implementation with platform-specific file dialogs.
 /// Uses Avalonia's StorageProvider for cross-platform file pickers.
 /// </summary>
-public sealed class FileService : IFileService
+public sealed class FileService : IFileService, IDisposable
 {
-	private const int MaxRecentFiles = 10;
-	private readonly List<RecentFile> recentFiles = [];
+	private const int DefaultRecentFilesLimit = 10;
+	private readonly Subject<Unit> recentFilesChanged = new();
+	private ImmutableList<RecentFile> recentFiles = [];
+	private int recentFilesLimit = DefaultRecentFilesLimit;
 
 	public IReadOnlyList<RecentFile> RecentFiles => recentFiles;
+
+	public IObservable<Unit> RecentFilesChanged => recentFilesChanged;
+
+	public int RecentFilesLimit
+	{
+		get => recentFilesLimit;
+		set
+		{
+			recentFilesLimit = Math.Max(value, 1);
+			Update(recentFiles);
+		}
+	}
 
 	public string? CurrentFilePath { get; set; }
 
@@ -91,22 +107,42 @@ public sealed class FileService : IFileService
 		return path;
 	}
 
-	public void AddRecentFile(string path)
+	public void AddRecentFile(string path) =>
+		Update(recentFiles
+			.RemoveAll(f => IsSamePath(f.Path, path))
+			.Insert(0, new RecentFile(path, DateTime.Now)));
+
+	public void ClearRecentFiles() => Update([]);
+
+	public void RemoveRecentFile(string path) =>
+		Update(recentFiles.RemoveAll(f => IsSamePath(f.Path, path)));
+
+	public void RemoveMissingRecentFiles() =>
+		Update(recentFiles.RemoveAll(f => !File.Exists(f.Path)));
+
+	public void LoadRecentFiles(IEnumerable<string> paths) =>
+		recentFiles = Trim(paths
+			.DistinctBy(path => path, StringComparer.OrdinalIgnoreCase)
+			.Select(path => new RecentFile(path, DateTime.MinValue))
+			.ToImmutableList());
+
+	public void Dispose() => recentFilesChanged.Dispose();
+
+	private static bool IsSamePath(string left, string right) =>
+		left.Equals(right, StringComparison.OrdinalIgnoreCase);
+
+	private ImmutableList<RecentFile> Trim(ImmutableList<RecentFile> files) =>
+		files.Count > recentFilesLimit ? files.GetRange(0, recentFilesLimit) : files;
+
+	/// <summary>Stores the new list, trimmed to the limit, and notifies when it differs from the current one.</summary>
+	private void Update(ImmutableList<RecentFile> updated)
 	{
-		// Remove if already exists (to move to top)
-		_ = recentFiles.RemoveAll(f => f.Path.Equals(path, StringComparison.OrdinalIgnoreCase));
-
-		// Add to front
-		recentFiles.Insert(0, new RecentFile(path, DateTime.Now));
-
-		// Trim to max
-		if (recentFiles.Count > MaxRecentFiles) {
-			recentFiles.RemoveRange(MaxRecentFiles, recentFiles.Count - MaxRecentFiles);
+		var trimmed = Trim(updated);
+		if (trimmed.SequenceEqual(recentFiles)) {
+			return;
 		}
-	}
 
-	public void ClearRecentFiles()
-	{
-		recentFiles.Clear();
+		recentFiles = trimmed;
+		recentFilesChanged.OnNext(Unit.Default);
 	}
 }

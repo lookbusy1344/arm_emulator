@@ -1,4 +1,6 @@
 using System.Diagnostics.CodeAnalysis;
+using System.Reactive;
+using System.Reactive.Linq;
 using System.Reactive.Subjects;
 using System.Windows.Input;
 using ARMEmulator.Collections;
@@ -38,6 +40,8 @@ public sealed class MainWindowViewModelBackendTests : IDisposable
 	public MainWindowViewModelBackendTests()
 	{
 		ws.Events.Returns(events);
+		files.RecentFilesChanged.Returns(Observable.Never<Unit>());
+		files.RecentFiles.Returns([]);
 		backend.StatusChanged.Returns(backendStatus);
 		backend.Status.Returns(BackendStatus.Running);
 		api.GetMemoryAsync(default!, default, default, default).ReturnsForAnyArgs(ImmutableArray<byte>.Empty);

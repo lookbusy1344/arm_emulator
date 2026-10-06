@@ -72,6 +72,9 @@ public sealed record AppSettings
 	/// <summary>Auto-scroll memory view to writes.</summary>
 	public required bool AutoScrollToMemoryWrites { get; init; }
 
+	/// <summary>Recently opened files, most recent first.</summary>
+	public EquatableArray<string> RecentFiles { get; init; } = [];
+
 	/// <summary>Default settings instance.</summary>
 	public static AppSettings Default { get; } = new() {
 		BackendUrl = "http://localhost:8080",
@@ -87,7 +90,8 @@ public sealed record AppSettings
 	public AppSettings Validate() => this with {
 		BackendUrl = IsHttpUrl(BackendUrl) ? BackendUrl : Default.BackendUrl,
 		EditorFontSize = Math.Clamp(EditorFontSize, 10, 24),
-		RecentFilesLimit = Math.Max(RecentFilesLimit, 1)
+		RecentFilesLimit = Math.Max(RecentFilesLimit, 1),
+		RecentFiles = [.. RecentFiles.Take(Math.Max(RecentFilesLimit, 1))]
 	};
 
 	private static bool IsHttpUrl(string url) =>

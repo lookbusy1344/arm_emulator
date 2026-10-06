@@ -1,5 +1,6 @@
 using ARMEmulator.ViewModels;
 using Avalonia.Controls;
+using Avalonia.Interactivity;
 
 namespace ARMEmulator;
 
@@ -25,4 +26,7 @@ public partial class MainWindow : Window
 		DataContext = viewModel;
 		viewModel.SetParentWindow(this);
 	}
+
+	private void RecentFilesMenu_SubmenuOpened(object? sender, RoutedEventArgs e) =>
+		(DataContext as MainWindowViewModel)?.RefreshRecentFiles();
 }

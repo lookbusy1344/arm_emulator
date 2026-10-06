@@ -117,7 +117,7 @@ Makes the app safe to use for a single file. Each task is a small TDD change.
 - Treat an unreadable or invalid file as defaults, show a one-time message, and keep the damaged file as `settings.json.bak`.
 - **Tests:** round trip, missing file, malformed JSON, out-of-range values clamped by `AppSettings.Validate`, and the `.bak` copy on failure.
 
-### 2.2 Recent files persistence
+### 2.2 Recent files persistence (done)
 
 - Store recent files in the same settings file and honour `RecentFilesLimit`.
 - Drop entries whose file no longer exists when the menu opens, and show a message if a selected entry is gone.

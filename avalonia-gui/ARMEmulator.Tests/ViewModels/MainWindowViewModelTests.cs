@@ -1,4 +1,6 @@
 using System.Diagnostics.CodeAnalysis;
+using System.Reactive;
+using System.Reactive.Linq;
 using System.Reactive.Subjects;
 using ARMEmulator.Models;
 using ARMEmulator.Services;
@@ -33,6 +35,8 @@ public class MainWindowViewModelTests : IDisposable
 		mockFileService = Substitute.For<IFileService>();
 		eventsSubject = new Subject<EmulatorEvent>();
 		mockWs.Events.Returns(eventsSubject);
+		mockFileService.RecentFilesChanged.Returns(Observable.Never<Unit>());
+		mockFileService.RecentFiles.Returns([]);
 
 		// Child view models refresh memory and disassembly on register changes
 		mockApi.GetMemoryAsync(default!, default, default, default).ReturnsForAnyArgs(ImmutableArray<byte>.Empty);
