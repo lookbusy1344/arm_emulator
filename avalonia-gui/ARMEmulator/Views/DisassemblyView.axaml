@@ -31,11 +31,11 @@
 
         <!-- Error Message -->
         <Border DockPanel.Dock="Top"
-                Background="#FFDDDD"
+                Background="{DynamicResource ErrorBackgroundBrush}"
                 Padding="8"
                 IsVisible="{Binding ErrorMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
             <TextBlock Text="{Binding ErrorMessage}"
-                       Foreground="#CC0000"
+                       Foreground="{DynamicResource ErrorTextBrush}"
                        FontWeight="SemiBold" />
         </Border>
 
@@ -75,7 +75,7 @@
                                             Width="25"
                                             ToolTip.Tip="Toggle breakpoint">
                                         <TextBlock Text="{Binding HasBreakpoint, Converter={StaticResource BoolToBreakpointConverter}}"
-                                                   Foreground="Red"
+                                                   Foreground="{DynamicResource BreakpointBrush}"
                                                    FontWeight="Bold"
                                                    FontSize="16"
                                                    HorizontalAlignment="Center" />
@@ -84,7 +84,7 @@
                                     <!-- PC Indicator -->
                                     <TextBlock Grid.Column="2"
                                                Text="{Binding IsCurrentPC, Converter={StaticResource BoolToPCIndicatorConverter}}"
-                                               Foreground="DodgerBlue"
+                                               Foreground="{DynamicResource PcMarkerBrush}"
                                                FontWeight="Bold"
                                                FontSize="14"
                                                Width="25"

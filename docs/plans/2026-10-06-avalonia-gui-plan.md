@@ -172,7 +172,11 @@ Brings the look and layout up to the standard of the Swift GUI. The Swift app us
 
 Every task checks light and dark themes, and 100 % and 200 % scaling.
 
-### 3.1 Theme resources
+### 3.1 Theme resources (done)
+
+Status 2026-10-06: `Themes/Tokens.axaml` (colours per theme variant, spacing, type sizes, `DataFontFamily`), `Themes/Icons.axaml` (Fluent icons as `StreamGeometry`), `Themes/CustomStyles.axaml` (splitter, text roles, tool button, status pill) and the bundled JetBrains Mono (`Assets/Fonts`, notices in `THIRD_PARTY_NOTICES.md`) exist. `FluentTheme` uses `DensityStyle="Compact"`. `CodeStyle_LiteralColours` fails the build for a literal colour in any `.axaml` outside `Themes/`.
+
+Still open under this task: the C# files that build brushes from literals (`EditorGutterMargin`, `BoolToColorConverter`, `RegisterHighlightConverter`, `BoolToHighlightConverter`) move to the tokens in 3.5–3.7. Those static brushes also belong to whichever thread first uses them; resolve them from resources and the screenshot test can run in the full suite.
 
 - One resource dictionary (`Themes/`) holds the design tokens. Views use the tokens, never literal colours or sizes.
 - **Colours:** semantic names (window background, panel background, divider, secondary text, accent, changed-register highlight, memory-write highlight, breakpoint, PC marker, error), with `ThemeVariant` light and dark entries.
@@ -181,19 +185,24 @@ Every task checks light and dark themes, and 100 % and 200 % scaling.
 - Use `FluentTheme` with `DensityStyle="Compact"`.
 - **Tests:** a test fails if any `.axaml` file under `Views/` sets a literal colour (`#…`, named colours) outside `Themes/`.
 
-### 3.2 Toolbar
+### 3.2 Toolbar (done except platform shortcuts)
 
 - Vector icons from one icon set (Fluent System Icons, MIT licence), embedded as `StreamGeometry` resources and tinted by theme. Icons follow the Swift set: Load (document), Run (play; continue at a breakpoint), Pause, Step, Step Over, Step Out, Reset (counter-clockwise arrow), Show PC.
 - Uniform button size, icon over label or icon beside label, real separators, and tooltips showing the platform shortcut.
+- Tooltips still show `Ctrl` gestures; 3.11 switches them to `⌘` on macOS.
 - The status indicator becomes a labelled pill (e.g. "Idle", "Running", "Breakpoint") in the theme's state colours.
 
 ### 3.3 Window layout
+
+Status: the 1 px splitters are done. Open: drop the per-panel border and radius (`EditorView`, `RightPanelView`, `ConsoleView`, panel views); persist window size, position and splitter positions.
 
 - Thin dividers: 1 px visible line with a wider hit area for dragging.
 - Panels sit flush against the dividers; drop the per-panel border and corner radius.
 - Minimum window size 800 × 600, as in Swift. Persist window size, position and splitter positions in settings (with 2.1).
 
 ### 3.4 Inspector navigation
+
+Status: not started. Design: `InspectorPanel` enum and `WindowLayout` record in `AppSettings` (optional members, so older files load); a `ComboBox` with icon and label per panel replaces the `TabControl`; the headless test helper `SelectTab` changes to the selector.
 
 - Replace the wrapping `TabControl` with a compact header: a "View:" selector with icon and label per panel (Registers, Memory, Stack, Disassembly, Evaluator, Watchpoints, Breakpoints), as in Swift.
 - Persist the selected panel in settings.
@@ -240,8 +249,12 @@ Every task checks light and dark themes, and 100 % and 200 % scaling.
 
 ### 3.12 Visual verification
 
+Status: `Ui/ScreenshotTests.cs` renders the main window with sample data in light and dark to PNG when `ARM_SCREENSHOT_DIR` is set (Skia headless). Baseline comparison is not written yet. Run it alone until the static brushes in 3.1 are gone.
+
 - Screenshot tests with Avalonia.Headless rendering the main window and each panel to PNG in light and dark themes, compared against reviewed baselines with a small pixel tolerance.
 - A side-by-side review against the Swift GUI for each panel before closing the phase.
+
+Problem table progress: toolbar icons, separators, button widths and status pill are closed; splitters are closed. The register font, register cards, editor highlight, console, shortcuts and empty state rows are open.
 
 **Exit criteria:** every row in the problem table is closed; screenshot baselines exist for light and dark themes; a side-by-side review against the Swift GUI finds no layout or typography gap.
 

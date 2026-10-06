@@ -81,8 +81,8 @@
         <Border DockPanel.Dock="Top"
                 Name="ErrorBar"
                 IsVisible="{Binding ErrorMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
-                Background="#33FF0000"
-                BorderBrush="Red"
+                Background="{DynamicResource ErrorBackgroundBrush}"
+                BorderBrush="{DynamicResource ErrorBorderBrush}"
                 BorderThickness="0,1"
                 Padding="8,4">
             <DockPanel>
@@ -127,8 +127,7 @@
 
                 <!-- Horizontal Splitter -->
                 <GridSplitter Grid.Column="1"
-                              Width="5"
-                              Background="{DynamicResource SystemControlForegroundBaseMediumBrush}"
+                              Classes="column"
                               ResizeDirection="Columns"
                               HorizontalAlignment="Stretch" />
 
@@ -138,8 +137,7 @@
 
             <!-- Vertical Splitter -->
             <GridSplitter Grid.Row="1"
-                          Height="5"
-                          Background="{DynamicResource SystemControlForegroundBaseMediumBrush}"
+                          Classes="row"
                           ResizeDirection="Rows"
                           HorizontalAlignment="Stretch" />
 

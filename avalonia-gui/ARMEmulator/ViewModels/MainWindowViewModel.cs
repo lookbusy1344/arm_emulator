@@ -41,6 +41,7 @@ public partial class MainWindowViewModel : ReactiveObject, IDisposable
 		this.settingsStore = settingsStore;
 		this.unsavedChangesPrompt = unsavedChangesPrompt;
 		InitializeWindowTitle();
+		InitializeStatusPill();
 		_ = fileService.RecentFilesChanged
 			.Subscribe(_ => OnRecentFilesChanged())
 			.DisposeWith(disposables);

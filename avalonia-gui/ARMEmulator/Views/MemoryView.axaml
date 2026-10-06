@@ -75,11 +75,11 @@
 
         <!-- Error Message -->
         <Border DockPanel.Dock="Top"
-                Background="#FFDDDD"
+                Background="{DynamicResource ErrorBackgroundBrush}"
                 Padding="8"
                 IsVisible="{Binding ErrorMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
             <TextBlock Text="{Binding ErrorMessage}"
-                       Foreground="#CC0000"
+                       Foreground="{DynamicResource ErrorTextBrush}"
                        FontWeight="SemiBold" />
         </Border>
 

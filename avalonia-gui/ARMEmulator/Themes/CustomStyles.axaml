@@ -1,7 +1,92 @@
 <Styles xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
-    <!-- Custom styles and resources will go here -->
-    <!-- This file is included for future theme customization -->
+    <!-- Splitters: a 1 px divider inside a wider drag area -->
+    <Style Selector="GridSplitter.column">
+        <Setter Property="Width" Value="5" />
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="Template">
+            <ControlTemplate>
+                <Border Background="Transparent">
+                    <Rectangle Width="1" HorizontalAlignment="Center" Fill="{DynamicResource DividerBrush}" />
+                </Border>
+            </ControlTemplate>
+        </Setter>
+    </Style>
+    <Style Selector="GridSplitter.row">
+        <Setter Property="Height" Value="5" />
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="Template">
+            <ControlTemplate>
+                <Border Background="Transparent">
+                    <Rectangle Height="1" VerticalAlignment="Center" Fill="{DynamicResource DividerBrush}" />
+                </Border>
+            </ControlTemplate>
+        </Setter>
+    </Style>
 
+    <!-- Text roles -->
+    <Style Selector="TextBlock.secondary">
+        <Setter Property="Foreground" Value="{DynamicResource SecondaryTextBrush}" />
+        <Setter Property="FontSize" Value="{DynamicResource FontSizeCaption}" />
+    </Style>
+    <Style Selector="TextBlock.data">
+        <Setter Property="FontFamily" Value="{DynamicResource DataFontFamily}" />
+        <Setter Property="FontSize" Value="{DynamicResource DataFontSize}" />
+    </Style>
+    <Style Selector="TextBlock.header">
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="FontSize" Value="{DynamicResource FontSizeBody}" />
+    </Style>
+    <Style Selector="TextBox.data">
+        <Setter Property="FontFamily" Value="{DynamicResource DataFontFamily}" />
+        <Setter Property="FontSize" Value="{DynamicResource DataFontSize}" />
+    </Style>
+
+    <!-- Toolbar button: icon beside a label -->
+    <Style Selector="Button.tool">
+        <Setter Property="Padding" Value="8,4" />
+        <Setter Property="MinWidth" Value="0" />
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="0" />
+    </Style>
+    <Style Selector="Button.tool PathIcon">
+        <Setter Property="Width" Value="16" />
+        <Setter Property="Height" Value="16" />
+    </Style>
+    <Style Selector="Rectangle.toolSeparator">
+        <Setter Property="Width" Value="1" />
+        <Setter Property="Margin" Value="4,4" />
+        <Setter Property="Fill" Value="{DynamicResource DividerBrush}" />
+    </Style>
+
+    <!-- Status pill: colour by state, selected through the Tag the view model supplies -->
+    <Style Selector="Border.pill">
+        <Setter Property="CornerRadius" Value="10" />
+        <Setter Property="Padding" Value="10,2" />
+        <Setter Property="Background" Value="{DynamicResource StateDisconnectedBrush}" />
+    </Style>
+    <Style Selector="Border.pill > TextBlock">
+        <Setter Property="Foreground" Value="{DynamicResource OnStateBrush}" />
+        <Setter Property="FontSize" Value="{DynamicResource FontSizeCaption}" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+    </Style>
+    <Style Selector="Border.pill[Tag=Idle]">
+        <Setter Property="Background" Value="{DynamicResource StateIdleBrush}" />
+    </Style>
+    <Style Selector="Border.pill[Tag=Running]">
+        <Setter Property="Background" Value="{DynamicResource StateRunningBrush}" />
+    </Style>
+    <Style Selector="Border.pill[Tag=Breakpoint]">
+        <Setter Property="Background" Value="{DynamicResource StateBreakpointBrush}" />
+    </Style>
+    <Style Selector="Border.pill[Tag=Halted]">
+        <Setter Property="Background" Value="{DynamicResource StateHaltedBrush}" />
+    </Style>
+    <Style Selector="Border.pill[Tag=Error]">
+        <Setter Property="Background" Value="{DynamicResource StateErrorBrush}" />
+    </Style>
+    <Style Selector="Border.pill[Tag=WaitingForInput]">
+        <Setter Property="Background" Value="{DynamicResource StateWaitingBrush}" />
+    </Style>
 </Styles>

@@ -79,19 +79,19 @@
             </Border>
 
             <!-- Error Section -->
-            <Border BorderBrush="#D32F2F"
+            <Border BorderBrush="{DynamicResource ErrorBorderBrush}"
                     BorderThickness="1"
                     CornerRadius="4"
                     Padding="12"
-                    Background="#FFEBEE"
+                    Background="{DynamicResource ErrorBackgroundBrush}"
                     IsVisible="{Binding ErrorMessage, Converter={x:Static ObjectConverters.IsNotNull}}">
                 <StackPanel Spacing="4">
                     <TextBlock Text="Error"
                                FontWeight="SemiBold"
-                               Foreground="#D32F2F" />
+                               Foreground="{DynamicResource ErrorTextBrush}" />
                     <TextBlock Text="{Binding ErrorMessage}"
                                TextWrapping="Wrap"
-                               Foreground="#C62828" />
+                               Foreground="{DynamicResource ErrorTextBrush}" />
                 </StackPanel>
             </Border>
 

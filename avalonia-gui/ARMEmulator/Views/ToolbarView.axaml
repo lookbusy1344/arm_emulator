@@ -3,69 +3,111 @@
              xmlns:vm="using:ARMEmulator.ViewModels"
              x:Class="ARMEmulator.Views.ToolbarView"
              x:DataType="vm:MainWindowViewModel">
-    <Border BorderBrush="{DynamicResource SystemControlForegroundBaseMediumBrush}"
+    <Border Background="{DynamicResource PanelBackgroundBrush}"
+            BorderBrush="{DynamicResource DividerBrush}"
             BorderThickness="0,0,0,1"
-            Padding="8">
-        <StackPanel Orientation="Horizontal" Spacing="8">
-            <!-- Status Indicator -->
-            <Border Width="16"
-                    Height="16"
-                    CornerRadius="8"
-                    Background="{Binding StatusColor}"
-                    ToolTip.Tip="{Binding StatusText}"
+            Padding="8,4">
+        <StackPanel Orientation="Horizontal" Spacing="2">
+            <!-- Status pill -->
+            <Border Classes="pill"
+                    Tag="{Binding StatusKey}"
                     VerticalAlignment="Center"
-                    Margin="0,0,16,0"
+                    Margin="0,0,8,0"
+                    ToolTip.Tip="{Binding StatusText}"
                     AutomationProperties.Name="VM Status Indicator"
-                    AutomationProperties.HelpText="{Binding StatusText}" />
+                    AutomationProperties.HelpText="{Binding StatusText}">
+                <TextBlock Name="StatusLabel" Text="{Binding StatusLabel}" />
+            </Border>
 
-            <!-- Load Button -->
-            <Button Content="📂 Load"
+            <Button Classes="tool"
                     Command="{Binding LoadProgramCommand}"
                     ToolTip.Tip="Load Program (Ctrl+L)"
                     AutomationProperties.Name="Load Program"
-                    AutomationProperties.AcceleratorKey="Ctrl+L" />
+                    AutomationProperties.AcceleratorKey="Ctrl+L">
+                <StackPanel Orientation="Horizontal" Spacing="6">
+                    <PathIcon Data="{StaticResource IconOpen}" />
+                    <TextBlock Text="Load" />
+                </StackPanel>
+            </Button>
 
-            <!-- Execution Control Buttons -->
-            <Separator />
-            <Button Content="▶️ Run"
+            <Rectangle Classes="toolSeparator" />
+
+            <Button Classes="tool"
                     Command="{Binding RunCommand}"
                     ToolTip.Tip="Run (F5, Ctrl+R)"
                     AutomationProperties.Name="Run Program"
-                    AutomationProperties.AcceleratorKey="F5" />
-            <Button Content="⏸️ Pause"
+                    AutomationProperties.AcceleratorKey="F5">
+                <StackPanel Orientation="Horizontal" Spacing="6">
+                    <PathIcon Data="{StaticResource IconPlay}" />
+                    <TextBlock Text="Run" />
+                </StackPanel>
+            </Button>
+            <Button Classes="tool"
                     Command="{Binding PauseCommand}"
                     ToolTip.Tip="Pause (Ctrl+.)"
                     AutomationProperties.Name="Pause Execution"
-                    AutomationProperties.AcceleratorKey="Ctrl+Period" />
+                    AutomationProperties.AcceleratorKey="Ctrl+Period">
+                <StackPanel Orientation="Horizontal" Spacing="6">
+                    <PathIcon Data="{StaticResource IconPause}" />
+                    <TextBlock Text="Pause" />
+                </StackPanel>
+            </Button>
 
-            <Separator />
-            <Button Content="➡️ Step"
+            <Rectangle Classes="toolSeparator" />
+
+            <Button Classes="tool"
                     Command="{Binding StepCommand}"
                     ToolTip.Tip="Step (F11, Ctrl+T)"
                     AutomationProperties.Name="Step Single Instruction"
-                    AutomationProperties.AcceleratorKey="F11" />
-            <Button Content="⤵️ Step Over"
+                    AutomationProperties.AcceleratorKey="F11">
+                <StackPanel Orientation="Horizontal" Spacing="6">
+                    <PathIcon Data="{StaticResource IconStep}" />
+                    <TextBlock Text="Step" />
+                </StackPanel>
+            </Button>
+            <Button Classes="tool"
                     Command="{Binding StepOverCommand}"
                     ToolTip.Tip="Step Over (F10, Ctrl+Shift+T)"
                     AutomationProperties.Name="Step Over Function"
-                    AutomationProperties.AcceleratorKey="F10" />
-            <Button Content="⤴️ Step Out"
+                    AutomationProperties.AcceleratorKey="F10">
+                <StackPanel Orientation="Horizontal" Spacing="6">
+                    <PathIcon Data="{StaticResource IconStepOver}" />
+                    <TextBlock Text="Step Over" />
+                </StackPanel>
+            </Button>
+            <Button Classes="tool"
                     Command="{Binding StepOutCommand}"
                     ToolTip.Tip="Step Out (Ctrl+Alt+T)"
                     AutomationProperties.Name="Step Out of Function"
-                    AutomationProperties.AcceleratorKey="Ctrl+Alt+T" />
+                    AutomationProperties.AcceleratorKey="Ctrl+Alt+T">
+                <StackPanel Orientation="Horizontal" Spacing="6">
+                    <PathIcon Data="{StaticResource IconStepOut}" />
+                    <TextBlock Text="Step Out" />
+                </StackPanel>
+            </Button>
 
-            <Separator />
-            <Button Content="🔄 Reset"
+            <Rectangle Classes="toolSeparator" />
+
+            <Button Classes="tool"
                     Command="{Binding ResetCommand}"
                     ToolTip.Tip="Reset (Ctrl+Shift+R)"
                     AutomationProperties.Name="Reset Virtual Machine"
-                    AutomationProperties.AcceleratorKey="Ctrl+Shift+R" />
-            <Button Content="📍 Show PC"
+                    AutomationProperties.AcceleratorKey="Ctrl+Shift+R">
+                <StackPanel Orientation="Horizontal" Spacing="6">
+                    <PathIcon Data="{StaticResource IconReset}" />
+                    <TextBlock Text="Reset" />
+                </StackPanel>
+            </Button>
+            <Button Classes="tool"
                     Command="{Binding ShowPcCommand}"
                     ToolTip.Tip="Show PC (Ctrl+J)"
                     AutomationProperties.Name="Show Program Counter in Editor"
-                    AutomationProperties.AcceleratorKey="Ctrl+J" />
+                    AutomationProperties.AcceleratorKey="Ctrl+J">
+                <StackPanel Orientation="Horizontal" Spacing="6">
+                    <PathIcon Data="{StaticResource IconShowPc}" />
+                    <TextBlock Text="Show PC" />
+                </StackPanel>
+            </Button>
         </StackPanel>
     </Border>
 </UserControl>
