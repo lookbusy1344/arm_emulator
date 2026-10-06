@@ -141,7 +141,7 @@ Makes the app safe to use for a single file. Each task is a small TDD change.
 - Move add and remove logic from the list views' code-behind into view-model commands with validation (address parse errors, API errors).
 - **Tests:** invalid address text, API failure and success paths, with exact messages.
 
-### 2.6 WebSocket message framing
+### 2.6 WebSocket message framing (done)
 
 - Accumulate frames until `EndOfMessage`, then decode the whole message once.
 - **Tests:** a message split across frames, a multi-byte UTF-8 character split at a frame boundary, and a message larger than the buffer.

@@ -1,3 +1,4 @@
+using System.Buffers;
 using System.Diagnostics.CodeAnalysis;
 using System.Net.WebSockets;
 using System.Reactive.Subjects;
@@ -14,6 +15,8 @@ namespace ARMEmulator.Services;
 /// </summary>
 public sealed class WebSocketClient : IWebSocketClient
 {
+	private const int ReceiveBufferBytes = 8192;
+
 	private readonly string wsUrl;
 	private readonly IWebSocketFactory factory;
 	private readonly Subject<EmulatorEvent> eventsSubject = new();
@@ -128,7 +131,8 @@ public sealed class WebSocketClient : IWebSocketClient
 
 	private async Task ReceiveLoopAsync(CancellationToken ct)
 	{
-		var buffer = new byte[8192];
+		var buffer = new byte[ReceiveBufferBytes];
+		var message = new ArrayBufferWriter<byte>();
 
 		try {
 			while (!ct.IsCancellationRequested && ws?.State == WebSocketState.Open) {
@@ -139,9 +143,15 @@ public sealed class WebSocketClient : IWebSocketClient
 					break;
 				}
 
-				if (result.MessageType == WebSocketMessageType.Text) {
-					var message = Encoding.UTF8.GetString(buffer, 0, result.Count);
-					ProcessMessage(message);
+				if (result.MessageType != WebSocketMessageType.Text) {
+					continue;
+				}
+
+				// A message can span frames, and a frame can end inside a multi-byte character: decode only the whole message
+				message.Write(buffer.AsSpan(0, result.Count));
+				if (result.EndOfMessage) {
+					ProcessMessage(Encoding.UTF8.GetString(message.WrittenSpan));
+					message.Clear();
 				}
 			}
 		}
