@@ -52,6 +52,7 @@ public class MainWindowViewModel : ReactiveObject, IDisposable
 		ShowPcCommand = CreateCommand("Show PC", ShowPcAsync);
 		SendInputCommand = CreateCommand("Send input", SendInputAsync, this.WhenAnyValue(x => x.InputText).Select(s => !string.IsNullOrWhiteSpace(s)));
 		ToggleBreakpointCommand = ReportFailures("Toggle breakpoint", ReactiveCommand.CreateFromTask<int>(ToggleBreakpointAtLineAsync, outputScheduler: RxSchedulers.MainThreadScheduler));
+		ToggleBreakpointAtAddressCommand = ReportFailures("Toggle breakpoint", ReactiveCommand.CreateFromTask<uint>(ToggleBreakpointAtAddressAsync, outputScheduler: RxSchedulers.MainThreadScheduler));
 		DismissErrorCommand = ReactiveCommand.Create(() => { ErrorMessage = null; }).DisposeWith(disposables);
 
 		// File operation commands
@@ -279,6 +280,9 @@ public class MainWindowViewModel : ReactiveObject, IDisposable
 	public ReactiveCommand<Unit, Unit> ResetCommand { get; }
 	public ReactiveCommand<Unit, Unit> LoadProgramCommand { get; }
 	public ReactiveCommand<Unit, Unit> ShowPcCommand { get; }
+
+	/// <summary>Toggles a breakpoint at an instruction address; the parameter is the address.</summary>
+	public ReactiveCommand<uint, Unit> ToggleBreakpointAtAddressCommand { get; }
 
 	/// <summary>Source line numbers the editor should bring into view, emitted when the PC moves or Show PC runs.</summary>
 	public IObservable<int> ScrollToLineRequests => scrollToLineRequests;
@@ -645,6 +649,11 @@ public class MainWindowViewModel : ReactiveObject, IDisposable
 			return;
 		}
 
+		await ToggleBreakpointAtAddressAsync(address, ct);
+	}
+
+	private async Task ToggleBreakpointAtAddressAsync(uint address, CancellationToken ct)
+	{
 		if (Breakpoints.Contains(address)) {
 			await RemoveBreakpointAsync(address, ct);
 		} else {

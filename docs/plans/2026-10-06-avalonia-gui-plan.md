@@ -87,7 +87,7 @@ Makes the app safe to use for a single file. Each task is a small TDD change.
 - Keep the scroll logic in the view; the view model exposes a request (an observable of line numbers), not editor calls.
 - **Tests:** view-model tests that a step and the Show PC command emit the mapped line, and emit nothing when the PC has no source line.
 
-### 1.5 Breakpoint toggling parity
+### 1.5 Breakpoint toggling parity (done)
 
 - `ToggleBreakpointCommand` (by source line) exists and reports lines without an instruction (done with 1.2).
 - F9 toggles a breakpoint on the caret line.

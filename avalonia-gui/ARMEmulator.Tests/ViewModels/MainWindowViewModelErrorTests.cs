@@ -190,4 +190,42 @@ public sealed class MainWindowViewModelErrorTests : IDisposable
 		vm.ErrorMessage.Should().Be("Toggle breakpoint failed: API error: Failed to add breakpoint: invalid breakpoint address");
 		vm.Breakpoints.Should().BeEmpty();
 	}
+
+	// Breakpoint toggling by address (disassembly marker column)
+
+	[Fact]
+	public void ToggleBreakpointAtAddress_WithoutBreakpoint_AddsIt()
+	{
+		using var vm = CreateViewModel();
+
+		Execute(vm.ToggleBreakpointAtAddressCommand, 0x8004u);
+
+		_ = api.Received(1).AddBreakpointAsync(SessionId, 0x8004, Arg.Any<CancellationToken>());
+		vm.Breakpoints.Should().BeEquivalentTo([0x8004u]);
+	}
+
+	[Fact]
+	public void ToggleBreakpointAtAddress_WithBreakpoint_RemovesIt()
+	{
+		using var vm = CreateViewModel();
+		vm.Breakpoints = [0x8004];
+
+		Execute(vm.ToggleBreakpointAtAddressCommand, 0x8004u);
+
+		_ = api.Received(1).RemoveBreakpointAsync(SessionId, 0x8004, Arg.Any<CancellationToken>());
+		vm.Breakpoints.Should().BeEmpty();
+	}
+
+	[Fact]
+	public void ToggleBreakpointAtAddress_WhenApiFails_ReportsErrorAndKeepsBreakpoints()
+	{
+		api.AddBreakpointAsync(SessionId, 0x8004, Arg.Any<CancellationToken>())
+			.ThrowsAsync(new ApiException("API error: invalid breakpoint address"));
+		using var vm = CreateViewModel();
+
+		Execute(vm.ToggleBreakpointAtAddressCommand, 0x8004u);
+
+		vm.ErrorMessage.Should().Be("Toggle breakpoint failed: API error: invalid breakpoint address");
+		vm.Breakpoints.Should().BeEmpty();
+	}
 }

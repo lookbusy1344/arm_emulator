@@ -7,6 +7,7 @@ using System.Xml;
 using ARMEmulator.Controls;
 using ARMEmulator.ViewModels;
 using Avalonia.Controls;
+using Avalonia.Input;
 using AvaloniaEdit.Highlighting;
 using AvaloniaEdit.Highlighting.Xshd;
 using ReactiveUI.Avalonia.Reactive;
@@ -74,6 +75,18 @@ public partial class EditorView : ReactiveUserControl<MainWindowViewModel>
 				.ObserveOn(RxSchedulers.MainThreadScheduler)
 				.Subscribe(ScrollToLineIfHidden)
 				.DisposeWith(disposables));
+
+			// F9 toggles a breakpoint on the caret line
+			_ = Observable.FromEventPattern<KeyEventArgs>(
+					handler => TextEditor.KeyDown += handler,
+					handler => TextEditor.KeyDown -= handler)
+				.Select(args => args.EventArgs)
+				.Where(args => args.Key == Key.F9)
+				.Subscribe(args => {
+					args.Handled = true;
+					((ICommand?)ViewModel?.ToggleBreakpointCommand)?.Execute(TextEditor.TextArea.Caret.Line);
+				})
+				.DisposeWith(disposables);
 
 			// Handle gutter clicks to toggle breakpoints
 			gutterMargin.LineClicked += OnGutterLineClicked;

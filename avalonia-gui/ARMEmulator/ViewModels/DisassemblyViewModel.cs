@@ -124,7 +124,8 @@ public sealed class DisassemblyViewModel : ReactiveObject, IDisposable
 				Mnemonic: instr.Mnemonic,
 				Symbol: instr.Symbol,
 				IsCurrentPC: instr.Address == ProgramCounter,
-				HasBreakpoint: Breakpoints.Contains(instr.Address)
+				HasBreakpoint: Breakpoints.Contains(instr.Address),
+				AddressValue: instr.Address
 			))
 			.ToImmutableList();
 	}
@@ -138,5 +139,6 @@ public sealed record FormattedInstruction(
 	string Mnemonic,
 	string? Symbol,
 	bool IsCurrentPC,
-	bool HasBreakpoint
+	bool HasBreakpoint,
+	uint AddressValue
 );

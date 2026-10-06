@@ -66,13 +66,20 @@
                                     BorderBrush="{DynamicResource SystemControlForegroundBaseLowBrush}">
                                 <Grid ColumnDefinitions="Auto,12,Auto,12,Auto,12,*">
                                     <!-- Breakpoint Indicator -->
-                                    <TextBlock Grid.Column="0"
-                                               Text="{Binding HasBreakpoint, Converter={StaticResource BoolToBreakpointConverter}}"
-                                               Foreground="Red"
-                                               FontWeight="Bold"
-                                               FontSize="16"
-                                               Width="25"
-                                               HorizontalAlignment="Center" />
+                                    <Button Grid.Column="0"
+                                            Command="{Binding $parent[Window].((vm:MainWindowViewModel)DataContext).ToggleBreakpointAtAddressCommand}"
+                                            CommandParameter="{Binding AddressValue}"
+                                            Background="Transparent"
+                                            BorderThickness="0"
+                                            Padding="0"
+                                            Width="25"
+                                            ToolTip.Tip="Toggle breakpoint">
+                                        <TextBlock Text="{Binding HasBreakpoint, Converter={StaticResource BoolToBreakpointConverter}}"
+                                                   Foreground="Red"
+                                                   FontWeight="Bold"
+                                                   FontSize="16"
+                                                   HorizontalAlignment="Center" />
+                                    </Button>
 
                                     <!-- PC Indicator -->
                                     <TextBlock Grid.Column="2"
