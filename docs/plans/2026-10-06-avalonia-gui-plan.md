@@ -177,7 +177,7 @@ Every task checks light and dark themes, and 100 % and 200 % scaling.
 - One resource dictionary (`Themes/`) holds the design tokens. Views use the tokens, never literal colours or sizes.
 - **Colours:** semantic names (window background, panel background, divider, secondary text, accent, changed-register highlight, memory-write highlight, breakpoint, PC marker, error), with `ThemeVariant` light and dark entries.
 - **Spacing and type:** a spacing scale (4 / 8 / 12 / 16), UI font sizes (11 / 12 / 13), and a data font size (11, from settings for the editor).
-- **Monospace font:** a fallback list (`SF Mono, Menlo, Cascadia Mono, Consolas, DejaVu Sans Mono`), or a bundled font (JetBrains Mono, SIL Open Font License) for identical rendering on all platforms. **Decision needed.**
+- **Monospace font:** a bundled JetBrains Mono (SIL Open Font License) for identical rendering on all platforms. **Decided 2026-10-06.**
 - Use `FluentTheme` with `DensityStyle="Compact"`.
 - **Tests:** a test fails if any `.axaml` file under `Views/` sets a literal colour (`#…`, named colours) outside `Themes/`.
 
@@ -247,9 +247,9 @@ Every task checks light and dark themes, and 100 % and 200 % scaling.
 
 ## Phase 4: Verification
 
-### 4.1 Headless UI tests
+### 4.1 Headless UI tests (done)
 
-Use `Avalonia.Headless.XUnit` (already referenced) with mocked services for:
+Use `Avalonia.Headless` through `HeadlessUnitTestSession` (`ARMEmulator.Tests/Ui/UiTest.cs`) with mocked services. `Avalonia.Headless.XUnit` 12.1 is built for xunit.v3 3.x and fails discovery under xunit.v3 4.x. Covered:
 
 - Startup with a backend failure shows the error bar.
 - Load with assembler errors shows all messages.
@@ -325,7 +325,6 @@ These are backend behaviours the GUI works around today. Each needs a Go change 
 
 ## Open decisions
 
-- Monospace font: platform fallback list or a bundled font (3.1).
 - Integration fixture fixes (4.2).
 - Whether backend items are fixed in Go or stay as GUI workarounds.
 - Settings file location on macOS: `~/Library/Application Support` (via `ApplicationData`) or a shared location with the Swift GUI's `UserDefaults`. Sharing is not practical; separate files are assumed.

@@ -15,7 +15,7 @@
     <PackageReference Include="AwesomeAssertions" Version="9.*" />
 
     <!-- Avalonia Headless Testing -->
-    <PackageReference Include="Avalonia.Headless.XUnit" Version="12.1.*" />
+    <PackageReference Include="Avalonia.Headless" Version="12.1.*" />
   </ItemGroup>
 
   <ItemGroup>

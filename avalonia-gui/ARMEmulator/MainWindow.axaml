@@ -91,7 +91,8 @@
                         Command="{Binding DismissErrorCommand}"
                         VerticalAlignment="Top"
                         AutomationProperties.Name="Dismiss error" />
-                <SelectableTextBlock Text="{Binding ErrorMessage}"
+                <SelectableTextBlock Name="ErrorText"
+                                     Text="{Binding ErrorMessage}"
                                      TextWrapping="Wrap"
                                      MaxHeight="160"
                                      VerticalAlignment="Center"

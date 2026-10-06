@@ -85,7 +85,7 @@
 
         <!-- Memory Hexdump Display -->
         <ScrollViewer>
-            <ItemsControl ItemsSource="{Binding FormattedRows}">
+            <ItemsControl Name="MemoryRows" ItemsSource="{Binding FormattedRows}">
                 <ItemsControl.ItemTemplate>
                     <DataTemplate>
                         <Border Background="{Binding IsHighlighted, Converter={StaticResource HighlightConverter}}"

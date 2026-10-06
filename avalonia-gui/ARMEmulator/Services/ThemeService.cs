@@ -2,6 +2,7 @@ using System.Reactive.Linq;
 using ARMEmulator.Models;
 using Avalonia;
 using Avalonia.Styling;
+using Avalonia.Threading;
 
 namespace ARMEmulator.Services;
 
@@ -33,6 +34,12 @@ public sealed class ThemeService : IDisposable
 		currentMode = theme;
 
 		if (Application.Current is null) {
+			return;
+		}
+
+		// Platform theme notifications can arrive on any thread
+		if (!Dispatcher.UIThread.CheckAccess()) {
+			Dispatcher.UIThread.Post(() => ApplyTheme(theme));
 			return;
 		}
 

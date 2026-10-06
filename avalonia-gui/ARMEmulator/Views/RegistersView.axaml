@@ -23,7 +23,7 @@
                                Margin="0,0,0,4" />
                     <UniformGrid Columns="3" Rows="5">
                         <!-- R0-R2 -->
-                        <Border Classes="registerCell">
+                        <Border Name="R0Cell" Classes="registerCell">
                             <Border.Background>
                                 <MultiBinding Converter="{StaticResource HighlightConverter}">
                                     <Binding Source="R0" />
@@ -32,7 +32,7 @@
                             </Border.Background>
                             <StackPanel>
                                 <TextBlock Text="R0" FontSize="11" Opacity="0.7" />
-                                <TextBlock Text="{Binding Registers.R0, Converter={StaticResource HexConverter}}"
+                                <TextBlock Name="R0Value" Text="{Binding Registers.R0, Converter={StaticResource HexConverter}}"
                                            FontFamily="monospace"
                                            FontSize="13" />
                                 <TextBlock Text="{Binding Registers.R0}"
@@ -41,7 +41,7 @@
                             </StackPanel>
                         </Border>
 
-                        <Border Classes="registerCell">
+                        <Border Name="R1Cell" Classes="registerCell">
                             <Border.Background>
                                 <MultiBinding Converter="{StaticResource HighlightConverter}">
                                     <Binding Source="R1" />
@@ -50,7 +50,7 @@
                             </Border.Background>
                             <StackPanel>
                                 <TextBlock Text="R1" FontSize="11" Opacity="0.7" />
-                                <TextBlock Text="{Binding Registers.R1, Converter={StaticResource HexConverter}}"
+                                <TextBlock Name="R1Value" Text="{Binding Registers.R1, Converter={StaticResource HexConverter}}"
                                            FontFamily="monospace"
                                            FontSize="13" />
                                 <TextBlock Text="{Binding Registers.R1}"
@@ -59,7 +59,7 @@
                             </StackPanel>
                         </Border>
 
-                        <Border Classes="registerCell">
+                        <Border Name="R2Cell" Classes="registerCell">
                             <Border.Background>
                                 <MultiBinding Converter="{StaticResource HighlightConverter}">
                                     <Binding Source="R2" />
@@ -68,7 +68,7 @@
                             </Border.Background>
                             <StackPanel>
                                 <TextBlock Text="R2" FontSize="11" Opacity="0.7" />
-                                <TextBlock Text="{Binding Registers.R2, Converter={StaticResource HexConverter}}"
+                                <TextBlock Name="R2Value" Text="{Binding Registers.R2, Converter={StaticResource HexConverter}}"
                                            FontFamily="monospace"
                                            FontSize="13" />
                                 <TextBlock Text="{Binding Registers.R2}"
@@ -78,7 +78,7 @@
                         </Border>
 
                         <!-- R3-R5 -->
-                        <Border Classes="registerCell">
+                        <Border Name="R3Cell" Classes="registerCell">
                             <Border.Background>
                                 <MultiBinding Converter="{StaticResource HighlightConverter}">
                                     <Binding Source="R3" />
@@ -87,7 +87,7 @@
                             </Border.Background>
                             <StackPanel>
                                 <TextBlock Text="R3" FontSize="11" Opacity="0.7" />
-                                <TextBlock Text="{Binding Registers.R3, Converter={StaticResource HexConverter}}"
+                                <TextBlock Name="R3Value" Text="{Binding Registers.R3, Converter={StaticResource HexConverter}}"
                                            FontFamily="monospace"
                                            FontSize="13" />
                                 <TextBlock Text="{Binding Registers.R3}"
@@ -96,7 +96,7 @@
                             </StackPanel>
                         </Border>
 
-                        <Border Classes="registerCell">
+                        <Border Name="R4Cell" Classes="registerCell">
                             <Border.Background>
                                 <MultiBinding Converter="{StaticResource HighlightConverter}">
                                     <Binding Source="R4" />
@@ -105,7 +105,7 @@
                             </Border.Background>
                             <StackPanel>
                                 <TextBlock Text="R4" FontSize="11" Opacity="0.7" />
-                                <TextBlock Text="{Binding Registers.R4, Converter={StaticResource HexConverter}}"
+                                <TextBlock Name="R4Value" Text="{Binding Registers.R4, Converter={StaticResource HexConverter}}"
                                            FontFamily="monospace"
                                            FontSize="13" />
                                 <TextBlock Text="{Binding Registers.R4}"
@@ -114,7 +114,7 @@
                             </StackPanel>
                         </Border>
 
-                        <Border Classes="registerCell">
+                        <Border Name="R5Cell" Classes="registerCell">
                             <Border.Background>
                                 <MultiBinding Converter="{StaticResource HighlightConverter}">
                                     <Binding Source="R5" />
@@ -123,7 +123,7 @@
                             </Border.Background>
                             <StackPanel>
                                 <TextBlock Text="R5" FontSize="11" Opacity="0.7" />
-                                <TextBlock Text="{Binding Registers.R5, Converter={StaticResource HexConverter}}"
+                                <TextBlock Name="R5Value" Text="{Binding Registers.R5, Converter={StaticResource HexConverter}}"
                                            FontFamily="monospace"
                                            FontSize="13" />
                                 <TextBlock Text="{Binding Registers.R5}"
@@ -133,7 +133,7 @@
                         </Border>
 
                         <!-- R6-R8 -->
-                        <Border Classes="registerCell">
+                        <Border Name="R6Cell" Classes="registerCell">
                             <Border.Background>
                                 <MultiBinding Converter="{StaticResource HighlightConverter}">
                                     <Binding Source="R6" />
@@ -142,7 +142,7 @@
                             </Border.Background>
                             <StackPanel>
                                 <TextBlock Text="R6" FontSize="11" Opacity="0.7" />
-                                <TextBlock Text="{Binding Registers.R6, Converter={StaticResource HexConverter}}"
+                                <TextBlock Name="R6Value" Text="{Binding Registers.R6, Converter={StaticResource HexConverter}}"
                                            FontFamily="monospace"
                                            FontSize="13" />
                                 <TextBlock Text="{Binding Registers.R6}"
@@ -151,7 +151,7 @@
                             </StackPanel>
                         </Border>
 
-                        <Border Classes="registerCell">
+                        <Border Name="R7Cell" Classes="registerCell">
                             <Border.Background>
                                 <MultiBinding Converter="{StaticResource HighlightConverter}">
                                     <Binding Source="R7" />
@@ -160,7 +160,7 @@
                             </Border.Background>
                             <StackPanel>
                                 <TextBlock Text="R7" FontSize="11" Opacity="0.7" />
-                                <TextBlock Text="{Binding Registers.R7, Converter={StaticResource HexConverter}}"
+                                <TextBlock Name="R7Value" Text="{Binding Registers.R7, Converter={StaticResource HexConverter}}"
                                            FontFamily="monospace"
                                            FontSize="13" />
                                 <TextBlock Text="{Binding Registers.R7}"
@@ -169,7 +169,7 @@
                             </StackPanel>
                         </Border>
 
-                        <Border Classes="registerCell">
+                        <Border Name="R8Cell" Classes="registerCell">
                             <Border.Background>
                                 <MultiBinding Converter="{StaticResource HighlightConverter}">
                                     <Binding Source="R8" />
@@ -178,7 +178,7 @@
                             </Border.Background>
                             <StackPanel>
                                 <TextBlock Text="R8" FontSize="11" Opacity="0.7" />
-                                <TextBlock Text="{Binding Registers.R8, Converter={StaticResource HexConverter}}"
+                                <TextBlock Name="R8Value" Text="{Binding Registers.R8, Converter={StaticResource HexConverter}}"
                                            FontFamily="monospace"
                                            FontSize="13" />
                                 <TextBlock Text="{Binding Registers.R8}"
@@ -188,7 +188,7 @@
                         </Border>
 
                         <!-- R9-R11 -->
-                        <Border Classes="registerCell">
+                        <Border Name="R9Cell" Classes="registerCell">
                             <Border.Background>
                                 <MultiBinding Converter="{StaticResource HighlightConverter}">
                                     <Binding Source="R9" />
@@ -197,7 +197,7 @@
                             </Border.Background>
                             <StackPanel>
                                 <TextBlock Text="R9" FontSize="11" Opacity="0.7" />
-                                <TextBlock Text="{Binding Registers.R9, Converter={StaticResource HexConverter}}"
+                                <TextBlock Name="R9Value" Text="{Binding Registers.R9, Converter={StaticResource HexConverter}}"
                                            FontFamily="monospace"
                                            FontSize="13" />
                                 <TextBlock Text="{Binding Registers.R9}"
@@ -206,7 +206,7 @@
                             </StackPanel>
                         </Border>
 
-                        <Border Classes="registerCell">
+                        <Border Name="R10Cell" Classes="registerCell">
                             <Border.Background>
                                 <MultiBinding Converter="{StaticResource HighlightConverter}">
                                     <Binding Source="R10" />
@@ -215,7 +215,7 @@
                             </Border.Background>
                             <StackPanel>
                                 <TextBlock Text="R10" FontSize="11" Opacity="0.7" />
-                                <TextBlock Text="{Binding Registers.R10, Converter={StaticResource HexConverter}}"
+                                <TextBlock Name="R10Value" Text="{Binding Registers.R10, Converter={StaticResource HexConverter}}"
                                            FontFamily="monospace"
                                            FontSize="13" />
                                 <TextBlock Text="{Binding Registers.R10}"
@@ -224,7 +224,7 @@
                             </StackPanel>
                         </Border>
 
-                        <Border Classes="registerCell">
+                        <Border Name="R11Cell" Classes="registerCell">
                             <Border.Background>
                                 <MultiBinding Converter="{StaticResource HighlightConverter}">
                                     <Binding Source="R11" />
@@ -233,7 +233,7 @@
                             </Border.Background>
                             <StackPanel>
                                 <TextBlock Text="R11" FontSize="11" Opacity="0.7" />
-                                <TextBlock Text="{Binding Registers.R11, Converter={StaticResource HexConverter}}"
+                                <TextBlock Name="R11Value" Text="{Binding Registers.R11, Converter={StaticResource HexConverter}}"
                                            FontFamily="monospace"
                                            FontSize="13" />
                                 <TextBlock Text="{Binding Registers.R11}"
@@ -243,7 +243,7 @@
                         </Border>
 
                         <!-- R12 -->
-                        <Border Classes="registerCell">
+                        <Border Name="R12Cell" Classes="registerCell">
                             <Border.Background>
                                 <MultiBinding Converter="{StaticResource HighlightConverter}">
                                     <Binding Source="R12" />
@@ -252,7 +252,7 @@
                             </Border.Background>
                             <StackPanel>
                                 <TextBlock Text="R12" FontSize="11" Opacity="0.7" />
-                                <TextBlock Text="{Binding Registers.R12, Converter={StaticResource HexConverter}}"
+                                <TextBlock Name="R12Value" Text="{Binding Registers.R12, Converter={StaticResource HexConverter}}"
                                            FontFamily="monospace"
                                            FontSize="13" />
                                 <TextBlock Text="{Binding Registers.R12}"
@@ -274,7 +274,7 @@
                                FontWeight="SemiBold"
                                Margin="0,0,0,4" />
                     <UniformGrid Columns="3">
-                        <Border Classes="registerCell">
+                        <Border Name="SPCell" Classes="registerCell">
                             <Border.Background>
                                 <MultiBinding Converter="{StaticResource HighlightConverter}">
                                     <Binding Source="SP" />
@@ -283,7 +283,7 @@
                             </Border.Background>
                             <StackPanel>
                                 <TextBlock Text="SP (R13)" FontSize="11" Opacity="0.7" />
-                                <TextBlock Text="{Binding Registers.SP, Converter={StaticResource HexConverter}}"
+                                <TextBlock Name="SPValue" Text="{Binding Registers.SP, Converter={StaticResource HexConverter}}"
                                            FontFamily="monospace"
                                            FontSize="13" />
                                 <TextBlock Text="{Binding Registers.SP}"
@@ -292,7 +292,7 @@
                             </StackPanel>
                         </Border>
 
-                        <Border Classes="registerCell">
+                        <Border Name="LRCell" Classes="registerCell">
                             <Border.Background>
                                 <MultiBinding Converter="{StaticResource HighlightConverter}">
                                     <Binding Source="LR" />
@@ -301,7 +301,7 @@
                             </Border.Background>
                             <StackPanel>
                                 <TextBlock Text="LR (R14)" FontSize="11" Opacity="0.7" />
-                                <TextBlock Text="{Binding Registers.LR, Converter={StaticResource HexConverter}}"
+                                <TextBlock Name="LRValue" Text="{Binding Registers.LR, Converter={StaticResource HexConverter}}"
                                            FontFamily="monospace"
                                            FontSize="13" />
                                 <TextBlock Text="{Binding Registers.LR}"
@@ -310,7 +310,7 @@
                             </StackPanel>
                         </Border>
 
-                        <Border Classes="registerCell">
+                        <Border Name="PCCell" Classes="registerCell">
                             <Border.Background>
                                 <MultiBinding Converter="{StaticResource HighlightConverter}">
                                     <Binding Source="PC" />
@@ -319,7 +319,7 @@
                             </Border.Background>
                             <StackPanel>
                                 <TextBlock Text="PC (R15)" FontSize="11" Opacity="0.7" />
-                                <TextBlock Text="{Binding Registers.PC, Converter={StaticResource HexConverter}}"
+                                <TextBlock Name="PCValue" Text="{Binding Registers.PC, Converter={StaticResource HexConverter}}"
                                            FontFamily="monospace"
                                            FontSize="13" />
                                 <TextBlock Text="{Binding Registers.PC}"
@@ -339,7 +339,7 @@
                 <StackPanel Spacing="8">
                     <TextBlock Text="CPSR Flags"
                                FontWeight="SemiBold" />
-                    <Border Classes="registerCell">
+                    <Border Name="CPSRCell" Classes="registerCell">
                         <Border.Background>
                             <MultiBinding Converter="{StaticResource HighlightConverter}">
                                 <Binding Source="CPSR" />

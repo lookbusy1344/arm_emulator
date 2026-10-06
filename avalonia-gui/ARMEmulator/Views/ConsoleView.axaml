@@ -43,7 +43,8 @@
                         Margin="0,8,0,0">
                 <TextBlock Text="Input:"
                            VerticalAlignment="Center" />
-                <TextBox Width="400"
+                <TextBox Name="InputBox"
+                         Width="400"
                          Text="{Binding InputText}"
                          PlaceholderText="Enter input..."
                          VerticalAlignment="Center"
@@ -66,7 +67,8 @@
             <ScrollViewer Name="OutputScrollViewer"
                           VerticalScrollBarVisibility="Auto"
                           HorizontalScrollBarVisibility="Auto">
-                <TextBox Text="{Binding ConsoleOutput}"
+                <TextBox Name="OutputBox"
+                         Text="{Binding ConsoleOutput}"
                          IsReadOnly="True"
                          BorderThickness="0"
                          Background="Transparent"

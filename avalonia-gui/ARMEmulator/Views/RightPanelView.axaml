@@ -8,7 +8,7 @@
             BorderThickness="1"
             CornerRadius="4"
             Padding="8">
-        <TabControl>
+        <TabControl Name="InspectorTabs">
             <TabItem Header="Registers">
                 <views:RegistersView />
             </TabItem>

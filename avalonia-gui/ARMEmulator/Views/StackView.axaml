@@ -63,7 +63,7 @@
                 </Border>
 
                 <!-- Data Rows -->
-                <ItemsControl ItemsSource="{Binding StackEntries}" Margin="0,28,0,0">
+                <ItemsControl Name="StackRows" ItemsSource="{Binding StackEntries}" Margin="0,28,0,0">
                     <ItemsControl.ItemTemplate>
                         <DataTemplate>
                             <Border Background="{Binding IsCurrentSP, Converter={StaticResource HighlightConverter}}"

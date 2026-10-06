@@ -414,4 +414,18 @@ public sealed class MainWindowViewModelLoadTests : IDisposable
 
 		vm.ConsoleOutput.Should().Be(tail);
 	}
+
+	[Fact]
+	public async Task FirstStepAfterLoad_HighlightsTheRegistersItChanged()
+	{
+		StubSuccessfulLoad(Program, RegisterState.Create(pc: 0x8000));
+		api.StepAsync(SessionId, Arg.Any<CancellationToken>()).Returns(RegisterState.Create(r0: 5, pc: 0x8004));
+		using var vm = CreateViewModel();
+		vm.SourceCode = Program;
+		await vm.LoadProgramCommand.Execute();
+
+		await vm.StepCommand.Execute();
+
+		vm.ChangedRegisters.Should().BeEquivalentTo(["R0", "PC"]);
+	}
 }

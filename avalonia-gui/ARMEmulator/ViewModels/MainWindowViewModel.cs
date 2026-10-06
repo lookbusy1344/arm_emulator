@@ -483,14 +483,23 @@ public partial class MainWindowViewModel : ReactiveObject, IDisposable
 			var registers = await api.GetRegistersAsync(SessionId, ct);
 
 			ConsoleOutput = "";
-			ClearRegisterHighlights();
-			Registers = registers;
+			ResetRegisterBaseline(registers);
 			Status = VMState.Idle;
 			ErrorMessage = null;
 		}
 		catch (ApiException ex) {
 			ErrorMessage = $"Failed to restart: {ex.Message}";
 		}
+	}
+
+	private bool hasRegisterBaseline;
+
+	/// <summary>Takes <paramref name="registers"/> as the state later changes are measured against, without highlights.</summary>
+	private void ResetRegisterBaseline(RegisterState registers)
+	{
+		ClearRegisterHighlights();
+		Registers = registers;
+		hasRegisterBaseline = true;
 	}
 
 	private void ClearRegisterHighlights()
@@ -523,8 +532,7 @@ public partial class MainWindowViewModel : ReactiveObject, IDisposable
 
 			// A new program starts without output or highlights carried over from the previous one
 			ConsoleOutput = "";
-			ClearRegisterHighlights();
-			Registers = registers;
+			ResetRegisterBaseline(registers);
 
 			// The backend reports "halted" for a loaded program that has not run; the GUI treats it as ready
 			Status = VMState.Idle;
@@ -851,7 +859,7 @@ public partial class MainWindowViewModel : ReactiveObject, IDisposable
 	/// </summary>
 	public void UpdateRegisters(RegisterState newRegisters)
 	{
-		if (PreviousRegisters is not null) {
+		if (hasRegisterBaseline) {
 			// Compute diff and trigger highlights for each changed register
 			var changes = newRegisters.Diff(Registers);
 			foreach (var register in changes) {
@@ -861,6 +869,7 @@ public partial class MainWindowViewModel : ReactiveObject, IDisposable
 
 		PreviousRegisters = Registers;
 		Registers = newRegisters;
+		hasRegisterBaseline = true;
 	}
 
 	/// <summary>
