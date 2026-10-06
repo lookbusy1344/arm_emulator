@@ -22,7 +22,7 @@ public sealed class BackendIntegrationTests : IDisposable
 	public BackendIntegrationTests()
 	{
 		_httpClient = new HttpClient {
-			BaseAddress = new Uri("http://localhost:8080"),
+			BaseAddress = BackendAvailability.BaseUri,
 			Timeout = TimeSpan.FromSeconds(5)
 		};
 		_apiClient = new ApiClient(_httpClient);

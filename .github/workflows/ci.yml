@@ -81,7 +81,11 @@ jobs:
         run: xcodebuild test -project ARMEmulator.xcodeproj -scheme ARMEmulator -destination 'platform=macOS' | xcbeautify
 
   avalonia-gui:
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
 
     steps:
       - uses: actions/checkout@v5
@@ -98,6 +102,30 @@ jobs:
       - name: Build Avalonia app
         working-directory: avalonia-gui
         run: dotnet build --no-restore
+
+      - name: Set up Go
+        if: runner.os != 'Windows'
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.27"
+
+      - name: Build Go backend
+        if: runner.os != 'Windows'
+        run: go build -o arm-emulator
+
+      # The integration tests run against this backend instead of skipping. Windows runs the unit and UI tests only.
+      - name: Start Go backend
+        if: runner.os != 'Windows'
+        run: |
+          port=$(python3 -c 'import socket; s = socket.socket(); s.bind(("", 0)); print(s.getsockname()[1])')
+          ./arm-emulator -api-server -port "$port" > backend.log 2>&1 &
+          echo "ARM_EMULATOR_URL=http://localhost:$port" >> "$GITHUB_ENV"
+          for attempt in $(seq 1 50); do
+            curl -sf "http://localhost:$port/health" && exit 0
+            sleep 0.2
+          done
+          cat backend.log
+          exit 1
 
       - name: Run Avalonia tests
         working-directory: avalonia-gui

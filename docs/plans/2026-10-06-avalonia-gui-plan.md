@@ -258,16 +258,16 @@ Use `Avalonia.Headless` through `HeadlessUnitTestSession` (`ARMEmulator.Tests/Ui
 - Console input is sent and cleared.
 - Panels bind to their child view models (memory, stack and disassembly show data).
 
-### 4.2 Integration suite
+### 4.2 Integration suite (done)
 
-- Fix the three integration fixtures. **Decision needed:**
+- Fix the three integration fixtures (done in `4fda096`; decided 2026-10-06):
   - Add `.org 0x8000` to the breakpoint test.
   - Replace `MOV R0, #0x12345678` with an encodable immediate or `LDR R0, =0x12345678`.
   - Expect `Halted` from `GET status` straight after load (the backend reports `halted` before any run).
 - Replace `[Fact(Skip = ...)]` with a trait-filtered run that starts a backend: CI builds the Go binary, starts it on a free port and runs `dotnet test --filter-trait Category=Integration` against it.
 - Add a WebSocket integration test: subscribe, step, and receive a state event with registers.
 
-### 4.3 Cross-platform CI
+### 4.3 Cross-platform CI (done, unverified until the first CI run)
 
 - Run the Avalonia unit tests on macOS and Windows as well as Ubuntu.
 - Run the headless UI tests on all three.
