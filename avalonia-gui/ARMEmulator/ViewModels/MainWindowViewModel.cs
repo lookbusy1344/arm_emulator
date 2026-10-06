@@ -18,7 +18,7 @@ namespace ARMEmulator.ViewModels;
 /// Central ViewModel for the main window, managing emulator state and user interactions.
 /// Uses ReactiveUI for MVVM with reactive state management.
 /// </summary>
-public class MainWindowViewModel : ReactiveObject, IDisposable
+public partial class MainWindowViewModel : ReactiveObject, IDisposable
 {
 	private readonly IApiClient api;
 	private readonly IWebSocketClient ws;
@@ -53,6 +53,7 @@ public class MainWindowViewModel : ReactiveObject, IDisposable
 		SendInputCommand = CreateCommand("Send input", SendInputAsync, this.WhenAnyValue(x => x.InputText).Select(s => !string.IsNullOrWhiteSpace(s)));
 		ToggleBreakpointCommand = ReportFailures("Toggle breakpoint", ReactiveCommand.CreateFromTask<int>(ToggleBreakpointAtLineAsync, outputScheduler: RxSchedulers.MainThreadScheduler));
 		ToggleBreakpointAtAddressCommand = ReportFailures("Toggle breakpoint", ReactiveCommand.CreateFromTask<uint>(ToggleBreakpointAtAddressAsync, outputScheduler: RxSchedulers.MainThreadScheduler));
+		RestartBackendCommand = CreateCommand("Restart backend", RestartBackendAsync);
 		DismissErrorCommand = ReactiveCommand.Create(() => { ErrorMessage = null; }).DisposeWith(disposables);
 
 		// File operation commands
@@ -91,7 +92,7 @@ public class MainWindowViewModel : ReactiveObject, IDisposable
 			.ToProperty(this, x => x.StatusColor)
 			.DisposeWith(disposables);
 
-		statusTextHelper = this.WhenAnyValue(x => x.Status, x => x.IsConnected, GetStatusText)
+		statusTextHelper = this.WhenAnyValue(x => x.Status, x => x.IsConnected, x => x.BackendStatus, GetStatusText)
 			.ToProperty(this, x => x.StatusText)
 			.DisposeWith(disposables);
 
@@ -340,31 +341,6 @@ public class MainWindowViewModel : ReactiveObject, IDisposable
 	}
 
 	/// <summary>
-	/// Starts the backend, then creates a session and connects the WebSocket.
-	/// Failures are reported through <see cref="ErrorMessage"/>.
-	/// </summary>
-	public async Task StartAsync(IBackendManager backend, CancellationToken ct = default)
-	{
-		ArgumentNullException.ThrowIfNull(backend);
-
-		try {
-			await backend.StartAsync(ct);
-		}
-		catch (BackendStartException ex) {
-			ErrorMessage = $"Failed to start backend: {ex.Message}";
-			return;
-		}
-
-		try {
-			await CreateSessionAsync(ct);
-			ErrorMessage = null;
-		}
-		catch (ApiException ex) {
-			ErrorMessage = $"Failed to connect to backend: {ex.Message}";
-		}
-	}
-
-	/// <summary>
 	/// Creates a new emulator session and connects the WebSocket.
 	/// If a session already exists, destroys it first.
 	/// </summary>
@@ -515,6 +491,7 @@ public class MainWindowViewModel : ReactiveObject, IDisposable
 			// The backend reports "halted" for a loaded program that has not run; the GUI treats it as ready
 			Status = VMState.Idle;
 			ErrorMessage = null;
+			isProgramLoaded = true;
 		}
 		catch (ProgramLoadException ex) {
 			ErrorMessage = $"Failed to load program:\n{string.Join('\n', ex.Errors)}";
@@ -525,8 +502,11 @@ public class MainWindowViewModel : ReactiveObject, IDisposable
 		}
 	}
 
+	private bool isProgramLoaded;
+
 	private void ClearSourceMap()
 	{
+		isProgramLoaded = false;
 		AddressToLine = ImmutableDictionary<uint, int>.Empty;
 		LineToAddress = ImmutableDictionary<int, uint>.Empty;
 		ValidBreakpointLines = [];
@@ -736,7 +716,13 @@ public class MainWindowViewModel : ReactiveObject, IDisposable
 	/// <summary>
 	/// Gets the status indicator tooltip text based on VM state and connection status.
 	/// </summary>
-	private static string GetStatusText(VMState status, bool isConnected)
+	private static string GetStatusText(VMState status, bool isConnected, BackendStatus backendStatus)
+	{
+		var vmText = GetVmStatusText(status, isConnected);
+		return backendStatus == BackendStatus.Unknown ? vmText : $"{vmText} (backend: {backendStatus})";
+	}
+
+	private static string GetVmStatusText(VMState status, bool isConnected)
 	{
 		if (!isConnected) {
 			return "Disconnected";

@@ -95,7 +95,7 @@ Makes the app safe to use for a single file. Each task is a small TDD change.
 - A line without an address (`ValidBreakpointLines` excludes it) shows a message rather than failing silently.
 - **Tests:** a toggle on a valid line adds then removes the address; a toggle on an invalid line sets the message and calls no API.
 
-### 1.6 Backend status
+### 1.6 Backend status (done)
 
 - Show the backend state (`Starting`, `Running`, `Error`) in the status indicator tooltip and in the error bar on failure.
 - Add a **Restart backend** command: stop, start, create a new session and reload the current source if one was loaded.

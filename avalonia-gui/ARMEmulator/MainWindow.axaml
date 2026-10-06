@@ -69,6 +69,7 @@
                 <MenuItem Header="_Examples..." Command="{Binding OpenExampleCommand}" InputGesture="Ctrl+Shift+E" />
                 <Separator />
                 <MenuItem Header="_Preferences..." Command="{Binding ShowPreferencesCommand}" InputGesture="Ctrl+," />
+                <MenuItem Header="Restart _Backend" Command="{Binding RestartBackendCommand}" />
                 <MenuItem Header="_About..." Command="{Binding ShowAboutCommand}" />
             </MenuItem>
         </Menu>
