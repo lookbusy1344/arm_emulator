@@ -31,7 +31,8 @@ public partial class WatchpointsView : UserControl
 		var addressInput = this.FindControl<TextBox>("WatchpointAddressInput");
 		var typeCombo = this.FindControl<ComboBox>("WatchpointTypeCombo");
 
-		if (addressInput?.Text is not { } addressStr || string.IsNullOrWhiteSpace(addressStr)) {
+		var addressStr = addressInput?.Text;
+		if (string.IsNullOrWhiteSpace(addressStr)) {
 			return;
 		}
 

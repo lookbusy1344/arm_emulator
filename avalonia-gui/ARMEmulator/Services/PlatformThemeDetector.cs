@@ -41,7 +41,7 @@ public sealed class PlatformThemeDetector : IPlatformThemeDetector, IDisposable
 	{
 		try {
 			// Use Avalonia's theme detection first
-			if (Application.Current?.ActualThemeVariant is { } avaloniaTheme) {
+			if (Application.Current?.ActualThemeVariant is ThemeVariant avaloniaTheme) {
 				return avaloniaTheme == ThemeVariant.Dark ? PlatformTheme.Dark : PlatformTheme.Light;
 			}
 

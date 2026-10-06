@@ -12,6 +12,8 @@ namespace ARMEmulator.Services;
 public sealed class BackendManager : IBackendManager
 {
 	private const string DefaultBaseUrl = "http://localhost:8080";
+	private const int StartupPollAttempts = 30;
+	private static readonly TimeSpan StartupPollInterval = TimeSpan.FromMilliseconds(100);
 
 	private readonly BehaviorSubject<BackendStatus> statusSubject = new(BackendStatus.Stopped);
 	private readonly string baseUrl;
@@ -83,14 +85,13 @@ public sealed class BackendManager : IBackendManager
 			}
 
 			// Wait for backend to be ready
-			for (int i = 0; i < 30; i++) // 3 second timeout
-			{
+			for (var attempt = 0; attempt < StartupPollAttempts; ++attempt) {
 				if (await HealthCheckAsync(ct)) {
 					statusSubject.OnNext(BackendStatus.Running);
 					return;
 				}
 
-				await Task.Delay(100, ct);
+				await Task.Delay(StartupPollInterval, ct);
 			}
 
 			statusSubject.OnNext(BackendStatus.Error);
