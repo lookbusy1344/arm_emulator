@@ -101,7 +101,7 @@ Makes the app safe to use for a single file. Each task is a small TDD change.
 - Add a **Restart backend** command: stop, start, create a new session and reload the current source if one was loaded.
 - **Tests:** restart sequence order with mocks; failure at each step reports its own message.
 
-### 1.7 Application name
+### 1.7 Application name (done)
 
 - Set `Name="ARM Emulator"` on the `Application` element so the macOS menu bar shows the app name.
 
