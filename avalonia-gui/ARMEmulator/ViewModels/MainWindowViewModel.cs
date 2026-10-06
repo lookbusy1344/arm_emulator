@@ -40,24 +40,28 @@ public class MainWindowViewModel : ReactiveObject, IDisposable
 		this.fileService = fileService;
 
 		// Initialize commands with can-execute observables
-		RunCommand = CreateCommand(RunAsync, this.WhenAnyValue(x => x.Status).Select(s => !s.CanPause()));
-		PauseCommand = CreateCommand(PauseAsync, this.WhenAnyValue(x => x.Status).Select(s => s.CanPause()));
-		StepCommand = CreateCommand(StepAsync, this.WhenAnyValue(x => x.Status).Select(s => s.CanStep()));
-		StepOverCommand = CreateCommand(StepOverAsync, this.WhenAnyValue(x => x.Status).Select(s => s.CanStep()));
-		StepOutCommand = CreateCommand(StepOutAsync, this.WhenAnyValue(x => x.Status).Select(s => s.CanStep()));
-		ResetCommand = CreateCommand(ResetAsync);
-		LoadProgramCommand = CreateCommand(LoadProgramAsync);
-		ShowPcCommand = CreateCommand(ShowPcAsync);
-		SendInputCommand = CreateCommand(SendInputAsync, this.WhenAnyValue(x => x.InputText).Select(s => !string.IsNullOrWhiteSpace(s)));
+#pragma warning disable CA2000 // Commands are disposed via DisposeWith(disposables) in ReportFailures
+		RunCommand = CreateCommand("Run", RunAsync, this.WhenAnyValue(x => x.Status).Select(s => !s.CanPause()));
+		PauseCommand = CreateCommand("Pause", PauseAsync, this.WhenAnyValue(x => x.Status).Select(s => s.CanPause()));
+		StepCommand = CreateCommand("Step", StepAsync, this.WhenAnyValue(x => x.Status).Select(s => s.CanStep()));
+		StepOverCommand = CreateCommand("Step over", StepOverAsync, this.WhenAnyValue(x => x.Status).Select(s => s.CanStep()));
+		StepOutCommand = CreateCommand("Step out", StepOutAsync, this.WhenAnyValue(x => x.Status).Select(s => s.CanStep()));
+		ResetCommand = CreateCommand("Reset", ResetAsync);
+		LoadProgramCommand = CreateCommand("Load", LoadProgramAsync);
+		ShowPcCommand = CreateCommand("Show PC", ShowPcAsync);
+		SendInputCommand = CreateCommand("Send input", SendInputAsync, this.WhenAnyValue(x => x.InputText).Select(s => !string.IsNullOrWhiteSpace(s)));
+		ToggleBreakpointCommand = ReportFailures("Toggle breakpoint", ReactiveCommand.CreateFromTask<int>(ToggleBreakpointAtLineAsync, outputScheduler: RxSchedulers.MainThreadScheduler));
+		DismissErrorCommand = ReactiveCommand.Create(() => { ErrorMessage = null; }).DisposeWith(disposables);
 
 		// File operation commands
-		OpenFileCommand = CreateCommand(OpenFileAsync);
-		SaveFileCommand = CreateCommand(SaveFileAsync);
-		SaveAsCommand = CreateCommand(SaveAsAsync);
-		OpenExampleCommand = CreateCommand(OpenExampleAsync);
-		ShowPreferencesCommand = CreateCommand(ShowPreferencesAsync);
-		ShowAboutCommand = CreateCommand(ShowAboutAsync);
-		OpenRecentFileCommand = ReactiveCommand.CreateFromTask<string>(OpenRecentFileAsync);
+		OpenFileCommand = CreateCommand("Open file", OpenFileAsync);
+		SaveFileCommand = CreateCommand("Save", SaveFileAsync);
+		SaveAsCommand = CreateCommand("Save as", SaveAsAsync);
+		OpenExampleCommand = CreateCommand("Open example", OpenExampleAsync);
+		ShowPreferencesCommand = CreateCommand("Preferences", ShowPreferencesAsync);
+		ShowAboutCommand = CreateCommand("About", ShowAboutAsync);
+		OpenRecentFileCommand = ReportFailures("Open recent file", ReactiveCommand.CreateFromTask<string>(OpenRecentFileAsync, outputScheduler: RxSchedulers.MainThreadScheduler));
+#pragma warning restore CA2000
 
 		// Set up computed properties using WhenAnyValue
 		canPauseHelper = this.WhenAnyValue(x => x.Status)
@@ -287,6 +291,12 @@ public class MainWindowViewModel : ReactiveObject, IDisposable
 	public ReactiveCommand<Unit, Unit> ShowAboutCommand { get; }
 	public ReactiveCommand<string, Unit> OpenRecentFileCommand { get; }
 
+	/// <summary>Toggles a breakpoint at the instruction on the given 1-based source line.</summary>
+	public ReactiveCommand<int, Unit> ToggleBreakpointCommand { get; }
+
+	/// <summary>Clears <see cref="ErrorMessage"/>.</summary>
+	public ReactiveCommand<Unit, Unit> DismissErrorCommand { get; }
+
 	// Recent files from FileService
 	public IReadOnlyList<RecentFile> RecentFiles => fileService.RecentFiles;
 
@@ -297,18 +307,31 @@ public class MainWindowViewModel : ReactiveObject, IDisposable
 	public void SetParentWindow(Window window) => parentWindow = window;
 
 	/// <summary>
-	/// Helper to create commands with consistent error handling and scheduling.
+	/// Creates a command whose failures are reported as "<paramref name="operation"/> failed: …".
 	/// </summary>
-#pragma warning disable CA2000 // Commands are disposed via DisposeWith(_disposables)
+#pragma warning disable CA2000 // The command is disposed via DisposeWith(disposables) in ReportFailures
 	private ReactiveCommand<Unit, Unit> CreateCommand(
+		string operation,
 		Func<CancellationToken, Task> execute,
 		IObservable<bool>? canExecute = null
-	) => ReactiveCommand.CreateFromTask(
+	) => ReportFailures(operation, ReactiveCommand.CreateFromTask(
 		execute,
 		canExecute,
-		outputScheduler: RxSchedulers.MainThreadScheduler
-	).DisposeWith(disposables);
+		outputScheduler: RxSchedulers.MainThreadScheduler));
 #pragma warning restore CA2000
+
+	/// <summary>
+	/// Routes a command's exceptions to <see cref="ErrorMessage"/>. Without a subscriber, ReactiveUI rethrows
+	/// command exceptions on the main thread and the process ends. Cancellation is not a failure.
+	/// </summary>
+	private ReactiveCommand<TParam, Unit> ReportFailures<TParam>(string operation, ReactiveCommand<TParam, Unit> command)
+	{
+		_ = command.ThrownExceptions
+			.Where(static ex => ex is not OperationCanceledException)
+			.Subscribe(ex => ErrorMessage = $"{operation} failed: {ex.Message}")
+			.DisposeWith(disposables);
+		return command.DisposeWith(disposables);
+	}
 
 	/// <summary>
 	/// Starts the backend, then creates a session and connects the WebSocket.
@@ -583,6 +606,20 @@ public class MainWindowViewModel : ReactiveObject, IDisposable
 		}
 		catch (ApiException ex) {
 			ErrorMessage = $"Failed to send input: {ex.Message}";
+		}
+	}
+
+	private async Task ToggleBreakpointAtLineAsync(int line, CancellationToken ct)
+	{
+		if (!LineToAddress.TryGetValue(line, out var address)) {
+			ErrorMessage = $"Line {line} has no instruction for a breakpoint";
+			return;
+		}
+
+		if (Breakpoints.Contains(address)) {
+			await RemoveBreakpointAsync(address, ct);
+		} else {
+			await AddBreakpointAsync(address, ct);
 		}
 	}
 

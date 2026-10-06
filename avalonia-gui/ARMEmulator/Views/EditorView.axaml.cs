@@ -2,6 +2,7 @@ using System.Reactive.Disposables;
 using System.Reactive.Disposables.Fluent;
 using System.Reactive.Linq;
 using System.Reflection;
+using System.Windows.Input;
 using System.Xml;
 using ARMEmulator.Controls;
 using ARMEmulator.ViewModels;
@@ -84,27 +85,8 @@ public partial class EditorView : ReactiveUserControl<MainWindowViewModel>
 			.ToImmutableHashSet();
 	}
 
-	// Justification: Event handler requires async void signature
-#pragma warning disable VSTHRD100
-	private async void OnGutterLineClicked(object? sender, int lineNumber)
-#pragma warning restore VSTHRD100
-	{
-		if (ViewModel is null) {
-			return;
-		}
-
-		// Convert line number to address
-		if (!ViewModel.LineToAddress.TryGetValue(lineNumber, out var address)) {
-			return;
-		}
-
-		// Toggle breakpoint
-		if (ViewModel.Breakpoints.Contains(address)) {
-			await ViewModel.RemoveBreakpointAsync(address);
-		} else {
-			await ViewModel.AddBreakpointAsync(address);
-		}
-	}
+	private void OnGutterLineClicked(object? sender, int lineNumber) =>
+		((ICommand?)ViewModel?.ToggleBreakpointCommand)?.Execute(lineNumber);
 
 	/// <summary>
 	/// Loads the ARM assembly syntax highlighting definition from embedded resources.

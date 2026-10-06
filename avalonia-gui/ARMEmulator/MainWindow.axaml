@@ -76,6 +76,28 @@
         <!-- Toolbar at the top -->
         <views:ToolbarView DockPanel.Dock="Top" />
 
+        <!-- Error bar: visible while ErrorMessage is set -->
+        <Border DockPanel.Dock="Top"
+                Name="ErrorBar"
+                IsVisible="{Binding ErrorMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
+                Background="#33FF0000"
+                BorderBrush="Red"
+                BorderThickness="0,1"
+                Padding="8,4">
+            <DockPanel>
+                <Button DockPanel.Dock="Right"
+                        Content="Dismiss"
+                        Command="{Binding DismissErrorCommand}"
+                        VerticalAlignment="Top"
+                        AutomationProperties.Name="Dismiss error" />
+                <SelectableTextBlock Text="{Binding ErrorMessage}"
+                                     TextWrapping="Wrap"
+                                     MaxHeight="160"
+                                     VerticalAlignment="Center"
+                                     AutomationProperties.Name="Error message" />
+            </DockPanel>
+        </Border>
+
         <!-- Main content area -->
         <Grid>
             <Grid.RowDefinitions>

@@ -62,16 +62,16 @@ Verified against the code and a live backend on 2026-10-06 (commits `d03413e8`, 
 
 Makes the app safe to use for a single file. Each task is a small TDD change.
 
-### 1.1 Show errors in the main window
+### 1.1 Show errors in the main window (done)
 
-- Add an error bar above the console, bound to `ErrorMessage`, with a dismiss button that clears it.
+- An error bar below the toolbar, bound to `ErrorMessage`, with a dismiss button that clears it.
 - Show multi-line assembler errors in full and keep them selectable for copying.
 - **Tests:** view-model tests that a dismiss command clears `ErrorMessage`. A headless UI test (Phase 3) checks that the bar becomes visible.
 
-### 1.2 Report command failures instead of crashing
+### 1.2 Report command failures instead of crashing (done)
 
-- Catch `ApiException` in run, pause, step, step over, step out, breakpoint and watchpoint operations, and set `ErrorMessage` with the operation name.
-- Subscribe to `ThrownExceptions` on every command as a final boundary, so an unexpected exception shows a message and is logged rather than ending the process.
+- Every command is created with an operation name and its `ThrownExceptions` routed to `ErrorMessage` as "<operation> failed: <message>". This covers API errors, lost connections (`HttpRequestException`) and wire-format errors. Cancellation is not reported.
+- Gutter clicks run `ToggleBreakpointCommand`, so a failed breakpoint call is reported, not thrown from an event handler.
 - **Tests:** for each command, the API throws `ApiException` or `SessionNotFoundException`, and the test asserts the exact `ErrorMessage` and that the state is unchanged.
 
 ### 1.3 Reset restarts the program
@@ -88,6 +88,7 @@ Makes the app safe to use for a single file. Each task is a small TDD change.
 
 ### 1.5 Breakpoint toggling parity
 
+- `ToggleBreakpointCommand` (by source line) exists and reports lines without an instruction (done with 1.2).
 - F9 toggles a breakpoint on the caret line.
 - Clicking a row's marker column in the disassembly view toggles a breakpoint at that address.
 - A line without an address (`ValidBreakpointLines` excludes it) shows a message rather than failing silently.
