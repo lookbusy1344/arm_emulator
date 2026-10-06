@@ -109,7 +109,7 @@ Makes the app safe to use for a single file. Each task is a small TDD change.
 
 ## Phase 2: Daily use
 
-### 2.1 Settings persistence
+### 2.1 Settings persistence (done)
 
 - Add an `ISettingsStore` with a JSON implementation in the platform's application data directory (`Environment.SpecialFolder.ApplicationData/ARMEmulator/settings.json`). Serialise through `ApiJsonContext` or a dedicated source-generated context.
 - Load settings in `App` before composing services. Pass the backend URL to `BackendManager`, `HttpClient` and the WebSocket URL.

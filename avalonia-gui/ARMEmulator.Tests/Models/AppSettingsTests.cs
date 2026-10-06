@@ -105,4 +105,24 @@ public class AppSettingsTests
 		updated.Theme.Should().Be(AppTheme.Dark);
 		updated.AutoScrollToMemoryWrites.Should().BeFalse();
 	}
+
+	[Theory]
+	[InlineData("not a url")]
+	[InlineData("")]
+	[InlineData("ftp://localhost:8080")]
+	[InlineData("localhost:8080")]
+	public void Validate_ReplacesInvalidBackendUrlWithDefault(string url)
+	{
+		var settings = AppSettings.Default with { BackendUrl = url };
+
+		settings.Validate().BackendUrl.Should().Be("http://localhost:8080");
+	}
+
+	[Fact]
+	public void Validate_KeepsValidBackendUrl()
+	{
+		var settings = AppSettings.Default with { BackendUrl = "https://example.org:9000" };
+
+		settings.Validate().BackendUrl.Should().Be("https://example.org:9000");
+	}
 }

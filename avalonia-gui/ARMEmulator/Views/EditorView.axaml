@@ -9,7 +9,7 @@
             CornerRadius="4">
         <avaloniaEdit:TextEditor Name="TextEditor"
                                  FontFamily="Consolas,Menlo,Monaco,Courier New,monospace"
-                                 FontSize="14"
+                                 FontSize="{Binding Settings.EditorFontSize}"
                                  ShowLineNumbers="True"
                                  WordWrap="False"
                                  Background="{DynamicResource SystemControlBackgroundAltHighBrush}"

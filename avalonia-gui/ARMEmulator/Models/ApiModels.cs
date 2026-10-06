@@ -82,12 +82,16 @@ public sealed record AppSettings
 	};
 
 	/// <summary>
-	/// Creates a validated copy with clamped font size.
+	/// Creates a validated copy with clamped numeric values and a valid backend URL.
 	/// </summary>
 	public AppSettings Validate() => this with {
+		BackendUrl = IsHttpUrl(BackendUrl) ? BackendUrl : Default.BackendUrl,
 		EditorFontSize = Math.Clamp(EditorFontSize, 10, 24),
 		RecentFilesLimit = Math.Max(RecentFilesLimit, 1)
 	};
+
+	private static bool IsHttpUrl(string url) =>
+		Uri.TryCreate(url, UriKind.Absolute, out var uri) && uri.Scheme is "http" or "https";
 }
 
 /// <summary>

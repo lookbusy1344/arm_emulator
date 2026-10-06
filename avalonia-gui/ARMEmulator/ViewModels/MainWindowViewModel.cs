@@ -23,6 +23,7 @@ public partial class MainWindowViewModel : ReactiveObject, IDisposable
 	private readonly IApiClient api;
 	private readonly IWebSocketClient ws;
 	private readonly IFileService fileService;
+	private readonly ISettingsStore? settingsStore;
 	private readonly CompositeDisposable disposables = [];
 	private readonly Subject<string> registerHighlightTrigger = new();
 	private readonly Subject<int> scrollToLineRequests = new();
@@ -34,8 +35,9 @@ public partial class MainWindowViewModel : ReactiveObject, IDisposable
 	/// <summary>
 	/// Initializes a new instance of the MainWindowViewModel with required services.
 	/// </summary>
-	public MainWindowViewModel(IApiClient api, IWebSocketClient ws, IFileService fileService)
+	public MainWindowViewModel(IApiClient api, IWebSocketClient ws, IFileService fileService, ISettingsStore? settingsStore = null)
 	{
+		this.settingsStore = settingsStore;
 		this.api = api;
 		this.ws = ws;
 		this.fileService = fileService;
@@ -146,6 +148,15 @@ public partial class MainWindowViewModel : ReactiveObject, IDisposable
 	{
 		get => status;
 		set => this.RaiseAndSetIfChanged(ref status, value);
+	}
+
+	private AppSettings settings = AppSettings.Default;
+
+	/// <summary>The settings in effect. The theme and editor font size follow this value.</summary>
+	public AppSettings Settings
+	{
+		get => settings;
+		private set => this.RaiseAndSetIfChanged(ref settings, value);
 	}
 
 	private string consoleOutput = "";
@@ -916,14 +927,32 @@ public partial class MainWindowViewModel : ReactiveObject, IDisposable
 			return;
 		}
 
-		// TODO: Load settings from persistent storage
-		var window = new PreferencesWindow(AppSettings.Default);
+		var window = new PreferencesWindow(Settings);
 		await window.ShowDialog(parentWindow);
 
 		if (window.UpdatedSettings is not null) {
-			// TODO: Save settings to persistent storage
-			// For now, just apply font size to editor
+			SaveSettings(window.UpdatedSettings);
 		}
+	}
+
+	/// <summary>Applies the settings, then persists them. A failed save is reported and the settings stay applied.</summary>
+	public void SaveSettings(AppSettings settings)
+	{
+		ApplySettings(settings);
+
+		try {
+			settingsStore?.Save(settings);
+		}
+		catch (IOException ex) {
+			ErrorMessage = $"Failed to save settings: {ex.Message}";
+		}
+	}
+
+	/// <summary>Applies the settings to the view models without persisting them.</summary>
+	public void ApplySettings(AppSettings settings)
+	{
+		Settings = settings;
+		Memory.AutoScrollToWrites = settings.AutoScrollToMemoryWrites;
 	}
 
 	private async Task ShowAboutAsync(CancellationToken ct)

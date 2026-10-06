@@ -4,6 +4,7 @@ using ARMEmulator.ViewModels;
 using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
+using ReactiveUI.Reactive;
 
 namespace ARMEmulator;
 
@@ -17,7 +18,7 @@ public partial class App : Application
 	public override void OnFrameworkInitializationCompleted()
 	{
 		if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop) {
-			ComposeMainWindow(desktop, AppSettings.Default);
+			ComposeMainWindow(desktop, new JsonSettingsStore(JsonSettingsStore.DefaultPath));
 		}
 
 		base.OnFrameworkInitializationCompleted();
@@ -27,25 +28,41 @@ public partial class App : Application
 	/// Builds the services and main view model, shows the window, then starts the backend and session in the background.
 	/// Everything built here is disposed when the application exits.
 	/// </summary>
-	private static void ComposeMainWindow(IClassicDesktopStyleApplicationLifetime desktop, AppSettings settings)
+	private static void ComposeMainWindow(IClassicDesktopStyleApplicationLifetime desktop, JsonSettingsStore settingsStore)
 	{
+		var loaded = settingsStore.Load();
+		var settings = loaded.Settings;
 		var baseUri = new Uri(settings.BackendUrl);
 #pragma warning disable CA2000 // Owned by the application lifetime and disposed in the Exit handler below
 		var backend = new BackendManager(settings.BackendUrl);
+		var themeDetector = new PlatformThemeDetector();
+		var themeService = new ThemeService(themeDetector);
 		var http = new HttpClient { BaseAddress = baseUri };
 		var ws = new WebSocketClient(BackendEndpoints.WebSocketUri(baseUri).ToString());
 #pragma warning restore CA2000
-		var viewModel = new MainWindowViewModel(new ApiClient(http), ws, new FileService());
+		var viewModel = new MainWindowViewModel(new ApiClient(http), ws, new FileService(), settingsStore);
+		viewModel.ApplySettings(settings);
+
+		_ = viewModel.WhenAnyValue(x => x.Settings)
+			.Subscribe(current => themeService.ApplyTheme(current.Theme));
 
 		desktop.MainWindow = new MainWindow(viewModel);
 		desktop.Exit += (_, _) => {
+			themeService.Dispose();
+			themeDetector.Dispose();
 			viewModel.Dispose();
 			ws.Dispose();
 			http.Dispose();
 			backend.Dispose();
 		};
 
-		// StartAsync reports failures through the view model's ErrorMessage
-		_ = viewModel.StartAsync(backend);
+		_ = StartAsync(viewModel, backend, loaded.Warning);
+	}
+
+	/// <summary>Startup failures reach the user through the view model's ErrorMessage; the settings warning shows when there is none.</summary>
+	private static async Task StartAsync(MainWindowViewModel viewModel, IBackendManager backend, string? settingsWarning)
+	{
+		await viewModel.StartAsync(backend);
+		viewModel.ErrorMessage ??= settingsWarning;
 	}
 }
