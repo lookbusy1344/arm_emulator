@@ -136,7 +136,7 @@ Makes the app safe to use for a single file. Each task is a small TDD change.
 - Prompt before close, open, load example and open recent when dirty.
 - **Tests:** dirty transitions; prompt decision logic in the view model, with the dialog behind an interface.
 
-### 2.5 Breakpoint and watchpoint list errors
+### 2.5 Breakpoint and watchpoint list errors (done)
 
 - Move add and remove logic from the list views' code-behind into view-model commands with validation (address parse errors, API errors).
 - **Tests:** invalid address text, API failure and success paths, with exact messages.

@@ -28,7 +28,7 @@
                                    Text="Address:"
                                    VerticalAlignment="Center" />
                         <TextBox Grid.Row="0" Grid.Column="1"
-                                 x:Name="WatchpointAddressInput"
+                                 Text="{Binding WatchpointAddressText}"
                                  PlaceholderText="0x8000 or hex value"
                                  FontFamily="Consolas, Menlo, Monaco, monospace" />
 
@@ -37,18 +37,14 @@
                                    Text="Type:"
                                    VerticalAlignment="Center" />
                         <ComboBox Grid.Row="1" Grid.Column="1"
-                                  x:Name="WatchpointTypeCombo"
-                                  SelectedIndex="2">
-                            <ComboBoxItem Content="Read" />
-                            <ComboBoxItem Content="Write" />
-                            <ComboBoxItem Content="Read/Write" />
-                        </ComboBox>
+                                  ItemsSource="{Binding WatchpointTypeOptions}"
+                                  SelectedItem="{Binding SelectedWatchpointType}" />
 
                         <!-- Add button -->
                         <Button Grid.Row="2" Grid.Column="1"
                                 Content="Add Watchpoint"
                                 HorizontalAlignment="Left"
-                                Click="AddWatchpointButton_Click"
+                                Command="{Binding AddWatchpointCommand}"
                                 MinWidth="120" />
                     </Grid>
                 </StackPanel>
@@ -105,8 +101,8 @@
                                                 Content="✕"
                                                 FontSize="12"
                                                 Padding="6,4"
-                                                Click="RemoveWatchpointButton_Click"
-                                                Tag="{Binding Id}"
+                                                Command="{Binding $parent[UserControl].((vm:MainWindowViewModel)DataContext).RemoveWatchpointCommand}"
+                                                CommandParameter="{Binding Id}"
                                                 ToolTip.Tip="Remove watchpoint" />
                                     </Grid>
                                 </Border>

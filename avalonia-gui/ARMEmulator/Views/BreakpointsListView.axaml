@@ -60,8 +60,8 @@
                                                 Content="✕"
                                                 FontSize="12"
                                                 Padding="6,4"
-                                                Click="RemoveBreakpointButton_Click"
-                                                Tag="{Binding}"
+                                                Command="{Binding $parent[UserControl].((vm:MainWindowViewModel)DataContext).RemoveBreakpointCommand}"
+                                                CommandParameter="{Binding}"
                                                 ToolTip.Tip="Remove breakpoint" />
                                     </Grid>
                                 </Border>
@@ -141,8 +141,8 @@
                                                 Content="✕"
                                                 FontSize="12"
                                                 Padding="6,4"
-                                                Click="RemoveWatchpointButton_Click"
-                                                Tag="{Binding Id}"
+                                                Command="{Binding $parent[UserControl].((vm:MainWindowViewModel)DataContext).RemoveWatchpointCommand}"
+                                                CommandParameter="{Binding Id}"
                                                 ToolTip.Tip="Remove watchpoint" />
                                     </Grid>
                                 </Border>

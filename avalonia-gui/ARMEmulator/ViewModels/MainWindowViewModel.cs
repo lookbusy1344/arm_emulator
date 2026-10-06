@@ -62,6 +62,9 @@ public partial class MainWindowViewModel : ReactiveObject, IDisposable
 		ToggleBreakpointCommand = ReportFailures("Toggle breakpoint", ReactiveCommand.CreateFromTask<int>(ToggleBreakpointAtLineAsync, outputScheduler: RxSchedulers.MainThreadScheduler));
 		ToggleBreakpointAtAddressCommand = ReportFailures("Toggle breakpoint", ReactiveCommand.CreateFromTask<uint>(ToggleBreakpointAtAddressAsync, outputScheduler: RxSchedulers.MainThreadScheduler));
 		RestartBackendCommand = CreateCommand("Restart backend", RestartBackendAsync);
+		RemoveBreakpointCommand = ReportFailures("Remove breakpoint", ReactiveCommand.CreateFromTask<uint>((address, ct) => RemoveBreakpointAsync(address, ct), outputScheduler: RxSchedulers.MainThreadScheduler));
+		RemoveWatchpointCommand = ReportFailures("Remove watchpoint", ReactiveCommand.CreateFromTask<int>((id, ct) => RemoveWatchpointAsync(id, ct), outputScheduler: RxSchedulers.MainThreadScheduler));
+		AddWatchpointCommand = CreateCommand("Add watchpoint", AddWatchpointFromInputAsync);
 		DismissErrorCommand = ReactiveCommand.Create(() => { ErrorMessage = null; }).DisposeWith(disposables);
 
 		// File operation commands
@@ -306,6 +309,15 @@ public partial class MainWindowViewModel : ReactiveObject, IDisposable
 	public ReactiveCommand<Unit, Unit> ResetCommand { get; }
 	public ReactiveCommand<Unit, Unit> LoadProgramCommand { get; }
 	public ReactiveCommand<Unit, Unit> ShowPcCommand { get; }
+
+	/// <summary>Removes the breakpoint at the parameter address.</summary>
+	public ReactiveCommand<uint, Unit> RemoveBreakpointCommand { get; }
+
+	/// <summary>Removes the watchpoint with the parameter id.</summary>
+	public ReactiveCommand<int, Unit> RemoveWatchpointCommand { get; }
+
+	/// <summary>Adds a watchpoint from <see cref="WatchpointAddressText"/> and <see cref="SelectedWatchpointType"/>.</summary>
+	public ReactiveCommand<Unit, Unit> AddWatchpointCommand { get; }
 
 	/// <summary>Toggles a breakpoint at an instruction address; the parameter is the address.</summary>
 	public ReactiveCommand<uint, Unit> ToggleBreakpointAtAddressCommand { get; }
@@ -645,6 +657,50 @@ public partial class MainWindowViewModel : ReactiveObject, IDisposable
 		catch (ApiException ex) {
 			ErrorMessage = $"Failed to send input: {ex.Message}";
 		}
+	}
+
+	private string watchpointAddressText = "";
+
+	/// <summary>Hex address typed for a new watchpoint, with or without a 0x prefix.</summary>
+	public string WatchpointAddressText
+	{
+		get => watchpointAddressText;
+		set => this.RaiseAndSetIfChanged(ref watchpointAddressText, value);
+	}
+
+	/// <summary>Access types offered for a new watchpoint.</summary>
+	public IReadOnlyList<WatchpointType> WatchpointTypeOptions { get; } = [WatchpointType.Read, WatchpointType.Write, WatchpointType.ReadWrite];
+
+	private WatchpointType selectedWatchpointType = WatchpointType.ReadWrite;
+
+	/// <summary>Access type for a new watchpoint.</summary>
+	public WatchpointType SelectedWatchpointType
+	{
+		get => selectedWatchpointType;
+		set => this.RaiseAndSetIfChanged(ref selectedWatchpointType, value);
+	}
+
+	private async Task AddWatchpointFromInputAsync(CancellationToken ct)
+	{
+		if (SessionId is null) {
+			ErrorMessage = "No active session";
+			return;
+		}
+
+		var text = WatchpointAddressText.Trim();
+		if (text.Length == 0) {
+			ErrorMessage = "Enter a watchpoint address";
+			return;
+		}
+
+		var digits = text.StartsWith("0x", StringComparison.OrdinalIgnoreCase) ? text[2..] : text;
+		if (!uint.TryParse(digits, System.Globalization.NumberStyles.AllowHexSpecifier, System.Globalization.CultureInfo.InvariantCulture, out var address)) {
+			ErrorMessage = $"Invalid watchpoint address '{WatchpointAddressText}': enter a 32-bit hex value such as 0x9000";
+			return;
+		}
+
+		await AddWatchpointAsync(address, SelectedWatchpointType, ct);
+		WatchpointAddressText = "";
 	}
 
 	private async Task ToggleBreakpointAtLineAsync(int line, CancellationToken ct)
