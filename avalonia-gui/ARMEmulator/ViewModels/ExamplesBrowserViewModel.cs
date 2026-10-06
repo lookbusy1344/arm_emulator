@@ -133,7 +133,7 @@ public sealed class ExamplesBrowserViewModel : ReactiveObject, IDisposable
 		var query = SearchText;
 		FilteredExamples = Examples
 			.Where(e => e.Name.Contains(query, StringComparison.OrdinalIgnoreCase) ||
-						e.Description.Contains(query, StringComparison.OrdinalIgnoreCase))
+						(e.Description?.Contains(query, StringComparison.OrdinalIgnoreCase) ?? false))
 			.ToImmutableArray();
 	}
 

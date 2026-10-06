@@ -7,12 +7,12 @@ namespace ARMEmulator.Models;
 public abstract record EmulatorEvent(string SessionId);
 
 /// <summary>
-/// VM state update event containing register and status information.
+/// VM state update event. <see cref="Registers"/> is null when the backend reports a status change alone.
 /// </summary>
 public sealed record StateEvent(
 	string SessionId,
 	VMStatus Status,
-	RegisterState Registers
+	RegisterState? Registers
 ) : EmulatorEvent(SessionId);
 
 /// <summary>

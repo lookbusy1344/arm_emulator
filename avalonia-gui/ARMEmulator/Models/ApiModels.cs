@@ -1,5 +1,7 @@
 using System.Diagnostics.CodeAnalysis;
 
+using ARMEmulator.Collections;
+
 namespace ARMEmulator.Models;
 
 /// <summary>
@@ -8,19 +10,9 @@ namespace ARMEmulator.Models;
 public sealed record SessionInfo(string SessionId);
 
 /// <summary>
-/// Response from loading a program.
+/// Result of a successful program load: the assembled program's symbol table.
 /// </summary>
-[SuppressMessage("Design", "JSV01:Member does not have value semantics", Justification = "ImmutableArray acceptable for small API response collections")]
-public sealed record LoadProgramResponse(
-	bool Success,
-	ImmutableArray<ParseError> Errors,
-	uint EntryPoint
-);
-
-/// <summary>
-/// Parse error from the assembler (defined in Services but used in Models).
-/// </summary>
-public sealed record ParseError(int Line, int Column, string Message);
+public sealed record LoadProgramResponse(EquatableDictionary<string, uint> Symbols);
 
 /// <summary>
 /// Backend version information.
@@ -36,7 +28,7 @@ public sealed record BackendVersion(
 /// </summary>
 public sealed record ExampleInfo(
 	string Name,
-	string Description,
+	string? Description,
 	int Size
 );
 

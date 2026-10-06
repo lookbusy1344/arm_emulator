@@ -156,150 +156,70 @@ public sealed class WebSocketClient : IWebSocketClient
 
 	private void ProcessMessage(string message)
 	{
+		if (ParseMessage(message) is EmulatorEvent evt) {
+			eventsSubject.OnNext(evt);
+		}
+	}
+
+	/// <summary>
+	/// Parses one broadcast message (api/broadcaster.go). Returns null for messages the GUI does not use
+	/// or cannot interpret, so a malformed payload never terminates the event stream.
+	/// </summary>
+	internal static EmulatorEvent? ParseMessage(string message)
+	{
 		try {
 			var json = JsonNode.Parse(message);
-			if (json is null) {
-				return;
+			var data = json?["data"];
+			if (json is null || data is null) {
+				return null;
 			}
 
-			var eventType = json["type"]?.GetValue<string>();
 			var sessionId = json["sessionId"]?.GetValue<string>() ?? string.Empty;
-			var data = json["data"];
-
-			if (data is null) {
-				return;
-			}
-
-			EmulatorEvent? evt = eventType switch {
+			return json["type"]?.GetValue<string>() switch {
 				"state" => ParseStateEvent(sessionId, data),
 				"output" => ParseOutputEvent(sessionId, data),
 				"event" => ParseExecutionEvent(sessionId, data),
 				_ => null
 			};
-
-			if (evt is not null) {
-				eventsSubject.OnNext(evt);
-			}
 		}
-		catch (JsonException ex) {
-			// Ignore malformed JSON - backend may send invalid data during development
-			System.Diagnostics.Debug.WriteLine($"JSON parse error: {ex.Message}");
-		}
-		catch (Exception ex) {
-			// Ignore parsing errors - prevent crash from unexpected payloads
-			System.Diagnostics.Debug.WriteLine($"Event parse error: {ex.Message}");
-		}
-	}
-
-	private static StateEvent? ParseStateEvent(string sessionId, JsonNode data)
-	{
-		try {
-			var stateStr = data["state"]?.GetValue<string>() ?? "idle";
-			var state = stateStr.ToLowerInvariant() switch {
-				"idle" => VMState.Idle,
-				"running" => VMState.Running,
-				"breakpoint" => VMState.Breakpoint,
-				"halted" => VMState.Halted,
-				"error" => VMState.Error,
-				"waitingforinput" => VMState.WaitingForInput,
-				_ => VMState.Idle
-			};
-
-			var pc = data["pc"]?.GetValue<uint>() ?? 0;
-			var cycles = data["cycles"]?.GetValue<ulong>() ?? 0;
-			var error = data["error"]?.GetValue<string>();
-
-			var hasWrite = data["hasWrite"]?.GetValue<bool>() ?? false;
-			MemoryWrite? memWrite = null;
-			if (hasWrite) {
-				var writeAddr = data["writeAddr"]?.GetValue<uint>() ?? 0;
-				var writeSize = data["writeSize"]?.GetValue<uint>() ?? 0;
-				memWrite = new MemoryWrite(writeAddr, writeSize);
-			}
-
-			var status = new VMStatus(state, pc, cycles, error, memWrite);
-
-			// Parse registers
-			var regsNode = data["registers"];
-			var registers = regsNode is not null
-				? ParseRegisters(regsNode)
-				: RegisterState.Create();
-
-			return new StateEvent(sessionId, status, registers);
-		}
-		catch {
+		catch (Exception ex) when (ex is JsonException or FormatException or InvalidOperationException) {
+			System.Diagnostics.Debug.WriteLine($"Ignoring WebSocket message: {ex.Message}");
 			return null;
 		}
 	}
 
-	private static RegisterState ParseRegisters(JsonNode regsNode)
+	// Full updates (handlers.go broadcastStateChange) carry pc and registers;
+	// status-only updates (session_manager.go OnStateChange) carry just the status.
+	private static StateEvent ParseStateEvent(string sessionId, JsonNode data)
 	{
-		var cpsr = regsNode["cpsr"];
-		var cpsrFlags = cpsr is not null
-			? new CPSRFlags(
-				N: cpsr["n"]?.GetValue<bool>() ?? false,
-				Z: cpsr["z"]?.GetValue<bool>() ?? false,
-				C: cpsr["c"]?.GetValue<bool>() ?? false,
-				V: cpsr["v"]?.GetValue<bool>() ?? false)
-			: default;
+		var state = WireFormat.ParseState(data["status"]?.GetValue<string>() ?? throw new FormatException("State event has no status."));
+		var pc = data["pc"]?.GetValue<uint>() ?? 0;
+		var registersNode = data["registers"];
+		var registers = registersNode is null
+			? null
+			: JsonSerializer.Deserialize(registersNode, ApiJsonContext.Default.RegistersResponse)?.ToRegisterState();
 
-		return RegisterState.Create(
-			r0: regsNode["r0"]?.GetValue<uint>() ?? 0,
-			r1: regsNode["r1"]?.GetValue<uint>() ?? 0,
-			r2: regsNode["r2"]?.GetValue<uint>() ?? 0,
-			r3: regsNode["r3"]?.GetValue<uint>() ?? 0,
-			r4: regsNode["r4"]?.GetValue<uint>() ?? 0,
-			r5: regsNode["r5"]?.GetValue<uint>() ?? 0,
-			r6: regsNode["r6"]?.GetValue<uint>() ?? 0,
-			r7: regsNode["r7"]?.GetValue<uint>() ?? 0,
-			r8: regsNode["r8"]?.GetValue<uint>() ?? 0,
-			r9: regsNode["r9"]?.GetValue<uint>() ?? 0,
-			r10: regsNode["r10"]?.GetValue<uint>() ?? 0,
-			r11: regsNode["r11"]?.GetValue<uint>() ?? 0,
-			r12: regsNode["r12"]?.GetValue<uint>() ?? 0,
-			sp: regsNode["sp"]?.GetValue<uint>() ?? 0,
-			lr: regsNode["lr"]?.GetValue<uint>() ?? 0,
-			pc: regsNode["pc"]?.GetValue<uint>() ?? 0,
-			cpsr: cpsrFlags);
+		return new StateEvent(sessionId, new VMStatus(state, pc, Cycles: 0), registers);
 	}
 
-	private static OutputEvent? ParseOutputEvent(string sessionId, JsonNode data)
+	private static OutputEvent ParseOutputEvent(string sessionId, JsonNode data)
 	{
-		try {
-			var streamStr = data["stream"]?.GetValue<string>() ?? "stdout";
-			var stream = streamStr.Equals("stderr", StringComparison.OrdinalIgnoreCase)
-				? OutputStreamType.Stderr
-				: OutputStreamType.Stdout;
+		var stream = data["stream"]?.GetValue<string>() == "stderr" ? OutputStreamType.Stderr : OutputStreamType.Stdout;
+		var content = data["content"]?.GetValue<string>() ?? string.Empty;
 
-			var content = data["content"]?.GetValue<string>() ?? string.Empty;
-
-			return new OutputEvent(sessionId, stream, content);
-		}
-		catch {
-			return null;
-		}
+		return new OutputEvent(sessionId, stream, content);
 	}
 
-	private static ExecutionEvent? ParseExecutionEvent(string sessionId, JsonNode data)
+	private static ExecutionEvent ParseExecutionEvent(string sessionId, JsonNode data)
 	{
-		try {
-			var eventStr = data["event"]?.GetValue<string>() ?? string.Empty;
-			var eventType = eventStr.ToLowerInvariant() switch {
-				"breakpointhit" => ExecutionEventType.BreakpointHit,
-				"halted" => ExecutionEventType.Halted,
-				"error" => ExecutionEventType.Error,
-				_ => ExecutionEventType.Error
-			};
+		var eventType = WireFormat.ParseExecutionEvent(data["event"]?.GetValue<string>() ?? throw new FormatException("Execution event has no name."));
 
-			var address = data["address"]?.GetValue<uint>();
-			var symbol = data["symbol"]?.GetValue<string>();
-			var message = data["message"]?.GetValue<string>();
-
-			return new ExecutionEvent(sessionId, eventType, address, symbol, message);
-		}
-		catch {
-			return null;
-		}
+		return new ExecutionEvent(
+			sessionId,
+			eventType,
+			data["address"]?.GetValue<uint>(),
+			data["symbol"]?.GetValue<string>(),
+			data["message"]?.GetValue<string>());
 	}
 }
 

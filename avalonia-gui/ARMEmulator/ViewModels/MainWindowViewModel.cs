@@ -96,11 +96,12 @@ public class MainWindowViewModel : ReactiveObject, IDisposable
 
 		// Initialize child ViewModels
 		ExpressionEvaluator = new ExpressionEvaluatorViewModel(api);
-
-		// Sync SessionId to child ViewModels
-		_ = this.WhenAnyValue(x => x.SessionId)
-			.Subscribe(id => ExpressionEvaluator.SessionId = id)
-			.DisposeWith(disposables);
+#pragma warning disable CA2000 // Child view models are disposed via DisposeWith(disposables)
+		Memory = new MemoryViewModel(api).DisposeWith(disposables);
+		Stack = new StackViewModel(api).DisposeWith(disposables);
+		Disassembly = new DisassemblyViewModel(api).DisposeWith(disposables);
+#pragma warning restore CA2000
+		WireChildViewModels();
 
 		// Subscribe to WebSocket events
 		_ = this.ws.Events
@@ -217,37 +218,12 @@ public class MainWindowViewModel : ReactiveObject, IDisposable
 	}
 
 	// Memory state
-	private ImmutableArray<byte> memoryData = [];
-
-	public ImmutableArray<byte> MemoryData
-	{
-		get => memoryData;
-		set => this.RaiseAndSetIfChanged(ref memoryData, value);
-	}
-
-	private uint memoryAddress;
-
-	public uint MemoryAddress
-	{
-		get => memoryAddress;
-		set => this.RaiseAndSetIfChanged(ref memoryAddress, value);
-	}
-
 	private MemoryWrite? lastMemoryWrite;
 
 	public MemoryWrite? LastMemoryWrite
 	{
 		get => lastMemoryWrite;
 		set => this.RaiseAndSetIfChanged(ref lastMemoryWrite, value);
-	}
-
-	// Disassembly
-	private ImmutableArray<DisassemblyInstruction> disassembly = [];
-
-	public ImmutableArray<DisassemblyInstruction> Disassembly
-	{
-		get => disassembly;
-		set => this.RaiseAndSetIfChanged(ref disassembly, value);
 	}
 
 	// Connection state
@@ -287,6 +263,9 @@ public class MainWindowViewModel : ReactiveObject, IDisposable
 
 	// Child ViewModels
 	public ExpressionEvaluatorViewModel ExpressionEvaluator { get; }
+	public MemoryViewModel Memory { get; }
+	public StackViewModel Stack { get; }
+	public DisassemblyViewModel Disassembly { get; }
 
 	// Commands
 	public ReactiveCommand<Unit, Unit> RunCommand { get; }
@@ -330,6 +309,31 @@ public class MainWindowViewModel : ReactiveObject, IDisposable
 		outputScheduler: RxSchedulers.MainThreadScheduler
 	).DisposeWith(disposables);
 #pragma warning restore CA2000
+
+	/// <summary>
+	/// Starts the backend, then creates a session and connects the WebSocket.
+	/// Failures are reported through <see cref="ErrorMessage"/>.
+	/// </summary>
+	public async Task StartAsync(IBackendManager backend, CancellationToken ct = default)
+	{
+		ArgumentNullException.ThrowIfNull(backend);
+
+		try {
+			await backend.StartAsync(ct);
+		}
+		catch (BackendStartException ex) {
+			ErrorMessage = $"Failed to start backend: {ex.Message}";
+			return;
+		}
+
+		try {
+			await CreateSessionAsync(ct);
+			ErrorMessage = null;
+		}
+		catch (ApiException ex) {
+			ErrorMessage = $"Failed to connect to backend: {ex.Message}";
+		}
+	}
 
 	/// <summary>
 	/// Creates a new emulator session and connects the WebSocket.
@@ -432,10 +436,95 @@ public class MainWindowViewModel : ReactiveObject, IDisposable
 		await api.ResetAsync(SessionId, ct);
 	}
 
-	private Task LoadProgramAsync(CancellationToken ct)
+	/// <summary>
+	/// Assembles <see cref="SourceCode"/> into the session, then rebuilds the source line maps and register state.
+	/// </summary>
+	private async Task LoadProgramAsync(CancellationToken ct)
 	{
-		// TODO: Implement program loading logic with file picker
-		return Task.CompletedTask;
+		if (SessionId is null) {
+			ErrorMessage = "No active session";
+			return;
+		}
+
+		ClearSourceMap();
+
+		try {
+			_ = await api.LoadProgramAsync(SessionId, SourceCode, ct);
+			var sourceMap = await api.GetSourceMapAsync(SessionId, ct);
+			var registers = await api.GetRegistersAsync(SessionId, ct);
+
+			AddressToLine = sourceMap.ToImmutableDictionary(e => e.Address, e => e.LineNumber);
+			LineToAddress = sourceMap.ToImmutableDictionary(e => e.LineNumber, e => e.Address);
+			ValidBreakpointLines = [.. sourceMap.Select(e => e.LineNumber)];
+
+			// A new program starts without highlights carried over from the previous one
+			PreviousRegisters = null;
+			ChangedRegisters = [];
+			Registers = registers;
+			LastMemoryWrite = null;
+
+			// The backend reports "halted" for a loaded program that has not run; the GUI treats it as ready
+			Status = VMState.Idle;
+			ErrorMessage = null;
+		}
+		catch (ProgramLoadException ex) {
+			ErrorMessage = $"Failed to load program:\n{string.Join('\n', ex.Errors)}";
+		}
+		catch (ApiException ex) {
+			ClearSourceMap();
+			ErrorMessage = $"Failed to load program: {ex.Message}";
+		}
+	}
+
+	private void ClearSourceMap()
+	{
+		AddressToLine = ImmutableDictionary<uint, int>.Empty;
+		LineToAddress = ImmutableDictionary<int, uint>.Empty;
+		ValidBreakpointLines = [];
+	}
+
+	/// <summary>
+	/// Keeps the memory, stack and disassembly views in step with the session, registers, breakpoints and memory writes.
+	/// Stack and disassembly reload when the registers change while the VM is stopped.
+	/// </summary>
+	private void WireChildViewModels()
+	{
+		_ = this.WhenAnyValue(x => x.SessionId)
+			.Subscribe(id => {
+				ExpressionEvaluator.SessionId = id;
+				Memory.SessionId = id;
+				Stack.SessionId = id;
+				Disassembly.SessionId = id;
+			})
+			.DisposeWith(disposables);
+
+		_ = this.WhenAnyValue(x => x.Registers)
+			.Subscribe(regs => {
+				Memory.UpdateRegisters(regs);
+				Stack.UpdateRegisters(regs);
+				Disassembly.UpdateRegisters(regs);
+			})
+			.DisposeWith(disposables);
+
+		_ = this.WhenAnyValue(x => x.Breakpoints)
+			.Subscribe(Disassembly.UpdateBreakpoints)
+			.DisposeWith(disposables);
+
+		_ = this.WhenAnyValue(x => x.LastMemoryWrite)
+			.Subscribe(Memory.UpdateMemoryWrite)
+			.DisposeWith(disposables);
+
+		_ = this.WhenAnyValue(x => x.Registers, x => x.Status)
+			.Where(x => x.Item2 != VMState.Running && SessionId is not null)
+			.Select(x => x.Item1)
+			.DistinctUntilChanged()
+			.SelectMany(async _ => {
+				await Stack.RefreshStackAsync();
+				await Disassembly.RefreshDisassemblyAsync();
+				return Unit.Default;
+			})
+			.Subscribe()
+			.DisposeWith(disposables);
 	}
 
 	private Task ShowPcAsync(CancellationToken ct)
@@ -656,9 +745,12 @@ public class MainWindowViewModel : ReactiveObject, IDisposable
 		};
 	}
 
-	private bool ApplyStateUpdate(VMStatus status, RegisterState registers)
+	private bool ApplyStateUpdate(VMStatus status, RegisterState? registers)
 	{
-		UpdateRegisters(registers);
+		if (registers is not null) {
+			UpdateRegisters(registers);
+		}
+
 		Status = status.State;
 		LastMemoryWrite = status.LastWrite;
 		return true;

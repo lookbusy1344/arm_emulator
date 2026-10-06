@@ -1,6 +1,5 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Net;
-using ARMEmulator.Models;
 
 namespace ARMEmulator.Services;
 
@@ -35,11 +34,11 @@ public sealed class SessionNotFoundException(string sessionId)
 /// Thrown when program loading fails due to parse or assembly errors.
 /// </summary>
 [SuppressMessage("Design", "RCS1194:Implement exception constructors", Justification = "Uses primary constructor with domain-specific parameters")]
-public sealed class ProgramLoadException(ImmutableArray<ParseError> errors)
+public sealed class ProgramLoadException(ImmutableArray<string> errors)
 	: ApiException($"Program failed to load: {errors.Length} error(s)", HttpStatusCode.BadRequest)
 {
-	/// <summary>List of parse errors from the assembler.</summary>
-	public ImmutableArray<ParseError> Errors => errors;
+	/// <summary>Assembler error messages, one per error.</summary>
+	public ImmutableArray<string> Errors => errors;
 }
 
 /// <summary>

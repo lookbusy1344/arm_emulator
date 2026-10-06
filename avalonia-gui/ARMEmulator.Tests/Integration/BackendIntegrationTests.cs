@@ -66,7 +66,7 @@ public sealed class BackendIntegrationTests : IDisposable
 		try {
 			// Act - Load program
 			var loadResponse = await _apiClient.LoadProgramAsync(session.SessionId, program, _cts.Token);
-			loadResponse.Success.Should().BeTrue();
+			loadResponse.Symbols.Should().ContainKey("_start");
 
 			// Act - Get initial status
 			var status = await _apiClient.GetStatusAsync(session.SessionId, _cts.Token);

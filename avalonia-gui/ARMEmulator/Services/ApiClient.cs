@@ -1,27 +1,27 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Net;
-using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
-using System.Text.Json.Serialization;
 using System.Text.Json.Serialization.Metadata;
 using ARMEmulator.Models;
 
 namespace ARMEmulator.Services;
 
 /// <summary>
-/// HTTP client for the ARM Emulator REST API.
-/// Uses idiomatic .NET exception-based error handling with AOT-friendly JSON serialization.
+/// HTTP client for the ARM Emulator REST API (api/server.go).
+/// Wire records in <see cref="ApiJsonContext"/> mirror the backend's JSON; this class maps them to domain models.
 /// </summary>
 public sealed class ApiClient(HttpClient http) : IApiClient
 {
+	private const string EmptyJsonObject = "{}";
 
 	// Session Management
 
 	public async Task<SessionInfo> CreateSessionAsync(CancellationToken ct = default)
 	{
 		try {
-			var response = await http.PostAsync("/api/v1/session", null, ct);
+			using var content = new StringContent(EmptyJsonObject, Encoding.UTF8, "application/json");
+			var response = await http.PostAsync("/api/v1/session", content, ct);
 			return await ParseResponseOrThrowAsync(response, ApiJsonContext.Default.SessionInfo, ct);
 		}
 		catch (HttpRequestException ex) {
@@ -31,126 +31,112 @@ public sealed class ApiClient(HttpClient http) : IApiClient
 
 	public async Task<VMStatus> GetStatusAsync(string sessionId, CancellationToken ct = default)
 	{
-		var response = await http.GetAsync($"/api/v1/session/{sessionId}/status", ct);
-		return await ParseResponseOrThrowAsync(response, ApiJsonContext.Default.VMStatus, ct, sessionId);
+		var response = await http.GetAsync($"/api/v1/session/{sessionId}", ct);
+		var status = await ParseResponseOrThrowAsync(response, ApiJsonContext.Default.SessionStatusResponse, ct, sessionId);
+		return status.ToVMStatus();
 	}
 
 	public async Task DestroySessionAsync(string sessionId, CancellationToken ct = default)
 	{
 		var response = await http.DeleteAsync($"/api/v1/session/{sessionId}", ct);
-		_ = await ParseResponseOrThrowAsync<object>(response, (JsonTypeInfo<object>)null!, ct, sessionId);
+		await EnsureSuccessAsync(response, sessionId, ct);
 	}
 
 	// Program Loading
 
-	[SuppressMessage("Reliability", "CA2000:Dispose objects before losing scope", Justification = "HttpClient takes ownership and disposes content")]
 	public async Task<LoadProgramResponse> LoadProgramAsync(string sessionId, string source, CancellationToken ct = default)
 	{
-		var content = new StringContent(source, Encoding.UTF8, "text/plain");
-		var response = await http.PostAsync($"/api/v1/session/{sessionId}/load", content, ct);
+		var response = await PostJsonAsync(
+			$"/api/v1/session/{sessionId}/load", new LoadProgramRequest(source), ApiJsonContext.Default.LoadProgramRequest, ct);
 
-		// Special handling for parse errors (400 with error details)
+		// Assembler errors arrive as 400 with a LoadProgramResponse body; other 400s carry the generic error body
 		if (response.StatusCode == HttpStatusCode.BadRequest) {
-			var json = await response.Content.ReadAsStreamAsync(ct);
-			var errorResponse = await JsonSerializer.DeserializeAsync(json, ApiJsonContext.Default.ApiErrorResponse, ct);
-			if (errorResponse?.ParseErrors is { Length: > 0 } errors) {
-				throw new ProgramLoadException([.. errors]);
+			var body = await response.Content.ReadAsStringAsync(ct);
+			var failure = TryDeserialize(body, ApiJsonContext.Default.LoadProgramWireResponse);
+			if (failure is not null && failure.Errors.Count > 0) {
+				throw new ProgramLoadException([.. failure.Errors]);
 			}
+
+			throw CreateApiException(body, response.StatusCode);
 		}
 
-		return await ParseResponseOrThrowAsync(response, ApiJsonContext.Default.LoadProgramResponse, ct, sessionId);
+		var result = await ParseResponseOrThrowAsync(response, ApiJsonContext.Default.LoadProgramWireResponse, ct, sessionId);
+		if (!result.Success) {
+			throw new ProgramLoadException([.. result.Errors]);
+		}
+
+		return new LoadProgramResponse(result.Symbols);
 	}
 
 	// Execution Control
 
-	public async Task RunAsync(string sessionId, CancellationToken ct = default)
-	{
-		var response = await http.PostAsync($"/api/v1/session/{sessionId}/run", null, ct);
-		_ = await ParseResponseOrThrowAsync<object>(response, (JsonTypeInfo<object>)null!, ct, sessionId);
-	}
+	public Task RunAsync(string sessionId, CancellationToken ct = default) =>
+		PostCommandAsync(sessionId, "run", ct);
 
-	public async Task StopAsync(string sessionId, CancellationToken ct = default)
-	{
-		var response = await http.PostAsync($"/api/v1/session/{sessionId}/stop", null, ct);
-		_ = await ParseResponseOrThrowAsync<object>(response, (JsonTypeInfo<object>)null!, ct, sessionId);
-	}
+	public Task StopAsync(string sessionId, CancellationToken ct = default) =>
+		PostCommandAsync(sessionId, "stop", ct);
 
-	public async Task<RegisterState> StepAsync(string sessionId, CancellationToken ct = default)
-	{
-		var response = await http.PostAsync($"/api/v1/session/{sessionId}/step", null, ct);
-		return await ParseResponseOrThrowAsync(response, ApiJsonContext.Default.RegisterState, ct, sessionId);
-	}
+	public Task<RegisterState> StepAsync(string sessionId, CancellationToken ct = default) =>
+		PostForRegistersAsync(sessionId, "step", ct);
 
-	public async Task<RegisterState> StepOverAsync(string sessionId, CancellationToken ct = default)
-	{
-		var response = await http.PostAsync($"/api/v1/session/{sessionId}/step-over", null, ct);
-		return await ParseResponseOrThrowAsync(response, ApiJsonContext.Default.RegisterState, ct, sessionId);
-	}
+	public Task<RegisterState> StepOverAsync(string sessionId, CancellationToken ct = default) =>
+		PostForRegistersAsync(sessionId, "step-over", ct);
 
-	public async Task<RegisterState> StepOutAsync(string sessionId, CancellationToken ct = default)
-	{
-		var response = await http.PostAsync($"/api/v1/session/{sessionId}/step-out", null, ct);
-		return await ParseResponseOrThrowAsync(response, ApiJsonContext.Default.RegisterState, ct, sessionId);
-	}
+	public Task<RegisterState> StepOutAsync(string sessionId, CancellationToken ct = default) =>
+		PostForRegistersAsync(sessionId, "step-out", ct);
 
-	public async Task ResetAsync(string sessionId, CancellationToken ct = default)
-	{
-		var response = await http.PostAsync($"/api/v1/session/{sessionId}/reset", null, ct);
-		_ = await ParseResponseOrThrowAsync<object>(response, (JsonTypeInfo<object>)null!, ct, sessionId);
-	}
+	public Task ResetAsync(string sessionId, CancellationToken ct = default) =>
+		PostCommandAsync(sessionId, "reset", ct);
 
-	public async Task RestartAsync(string sessionId, CancellationToken ct = default)
-	{
-		var response = await http.PostAsync($"/api/v1/session/{sessionId}/restart", null, ct);
-		_ = await ParseResponseOrThrowAsync<object>(response, (JsonTypeInfo<object>)null!, ct, sessionId);
-	}
+	public Task RestartAsync(string sessionId, CancellationToken ct = default) =>
+		PostCommandAsync(sessionId, "restart", ct);
 
 	// State Inspection
 
 	public async Task<RegisterState> GetRegistersAsync(string sessionId, CancellationToken ct = default)
 	{
 		var response = await http.GetAsync($"/api/v1/session/{sessionId}/registers", ct);
-		return await ParseResponseOrThrowAsync(response, ApiJsonContext.Default.RegisterState, ct, sessionId);
+		var registers = await ParseResponseOrThrowAsync(response, ApiJsonContext.Default.RegistersResponse, ct, sessionId);
+		return registers.ToRegisterState();
 	}
 
 	public async Task<ImmutableArray<byte>> GetMemoryAsync(string sessionId, uint address, int length, CancellationToken ct = default)
 	{
 		var response = await http.GetAsync($"/api/v1/session/{sessionId}/memory?address={address}&length={length}", ct);
 		var wrapper = await ParseResponseOrThrowAsync(response, ApiJsonContext.Default.MemoryResponse, ct, sessionId);
-		return [.. wrapper.Data];
+		return wrapper.ToBytes();
 	}
 
 	public async Task<ImmutableArray<DisassemblyInstruction>> GetDisassemblyAsync(string sessionId, uint address, int count, CancellationToken ct = default)
 	{
 		var response = await http.GetAsync($"/api/v1/session/{sessionId}/disassembly?address={address}&count={count}", ct);
 		var wrapper = await ParseResponseOrThrowAsync(response, ApiJsonContext.Default.DisassemblyResponse, ct, sessionId);
-		return [.. wrapper.Instructions];
+		return [.. wrapper.Instructions.Select(i => i.ToModel())];
 	}
 
 	public async Task<ImmutableArray<SourceMapEntry>> GetSourceMapAsync(string sessionId, CancellationToken ct = default)
 	{
-		var response = await http.GetAsync($"/api/v1/session/{sessionId}/source-map", ct);
+		var response = await http.GetAsync($"/api/v1/session/{sessionId}/sourcemap", ct);
 		var wrapper = await ParseResponseOrThrowAsync(response, ApiJsonContext.Default.SourceMapResponse, ct, sessionId);
-		return [.. wrapper.Entries];
+		return [.. wrapper.SourceMap.Select(e => e.ToModel())];
 	}
 
 	// Breakpoints
 
-	[SuppressMessage("Reliability", "CA2000:Dispose objects before losing scope", Justification = "HttpClient takes ownership and disposes content")]
 	public async Task AddBreakpointAsync(string sessionId, uint address, CancellationToken ct = default)
 	{
-		var request = new AddBreakpointRequest(address);
-		var json = JsonSerializer.SerializeToUtf8Bytes(request, ApiJsonContext.Default.AddBreakpointRequest);
-		var content = new ByteArrayContent(json);
-		content.Headers.ContentType = new("application/json");
-		var response = await http.PostAsync($"/api/v1/session/{sessionId}/breakpoint", content, ct);
-		_ = await ParseResponseOrThrowAsync<object>(response, (JsonTypeInfo<object>)null!, ct, sessionId);
+		var response = await PostJsonAsync(
+			$"/api/v1/session/{sessionId}/breakpoint", new BreakpointRequest(address), ApiJsonContext.Default.BreakpointRequest, ct);
+		await EnsureSuccessAsync(response, sessionId, ct);
 	}
 
 	public async Task RemoveBreakpointAsync(string sessionId, uint address, CancellationToken ct = default)
 	{
-		var response = await http.DeleteAsync($"/api/v1/session/{sessionId}/breakpoint/{address}", ct);
-		_ = await ParseResponseOrThrowAsync<object>(response, (JsonTypeInfo<object>)null!, ct, sessionId);
+		using var request = new HttpRequestMessage(HttpMethod.Delete, $"/api/v1/session/{sessionId}/breakpoint") {
+			Content = JsonContent(new BreakpointRequest(address), ApiJsonContext.Default.BreakpointRequest)
+		};
+		var response = await http.SendAsync(request, ct);
+		await EnsureSuccessAsync(response, sessionId, ct);
 	}
 
 	public async Task<ImmutableArray<uint>> GetBreakpointsAsync(string sessionId, CancellationToken ct = default)
@@ -162,59 +148,57 @@ public sealed class ApiClient(HttpClient http) : IApiClient
 
 	// Watchpoints
 
-	[SuppressMessage("Reliability", "CA2000:Dispose objects before losing scope", Justification = "HttpClient takes ownership and disposes content")]
 	public async Task<Watchpoint> AddWatchpointAsync(string sessionId, uint address, WatchpointType type, CancellationToken ct = default)
 	{
-		var request = new AddWatchpointRequest(address, type.ToString().ToLowerInvariant());
-		var json = JsonSerializer.SerializeToUtf8Bytes(request, ApiJsonContext.Default.AddWatchpointRequest);
-		var content = new ByteArrayContent(json);
-		content.Headers.ContentType = new("application/json");
-		var response = await http.PostAsync($"/api/v1/session/{sessionId}/watchpoint", content, ct);
-		return await ParseResponseOrThrowAsync(response, ApiJsonContext.Default.Watchpoint, ct, sessionId);
+		var response = await PostJsonAsync(
+			$"/api/v1/session/{sessionId}/watchpoint",
+			new AddWatchpointRequest(address, WireFormat.ToWire(type)),
+			ApiJsonContext.Default.AddWatchpointRequest,
+			ct);
+		var watchpoint = await ParseResponseOrThrowAsync(response, ApiJsonContext.Default.WatchpointWire, ct, sessionId);
+		return watchpoint.ToModel();
 	}
 
 	public async Task RemoveWatchpointAsync(string sessionId, int watchpointId, CancellationToken ct = default)
 	{
 		var response = await http.DeleteAsync($"/api/v1/session/{sessionId}/watchpoint/{watchpointId}", ct);
-		_ = await ParseResponseOrThrowAsync<object>(response, (JsonTypeInfo<object>)null!, ct, sessionId);
+		await EnsureSuccessAsync(response, sessionId, ct);
 	}
 
 	public async Task<ImmutableArray<Watchpoint>> GetWatchpointsAsync(string sessionId, CancellationToken ct = default)
 	{
 		var response = await http.GetAsync($"/api/v1/session/{sessionId}/watchpoints", ct);
 		var wrapper = await ParseResponseOrThrowAsync(response, ApiJsonContext.Default.WatchpointsResponse, ct, sessionId);
-		return [.. wrapper.Watchpoints];
+		return [.. wrapper.Watchpoints.Select(w => w.ToModel())];
 	}
 
 	// Expression Evaluation
 
-	[SuppressMessage("Reliability", "CA2000:Dispose objects before losing scope", Justification = "HttpClient takes ownership and disposes content")]
 	public async Task<uint> EvaluateExpressionAsync(string sessionId, string expression, CancellationToken ct = default)
 	{
-		var request = new EvaluateExpressionRequest(expression);
-		var json = JsonSerializer.SerializeToUtf8Bytes(request, ApiJsonContext.Default.EvaluateExpressionRequest);
-		var content = new ByteArrayContent(json);
-		content.Headers.ContentType = new("application/json");
-		var response = await http.PostAsync($"/api/v1/session/{sessionId}/evaluate", content, ct);
+		var response = await PostJsonAsync(
+			$"/api/v1/session/{sessionId}/evaluate",
+			new EvaluateExpressionRequest(expression),
+			ApiJsonContext.Default.EvaluateExpressionRequest,
+			ct);
 
 		if (response.StatusCode == HttpStatusCode.BadRequest) {
-			var jsonStream = await response.Content.ReadAsStreamAsync(ct);
-			var errorResponse = await JsonSerializer.DeserializeAsync(jsonStream, ApiJsonContext.Default.ApiErrorResponse, ct);
-			throw new ExpressionEvaluationException(expression, errorResponse?.Error ?? "Unknown error");
+			var body = await response.Content.ReadAsStringAsync(ct);
+			var error = TryDeserialize(body, ApiJsonContext.Default.ApiErrorResponse);
+			throw new ExpressionEvaluationException(expression, error?.Message ?? error?.Error ?? body);
 		}
 
 		var result = await ParseResponseOrThrowAsync(response, ApiJsonContext.Default.EvaluationResponse, ct, sessionId);
-		return result.Value;
+		return result.Result;
 	}
 
 	// Input
 
-	[SuppressMessage("Reliability", "CA2000:Dispose objects before losing scope", Justification = "HttpClient takes ownership and disposes content")]
 	public async Task SendStdinAsync(string sessionId, string data, CancellationToken ct = default)
 	{
-		var content = new StringContent(data, Encoding.UTF8, "text/plain");
-		var response = await http.PostAsync($"/api/v1/session/{sessionId}/stdin", content, ct);
-		_ = await ParseResponseOrThrowAsync<object>(response, (JsonTypeInfo<object>)null!, ct, sessionId);
+		var response = await PostJsonAsync(
+			$"/api/v1/session/{sessionId}/stdin", new StdinRequest(data), ApiJsonContext.Default.StdinRequest, ct);
+		await EnsureSuccessAsync(response, sessionId, ct);
 	}
 
 	// Version
@@ -223,7 +207,8 @@ public sealed class ApiClient(HttpClient http) : IApiClient
 	{
 		try {
 			var response = await http.GetAsync("/api/v1/version", ct);
-			return await ParseResponseOrThrowAsync(response, ApiJsonContext.Default.BackendVersion, ct);
+			var version = await ParseResponseOrThrowAsync(response, ApiJsonContext.Default.VersionResponse, ct);
+			return version.ToModel();
 		}
 		catch (HttpRequestException ex) {
 			throw new BackendUnavailableException("Cannot reach backend", ex);
@@ -246,10 +231,43 @@ public sealed class ApiClient(HttpClient http) : IApiClient
 			throw new ApiException($"Example '{name}' not found", response.StatusCode);
 		}
 
-		return await response.Content.ReadAsStringAsync(ct);
+		var example = await ParseResponseOrThrowAsync(response, ApiJsonContext.Default.ExampleContentResponse, ct);
+		return example.Content;
 	}
 
 	// Helper Methods
+
+	private async Task PostCommandAsync(string sessionId, string action, CancellationToken ct)
+	{
+		var response = await http.PostAsync($"/api/v1/session/{sessionId}/{action}", null, ct);
+		await EnsureSuccessAsync(response, sessionId, ct);
+	}
+
+	private async Task<RegisterState> PostForRegistersAsync(string sessionId, string action, CancellationToken ct)
+	{
+		var response = await http.PostAsync($"/api/v1/session/{sessionId}/{action}", null, ct);
+		var registers = await ParseResponseOrThrowAsync(response, ApiJsonContext.Default.RegistersResponse, ct, sessionId);
+		return registers.ToRegisterState();
+	}
+
+	[SuppressMessage("Reliability", "CA2000:Dispose objects before losing scope", Justification = "HttpClient disposes request content after sending")]
+	private Task<HttpResponseMessage> PostJsonAsync<T>(string path, T body, JsonTypeInfo<T> typeInfo, CancellationToken ct) =>
+		http.PostAsync(path, JsonContent(body, typeInfo), ct);
+
+	private static ByteArrayContent JsonContent<T>(T body, JsonTypeInfo<T> typeInfo)
+	{
+		var content = new ByteArrayContent(JsonSerializer.SerializeToUtf8Bytes(body, typeInfo));
+		content.Headers.ContentType = new("application/json");
+		return content;
+	}
+
+	private static async Task EnsureSuccessAsync(HttpResponseMessage response, string sessionId, CancellationToken ct)
+	{
+		ThrowIfSessionNotFound(response, sessionId);
+		if (!response.IsSuccessStatusCode) {
+			throw CreateApiException(await response.Content.ReadAsStringAsync(ct), response.StatusCode);
+		}
+	}
 
 	private static async Task<T> ParseResponseOrThrowAsync<T>(
 		HttpResponseMessage response,
@@ -257,22 +275,40 @@ public sealed class ApiClient(HttpClient http) : IApiClient
 		CancellationToken ct,
 		string? sessionId = null)
 	{
-		if (response.StatusCode == HttpStatusCode.NotFound && sessionId is not null) {
-			throw new SessionNotFoundException(sessionId);
+		if (sessionId is not null) {
+			ThrowIfSessionNotFound(response, sessionId);
 		}
 
 		if (!response.IsSuccessStatusCode) {
-			var error = await response.Content.ReadAsStringAsync(ct);
-			throw new ApiException($"API error: {error}", response.StatusCode);
-		}
-
-		// For void methods, return default
-		if (typeof(T) == typeof(object)) {
-			return default!;
+			throw CreateApiException(await response.Content.ReadAsStringAsync(ct), response.StatusCode);
 		}
 
 		var stream = await response.Content.ReadAsStreamAsync(ct);
 		var content = await JsonSerializer.DeserializeAsync(stream, jsonTypeInfo, ct);
 		return content ?? throw new ApiException("Response deserialized to null");
+	}
+
+	private static void ThrowIfSessionNotFound(HttpResponseMessage response, string sessionId)
+	{
+		if (response.StatusCode == HttpStatusCode.NotFound) {
+			throw new SessionNotFoundException(sessionId);
+		}
+	}
+
+	private static ApiException CreateApiException(string body, HttpStatusCode statusCode)
+	{
+		var error = TryDeserialize(body, ApiJsonContext.Default.ApiErrorResponse);
+		return new ApiException($"API error: {error?.Message ?? body}", statusCode);
+	}
+
+	// Error bodies are not guaranteed to be JSON (http.Error writes plain text)
+	private static T? TryDeserialize<T>(string body, JsonTypeInfo<T> typeInfo) where T : class
+	{
+		try {
+			return JsonSerializer.Deserialize(body, typeInfo);
+		}
+		catch (JsonException) {
+			return null;
+		}
 	}
 }

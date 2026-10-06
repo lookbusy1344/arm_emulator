@@ -11,14 +11,26 @@ namespace ARMEmulator.Services;
 /// </summary>
 public sealed class BackendManager : IBackendManager
 {
+	private const string DefaultBaseUrl = "http://localhost:8080";
+
 	private readonly BehaviorSubject<BackendStatus> statusSubject = new(BackendStatus.Stopped);
 	private readonly string baseUrl;
-	private readonly HttpClient http = new();
+	private readonly HttpClient http;
+	private readonly Func<string?> findBinary;
 	private Process? process;
 
-	public BackendManager(string baseUrl = "http://localhost:8080")
+	/// <summary>Creates a manager for the backend served at <paramref name="baseUrl"/>.</summary>
+	/// <param name="baseUrl">Backend HTTP base URL. A spawned backend listens on this URL's port.</param>
+	/// <param name="healthCheckHandler">HTTP handler for health checks; the default handler when null.</param>
+	/// <param name="findBinary">Locates the backend executable; platform discovery when null.</param>
+	public BackendManager(
+		string baseUrl = DefaultBaseUrl,
+		HttpMessageHandler? healthCheckHandler = null,
+		Func<string?>? findBinary = null)
 	{
 		this.baseUrl = baseUrl;
+		http = healthCheckHandler is null ? new HttpClient() : new HttpClient(healthCheckHandler, disposeHandler: false);
+		this.findBinary = findBinary ?? FindBackendBinary;
 	}
 
 	public BackendStatus Status => statusSubject.Value;
@@ -26,6 +38,12 @@ public sealed class BackendManager : IBackendManager
 	public IObservable<BackendStatus> StatusChanged => statusSubject;
 
 	public string BaseUrl => baseUrl;
+
+	/// <summary>
+	/// Command-line arguments that start the backend as an API server on <paramref name="baseUrl"/>'s port.
+	/// </summary>
+	internal static ImmutableArray<string> ServerArguments(Uri baseUrl) =>
+		["-api-server", "-port", baseUrl.Port.ToString(System.Globalization.CultureInfo.InvariantCulture)];
 
 	public async Task StartAsync(CancellationToken ct = default)
 	{
@@ -35,22 +53,29 @@ public sealed class BackendManager : IBackendManager
 
 		statusSubject.OnNext(BackendStatus.Starting);
 
+		// Reuse a backend that is already serving this URL, e.g. one started from a terminal
+		if (await HealthCheckAsync(ct)) {
+			statusSubject.OnNext(BackendStatus.Running);
+			return;
+		}
+
 		try {
-			var binaryPath = FindBackendBinary();
+			var binaryPath = findBinary();
 			if (binaryPath is null) {
 				statusSubject.OnNext(BackendStatus.Error);
 				throw new BackendStartException("Backend binary not found");
 			}
 
-			process = new Process {
-				StartInfo = new ProcessStartInfo {
-					FileName = binaryPath,
-					UseShellExecute = false,
-					RedirectStandardOutput = true,
-					RedirectStandardError = true,
-					CreateNoWindow = true
-				}
+			var startInfo = new ProcessStartInfo {
+				FileName = binaryPath,
+				UseShellExecute = false,
+				CreateNoWindow = true
 			};
+			foreach (var argument in ServerArguments(new Uri(baseUrl))) {
+				startInfo.ArgumentList.Add(argument);
+			}
+
+			process = new Process { StartInfo = startInfo };
 
 			if (!process.Start()) {
 				statusSubject.OnNext(BackendStatus.Error);

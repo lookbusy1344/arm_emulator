@@ -109,6 +109,8 @@ Use **idiomatic .NET exception-based error handling** (not Result/Either monads)
 
 ### Analyzer Suppressions
 
+**Never suppress JSV01** (RecordValueAnalyser: record member without value semantics). Fix the member type instead. For collections in records, use `EquatableArray<T>` or `EquatableDictionary<TKey, TValue>` from `ARMEmulator/Collections/`. They compare by contents and serialise as plain JSON arrays and objects. Register their element types in `ApiJsonContext` when they appear in wire records.
+
 **Use inline suppressions, not central suppression files.**
 
 - Suppress warnings at the specific location using `#pragma warning disable` or `[SuppressMessage]`

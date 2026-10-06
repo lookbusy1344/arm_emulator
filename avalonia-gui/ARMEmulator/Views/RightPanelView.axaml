@@ -13,13 +13,13 @@
                 <views:RegistersView />
             </TabItem>
             <TabItem Header="Memory">
-                <views:MemoryView />
+                <views:MemoryView DataContext="{Binding Memory}" />
             </TabItem>
             <TabItem Header="Stack">
-                <views:StackView />
+                <views:StackView DataContext="{Binding Stack}" />
             </TabItem>
             <TabItem Header="Disassembly">
-                <views:DisassemblyView />
+                <views:DisassemblyView DataContext="{Binding Disassembly}" />
             </TabItem>
             <TabItem Header="Eval">
                 <views:ExpressionEvaluatorView DataContext="{Binding ExpressionEvaluator}" />

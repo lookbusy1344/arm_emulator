@@ -33,6 +33,10 @@ public class MainWindowViewModelTests : IDisposable
 		mockFileService = Substitute.For<IFileService>();
 		eventsSubject = new Subject<EmulatorEvent>();
 		mockWs.Events.Returns(eventsSubject);
+
+		// Child view models refresh memory and disassembly on register changes
+		mockApi.GetMemoryAsync(default!, default, default, default).ReturnsForAnyArgs(ImmutableArray<byte>.Empty);
+		mockApi.GetDisassemblyAsync(default!, default, default, default).ReturnsForAnyArgs(ImmutableArray<DisassemblyInstruction>.Empty);
 	}
 
 	public void Dispose()
@@ -58,8 +62,8 @@ public class MainWindowViewModelTests : IDisposable
 		viewModel.Breakpoints.Should().BeEmpty();
 		viewModel.Watchpoints.Should().BeEmpty();
 		viewModel.SourceCode.Should().BeEmpty();
-		viewModel.MemoryData.Should().BeEmpty();
-		viewModel.Disassembly.Should().BeEmpty();
+		viewModel.Memory.MemoryData.Should().BeEmpty();
+		viewModel.Disassembly.Instructions.Should().BeEmpty();
 		viewModel.IsConnected.Should().BeFalse();
 		viewModel.SessionId.Should().BeNull();
 	}
