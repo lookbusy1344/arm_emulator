@@ -1,0 +1,17 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="ARMEmulator.Views.UnsavedChangesWindow"
+        Title="Unsaved changes"
+        Width="420"
+        SizeToContent="Height"
+        CanResize="False"
+        WindowStartupLocation="CenterOwner">
+    <StackPanel Margin="24" Spacing="16">
+        <TextBlock Name="MessageText" TextWrapping="Wrap" />
+        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
+            <Button Content="Cancel" Click="Cancel_Click" IsCancel="True" />
+            <Button Content="Discard" Click="Discard_Click" />
+            <Button Content="Save" Click="Save_Click" IsDefault="True" Classes="accent" />
+        </StackPanel>
+    </StackPanel>
+</Window>

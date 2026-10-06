@@ -129,7 +129,7 @@ Makes the app safe to use for a single file. Each task is a small TDD change.
 - A missing or unreadable file shows a message; the app still starts.
 - **Tests:** argument selection (ignores other flags, resolves relative paths), and load ordering after session creation.
 
-### 2.4 Unsaved changes and window title
+### 2.4 Unsaved changes and window title (done)
 
 - Track a dirty flag: set on edit, cleared on open and save.
 - Title: `ARM Emulator — file.s` with a `•` marker when dirty.

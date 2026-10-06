@@ -7,7 +7,7 @@
         mc:Ignorable="d" d:DesignWidth="1200" d:DesignHeight="800"
         x:Class="ARMEmulator.MainWindow"
         x:DataType="vm:MainWindowViewModel"
-        Title="ARM Emulator"
+        Title="{Binding WindowTitle}"
         Width="1200"
         Height="800"
         MinWidth="800"

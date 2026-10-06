@@ -161,26 +161,26 @@ public sealed class MainWindowViewModelSettingsTests : IDisposable
 	}
 
 	[Fact]
-	public void OpenRecentFile_WhenFileIsGone_ReportsItAndRemovesTheEntry()
+	public async Task OpenRecentFile_WhenFileIsGone_ReportsItAndRemovesTheEntry()
 	{
 		const string missing = "/definitely/not/here.s";
 		using var vm = CreateViewModel();
 
-		((System.Windows.Input.ICommand)vm.OpenRecentFileCommand).Execute(missing);
+		await vm.OpenRecentFileCommand.Execute(missing);
 
 		vm.ErrorMessage.Should().Be("File not found: /definitely/not/here.s");
 		files.Received(1).RemoveRecentFile(missing);
 	}
 
 	[Fact]
-	public void OpenRecentFile_WhenFileExists_MovesItToTheTopOfTheList()
+	public async Task OpenRecentFile_WhenFileExists_MovesItToTheTopOfTheList()
 	{
 		var path = Path.GetTempFileName();
 		try {
 			using var vm = CreateViewModel();
 			vm.SessionId = null;
 
-			((System.Windows.Input.ICommand)vm.OpenRecentFileCommand).Execute(path);
+			await vm.OpenRecentFileCommand.Execute(path);
 
 			files.Received(1).AddRecentFile(path);
 		}

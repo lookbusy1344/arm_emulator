@@ -27,6 +27,27 @@ public partial class MainWindow : Window
 		viewModel.SetParentWindow(this);
 	}
 
+	private bool closeConfirmed;
+
+	protected override void OnClosing(WindowClosingEventArgs e)
+	{
+		base.OnClosing(e);
+		if (closeConfirmed || DataContext is not MainWindowViewModel { IsDirty: true } viewModel) {
+			return;
+		}
+
+		e.Cancel = true;
+		_ = CloseIfDiscardConfirmedAsync(viewModel);
+	}
+
+	private async Task CloseIfDiscardConfirmedAsync(MainWindowViewModel viewModel)
+	{
+		if (await viewModel.ConfirmDiscardAsync()) {
+			closeConfirmed = true;
+			Close();
+		}
+	}
+
 	private void RecentFilesMenu_SubmenuOpened(object? sender, RoutedEventArgs e) =>
 		(DataContext as MainWindowViewModel)?.RefreshRecentFiles();
 }

@@ -42,7 +42,7 @@ public partial class App : Application
 #pragma warning restore CA2000
 		var fileService = new FileService { RecentFilesLimit = settings.RecentFilesLimit };
 		fileService.LoadRecentFiles(settings.RecentFiles);
-		var viewModel = new MainWindowViewModel(new ApiClient(http), ws, fileService, settingsStore);
+		var viewModel = new MainWindowViewModel(new ApiClient(http), ws, fileService, settingsStore, new UnsavedChangesPrompt(() => desktop.MainWindow));
 		viewModel.ApplySettings(settings);
 
 		_ = viewModel.WhenAnyValue(x => x.Settings)

@@ -36,9 +36,11 @@ public partial class MainWindowViewModel : ReactiveObject, IDisposable
 	/// <summary>
 	/// Initializes a new instance of the MainWindowViewModel with required services.
 	/// </summary>
-	public MainWindowViewModel(IApiClient api, IWebSocketClient ws, IFileService fileService, ISettingsStore? settingsStore = null)
+	public MainWindowViewModel(IApiClient api, IWebSocketClient ws, IFileService fileService, ISettingsStore? settingsStore = null, IUnsavedChangesPrompt? unsavedChangesPrompt = null)
 	{
 		this.settingsStore = settingsStore;
+		this.unsavedChangesPrompt = unsavedChangesPrompt;
+		InitializeWindowTitle();
 		_ = fileService.RecentFilesChanged
 			.Subscribe(_ => OnRecentFilesChanged())
 			.DisposeWith(disposables);
@@ -210,7 +212,15 @@ public partial class MainWindowViewModel : ReactiveObject, IDisposable
 	public string SourceCode
 	{
 		get => sourceCode;
-		set => this.RaiseAndSetIfChanged(ref sourceCode, value);
+		set
+		{
+			if (sourceCode == value) {
+				return;
+			}
+
+			_ = this.RaiseAndSetIfChanged(ref sourceCode, value);
+			IsDirty = true;
+		}
 	}
 
 	private ImmutableDictionary<uint, int> addressToLine = ImmutableDictionary<uint, int>.Empty;
@@ -865,66 +875,6 @@ public partial class MainWindowViewModel : ReactiveObject, IDisposable
 		return true;
 	}
 
-	// File operations
-	private async Task OpenFileAsync(CancellationToken ct)
-	{
-		if (parentWindow is null) {
-			return;
-		}
-
-		var result = await fileService.OpenFileAsync(parentWindow);
-		if (result is null) {
-			return;
-		}
-
-		var (path, content) = result.Value;
-		SourceCode = content;
-		// Auto-load program after opening
-		await LoadProgramAsync(ct);
-	}
-
-	private async Task SaveFileAsync(CancellationToken ct)
-	{
-		if (parentWindow is null) {
-			return;
-		}
-
-		var path = await fileService.SaveFileAsync(parentWindow, SourceCode, fileService.CurrentFilePath);
-		if (path is not null) {
-			fileService.CurrentFilePath = path;
-		}
-	}
-
-	private async Task SaveAsAsync(CancellationToken ct)
-	{
-		if (parentWindow is null) {
-			return;
-		}
-
-		var path = await fileService.SaveFileAsync(parentWindow, SourceCode, null);
-		if (path is not null) {
-			fileService.CurrentFilePath = path;
-		}
-	}
-
-	private async Task OpenExampleAsync(CancellationToken ct)
-	{
-		if (parentWindow is null) {
-			return;
-		}
-
-		var vm = new ExamplesBrowserViewModel(api);
-		var window = new ExamplesBrowserWindow(vm);
-		await window.ShowDialog(parentWindow);
-
-		if (window.SelectedExampleContent is not null) {
-			SourceCode = window.SelectedExampleContent;
-			await LoadProgramAsync(ct);
-		}
-
-		vm.Dispose();
-	}
-
 	private async Task ShowPreferencesAsync(CancellationToken ct)
 	{
 		if (parentWindow is null) {
@@ -985,32 +935,6 @@ public partial class MainWindowViewModel : ReactiveObject, IDisposable
 		var vm = new AboutWindowViewModel(api);
 		var window = new AboutWindow(vm);
 		await window.ShowDialog(parentWindow);
-	}
-
-	private Task OpenRecentFileAsync(string path, CancellationToken ct) => OpenSourceFileAsync(path, ct);
-
-	/// <summary>
-	/// Opens a file in the editor, records it as recent and loads it when a session exists.
-	/// Failures are reported through <see cref="ErrorMessage"/>.
-	/// </summary>
-	public async Task OpenSourceFileAsync(string path, CancellationToken ct = default)
-	{
-		try {
-			var content = await File.ReadAllTextAsync(path, ct);
-			SourceCode = content;
-			fileService.CurrentFilePath = path;
-			fileService.AddRecentFile(path);
-			if (SessionId is not null) {
-				await LoadProgramAsync(ct);
-			}
-		}
-		catch (Exception ex) when (ex is FileNotFoundException or DirectoryNotFoundException) {
-			ErrorMessage = $"File not found: {path}";
-			fileService.RemoveRecentFile(path);
-		}
-		catch (Exception ex) {
-			ErrorMessage = $"Failed to open {path}: {ex.Message}";
-		}
 	}
 
 	public void Dispose()
