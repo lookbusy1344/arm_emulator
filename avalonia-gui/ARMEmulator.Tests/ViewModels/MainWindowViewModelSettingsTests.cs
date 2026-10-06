@@ -1,6 +1,7 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Reactive;
 using System.Reactive.Subjects;
+using ARMEmulator.Collections;
 using ARMEmulator.Models;
 using ARMEmulator.Services;
 using ARMEmulator.ViewModels;
@@ -186,5 +187,63 @@ public sealed class MainWindowViewModelSettingsTests : IDisposable
 		finally {
 			File.Delete(path);
 		}
+	}
+
+	[Fact]
+	public async Task OpenSourceFile_WithSession_LoadsTheFileIntoTheEditorAndSession()
+	{
+		const string sessionId = "s1";
+		const string source = "_start:\n  MOV R0, #1\n";
+		var path = Path.GetTempFileName();
+		try {
+			await File.WriteAllTextAsync(path, source, TestContext.Current.CancellationToken);
+			api.LoadProgramAsync(sessionId, source, Arg.Any<CancellationToken>())
+				.Returns(new LoadProgramResponse(EquatableDictionaryFactory.CopyOf(new Dictionary<string, uint>())));
+			api.GetSourceMapAsync(sessionId, Arg.Any<CancellationToken>()).Returns([]);
+			api.GetRegistersAsync(sessionId, Arg.Any<CancellationToken>()).Returns(RegisterState.Create());
+			using var vm = CreateViewModel();
+			vm.SessionId = sessionId;
+
+			await vm.OpenSourceFileAsync(path, TestContext.Current.CancellationToken);
+
+			vm.SourceCode.Should().Be(source);
+			files.CurrentFilePath.Should().Be(path);
+			files.Received(1).AddRecentFile(path);
+			await api.Received(1).LoadProgramAsync(sessionId, source, Arg.Any<CancellationToken>());
+		}
+		finally {
+			File.Delete(path);
+		}
+	}
+
+	[Fact]
+	public async Task OpenSourceFile_WithoutSession_ShowsTheFileButDoesNotLoad()
+	{
+		var path = Path.GetTempFileName();
+		try {
+			await File.WriteAllTextAsync(path, "MOV R0, #1", TestContext.Current.CancellationToken);
+			using var vm = CreateViewModel();
+
+			await vm.OpenSourceFileAsync(path, TestContext.Current.CancellationToken);
+
+			vm.SourceCode.Should().Be("MOV R0, #1");
+			await api.DidNotReceiveWithAnyArgs().LoadProgramAsync(default!, default!, TestContext.Current.CancellationToken);
+			vm.ErrorMessage.Should().BeNull();
+		}
+		finally {
+			File.Delete(path);
+		}
+	}
+
+	[Fact]
+	public async Task OpenSourceFile_WhenMissing_ReportsItAndLeavesTheEditorAlone()
+	{
+		using var vm = CreateViewModel();
+		vm.SourceCode = "keep";
+
+		await vm.OpenSourceFileAsync("/definitely/not/here.s", TestContext.Current.CancellationToken);
+
+		vm.ErrorMessage.Should().Be("File not found: /definitely/not/here.s");
+		vm.SourceCode.Should().Be("keep");
 	}
 }

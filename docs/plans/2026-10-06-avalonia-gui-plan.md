@@ -123,7 +123,7 @@ Makes the app safe to use for a single file. Each task is a small TDD change.
 - Drop entries whose file no longer exists when the menu opens, and show a message if a selected entry is gone.
 - **Tests:** ordering (most recent first), de-duplication, limit, and removal of missing files.
 
-### 2.3 Command-line file argument
+### 2.3 Command-line file argument (done)
 
 - Read the first argument ending in `.s` (matching Swift), open it, and load it once the session exists.
 - A missing or unreadable file shows a message; the app still starts.

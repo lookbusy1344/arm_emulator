@@ -987,14 +987,22 @@ public partial class MainWindowViewModel : ReactiveObject, IDisposable
 		await window.ShowDialog(parentWindow);
 	}
 
-	private async Task OpenRecentFileAsync(string path, CancellationToken ct)
+	private Task OpenRecentFileAsync(string path, CancellationToken ct) => OpenSourceFileAsync(path, ct);
+
+	/// <summary>
+	/// Opens a file in the editor, records it as recent and loads it when a session exists.
+	/// Failures are reported through <see cref="ErrorMessage"/>.
+	/// </summary>
+	public async Task OpenSourceFileAsync(string path, CancellationToken ct = default)
 	{
 		try {
 			var content = await File.ReadAllTextAsync(path, ct);
 			SourceCode = content;
 			fileService.CurrentFilePath = path;
 			fileService.AddRecentFile(path);
-			await LoadProgramAsync(ct);
+			if (SessionId is not null) {
+				await LoadProgramAsync(ct);
+			}
 		}
 		catch (Exception ex) when (ex is FileNotFoundException or DirectoryNotFoundException) {
 			ErrorMessage = $"File not found: {path}";

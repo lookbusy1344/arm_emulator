@@ -59,13 +59,18 @@ public partial class App : Application
 			backend.Dispose();
 		};
 
-		_ = StartAsync(viewModel, backend, loaded.Warning);
+		var startupFile = StartupArguments.FindSourceFile(desktop.Args ?? [], Environment.CurrentDirectory);
+		_ = StartAsync(viewModel, backend, loaded.Warning, startupFile);
 	}
 
 	/// <summary>Startup failures reach the user through the view model's ErrorMessage; the settings warning shows when there is none.</summary>
-	private static async Task StartAsync(MainWindowViewModel viewModel, IBackendManager backend, string? settingsWarning)
+	private static async Task StartAsync(MainWindowViewModel viewModel, IBackendManager backend, string? settingsWarning, string? startupFile)
 	{
 		await viewModel.StartAsync(backend);
+		if (startupFile is not null) {
+			await viewModel.OpenSourceFileAsync(startupFile);
+		}
+
 		viewModel.ErrorMessage ??= settingsWarning;
 	}
 }
