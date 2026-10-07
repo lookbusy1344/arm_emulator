@@ -3,6 +3,7 @@ using ARMEmulator.Models;
 using Avalonia.Headless;
 using Avalonia.Styling;
 using Avalonia.Threading;
+using NSubstitute;
 
 namespace ARMEmulator.Tests.Ui;
 
@@ -56,5 +57,35 @@ public sealed class ScreenshotTests
 			ui.Window.UpdateLayout();
 			AvaloniaHeadlessPlatform.ForceRenderTimerTick();
 			ui.Window.CaptureRenderedFrame()!.Save(Path.Combine(Environment.GetEnvironmentVariable(DirectoryVariable)!, $"main-{name}.png"));
+		});
+
+	[Theory(SkipUnless = nameof(WantsScreenshots), Skip = "Set ARM_SCREENSHOT_DIR to render screenshots")]
+	[InlineData(InspectorPanel.Memory, false)]
+	[InlineData(InspectorPanel.Stack, false)]
+	[InlineData(InspectorPanel.Disassembly, false)]
+	[InlineData(InspectorPanel.Memory, true)]
+	[InlineData(InspectorPanel.Stack, true)]
+	[InlineData(InspectorPanel.Disassembly, true)]
+	public Task Panel_RendersWithSampleData(InspectorPanel panel, bool dark) =>
+		UiTest.RunAsync(async ui => {
+			var ct = TestContext.Current.CancellationToken;
+			await ui.ViewModel.StartAsync(ui.Backend, ct);
+			ui.Window.Width = WindowWidth;
+			ui.Window.Height = WindowHeight;
+			ui.Window.RequestedThemeVariant = dark ? ThemeVariant.Dark : ThemeVariant.Light;
+			ui.Api.GetMemoryAsync(default!, default, default, default).ReturnsForAnyArgs(
+				Enumerable.Range(0, 128).Select(i => (byte)(0x40 + (i % 0x30))).ToImmutableArray());
+			ui.Api.GetDisassemblyAsync(default!, default, default, default).ReturnsForAnyArgs(
+				SourceMap.Select(entry => new DisassemblyInstruction(entry.Address, 0xE2800001, "ADD R0, R0, #1", entry.Address == 0x8008 ? "loop" : null)).ToImmutableArray());
+			ui.ViewModel.Breakpoints = [0x8008];
+			ui.ViewModel.UpdateRegisters(RegisterState.Create(r0: 0x8000, sp: 0x50000, pc: 0x8008));
+			await ui.ViewModel.Memory.LoadMemoryAsync(0x8000);
+			ui.ViewModel.Memory.LastWriteAddress = 0x8013;
+			ui.ViewModel.SelectedInspectorPanel = panel;
+
+			Dispatcher.UIThread.RunJobs();
+			ui.Window.UpdateLayout();
+			AvaloniaHeadlessPlatform.ForceRenderTimerTick();
+			ui.Window.CaptureRenderedFrame()!.Save(Path.Combine(Environment.GetEnvironmentVariable(DirectoryVariable)!, $"{panel}-{(dark ? "dark" : "light")}.png"));
 		});
 }

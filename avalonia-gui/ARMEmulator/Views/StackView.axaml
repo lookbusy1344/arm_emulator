@@ -1,120 +1,63 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:ARMEmulator.ViewModels"
-             xmlns:converters="using:ARMEmulator.Converters"
              x:Class="ARMEmulator.Views.StackView"
              x:DataType="vm:StackViewModel">
-    <UserControl.Resources>
-        <converters:BoolToHighlightConverter x:Key="HighlightConverter" />
-    </UserControl.Resources>
-
     <DockPanel>
-        <!-- Header with Stack Info and Refresh Button -->
-        <Border DockPanel.Dock="Top"
-                Background="{DynamicResource SystemControlBackgroundAltHighBrush}"
-                Padding="8"
-                BorderThickness="0,0,0,1"
-                BorderBrush="{DynamicResource SystemControlForegroundBaseLowBrush}">
-            <Grid ColumnDefinitions="*,Auto">
-                <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="16">
-                    <TextBlock>
-                        <Run Text="Stack Pointer: 0x" />
-                        <Run Text="{Binding StackPointer, StringFormat=X8}" FontWeight="SemiBold" />
-                    </TextBlock>
-                    <TextBlock>
-                        <Run Text="Stack Size: " />
-                        <Run Text="{Binding StackSize}" FontWeight="SemiBold" />
-                        <Run Text=" bytes" />
-                    </TextBlock>
-                </StackPanel>
-                <Button Grid.Column="1"
-                        Content="🔄 Refresh"
+        <Border DockPanel.Dock="Top" Classes="panelHeader">
+            <DockPanel>
+                <Button DockPanel.Dock="Right"
+                        Classes="tool"
                         Command="{Binding RefreshCommand}"
-                        ToolTip.Tip="Refresh stack view" />
-            </Grid>
+                        ToolTip.Tip="Refresh the stack"
+                        AutomationProperties.Name="Refresh stack">
+                    <PathIcon Data="{StaticResource IconReset}" />
+                </Button>
+                <StackPanel Orientation="Horizontal" Spacing="16" VerticalAlignment="Center">
+                    <StackPanel Orientation="Horizontal" Spacing="6">
+                        <TextBlock Classes="secondary" Text="SP" />
+                        <TextBlock Classes="data" Text="{Binding StackPointer, StringFormat=0x{0:X8}}" />
+                    </StackPanel>
+                    <StackPanel Orientation="Horizontal" Spacing="6">
+                        <TextBlock Classes="secondary" Text="Size" />
+                        <TextBlock Classes="data" Text="{Binding StackSize, StringFormat={}{0} bytes}" />
+                    </StackPanel>
+                </StackPanel>
+            </DockPanel>
         </Border>
 
-        <!-- Error Message -->
         <Border DockPanel.Dock="Top"
-                Background="{DynamicResource ErrorBackgroundBrush}"
-                Padding="8"
+                Classes="inlineError"
                 IsVisible="{Binding ErrorMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
-            <TextBlock Text="{Binding ErrorMessage}"
-                       Foreground="{DynamicResource ErrorTextBrush}"
-                       FontWeight="SemiBold" />
+            <TextBlock Text="{Binding ErrorMessage}" TextWrapping="Wrap" />
         </Border>
 
-        <!-- Stack Entries Table -->
-        <ScrollViewer>
-            <Grid>
-                <!-- Header Row -->
-                <Border Background="{DynamicResource SystemControlBackgroundAltMediumBrush}"
-                        BorderThickness="0,0,0,1"
-                        BorderBrush="{DynamicResource SystemControlForegroundBaseLowBrush}"
-                        VerticalAlignment="Top"
-                        Height="28">
-                    <Grid ColumnDefinitions="Auto,12,Auto,12,Auto,12,Auto,12,*" Margin="8,4">
-                        <TextBlock Grid.Column="0" Text="Offset" FontWeight="SemiBold" />
-                        <TextBlock Grid.Column="2" Text="Address" FontWeight="SemiBold" />
-                        <TextBlock Grid.Column="4" Text="Value" FontWeight="SemiBold" />
-                        <TextBlock Grid.Column="6" Text="ASCII" FontWeight="SemiBold" />
-                        <TextBlock Grid.Column="8" Text="Annotation" FontWeight="SemiBold" />
-                    </Grid>
-                </Border>
-
-                <!-- Data Rows -->
-                <ItemsControl Name="StackRows" ItemsSource="{Binding StackEntries}" Margin="0,28,0,0">
-                    <ItemsControl.ItemTemplate>
-                        <DataTemplate>
-                            <Border Background="{Binding IsCurrentSP, Converter={StaticResource HighlightConverter}}"
-                                    Padding="8,4"
-                                    BorderThickness="0,0,0,1"
-                                    BorderBrush="{DynamicResource SystemControlForegroundBaseLowBrush}">
-                                <Grid ColumnDefinitions="Auto,12,Auto,12,Auto,12,Auto,12,*">
-                                    <!-- Offset -->
-                                    <TextBlock Grid.Column="0"
-                                               Text="{Binding Offset}"
-                                               FontFamily="JetBrains Mono,Consolas,Courier New,monospace"
-                                               FontSize="12"
-                                               Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"
-                                               Width="60" />
-
-                                    <!-- Address -->
-                                    <TextBlock Grid.Column="2"
-                                               Text="{Binding Address}"
-                                               FontFamily="JetBrains Mono,Consolas,Courier New,monospace"
-                                               FontSize="12"
-                                               Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"
-                                               Width="80" />
-
-                                    <!-- Value -->
-                                    <TextBlock Grid.Column="4"
-                                               Text="{Binding Value}"
-                                               FontFamily="JetBrains Mono,Consolas,Courier New,monospace"
-                                               FontSize="12"
-                                               FontWeight="SemiBold"
-                                               Width="90" />
-
-                                    <!-- ASCII -->
-                                    <TextBlock Grid.Column="6"
-                                               Text="{Binding Ascii}"
-                                               FontFamily="JetBrains Mono,Consolas,Courier New,monospace"
-                                               FontSize="12"
-                                               Foreground="{DynamicResource SystemControlForegroundBaseMediumHighBrush}"
-                                               Width="40" />
-
-                                    <!-- Annotation -->
-                                    <TextBlock Grid.Column="8"
-                                               Text="{Binding Annotation}"
-                                               FontSize="11"
-                                               FontStyle="Italic"
-                                               Foreground="{DynamicResource SystemControlForegroundBaseHighBrush}" />
-                                </Grid>
-                            </Border>
-                        </DataTemplate>
-                    </ItemsControl.ItemTemplate>
-                </ItemsControl>
+        <Border DockPanel.Dock="Top" Name="StackHeader" Classes="tableHeader">
+            <Grid ColumnDefinitions="64,80,90,40,*">
+                <TextBlock Grid.Column="0" Text="Offset" />
+                <TextBlock Grid.Column="1" Text="Address" />
+                <TextBlock Grid.Column="2" Text="Value" />
+                <TextBlock Grid.Column="3" Text="ASCII" />
+                <TextBlock Grid.Column="4" Text="Note" />
             </Grid>
+        </Border>
+
+        <ScrollViewer>
+            <ItemsControl Name="StackRows" Classes="striped" ItemsSource="{Binding StackEntries}">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <Border Classes="dataRow" Classes.current="{Binding IsCurrentSP}">
+                            <Grid ColumnDefinitions="64,80,90,40,*">
+                                <TextBlock Grid.Column="0" Classes="data secondary" Text="{Binding Offset}" />
+                                <TextBlock Grid.Column="1" Classes="data secondary" Text="{Binding Address}" />
+                                <TextBlock Grid.Column="2" Classes="data" Text="{Binding Value}" />
+                                <TextBlock Grid.Column="3" Classes="data secondary" Text="{Binding Ascii}" />
+                                <TextBlock Grid.Column="4" Classes="secondary" Text="{Binding Annotation}" FontStyle="Italic" />
+                            </Grid>
+                        </Border>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
         </ScrollViewer>
     </DockPanel>
 </UserControl>

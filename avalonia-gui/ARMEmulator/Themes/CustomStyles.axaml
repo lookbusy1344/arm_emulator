@@ -89,4 +89,64 @@
     <Style Selector="Border.pill[Tag=WaitingForInput]">
         <Setter Property="Background" Value="{DynamicResource StateWaitingBrush}" />
     </Style>
+
+    <!-- Panel header: a compact strip above a table -->
+    <Style Selector="Border.panelHeader">
+        <Setter Property="Background" Value="{DynamicResource PanelBackgroundBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource DividerBrush}" />
+        <Setter Property="BorderThickness" Value="0,0,0,1" />
+        <Setter Property="Padding" Value="8,4" />
+    </Style>
+
+    <!-- Table: column headers and data rows -->
+    <Style Selector="Border.tableHeader">
+        <Setter Property="Background" Value="{DynamicResource PanelBackgroundBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource DividerBrush}" />
+        <Setter Property="BorderThickness" Value="0,0,0,1" />
+        <Setter Property="Padding" Value="8,3" />
+    </Style>
+    <Style Selector="Border.tableHeader TextBlock">
+        <Setter Property="Foreground" Value="{DynamicResource SecondaryTextBrush}" />
+        <Setter Property="FontSize" Value="{DynamicResource FontSizeCaption}" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+    </Style>
+    <Style Selector="Border.dataRow">
+        <Setter Property="Padding" Value="8,1" />
+        <Setter Property="MinHeight" Value="20" />
+        <Setter Property="Transitions">
+            <Transitions>
+                <BrushTransition Property="Background" Duration="0:0:0.4" />
+            </Transitions>
+        </Setter>
+    </Style>
+    <Style Selector="Border.dataRow.highlight">
+        <Setter Property="Background" Value="{DynamicResource MemoryWriteBrush}" />
+    </Style>
+    <Style Selector="Border.dataRow.current">
+        <Setter Property="Background" Value="{DynamicResource PcLineBrush}" />
+    </Style>
+    <Style Selector="ItemsControl.striped StackPanel > ContentPresenter:nth-child(2n)">
+        <Setter Property="Background" Value="{DynamicResource RowAlternateBrush}" />
+    </Style>
+    <Style Selector="PathIcon.marker">
+        <Setter Property="Width" Value="12" />
+        <Setter Property="Height" Value="12" />
+    </Style>
+    <Style Selector="PathIcon.breakpointMarker">
+        <Setter Property="Foreground" Value="{DynamicResource BreakpointBrush}" />
+    </Style>
+    <Style Selector="PathIcon.pcMarker">
+        <Setter Property="Foreground" Value="{DynamicResource PcMarkerBrush}" />
+    </Style>
+
+    <!-- Inline error inside a panel -->
+    <Style Selector="Border.inlineError">
+        <Setter Property="Background" Value="{DynamicResource ErrorBackgroundBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource ErrorBorderBrush}" />
+        <Setter Property="BorderThickness" Value="0,0,0,1" />
+        <Setter Property="Padding" Value="8,4" />
+    </Style>
+    <Style Selector="Border.inlineError > TextBlock">
+        <Setter Property="Foreground" Value="{DynamicResource ErrorTextBrush}" />
+    </Style>
 </Styles>

@@ -215,7 +215,9 @@ Status 2026-10-07: done. `RegisterTable` projects the state to rows and flags; t
 - A status strip below it with VM state and N, Z, C, V flags as small pills, as in Swift's `StatusView`.
 - Changed-register highlight uses the theme colour and fades out over the existing 1.5 s.
 
-### 3.6 Memory, stack and disassembly
+### 3.6 Memory, stack and disassembly (done)
+
+Status 2026-10-07: done. Shared `panelHeader`, `tableHeader`, `dataRow` and `striped` styles in `Themes/CustomStyles.axaml`; row state is a style class (`highlight`, `current`) bound to the row model; breakpoint and PC markers are vector icons. The memory table scrolls horizontally in a narrow inspector. `BoolToHighlightConverter`, `BoolToBreakpointConverter` and `BoolToPCIndicatorConverter` are removed. `ScreenshotTests` renders the three panels in both themes.
 
 - Monospace tables with column headers, consistent row height and subtle alternate-row shading.
 - PC, SP, breakpoint and memory-write markers use theme colours and the same glyphs as the editor gutter.
