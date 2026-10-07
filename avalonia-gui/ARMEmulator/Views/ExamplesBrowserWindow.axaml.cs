@@ -1,3 +1,4 @@
+using ARMEmulator.Controls;
 using ARMEmulator.ViewModels;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
@@ -14,6 +15,7 @@ public partial class ExamplesBrowserWindow : Window
 	public ExamplesBrowserWindow()
 	{
 		InitializeComponent();
+		DialogButtonOrder.ForCurrentPlatform(ButtonRow);
 		viewModel = null!; // Set via constructor parameter
 	}
 

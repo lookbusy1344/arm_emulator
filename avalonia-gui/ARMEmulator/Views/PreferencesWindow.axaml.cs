@@ -1,3 +1,4 @@
+using ARMEmulator.Controls;
 using ARMEmulator.Models;
 using ARMEmulator.ViewModels;
 using Avalonia.Controls;
@@ -15,6 +16,7 @@ public partial class PreferencesWindow : Window
 	public PreferencesWindow()
 	{
 		InitializeComponent();
+		DialogButtonOrder.ForCurrentPlatform(ButtonRow);
 		viewModel = new PreferencesWindowViewModel(AppSettings.Default);
 		DataContext = viewModel;
 	}

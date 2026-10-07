@@ -6,23 +6,20 @@
         Title="Browse Examples"
         Width="900"
         Height="600"
-        WindowStartupLocation="CenterOwner"
-        Icon="/Assets/avalonia-logo.ico">
+        WindowStartupLocation="CenterOwner">
 
 	<DockPanel>
 		<!-- Action Buttons -->
-		<StackPanel DockPanel.Dock="Bottom"
-		            Orientation="Horizontal"
-		            HorizontalAlignment="Right"
-		            Margin="16"
-		            Spacing="12">
-			<Button Content="Cancel" MinWidth="80" Click="CancelButton_Click"
-			        ToolTip.Tip="Close without loading" />
-			<Button Content="Load" MinWidth="80" Click="LoadButton_Click"
-			        IsEnabled="{Binding SelectedExample, Converter={x:Static ObjectConverters.IsNotNull}}"
-			        IsDefault="True"
-			        ToolTip.Tip="Load selected example into editor" />
-		</StackPanel>
+		<Border DockPanel.Dock="Bottom" Classes="dialogFooter">
+			<StackPanel Name="ButtonRow" Classes="buttonRow">
+				<Button Name="CancelButton" Content="Cancel" Click="CancelButton_Click" IsCancel="True"
+				        ToolTip.Tip="Close without loading" />
+				<Button Name="LoadButton" Content="Load" Click="LoadButton_Click"
+				        IsEnabled="{Binding SelectedExample, Converter={x:Static ObjectConverters.IsNotNull}}"
+				        IsDefault="True" Classes="accent"
+				        ToolTip.Tip="Load selected example into editor" />
+			</StackPanel>
+		</Border>
 
 		<!-- Split View -->
 		<Grid Margin="16">
@@ -48,12 +45,8 @@
 						<DataTemplate>
 							<StackPanel Spacing="2">
 								<TextBlock Text="{Binding Name}" FontWeight="SemiBold" />
-								<TextBlock Text="{Binding Description}"
-								           FontSize="11"
-								           Foreground="{DynamicResource SystemBaseMediumColor}" />
-								<TextBlock Text="{Binding Size, StringFormat='{}{0} bytes'}"
-								           FontSize="10"
-								           Foreground="{DynamicResource SystemBaseLowColor}" />
+								<TextBlock Text="{Binding Description}" Classes="hint" />
+								<TextBlock Text="{Binding Size, StringFormat='{}{0} bytes'}" Classes="hint" />
 							</StackPanel>
 						</DataTemplate>
 					</ListBox.ItemTemplate>
@@ -64,38 +57,33 @@
 				        Padding="20"
 				        VerticalAlignment="Center">
 					<StackPanel Spacing="8" HorizontalAlignment="Center">
-						<TextBlock Text="🔍 No examples found"
-						           FontWeight="SemiBold"
-						           HorizontalAlignment="Center" />
-						<TextBlock Text="Try a different search term"
-						           FontSize="11"
-						           Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"
-						           HorizontalAlignment="Center" />
+						<PathIcon Data="{StaticResource IconSearch}" Width="24" Height="24"
+						          Foreground="{DynamicResource SecondaryTextBrush}" HorizontalAlignment="Center" />
+						<TextBlock Text="No examples found" FontWeight="SemiBold" HorizontalAlignment="Center" />
+						<TextBlock Text="Try a different search term" Classes="hint" HorizontalAlignment="Center" />
 					</StackPanel>
 				</Border>
 			</DockPanel>
 
 			<!-- Splitter -->
-			<GridSplitter Grid.Column="1" Width="5" />
+			<GridSplitter Grid.Column="1" Classes="column" ResizeDirection="Columns" />
 
 			<!-- Right: Preview -->
 			<DockPanel Grid.Column="2">
-				<TextBlock DockPanel.Dock="Top" Text="Preview" FontWeight="SemiBold" Margin="0,0,0,8" />
-				<TextBox Text="{Binding PreviewContent}"
+				<TextBlock DockPanel.Dock="Top" Text="Preview" Classes="sectionTitle" Margin="0,0,0,8" />
+				<TextBox Name="PreviewBox"
+				         Classes="data"
+				         Text="{Binding PreviewContent}"
 				         IsReadOnly="True"
 				         AcceptsReturn="True"
-				         TextWrapping="NoWrap"
-				         FontFamily="Consolas,Menlo,Monaco,monospace"
-				         FontSize="12" />
+				         TextWrapping="NoWrap" />
 
 				<!-- Empty state for no selection -->
 				<Border IsVisible="{Binding !SelectedExample}"
 				        Padding="20"
 				        VerticalAlignment="Center">
 					<StackPanel Spacing="8" HorizontalAlignment="Center">
-						<TextBlock Text="Select an example to preview"
-						           Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"
-						           HorizontalAlignment="Center" />
+						<TextBlock Text="Select an example to preview" Classes="hint" HorizontalAlignment="Center" />
 					</StackPanel>
 				</Border>
 			</DockPanel>
@@ -103,7 +91,7 @@
 			<!-- Loading Indicator -->
 			<Border Grid.Column="0" Grid.ColumnSpan="3"
 			        IsVisible="{Binding IsLoading}"
-			        Background="{DynamicResource SystemControlBackgroundAltMediumBrush}"
+			        Background="{DynamicResource PanelBackgroundBrush}"
 			        Opacity="0.9">
 				<StackPanel Spacing="12" HorizontalAlignment="Center" VerticalAlignment="Center">
 					<ProgressBar IsIndeterminate="True" Width="200" />
@@ -116,24 +104,18 @@
 			<!-- Error Display -->
 			<Border Grid.Column="0" Grid.ColumnSpan="3"
 			        IsVisible="{Binding ErrorMessage, Converter={x:Static ObjectConverters.IsNotNull}}"
-			        Background="{DynamicResource SystemControlBackgroundAltMediumBrush}"
+			        Background="{DynamicResource PanelBackgroundBrush}"
 			        Padding="40">
 				<StackPanel Spacing="12" HorizontalAlignment="Center" VerticalAlignment="Center">
-					<TextBlock Text="⚠️ Error Loading Examples"
-					           FontWeight="SemiBold"
-					           FontSize="16"
-					           HorizontalAlignment="Center" />
+					<PathIcon Data="{StaticResource IconWarning}" Width="24" Height="24"
+					          Foreground="{DynamicResource ErrorTextBrush}" HorizontalAlignment="Center" />
+					<TextBlock Text="Error loading examples" FontWeight="SemiBold" HorizontalAlignment="Center" />
 					<TextBlock Text="{Binding ErrorMessage}"
 					           TextWrapping="Wrap"
 					           MaxWidth="400"
-					           Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"
 					           HorizontalAlignment="Center"
 					           TextAlignment="Center" />
-					<TextBlock Text="Check that the backend is running on http://localhost:8080"
-					           FontSize="11"
-					           FontStyle="Italic"
-					           Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"
-					           HorizontalAlignment="Center" />
+					<TextBlock Name="ErrorHint" Text="Check that the backend is running." Classes="hint" HorizontalAlignment="Center" />
 				</StackPanel>
 			</Border>
 		</Grid>

@@ -6,12 +6,14 @@
         SizeToContent="Height"
         CanResize="False"
         WindowStartupLocation="CenterOwner">
-    <StackPanel Margin="24" Spacing="16">
-        <TextBlock Name="MessageText" TextWrapping="Wrap" />
-        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
-            <Button Content="Cancel" Click="Cancel_Click" IsCancel="True" />
-            <Button Content="Discard" Click="Discard_Click" />
-            <Button Content="Save" Click="Save_Click" IsDefault="True" Classes="accent" />
-        </StackPanel>
-    </StackPanel>
+    <DockPanel>
+        <Border DockPanel.Dock="Bottom" Classes="dialogFooter">
+            <StackPanel Name="ButtonRow" Classes="buttonRow">
+                <Button Name="CancelButton" Content="Cancel" Click="Cancel_Click" IsCancel="True" />
+                <Button Name="DiscardButton" Content="Discard" Click="Discard_Click" />
+                <Button Name="SaveButton" Content="Save" Click="Save_Click" IsDefault="True" Classes="accent" />
+            </StackPanel>
+        </Border>
+        <TextBlock Name="MessageText" Margin="24" TextWrapping="Wrap" />
+    </DockPanel>
 </Window>

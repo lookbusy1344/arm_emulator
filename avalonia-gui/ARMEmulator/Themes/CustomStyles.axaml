@@ -194,4 +194,49 @@
         <Setter Property="Foreground" Value="{DynamicResource StateWaitingBrush}" />
         <Setter Property="Opacity" Value="1" />
     </Style>
+
+    <!-- Dialogs: footer with a button row, hint text, titles -->
+    <Style Selector="Border.dialogFooter">
+        <Setter Property="Background" Value="{DynamicResource PanelBackgroundBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource DividerBrush}" />
+        <Setter Property="BorderThickness" Value="0,1,0,0" />
+        <Setter Property="Padding" Value="16,12" />
+    </Style>
+    <Style Selector="StackPanel.buttonRow">
+        <Setter Property="Orientation" Value="Horizontal" />
+        <Setter Property="Spacing" Value="8" />
+        <Setter Property="HorizontalAlignment" Value="Right" />
+    </Style>
+    <Style Selector="StackPanel.buttonRow > Button">
+        <Setter Property="MinWidth" Value="80" />
+        <Setter Property="HorizontalContentAlignment" Value="Center" />
+    </Style>
+    <Style Selector="TextBlock.hint">
+        <Setter Property="Foreground" Value="{DynamicResource SecondaryTextBrush}" />
+        <Setter Property="FontSize" Value="{DynamicResource FontSizeCaption}" />
+        <Setter Property="TextWrapping" Value="Wrap" />
+    </Style>
+    <Style Selector="TextBlock.dialogTitle">
+        <Setter Property="FontSize" Value="{DynamicResource FontSizeTitle}" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+    </Style>
+    <Style Selector="TextBlock.sectionTitle">
+        <Setter Property="Foreground" Value="{DynamicResource SecondaryTextBrush}" />
+        <Setter Property="FontSize" Value="{DynamicResource FontSizeCaption}" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+    </Style>
+    <Style Selector="TextBlock.value">
+        <Setter Property="Foreground" Value="{DynamicResource AccentBrush}" />
+    </Style>
+    <Style Selector="TextBlock.unavailable">
+        <Setter Property="Foreground" Value="{DynamicResource ErrorTextBrush}" />
+        <Setter Property="FontStyle" Value="Italic" />
+    </Style>
+
+    <!-- Tabs: compact headers -->
+    <Style Selector="TabControl TabItem">
+        <Setter Property="FontSize" Value="{DynamicResource FontSizeEmphasis}" />
+        <Setter Property="MinHeight" Value="28" />
+        <Setter Property="Padding" Value="12,4" />
+    </Style>
 </Styles>

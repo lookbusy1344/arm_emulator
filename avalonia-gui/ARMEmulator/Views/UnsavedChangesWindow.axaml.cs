@@ -1,3 +1,4 @@
+using ARMEmulator.Controls;
 using ARMEmulator.Services;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
@@ -12,6 +13,7 @@ public partial class UnsavedChangesWindow : Window
 	public UnsavedChangesWindow()
 	{
 		InitializeComponent();
+		DialogButtonOrder.ForCurrentPlatform(ButtonRow);
 	}
 
 	public UnsavedChangesWindow(string documentName) : this()

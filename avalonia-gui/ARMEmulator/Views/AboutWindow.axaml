@@ -4,74 +4,39 @@
         x:Class="ARMEmulator.Views.AboutWindow"
         x:DataType="vm:AboutWindowViewModel"
         Title="About ARM Emulator"
-        Width="450"
-        Height="350"
+        Width="420"
+        SizeToContent="Height"
         CanResize="False"
-        WindowStartupLocation="CenterOwner"
-        Icon="/Assets/avalonia-logo.ico">
+        WindowStartupLocation="CenterOwner">
 
-	<Window.Styles>
-		<Style Selector="TextBlock.title">
-			<Setter Property="FontSize" Value="24" />
-			<Setter Property="FontWeight" Value="Bold" />
-			<Setter Property="Margin" Value="0,0,0,16" />
-		</Style>
-		<Style Selector="TextBlock.section">
-			<Setter Property="FontWeight" Value="SemiBold" />
-			<Setter Property="Margin" Value="0,16,0,4" />
-		</Style>
-		<Style Selector="TextBlock.value">
-			<Setter Property="Foreground" Value="{DynamicResource SystemAccentColor}" />
-		</Style>
-		<Style Selector="TextBlock.unavailable">
-			<Setter Property="Foreground" Value="{DynamicResource SystemErrorTextColor}" />
-			<Setter Property="FontStyle" Value="Italic" />
-		</Style>
-	</Window.Styles>
+	<DockPanel>
+		<Border DockPanel.Dock="Bottom" Classes="dialogFooter">
+			<StackPanel Name="ButtonRow" Classes="buttonRow">
+				<Button Name="CloseButton" Content="Close" Click="CloseButton_Click" IsDefault="True" IsCancel="True" />
+			</StackPanel>
+		</Border>
 
-	<StackPanel Margin="32" Spacing="8">
-		<!-- App Icon and Title -->
-		<TextBlock Text="ARM Emulator" Classes="title" HorizontalAlignment="Center" />
+		<StackPanel Margin="24" Spacing="4">
+			<TextBlock Text="ARM Emulator" Classes="dialogTitle" Margin="0,0,0,8" />
+			<TextBlock Text="An ARM assembly emulator with an HTTP backend and Swift and Avalonia frontends." Classes="hint" Margin="0,0,0,12" />
 
-		<!-- Frontend Version -->
-		<TextBlock Classes="section">Frontend (Avalonia .NET)</TextBlock>
-		<StackPanel Orientation="Horizontal" Spacing="8">
-			<TextBlock Text="Version:" />
-			<TextBlock Text="{Binding AppVersion}" Classes="value" />
+			<TextBlock Classes="sectionTitle" Text="FRONTEND (AVALONIA)" />
+			<Grid ColumnDefinitions="90,*">
+				<TextBlock Text="Version" />
+				<TextBlock Grid.Column="1" Text="{Binding AppVersion}" Classes="value" />
+			</Grid>
+
+			<TextBlock Classes="sectionTitle" Text="BACKEND (GO)" Margin="0,12,0,0" />
+			<Grid ColumnDefinitions="90,*" RowDefinitions="Auto,Auto,Auto">
+				<TextBlock Text="Version" />
+				<TextBlock Grid.Column="1" Text="{Binding BackendVersion}"
+				           Classes.value="{Binding IsBackendAvailable}"
+				           Classes.unavailable="{Binding !IsBackendAvailable}" />
+				<TextBlock Grid.Row="1" Text="Commit" IsVisible="{Binding IsBackendAvailable}" />
+				<TextBlock Grid.Row="1" Grid.Column="1" Classes="data" Text="{Binding BackendCommit}" IsVisible="{Binding IsBackendAvailable}" />
+				<TextBlock Grid.Row="2" Text="Built" IsVisible="{Binding IsBackendAvailable}" />
+				<TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding BackendBuildDate}" IsVisible="{Binding IsBackendAvailable}" />
+			</Grid>
 		</StackPanel>
-
-		<!-- Backend Version -->
-		<TextBlock Classes="section">Backend (Go)</TextBlock>
-		<StackPanel Orientation="Horizontal" Spacing="8">
-			<TextBlock Text="Version:" />
-			<TextBlock Text="{Binding BackendVersion}"
-			           Classes.value="{Binding IsBackendAvailable}"
-			           Classes.unavailable="{Binding !IsBackendAvailable}" />
-		</StackPanel>
-
-		<StackPanel Orientation="Horizontal" Spacing="8"
-		            IsVisible="{Binding IsBackendAvailable}">
-			<TextBlock Text="Commit:" />
-			<TextBlock Text="{Binding BackendCommit}" FontFamily="Consolas,Menlo,Monaco,monospace" />
-		</StackPanel>
-
-		<StackPanel Orientation="Horizontal" Spacing="8"
-		            IsVisible="{Binding IsBackendAvailable}">
-			<TextBlock Text="Build Date:" />
-			<TextBlock Text="{Binding BackendBuildDate}" />
-		</StackPanel>
-
-		<!-- Project Info -->
-		<TextBlock Classes="section">Project</TextBlock>
-		<TextBlock Text="Cross-platform ARM assembly emulator" TextWrapping="Wrap" />
-		<TextBlock Text="with HTTP REST API backend and" TextWrapping="Wrap" />
-		<TextBlock Text="multiple GUI frontends (Swift + Avalonia)" TextWrapping="Wrap" />
-
-		<!-- Close Button -->
-		<Button Content="Close"
-		        HorizontalAlignment="Center"
-		        Margin="0,24,0,0"
-		        MinWidth="100"
-		        Click="CloseButton_Click" />
-	</StackPanel>
+	</DockPanel>
 </Window>

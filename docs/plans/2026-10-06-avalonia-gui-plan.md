@@ -239,7 +239,9 @@ Status 2026-10-07: done. The console is a terminal-coloured surface (`ConsoleBac
 - Monospace output on a terminal-style background.
 - An inline input row with a prompt marker; the waiting-for-input state highlights the input row rather than the whole panel border.
 
-### 3.9 Dialogs
+### 3.9 Dialogs (done)
+
+Status 2026-10-07: done. Preferences, About, Examples and Unsaved changes share the `dialogFooter`, `buttonRow`, `hint` and title styles; `DialogButtonOrder` puts the primary button last on macOS and Linux and first on Windows. Default and cancel buttons are set on every dialog. The Preferences, About and Examples windows referenced a missing `avalonia-logo.ico` and threw when opened; the reference is removed. The Preferences theme hint no longer claims a restart is needed. Emoji in the Examples empty and error states became vector icons.
 
 - Preferences, About and Examples use the theme spacing, a standard button row (default and cancel), and the platform's button order.
 

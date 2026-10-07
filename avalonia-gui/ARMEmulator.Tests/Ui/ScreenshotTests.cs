@@ -88,4 +88,27 @@ public sealed class ScreenshotTests
 			AvaloniaHeadlessPlatform.ForceRenderTimerTick();
 			ui.Window.CaptureRenderedFrame()!.Save(Path.Combine(Environment.GetEnvironmentVariable(DirectoryVariable)!, $"{panel}-{(dark ? "dark" : "light")}.png"));
 		});
+
+	[Theory(SkipUnless = nameof(WantsScreenshots), Skip = "Set ARM_SCREENSHOT_DIR to render screenshots")]
+	[InlineData("preferences", false)]
+	[InlineData("preferences", true)]
+	[InlineData("about", false)]
+	[InlineData("unsaved", true)]
+	[InlineData("examples", false)]
+	public Task Dialog_Renders(string name, bool dark) =>
+		UiTest.RunOnUiThread(() => {
+			Avalonia.Controls.Window dialog = name switch {
+				"preferences" => new Views.PreferencesWindow(AppSettings.Default),
+				"about" => new Views.AboutWindow(),
+				"unsaved" => new Views.UnsavedChangesWindow("prog.s"),
+				_ => new Views.ExamplesBrowserWindow()
+			};
+			dialog.RequestedThemeVariant = dark ? ThemeVariant.Dark : ThemeVariant.Light;
+			dialog.Show();
+			Dispatcher.UIThread.RunJobs();
+			dialog.UpdateLayout();
+			AvaloniaHeadlessPlatform.ForceRenderTimerTick();
+			dialog.CaptureRenderedFrame()!.Save(Path.Combine(Environment.GetEnvironmentVariable(DirectoryVariable)!, $"dialog-{name}-{(dark ? "dark" : "light")}.png"));
+			dialog.Close();
+		});
 }

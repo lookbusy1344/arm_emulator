@@ -1,3 +1,4 @@
+using ARMEmulator.Controls;
 using ARMEmulator.ViewModels;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
@@ -12,6 +13,7 @@ public partial class AboutWindow : Window
 	public AboutWindow()
 	{
 		InitializeComponent();
+		DialogButtonOrder.ForCurrentPlatform(ButtonRow);
 	}
 
 	/// <summary>

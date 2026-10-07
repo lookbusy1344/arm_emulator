@@ -4,125 +4,65 @@
         x:Class="ARMEmulator.Views.PreferencesWindow"
         x:DataType="vm:PreferencesWindowViewModel"
         Title="Preferences"
-        Width="550"
-        Height="450"
+        Width="520"
+        SizeToContent="Height"
         CanResize="False"
-        WindowStartupLocation="CenterOwner"
-        Icon="/Assets/avalonia-logo.ico">
-
-	<Window.Styles>
-		<Style Selector="TextBlock.label">
-			<Setter Property="VerticalAlignment" Value="Center" />
-			<Setter Property="MinWidth" Value="120" />
-		</Style>
-		<Style Selector="TextBox.input">
-			<Setter Property="MinWidth" Value="300" />
-		</Style>
-		<Style Selector="NumericUpDown.input">
-			<Setter Property="MinWidth" Value="100" />
-		</Style>
-		<Style Selector="ComboBox.input">
-			<Setter Property="MinWidth" Value="150" />
-		</Style>
-	</Window.Styles>
+        WindowStartupLocation="CenterOwner">
 
 	<DockPanel>
-		<!-- Action Buttons -->
-		<StackPanel DockPanel.Dock="Bottom"
-		            Orientation="Horizontal"
-		            HorizontalAlignment="Right"
-		            Margin="16"
-		            Spacing="12">
-			<Button Content="Cancel" MinWidth="80" Click="CancelButton_Click" />
-			<Button Content="OK" MinWidth="80" Click="OkButton_Click" IsDefault="True" />
-		</StackPanel>
+		<Border DockPanel.Dock="Bottom" Classes="dialogFooter">
+			<StackPanel Name="ButtonRow" Classes="buttonRow">
+				<Button Name="CancelButton" Content="Cancel" Click="CancelButton_Click" IsCancel="True" />
+				<Button Name="OkButton" Content="OK" Click="OkButton_Click" IsDefault="True" Classes="accent" />
+			</StackPanel>
+		</Border>
 
-		<!-- Tabs -->
-		<TabControl Margin="16">
-			<!-- General Tab -->
+		<TabControl Margin="16,8,16,16">
 			<TabItem Header="General">
-				<StackPanel Margin="16" Spacing="16">
-					<!-- Backend URL -->
-					<StackPanel Orientation="Horizontal" Spacing="12">
-						<TextBlock Text="Backend URL:" Classes="label" />
-						<TextBox Text="{Binding BackendUrl}" Classes="input"
-						         PlaceholderText="http://localhost:8080" />
-					</StackPanel>
+				<Grid Margin="0,16,0,0" ColumnDefinitions="Auto,12,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto" RowSpacing="8">
+					<TextBlock Grid.Row="0" Text="Backend URL" VerticalAlignment="Center" />
+					<TextBox Grid.Row="0" Grid.Column="2" Text="{Binding BackendUrl}" PlaceholderText="http://localhost:8080" />
+					<TextBlock Grid.Row="1" Grid.Column="2" Classes="hint" Margin="0,0,0,12"
+					           Text="The HTTP endpoint of the emulator backend. A change takes effect when the backend restarts." />
 
-					<TextBlock Text="The HTTP endpoint for the ARM emulator backend."
-					           FontSize="11"
-					           Foreground="{DynamicResource SystemBaseMediumColor}"
-					           TextWrapping="Wrap"
-					           Margin="132,0,0,0" />
+					<TextBlock Grid.Row="2" Text="Theme" VerticalAlignment="Center" />
+					<ComboBox Grid.Row="2" Grid.Column="2" ItemsSource="{Binding ThemeOptions}" SelectedItem="{Binding SelectedTheme}" MinWidth="150" />
+					<TextBlock Name="ThemeHint" Grid.Row="3" Grid.Column="2" Classes="hint" Margin="0,0,0,12" Text="Auto follows the system theme." />
 
-					<!-- Theme Selection -->
-					<StackPanel Orientation="Horizontal" Spacing="12" Margin="0,16,0,0">
-						<TextBlock Text="Theme:" Classes="label" />
-						<ComboBox ItemsSource="{Binding ThemeOptions}"
-						          SelectedItem="{Binding SelectedTheme}"
-						          Classes="input" />
-					</StackPanel>
+					<TextBlock Grid.Row="4" Text="Recent files" VerticalAlignment="Center" />
+					<NumericUpDown Grid.Row="4" Grid.Column="2" HorizontalAlignment="Left" MinWidth="120"
+					               Value="{Binding RecentFilesLimit}" Minimum="1" Maximum="50" Increment="5" />
 
-					<TextBlock Text="Auto: Follow system theme. Requires app restart."
-					           FontSize="11"
-					           Foreground="{DynamicResource SystemBaseMediumColor}"
-					           Margin="132,0,0,0" />
-
-					<!-- Recent Files Limit -->
-					<StackPanel Orientation="Horizontal" Spacing="12" Margin="0,16,0,0">
-						<TextBlock Text="Recent Files Limit:" Classes="label" />
-						<NumericUpDown Value="{Binding RecentFilesLimit}"
-						               Minimum="1"
-						               Maximum="50"
-						               Increment="5"
-						               Classes="input" />
-					</StackPanel>
-
-					<!-- Memory Auto-Scroll -->
-					<CheckBox Content="Auto-scroll memory view to writes"
-					          IsChecked="{Binding AutoScrollToMemoryWrites}"
-					          Margin="0,16,0,0" />
-				</StackPanel>
+					<CheckBox Grid.Row="6" Grid.Column="2" Margin="0,8,0,0"
+					          Content="Follow memory writes in the memory view"
+					          IsChecked="{Binding AutoScrollToMemoryWrites}" />
+				</Grid>
 			</TabItem>
 
-			<!-- Editor Tab -->
 			<TabItem Header="Editor">
-				<StackPanel Margin="16" Spacing="16">
-					<!-- Font Size -->
-					<StackPanel Orientation="Horizontal" Spacing="12">
-						<TextBlock Text="Font Size:" Classes="label" />
-						<NumericUpDown Value="{Binding EditorFontSize}"
-						               Minimum="10"
-						               Maximum="24"
-						               Increment="1"
-						               Classes="input" />
-						<TextBlock Text="pt" VerticalAlignment="Center" />
+				<Grid Margin="0,16,0,0" ColumnDefinitions="Auto,12,*" RowDefinitions="Auto,Auto,Auto" RowSpacing="8">
+					<TextBlock Grid.Row="0" Text="Font size" VerticalAlignment="Center" />
+					<StackPanel Grid.Row="0" Grid.Column="2" Orientation="Horizontal" Spacing="8">
+						<NumericUpDown Value="{Binding EditorFontSize}" Minimum="10" Maximum="24" Increment="1" MinWidth="120" />
+						<TextBlock Text="pt" Classes="hint" VerticalAlignment="Center" />
 					</StackPanel>
 
-					<!-- Font Size Preview -->
-					<Border BorderBrush="{DynamicResource SystemBaseMediumLowColor}"
-					        BorderThickness="1"
-					        Padding="12"
-					        Margin="0,16,0,0">
-						<StackPanel Spacing="8">
-							<TextBlock Text="Preview" FontWeight="SemiBold" />
-							<TextBlock FontFamily="Consolas,Menlo,Monaco,monospace"
-							           FontSize="{Binding EditorFontSize}"
-							           TextWrapping="Wrap">
-								<Run Text="MOV R0, #42" />
-								<LineBreak />
-								<Run Text="ADD R1, R0, #8" />
-								<LineBreak />
-								<Run Text="STR R1, [R2]" />
-							</TextBlock>
-						</StackPanel>
+					<Border Grid.Row="1" Grid.ColumnSpan="3" Margin="0,8,0,0" Padding="12"
+					        Background="{DynamicResource EditorBackgroundBrush}"
+					        BorderBrush="{DynamicResource DividerBrush}" BorderThickness="1" CornerRadius="4">
+						<TextBlock Name="FontPreview"
+						           FontFamily="{DynamicResource DataFontFamily}"
+						           FontSize="{Binding EditorFontSize}"
+						           Foreground="{DynamicResource EditorForegroundBrush}">
+							<Run Text="MOV R0, #42" />
+							<LineBreak />
+							<Run Text="ADD R1, R0, #8" />
+							<LineBreak />
+							<Run Text="STR R1, [R2]" />
+						</TextBlock>
 					</Border>
-
-					<TextBlock Text="Changes will apply immediately to the editor."
-					           FontSize="11"
-					           Foreground="{DynamicResource SystemBaseMediumColor}"
-					           TextWrapping="Wrap" />
-				</StackPanel>
+					<TextBlock Grid.Row="2" Grid.ColumnSpan="3" Classes="hint" Text="The editor follows the font size at once." />
+				</Grid>
 			</TabItem>
 		</TabControl>
 	</DockPanel>
