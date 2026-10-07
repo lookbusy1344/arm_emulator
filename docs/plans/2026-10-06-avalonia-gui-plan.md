@@ -200,9 +200,9 @@ Status: the 1 px splitters are done. Open: drop the per-panel border and radius 
 - Panels sit flush against the dividers; drop the per-panel border and corner radius.
 - Minimum window size 800 × 600, as in Swift. Persist window size, position and splitter positions in settings (with 2.1).
 
-### 3.4 Inspector navigation
+### 3.4 Inspector navigation (done)
 
-Status: not started. Design: `InspectorPanel` enum and `WindowLayout` record in `AppSettings` (optional members, so older files load); a `ComboBox` with icon and label per panel replaces the `TabControl`; the headless test helper `SelectTab` changes to the selector.
+Status 2026-10-07: done. `WindowLayout` currently holds the selected panel; 3.3 adds window size, position and splitter positions. Design: `InspectorPanel` enum and `WindowLayout` record in `AppSettings` (optional members, so older files load); a `ComboBox` with icon and label per panel replaces the `TabControl`; the headless test helper `SelectTab` changes to the selector.
 
 - Replace the wrapping `TabControl` with a compact header: a "View:" selector with icon and label per panel (Registers, Memory, Stack, Disassembly, Evaluator, Watchpoints, Breakpoints), as in Swift.
 - Persist the selected panel in settings.

@@ -75,6 +75,9 @@ public sealed record AppSettings
 	/// <summary>Recently opened files, most recent first.</summary>
 	public EquatableArray<string> RecentFiles { get; init; } = [];
 
+	/// <summary>Window layout, including the selected inspector panel.</summary>
+	public WindowLayout Layout { get; init; } = new();
+
 	/// <summary>Default settings instance.</summary>
 	public static AppSettings Default { get; } = new() {
 		BackendUrl = "http://localhost:8080",
@@ -91,6 +94,7 @@ public sealed record AppSettings
 		BackendUrl = IsHttpUrl(BackendUrl) ? BackendUrl : Default.BackendUrl,
 		EditorFontSize = Math.Clamp(EditorFontSize, 10, 24),
 		RecentFilesLimit = Math.Max(RecentFilesLimit, 1),
+		Layout = Layout ?? new WindowLayout(), // absent in files written before the layout existed
 		RecentFiles = [.. RecentFiles.Take(Math.Max(RecentFilesLimit, 1))]
 	};
 

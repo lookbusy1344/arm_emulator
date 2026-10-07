@@ -1,35 +1,59 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:ARMEmulator.ViewModels"
+             xmlns:models="using:ARMEmulator.Models"
+             xmlns:conv="using:ARMEmulator.Converters"
              xmlns:views="using:ARMEmulator.Views"
              x:Class="ARMEmulator.Views.RightPanelView"
              x:DataType="vm:MainWindowViewModel">
-    <Border BorderBrush="{DynamicResource SystemControlForegroundBaseMediumBrush}"
-            BorderThickness="1"
-            CornerRadius="4"
-            Padding="8">
-        <TabControl Name="InspectorTabs">
-            <TabItem Header="Registers">
+    <DockPanel Background="{DynamicResource PanelBackgroundBrush}">
+        <Border DockPanel.Dock="Top"
+                BorderBrush="{DynamicResource DividerBrush}"
+                BorderThickness="0,0,0,1"
+                Padding="8,4">
+            <StackPanel Orientation="Horizontal" Spacing="8">
+                <TextBlock Classes="secondary" Text="View:" VerticalAlignment="Center" />
+                <ComboBox Name="InspectorSelector"
+                          ItemsSource="{x:Static models:InspectorPanelItem.All}"
+                          SelectedValueBinding="{Binding Panel}"
+                          SelectedValue="{Binding SelectedInspectorPanel, Mode=TwoWay}"
+                          MinWidth="160"
+                          AutomationProperties.Name="Inspector panel">
+                    <ComboBox.ItemTemplate>
+                        <DataTemplate x:DataType="models:InspectorPanelItem">
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <PathIcon Data="{Binding IconKey, Converter={x:Static conv:ResourceKeyConverter.Instance}}"
+                                          Width="14" Height="14" />
+                                <TextBlock Text="{Binding Label}" />
+                            </StackPanel>
+                        </DataTemplate>
+                    </ComboBox.ItemTemplate>
+                </ComboBox>
+            </StackPanel>
+        </Border>
+
+        <Panel>
+            <Panel IsVisible="{Binding SelectedInspectorPanel, Converter={x:Static ObjectConverters.Equal}, ConverterParameter={x:Static models:InspectorPanel.Registers}}">
                 <views:RegistersView />
-            </TabItem>
-            <TabItem Header="Memory">
+            </Panel>
+            <Panel IsVisible="{Binding SelectedInspectorPanel, Converter={x:Static ObjectConverters.Equal}, ConverterParameter={x:Static models:InspectorPanel.Memory}}">
                 <views:MemoryView DataContext="{Binding Memory}" />
-            </TabItem>
-            <TabItem Header="Stack">
+            </Panel>
+            <Panel IsVisible="{Binding SelectedInspectorPanel, Converter={x:Static ObjectConverters.Equal}, ConverterParameter={x:Static models:InspectorPanel.Stack}}">
                 <views:StackView DataContext="{Binding Stack}" />
-            </TabItem>
-            <TabItem Header="Disassembly">
+            </Panel>
+            <Panel IsVisible="{Binding SelectedInspectorPanel, Converter={x:Static ObjectConverters.Equal}, ConverterParameter={x:Static models:InspectorPanel.Disassembly}}">
                 <views:DisassemblyView DataContext="{Binding Disassembly}" />
-            </TabItem>
-            <TabItem Header="Eval">
+            </Panel>
+            <Panel IsVisible="{Binding SelectedInspectorPanel, Converter={x:Static ObjectConverters.Equal}, ConverterParameter={x:Static models:InspectorPanel.Evaluator}}">
                 <views:ExpressionEvaluatorView DataContext="{Binding ExpressionEvaluator}" />
-            </TabItem>
-            <TabItem Header="Watchpoints">
+            </Panel>
+            <Panel IsVisible="{Binding SelectedInspectorPanel, Converter={x:Static ObjectConverters.Equal}, ConverterParameter={x:Static models:InspectorPanel.Watchpoints}}">
                 <views:WatchpointsView />
-            </TabItem>
-            <TabItem Header="Breakpoints">
+            </Panel>
+            <Panel IsVisible="{Binding SelectedInspectorPanel, Converter={x:Static ObjectConverters.Equal}, ConverterParameter={x:Static models:InspectorPanel.Breakpoints}}">
                 <views:BreakpointsListView />
-            </TabItem>
-        </TabControl>
-    </Border>
+            </Panel>
+        </Panel>
+    </DockPanel>
 </UserControl>

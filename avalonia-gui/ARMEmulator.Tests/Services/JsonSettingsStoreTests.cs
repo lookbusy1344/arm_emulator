@@ -55,6 +55,32 @@ public sealed class JsonSettingsStoreTests : IDisposable
 	}
 
 	[Fact]
+	public void SaveThenLoad_RoundTripsTheSelectedInspectorPanel()
+	{
+		var store = CreateStore();
+		var settings = Custom with { Layout = new WindowLayout { SelectedPanel = InspectorPanel.Stack } };
+
+		store.Save(settings);
+
+		File.ReadAllText(SettingsPath).Should().Contain("\"SelectedPanel\": \"Stack\"");
+		store.Load().Settings.Layout.SelectedPanel.Should().Be(InspectorPanel.Stack);
+	}
+
+	[Fact]
+	public void Load_WithFileLackingLayout_SelectsRegisters()
+	{
+		WriteSettingsFile("""
+			{ "BackendUrl": "http://localhost:8080", "EditorFontSize": 14, "Theme": "Auto",
+			  "RecentFilesLimit": 10, "AutoScrollToMemoryWrites": true }
+			""");
+
+		var result = CreateStore().Load();
+
+		result.Warning.Should().BeNull();
+		result.Settings.Layout.SelectedPanel.Should().Be(InspectorPanel.Registers);
+	}
+
+	[Fact]
 	public void Save_WritesThemeAsName_AndCreatesDirectory()
 	{
 		CreateStore().Save(Custom);

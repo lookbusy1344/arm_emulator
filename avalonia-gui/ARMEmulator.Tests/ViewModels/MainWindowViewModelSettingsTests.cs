@@ -84,6 +84,46 @@ public sealed class MainWindowViewModelSettingsTests : IDisposable
 	}
 
 	[Fact]
+	public void SelectedInspectorPanel_DefaultsToRegisters()
+	{
+		using var vm = CreateViewModel();
+
+		vm.SelectedInspectorPanel.Should().Be(InspectorPanel.Registers);
+	}
+
+	[Fact]
+	public void SelectingAnInspectorPanel_PersistsItInTheLayout()
+	{
+		using var vm = CreateViewModel();
+
+		vm.SelectedInspectorPanel = InspectorPanel.Disassembly;
+
+		vm.Settings.Layout.SelectedPanel.Should().Be(InspectorPanel.Disassembly);
+		store.Received(1).Save(AppSettings.Default with { Layout = new WindowLayout { SelectedPanel = InspectorPanel.Disassembly } });
+	}
+
+	[Fact]
+	public void SelectingTheCurrentInspectorPanel_DoesNotPersist()
+	{
+		using var vm = CreateViewModel();
+
+		vm.SelectedInspectorPanel = InspectorPanel.Registers;
+
+		store.DidNotReceiveWithAnyArgs().Save(default!);
+	}
+
+	[Fact]
+	public void ApplySettings_SelectsTheStoredInspectorPanelWithoutPersisting()
+	{
+		using var vm = CreateViewModel();
+
+		vm.ApplySettings(Changed with { Layout = new WindowLayout { SelectedPanel = InspectorPanel.Memory } });
+
+		vm.SelectedInspectorPanel.Should().Be(InspectorPanel.Memory);
+		store.DidNotReceiveWithAnyArgs().Save(default!);
+	}
+
+	[Fact]
 	public void ApplySettings_DoesNotPersist()
 	{
 		using var vm = CreateViewModel();

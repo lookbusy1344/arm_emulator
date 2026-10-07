@@ -1002,6 +1002,7 @@ public partial class MainWindowViewModel : ReactiveObject, IDisposable
 	public void ApplySettings(AppSettings settings)
 	{
 		Settings = settings;
+		this.RaisePropertyChanged(nameof(SelectedInspectorPanel));
 		fileService.RecentFilesLimit = settings.RecentFilesLimit;
 		Memory.AutoScrollToWrites = settings.AutoScrollToMemoryWrites;
 	}

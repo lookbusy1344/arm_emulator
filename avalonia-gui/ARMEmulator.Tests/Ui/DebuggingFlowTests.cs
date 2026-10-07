@@ -171,7 +171,7 @@ public sealed class DebuggingFlowTests
 			await StartSessionAsync(ui);
 			ui.Api.GetMemoryAsync(SessionId, Arg.Any<uint>(), Arg.Any<int>(), Arg.Any<CancellationToken>())
 				.Returns(Enumerable.Range(0, 32).Select(i => (byte)i).ToImmutableArray());
-			SelectTab(ui, "Memory");
+			SelectTab(ui, InspectorPanel.Memory);
 
 			await ui.ViewModel.Memory.LoadMemoryAsync(0x8000);
 			Settle(ui);
@@ -186,7 +186,7 @@ public sealed class DebuggingFlowTests
 			const uint stackPointer = 0x7FF0;
 			ui.Api.GetMemoryAsync(SessionId, stackPointer, Arg.Any<int>(), Arg.Any<CancellationToken>())
 				.Returns(ImmutableArray.Create<byte>(1, 0, 0, 0, 2, 0, 0, 0));
-			SelectTab(ui, "Stack");
+			SelectTab(ui, InspectorPanel.Stack);
 
 			ui.ViewModel.UpdateRegisters(RegisterState.Create(sp: stackPointer));
 			Settle(ui);
@@ -202,7 +202,7 @@ public sealed class DebuggingFlowTests
 				.Returns(ImmutableArray.Create(
 					new DisassemblyInstruction(FirstAddress, 0xE3A00005, "MOV R0, #5", null),
 					new DisassemblyInstruction(SecondAddress, 0xE3A01006, "MOV R1, #6", null)));
-			SelectTab(ui, "Disassembly");
+			SelectTab(ui, InspectorPanel.Disassembly);
 
 			ui.ViewModel.UpdateRegisters(RegisterState.Create(pc: FirstAddress));
 			Settle(ui);
@@ -210,10 +210,9 @@ public sealed class DebuggingFlowTests
 			ui.Find<ItemsControl>("DisassemblyRows").ItemCount.Should().Be(2);
 		});
 
-	private static void SelectTab(MainWindowHarness ui, string header)
+	private static void SelectTab(MainWindowHarness ui, InspectorPanel panel)
 	{
-		var tabs = ui.Find<TabControl>("InspectorTabs");
-		tabs.SelectedItem = tabs.Items.OfType<TabItem>().Single(tab => (string?)tab.Header == header);
+		ui.Find<ComboBox>("InspectorSelector").SelectedValue = panel;
 		Settle(ui);
 	}
 }
