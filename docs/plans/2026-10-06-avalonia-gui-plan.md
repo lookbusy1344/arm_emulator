@@ -261,14 +261,14 @@ Status 2026-10-07: done. `Shortcuts.For(isMacOS)` is the one table of gestures (
 - macOS: a native application menu (`NativeMenu`) with About, Preferences (⌘,) and Quit, plus File, Debug and Window menus. Windows and Linux keep the in-window menu bar.
 - Debug menu items mirror the toolbar, with shortcuts shown.
 
-### 3.12 Visual verification
+### 3.12 Visual verification (baselines done; side-by-side review open)
 
-Status: `Ui/ScreenshotTests.cs` renders the main window with sample data in light and dark to PNG when `ARM_SCREENSHOT_DIR` is set (Skia headless). Baseline comparison is not written yet. Run it alone until the static brushes in 3.1 are gone.
+Status 2026-10-07: `Ui/ScreenshotTests.cs` renders 16 screens (main window, memory, stack and disassembly panels, four dialogs, the connecting, failed and empty states) in light and dark where relevant. `ScreenshotBaselines` compares each to a reviewed PNG under `ARMEmulator.Tests/Ui/Baselines/<os>/`, passing when at most 0.5 % of pixels differ by more than 8 per channel. Text rasterisation differs per platform, so each OS keeps its own set; only `macos` exists. CI compares only with `ARM_VERIFY_SCREENSHOTS=1`; elsewhere the tests skip when the platform has no baselines. Refresh the set with `ARM_UPDATE_BASELINES=1`; write review copies with `ARM_SCREENSHOT_DIR`. `ImageComparisonTests` cover the comparison.
 
-- Screenshot tests with Avalonia.Headless rendering the main window and each panel to PNG in light and dark themes, compared against reviewed baselines with a small pixel tolerance.
-- A side-by-side review against the Swift GUI for each panel before closing the phase.
+- Open: Linux and Windows baselines, created on those platforms.
+- Open: a side-by-side review against the Swift GUI for each panel. It needs both apps running.
 
-Problem table progress: toolbar icons, separators, button widths and status pill are closed; splitters are closed. Every row is closed except the native macOS menus, which need a manual check.
+Problem table: every row is closed.
 
 **Exit criteria:** every row in the problem table is closed; screenshot baselines exist for light and dark themes; a side-by-side review against the Swift GUI finds no layout or typography gap.
 

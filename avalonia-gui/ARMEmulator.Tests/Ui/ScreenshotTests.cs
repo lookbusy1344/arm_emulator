@@ -1,5 +1,6 @@
-#pragma warning disable CS0618 // Bitmap.Save(string) is the only overload that needs no encoder options
 using ARMEmulator.Models;
+using ARMEmulator.Services;
+using ARMEmulator.ViewModels;
 using Avalonia.Headless;
 using Avalonia.Styling;
 using Avalonia.Threading;
@@ -10,11 +11,10 @@ namespace ARMEmulator.Tests.Ui;
 
 /// <summary>
 /// Renders the main window with sample data to PNG files for visual review.
-/// Set <c>ARM_SCREENSHOT_DIR</c> to write them; the tests are skipped otherwise.
+/// They write PNGs for review (<c>ARM_SCREENSHOT_DIR</c>), refresh the reviewed baselines (<c>ARM_UPDATE_BASELINES=1</c>) or compare against them; see <see cref="ScreenshotBaselines"/>.
 /// </summary>
 public sealed class ScreenshotTests
 {
-	private const string DirectoryVariable = "ARM_SCREENSHOT_DIR";
 	private const double WindowWidth = 1200;
 	private const double WindowHeight = 800;
 
@@ -31,11 +31,11 @@ public sealed class ScreenshotTests
 		    SWI #0
 		""";
 
-	public static bool WantsScreenshots => Environment.GetEnvironmentVariable(DirectoryVariable) is { Length: > 0 };
+	public static bool WantsScreenshots => ScreenshotBaselines.IsActive;
 
 	private static readonly ImmutableArray<(uint Address, int Line)> SourceMap = [(0x8000, 3), (0x8004, 4), (0x8008, 6), (0x800C, 7), (0x8010, 8), (0x8014, 9), (0x8018, 10)];
 
-	[Theory(SkipUnless = nameof(WantsScreenshots), Skip = "Set ARM_SCREENSHOT_DIR to render screenshots")]
+	[Theory(SkipUnless = nameof(WantsScreenshots), Skip = "Set ARM_SCREENSHOT_DIR or ARM_UPDATE_BASELINES, or add baselines for this platform")]
 	[InlineData("light", false)]
 	[InlineData("dark", true)]
 	public Task MainWindow_RendersWithSampleData(string name, bool dark) =>
@@ -57,10 +57,10 @@ public sealed class ScreenshotTests
 			Dispatcher.UIThread.RunJobs();
 			ui.Window.UpdateLayout();
 			AvaloniaHeadlessPlatform.ForceRenderTimerTick();
-			ui.Window.CaptureRenderedFrame()!.Save(Path.Combine(Environment.GetEnvironmentVariable(DirectoryVariable)!, $"main-{name}.png"));
+			ScreenshotBaselines.Check($"main-{name}", ui.Window.CaptureRenderedFrame()!);
 		});
 
-	[Theory(SkipUnless = nameof(WantsScreenshots), Skip = "Set ARM_SCREENSHOT_DIR to render screenshots")]
+	[Theory(SkipUnless = nameof(WantsScreenshots), Skip = "Set ARM_SCREENSHOT_DIR or ARM_UPDATE_BASELINES, or add baselines for this platform")]
 	[InlineData(InspectorPanel.Memory, false)]
 	[InlineData(InspectorPanel.Stack, false)]
 	[InlineData(InspectorPanel.Disassembly, false)]
@@ -87,33 +87,33 @@ public sealed class ScreenshotTests
 			Dispatcher.UIThread.RunJobs();
 			ui.Window.UpdateLayout();
 			AvaloniaHeadlessPlatform.ForceRenderTimerTick();
-			ui.Window.CaptureRenderedFrame()!.Save(Path.Combine(Environment.GetEnvironmentVariable(DirectoryVariable)!, $"{panel}-{(dark ? "dark" : "light")}.png"));
+			ScreenshotBaselines.Check($"{panel}-{(dark ? "dark" : "light")}", ui.Window.CaptureRenderedFrame()!);
 		});
 
-	[Theory(SkipUnless = nameof(WantsScreenshots), Skip = "Set ARM_SCREENSHOT_DIR to render screenshots")]
+	[Theory(SkipUnless = nameof(WantsScreenshots), Skip = "Set ARM_SCREENSHOT_DIR or ARM_UPDATE_BASELINES, or add baselines for this platform")]
 	[InlineData("preferences", false)]
 	[InlineData("preferences", true)]
 	[InlineData("about", false)]
 	[InlineData("unsaved", true)]
 	[InlineData("examples", false)]
 	public Task Dialog_Renders(string name, bool dark) =>
-		UiTest.RunOnUiThread(() => {
+		UiTest.RunAsync(async _ => {
 			Avalonia.Controls.Window dialog = name switch {
 				"preferences" => new Views.PreferencesWindow(AppSettings.Default),
 				"about" => new Views.AboutWindow(),
 				"unsaved" => new Views.UnsavedChangesWindow("prog.s"),
-				_ => new Views.ExamplesBrowserWindow()
+				_ => new Views.ExamplesBrowserWindow(await FailedExamplesViewModelAsync())
 			};
 			dialog.RequestedThemeVariant = dark ? ThemeVariant.Dark : ThemeVariant.Light;
 			dialog.Show();
 			Dispatcher.UIThread.RunJobs();
 			dialog.UpdateLayout();
 			AvaloniaHeadlessPlatform.ForceRenderTimerTick();
-			dialog.CaptureRenderedFrame()!.Save(Path.Combine(Environment.GetEnvironmentVariable(DirectoryVariable)!, $"dialog-{name}-{(dark ? "dark" : "light")}.png"));
+			ScreenshotBaselines.Check($"dialog-{name}-{(dark ? "dark" : "light")}", dialog.CaptureRenderedFrame()!);
 			dialog.Close();
 		});
 
-	[Theory(SkipUnless = nameof(WantsScreenshots), Skip = "Set ARM_SCREENSHOT_DIR to render screenshots")]
+	[Theory(SkipUnless = nameof(WantsScreenshots), Skip = "Set ARM_SCREENSHOT_DIR or ARM_UPDATE_BASELINES, or add baselines for this platform")]
 	[InlineData("connecting")]
 	[InlineData("failed")]
 	[InlineData("empty")]
@@ -122,7 +122,7 @@ public sealed class ScreenshotTests
 			ui.Window.Width = WindowWidth;
 			ui.Window.Height = WindowHeight;
 			if (name == "failed") {
-				ui.Backend.StartAsync(default).ThrowsAsyncForAnyArgs(new ARMEmulator.Services.BackendStartException("backend binary not found next to the application"));
+				ui.Backend.StartAsync(default).ThrowsAsyncForAnyArgs(new BackendStartException("backend binary not found next to the application"));
 			}
 
 			if (name != "connecting") {
@@ -132,6 +132,16 @@ public sealed class ScreenshotTests
 			Dispatcher.UIThread.RunJobs();
 			ui.Window.UpdateLayout();
 			AvaloniaHeadlessPlatform.ForceRenderTimerTick();
-			ui.Window.CaptureRenderedFrame()!.Save(Path.Combine(Environment.GetEnvironmentVariable(DirectoryVariable)!, $"state-{name}.png"));
+			ScreenshotBaselines.Check($"state-{name}", ui.Window.CaptureRenderedFrame()!);
 		});
+
+	/// <summary>A view model whose load failed: the error state is set at once, where the list and preview settle on timers.</summary>
+	private static async Task<ExamplesBrowserViewModel> FailedExamplesViewModelAsync()
+	{
+		var api = Substitute.For<IApiClient>();
+		api.GetExamplesAsync(Arg.Any<CancellationToken>()).ThrowsAsync(new ApiException("connection refused"));
+		var viewModel = new ExamplesBrowserViewModel(api);
+		await viewModel.LoadExamplesAsync();
+		return viewModel;
+	}
 }
