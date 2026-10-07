@@ -1,15 +1,12 @@
 using System.Reactive.Disposables;
 using System.Reactive.Disposables.Fluent;
 using System.Reactive.Linq;
-using System.Reflection;
 using System.Windows.Input;
-using System.Xml;
 using ARMEmulator.Controls;
 using ARMEmulator.ViewModels;
 using Avalonia.Controls;
 using Avalonia.Input;
-using AvaloniaEdit.Highlighting;
-using AvaloniaEdit.Highlighting.Xshd;
+using Avalonia.Media;
 using ReactiveUI.Avalonia.Reactive;
 using ReactiveUI.Reactive;
 
@@ -22,13 +19,18 @@ namespace ARMEmulator.Views;
 public partial class EditorView : ReactiveUserControl<MainWindowViewModel>
 {
 	private EditorGutterMargin? gutterMargin;
+	private readonly PcLineBackgroundRenderer pcLineRenderer;
 
 	public EditorView()
 	{
 		InitializeComponent();
 
-		// Load ARM assembly syntax highlighting
-		LoadSyntaxHighlighting();
+		TextEditor.SyntaxHighlighting = ArmSyntaxHighlighting.Load();
+		TextEditor.Options.HighlightCurrentLine = true;
+		pcLineRenderer = new PcLineBackgroundRenderer(TextEditor.TextArea.TextView);
+		TextEditor.TextArea.TextView.BackgroundRenderers.Add(pcLineRenderer);
+		ApplyThemeColours();
+		ActualThemeVariantChanged += (_, _) => ApplyThemeColours();
 
 		// Add custom gutter margin for breakpoints and PC indicator
 		gutterMargin = new EditorGutterMargin();
@@ -67,7 +69,10 @@ public partial class EditorView : ReactiveUserControl<MainWindowViewModel>
 					x => x.ViewModel!.Registers,
 					x => x.ViewModel!.AddressToLine,
 					(registers, addressToLine) => addressToLine.TryGetValue(registers.PC, out var line) ? line : (int?)null)
-				.Subscribe(line => gutterMargin.CurrentPCLine = line)
+				.Subscribe(line => {
+					gutterMargin.CurrentPCLine = line;
+					pcLineRenderer.Line = line;
+				})
 				.DisposeWith(disposables);
 
 			// Scroll to the PC line when the view model asks
@@ -119,26 +124,14 @@ public partial class EditorView : ReactiveUserControl<MainWindowViewModel>
 	private void OnGutterLineClicked(object? sender, int lineNumber) =>
 		((ICommand?)ViewModel?.ToggleBreakpointCommand)?.Execute(lineNumber);
 
-	/// <summary>
-	/// Loads the ARM assembly syntax highlighting definition from embedded resources.
-	/// </summary>
-	private void LoadSyntaxHighlighting()
+	private void ApplyThemeColours()
 	{
-		try {
-			var assembly = Assembly.GetExecutingAssembly();
-			var resourceName = "ARMEmulator.Resources.ARMAssembly.xshd";
-
-			using var stream = assembly.GetManifestResourceStream(resourceName);
-			if (stream is null) {
-				return; // Silently fail if resource not found
-			}
-
-			using var reader = new XmlTextReader(stream);
-			var definition = HighlightingLoader.Load(reader, HighlightingManager.Instance);
-			TextEditor.SyntaxHighlighting = definition;
-		}
-		catch {
-			// Silently ignore syntax highlighting errors - editor still works without it
-		}
+		var textView = TextEditor.TextArea.TextView;
+		ArmSyntaxHighlighting.ApplyColours(TextEditor.SyntaxHighlighting, this.FindBrush);
+		TextEditor.LineNumbersForeground = this.FindBrush("SecondaryTextBrush") ?? TextEditor.LineNumbersForeground;
+		textView.CurrentLineBackground = this.FindBrush("CurrentLineBrush");
+		textView.CurrentLineBorder = new Pen(Brushes.Transparent, 0);
+		pcLineRenderer.Brush = this.FindBrush("PcLineBrush");
+		textView.Redraw();
 	}
 }

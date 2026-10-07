@@ -176,7 +176,7 @@ Every task checks light and dark themes, and 100 % and 200 % scaling.
 
 Status 2026-10-06: `Themes/Tokens.axaml` (colours per theme variant, spacing, type sizes, `DataFontFamily`), `Themes/Icons.axaml` (Fluent icons as `StreamGeometry`), `Themes/CustomStyles.axaml` (splitter, text roles, tool button, status pill) and the bundled JetBrains Mono (`Assets/Fonts`, notices in `THIRD_PARTY_NOTICES.md`) exist. `FluentTheme` uses `DensityStyle="Compact"`. `CodeStyle_LiteralColours` fails the build for a literal colour in any `.axaml` outside `Themes/`.
 
-Still open under this task: the C# files that build brushes from literals (`EditorGutterMargin`, `BoolToColorConverter`, `RegisterHighlightConverter`, `BoolToHighlightConverter`) move to the tokens in 3.5–3.7. Those static brushes also belong to whichever thread first uses them; resolve them from resources and the screenshot test can run in the full suite.
+Still open under this task: `BoolToColorConverter` and `RegisterHighlightConverter` build brushes from literals; both are unused and wait for approval to remove with their tests. Those static brushes also belong to whichever thread first uses them; resolve them from resources and the screenshot test can run in the full suite.
 
 - One resource dictionary (`Themes/`) holds the design tokens. Views use the tokens, never literal colours or sizes.
 - **Colours:** semantic names (window background, panel background, divider, secondary text, accent, changed-register highlight, memory-write highlight, breakpoint, PC marker, error), with `ThemeVariant` light and dark entries.
@@ -223,7 +223,9 @@ Status 2026-10-07: done. Shared `panelHeader`, `tableHeader`, `dataRow` and `str
 - PC, SP, breakpoint and memory-write markers use theme colours and the same glyphs as the editor gutter.
 - Address-entry and jump buttons in a compact header row matching 3.4.
 
-### 3.7 Editor
+### 3.7 Editor (done)
+
+Status 2026-10-07: done. Editor colours are tokens (`EditorBackgroundBrush`, `EditorForegroundBrush`, `Syntax*Brush`); `ArmSyntaxHighlighting` loads the `.xshd` rules and sets each named colour from the theme, and the editor reapplies on a theme change. `PcLineBackgroundRenderer` paints the PC line; `EditorGutterMargin` draws the vector glyphs from theme resources with a divider line. The gutter has two slots: breakpoint left, PC right.
 
 - Monospace font and size from settings.
 - Current-line highlight, and a full-width PC-line background in addition to the gutter arrow.
@@ -258,7 +260,7 @@ Status: `Ui/ScreenshotTests.cs` renders the main window with sample data in ligh
 - Screenshot tests with Avalonia.Headless rendering the main window and each panel to PNG in light and dark themes, compared against reviewed baselines with a small pixel tolerance.
 - A side-by-side review against the Swift GUI for each panel before closing the phase.
 
-Problem table progress: toolbar icons, separators, button widths and status pill are closed; splitters are closed. The register font and register cards are closed. The editor highlight, console, shortcuts and empty state rows are open.
+Problem table progress: toolbar icons, separators, button widths and status pill are closed; splitters are closed. The register font, register cards and editor highlight are closed. The console, shortcuts and empty state rows are open.
 
 **Exit criteria:** every row in the problem table is closed; screenshot baselines exist for light and dark themes; a side-by-side review against the Swift GUI finds no layout or typography gap.
 

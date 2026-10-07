@@ -5,12 +5,12 @@
              x:Class="ARMEmulator.Views.EditorView"
              x:DataType="vm:MainWindowViewModel">
     <avaloniaEdit:TextEditor Name="TextEditor"
-                             FontFamily="Consolas,Menlo,Monaco,Courier New,monospace"
+                             FontFamily="{DynamicResource DataFontFamily}"
                              FontSize="{Binding Settings.EditorFontSize}"
                              ShowLineNumbers="True"
                              WordWrap="False"
-                             Background="{DynamicResource SystemControlBackgroundAltHighBrush}"
-                             Foreground="{DynamicResource SystemControlForegroundBaseHighBrush}"
+                             Background="{DynamicResource EditorBackgroundBrush}"
+                             Foreground="{DynamicResource EditorForegroundBrush}"
                              IsReadOnly="{Binding !IsEditorEditable}"
                              HorizontalScrollBarVisibility="Auto"
                              VerticalScrollBarVisibility="Auto" />

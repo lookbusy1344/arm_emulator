@@ -14,8 +14,13 @@ namespace ARMEmulator.Controls;
 public class EditorGutterMargin : AbstractMargin
 {
 	private const double GutterWidth = 30;
-	private const double MarkerSize = 12;
-	private const double MarkerMargin = 9; // (30 - 12) / 2
+	private const double GlyphSize = 14;
+	private const double IconGridSize = 20;
+	private const double SeparatorWidth = 1;
+
+	// The two glyph slots, left to right: breakpoint, then program counter. Both show on a breakpoint line at the PC.
+	private const double BreakpointSlotX = 2;
+	private const double PcSlotX = 14;
 
 	/// <summary>
 	/// Set of line numbers that have breakpoints.
@@ -68,63 +73,53 @@ public class EditorGutterMargin : AbstractMargin
 
 	public override void Render(DrawingContext context)
 	{
-		// Draw gutter background
-		context.FillRectangle(
-			new SolidColorBrush(Color.FromRgb(245, 245, 245)),
-			new Rect(0, 0, Bounds.Width, Bounds.Height));
-
-		var textView = TextView;
-		if (textView?.VisualLinesValid != true) {
+		var host = TextView;
+		if (host is null) {
 			return;
 		}
 
-		// Render markers for each visible line
-		foreach (var visualLine in textView.VisualLines) {
-			var lineNumber = visualLine.FirstDocumentLine.LineNumber;
-			var y = visualLine.GetTextLineVisualYPosition(visualLine.TextLines[0], VisualYPosition.LineTop) - textView.ScrollOffset.Y;
+		var background = host.FindBrush("GutterBackgroundBrush");
+		if (background is not null) {
+			context.FillRectangle(background, new Rect(0, 0, Bounds.Width, Bounds.Height));
+		}
 
-			// Draw breakpoint marker (red circle)
+		var divider = host.FindBrush("DividerBrush");
+		if (divider is not null) {
+			context.FillRectangle(divider, new Rect(Bounds.Width - SeparatorWidth, 0, SeparatorWidth, Bounds.Height));
+		}
+
+		if (!host.VisualLinesValid) {
+			return;
+		}
+
+		foreach (var visualLine in host.VisualLines) {
+			var lineNumber = visualLine.FirstDocumentLine.LineNumber;
+			var top = visualLine.GetTextLineVisualYPosition(visualLine.TextLines[0], VisualYPosition.LineTop) - host.ScrollOffset.Y;
+
 			if (BreakpointLines.Contains(lineNumber)) {
-				DrawBreakpointMarker(context, y);
+				DrawGlyph(context, host, "IconBreakpoint", "BreakpointBrush", BreakpointSlotX, top, visualLine.Height);
 			}
 
-			// Draw PC indicator (blue arrow)
 			if (CurrentPCLine == lineNumber) {
-				DrawPCIndicator(context, y);
+				DrawGlyph(context, host, "IconPcArrow", "PcMarkerBrush", PcSlotX, top, visualLine.Height);
 			}
 		}
 	}
 
-	private static void DrawBreakpointMarker(DrawingContext context, double y)
+	/// <summary>Draws an icon from the theme resources at <paramref name="x"/>, centred vertically within a line of the given height.</summary>
+	private static void DrawGlyph(DrawingContext context, TextView host, string iconKey, string brushKey, double x, double top, double lineHeight)
 	{
-		var center = new Point(GutterWidth / 2, y + MarkerSize / 2 + 2);
-		var brush = new SolidColorBrush(Color.FromRgb(220, 50, 50)); // Red
+		var brush = host.FindBrush(brushKey);
+		var geometry = host.FindGeometry(iconKey);
+		if (brush is null || geometry is null) {
+			return;
+		}
 
-		context.DrawEllipse(
-			brush,
-			new Pen(new SolidColorBrush(Color.FromRgb(180, 40, 40)), 1),
-			center,
-			MarkerSize / 2,
-			MarkerSize / 2);
-	}
-
-	private static void DrawPCIndicator(DrawingContext context, double y)
-	{
-		var arrowY = y + 8;
-		var arrowPoints = new[]
-		{
-			new Point(4, arrowY),
-			new Point(16, arrowY + 4),
-			new Point(4, arrowY + 8)
-		};
-
-		var geometry = new PolylineGeometry(arrowPoints, true);
-		var brush = new SolidColorBrush(Color.FromRgb(50, 120, 220)); // Blue
-
-		context.DrawGeometry(
-			brush,
-			new Pen(new SolidColorBrush(Color.FromRgb(30, 90, 180)), 1),
-			geometry);
+		var scale = GlyphSize / IconGridSize;
+		var offset = new Vector(x, top + ((lineHeight - GlyphSize) / 2));
+		using (context.PushTransform(Matrix.CreateScale(scale, scale) * Matrix.CreateTranslation(offset.X, offset.Y))) {
+			context.DrawGeometry(brush, null, geometry);
+		}
 	}
 
 	protected override void OnPointerPressed(PointerPressedEventArgs e)

@@ -34,6 +34,16 @@
             <SolidColorBrush x:Key="CurrentLineBrush" Color="#0F000000" />
             <SolidColorBrush x:Key="FlagOnBrush" Color="#248A3D" />
 
+            <SolidColorBrush x:Key="EditorBackgroundBrush" Color="#FFFFFF" />
+            <SolidColorBrush x:Key="EditorForegroundBrush" Color="#1F1F1F" />
+            <SolidColorBrush x:Key="SyntaxCommentBrush" Color="#008000" />
+            <SolidColorBrush x:Key="SyntaxInstructionBrush" Color="#0000FF" />
+            <SolidColorBrush x:Key="SyntaxRegisterBrush" Color="#001080" />
+            <SolidColorBrush x:Key="SyntaxNumberBrush" Color="#098658" />
+            <SolidColorBrush x:Key="SyntaxStringBrush" Color="#A31515" />
+            <SolidColorBrush x:Key="SyntaxLabelBrush" Color="#795E26" />
+            <SolidColorBrush x:Key="SyntaxDirectiveBrush" Color="#AF00DB" />
+
             <SolidColorBrush x:Key="GutterBackgroundBrush" Color="#F3F3F3" />
             <SolidColorBrush x:Key="ConsoleBackgroundBrush" Color="#1E1E1E" />
             <SolidColorBrush x:Key="ConsoleTextBrush" Color="#D4D4D4" />
@@ -66,6 +76,16 @@
             <SolidColorBrush x:Key="PcLineBrush" Color="#335AA0FF" />
             <SolidColorBrush x:Key="CurrentLineBrush" Color="#14FFFFFF" />
             <SolidColorBrush x:Key="FlagOnBrush" Color="#30D158" />
+
+            <SolidColorBrush x:Key="EditorBackgroundBrush" Color="#1E1E1E" />
+            <SolidColorBrush x:Key="EditorForegroundBrush" Color="#D4D4D4" />
+            <SolidColorBrush x:Key="SyntaxCommentBrush" Color="#6A9955" />
+            <SolidColorBrush x:Key="SyntaxInstructionBrush" Color="#569CD6" />
+            <SolidColorBrush x:Key="SyntaxRegisterBrush" Color="#9CDCFE" />
+            <SolidColorBrush x:Key="SyntaxNumberBrush" Color="#B5CEA8" />
+            <SolidColorBrush x:Key="SyntaxStringBrush" Color="#CE9178" />
+            <SolidColorBrush x:Key="SyntaxLabelBrush" Color="#DCDCAA" />
+            <SolidColorBrush x:Key="SyntaxDirectiveBrush" Color="#C586C0" />
 
             <SolidColorBrush x:Key="GutterBackgroundBrush" Color="#252526" />
             <SolidColorBrush x:Key="ConsoleBackgroundBrush" Color="#121212" />
