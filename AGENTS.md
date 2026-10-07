@@ -96,6 +96,8 @@ dotnet build
 dotnet test
 ```
 
+**Design:** Apply the `framework-design-guidelines` skill to all C# work in `avalonia-gui/`: type kinds, member shapes, exceptions and naming. Never suppress JSV01; use `EquatableArray` and `EquatableDictionary` from `ARMEmulator/Collections`.
+
 **Architecture:** MVVM with ReactiveUI. Connects via HTTP REST API + WebSocket to Go backend. Uses C# 13 features (primary constructors, collection expressions, records, pattern matching, immutable collections).
 
 **Note:** `dotnet format` runs automatically after every change to the Avalonia project.
