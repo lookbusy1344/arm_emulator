@@ -17,7 +17,7 @@ public sealed class MainWindowHarness : IDisposable
 {
 	public const string SessionId = "ui-session";
 
-	public MainWindowHarness()
+	public MainWindowHarness(AppSettings? settings = null)
 	{
 		Api = Substitute.For<IApiClient>();
 		Ws = Substitute.For<IWebSocketClient>();
@@ -35,7 +35,9 @@ public sealed class MainWindowHarness : IDisposable
 		Api.GetDisassemblyAsync(default!, default, default, default).ReturnsForAnyArgs(ImmutableArray<DisassemblyInstruction>.Empty);
 		Api.GetRegistersAsync(Arg.Any<string>(), Arg.Any<CancellationToken>()).Returns(RegisterState.Create());
 
-		ViewModel = new MainWindowViewModel(Api, Ws, Files);
+		Store = Substitute.For<ISettingsStore>();
+		ViewModel = new MainWindowViewModel(Api, Ws, Files, Store);
+		ViewModel.ApplySettings(settings ?? AppSettings.Default);
 		Window = new MainWindow(ViewModel);
 		Window.Show();
 	}
@@ -47,6 +49,8 @@ public sealed class MainWindowHarness : IDisposable
 	public IFileService Files { get; }
 
 	public IBackendManager Backend { get; }
+
+	public ISettingsStore Store { get; }
 
 	public Subject<EmulatorEvent> Events { get; }
 

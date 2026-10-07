@@ -1,3 +1,4 @@
+using ARMEmulator.Models;
 using Avalonia.Headless;
 
 namespace ARMEmulator.Tests.Ui;
@@ -30,6 +31,16 @@ internal static class UiTest
 		Session.Value.Dispatch(
 			async () => {
 				using var harness = new MainWindowHarness();
+				await body(harness);
+				return true;
+			},
+			TestContext.Current.CancellationToken);
+
+	/// <summary>As <see cref="RunAsync(Func{MainWindowHarness, Task})"/>, with the settings applied before the window is built.</summary>
+	public static Task RunAsync(AppSettings settings, Func<MainWindowHarness, Task> body) =>
+		Session.Value.Dispatch(
+			async () => {
+				using var harness = new MainWindowHarness(settings);
 				await body(harness);
 				return true;
 			},

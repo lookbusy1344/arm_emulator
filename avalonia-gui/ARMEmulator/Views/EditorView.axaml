@@ -4,18 +4,14 @@
              xmlns:avaloniaEdit="https://github.com/avaloniaui/avaloniaedit"
              x:Class="ARMEmulator.Views.EditorView"
              x:DataType="vm:MainWindowViewModel">
-    <Border BorderBrush="{DynamicResource SystemControlForegroundBaseMediumBrush}"
-            BorderThickness="1"
-            CornerRadius="4">
-        <avaloniaEdit:TextEditor Name="TextEditor"
-                                 FontFamily="Consolas,Menlo,Monaco,Courier New,monospace"
-                                 FontSize="{Binding Settings.EditorFontSize}"
-                                 ShowLineNumbers="True"
-                                 WordWrap="False"
-                                 Background="{DynamicResource SystemControlBackgroundAltHighBrush}"
-                                 Foreground="{DynamicResource SystemControlForegroundBaseHighBrush}"
-                                 IsReadOnly="{Binding !IsEditorEditable}"
-                                 HorizontalScrollBarVisibility="Auto"
-                                 VerticalScrollBarVisibility="Auto" />
-    </Border>
+    <avaloniaEdit:TextEditor Name="TextEditor"
+                             FontFamily="Consolas,Menlo,Monaco,Courier New,monospace"
+                             FontSize="{Binding Settings.EditorFontSize}"
+                             ShowLineNumbers="True"
+                             WordWrap="False"
+                             Background="{DynamicResource SystemControlBackgroundAltHighBrush}"
+                             Foreground="{DynamicResource SystemControlForegroundBaseHighBrush}"
+                             IsReadOnly="{Binding !IsEditorEditable}"
+                             HorizontalScrollBarVisibility="Auto"
+                             VerticalScrollBarVisibility="Auto" />
 </UserControl>

@@ -9,7 +9,7 @@ namespace ARMEmulator.Converters;
 /// </summary>
 public sealed class ResourceKeyConverter : IValueConverter
 {
-	public static readonly ResourceKeyConverter Instance = new();
+	public static ResourceKeyConverter Instance { get; } = new();
 
 	public object? Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
 	{

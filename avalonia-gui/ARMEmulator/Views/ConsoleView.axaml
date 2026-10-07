@@ -5,17 +5,16 @@
              x:Class="ARMEmulator.Views.ConsoleView">
     <UserControl.Styles>
         <Style Selector="Border.console">
-            <Setter Property="BorderBrush" Value="{DynamicResource SystemControlForegroundBaseMediumBrush}" />
+            <Setter Property="BorderThickness" Value="0" />
         </Style>
         <Style Selector="Border.console.waiting">
             <Setter Property="BorderBrush" Value="{DynamicResource StateWaitingBrush}" />
+            <Setter Property="BorderThickness" Value="0,2,0,0" />
         </Style>
     </UserControl.Styles>
 
     <Border Classes="console"
             Classes.waiting="{Binding IsWaitingForInput}"
-            BorderThickness="1"
-            CornerRadius="4"
             Padding="8">
 
         <DockPanel>

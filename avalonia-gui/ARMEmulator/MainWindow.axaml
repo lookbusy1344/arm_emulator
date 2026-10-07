@@ -101,7 +101,7 @@
         </Border>
 
         <!-- Main content area -->
-        <Grid>
+        <Grid Name="ContentGrid">
             <Grid.RowDefinitions>
                 <!-- Editor + Right Panel area -->
                 <RowDefinition Height="3*" MinHeight="200" />
@@ -112,7 +112,7 @@
             </Grid.RowDefinitions>
 
             <!-- Top section: Editor + Right Panel with horizontal split -->
-            <Grid Grid.Row="0">
+            <Grid Name="TopSection" Grid.Row="0">
                 <Grid.ColumnDefinitions>
                     <!-- Editor area -->
                     <ColumnDefinition Width="2*" MinWidth="300" />

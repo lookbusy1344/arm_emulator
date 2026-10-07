@@ -25,6 +25,7 @@ public partial class MainWindow : Window
 	{
 		DataContext = viewModel;
 		viewModel.SetParentWindow(this);
+		ApplyGeometry(viewModel.Settings.Layout.Geometry);
 	}
 
 	private bool closeConfirmed;
@@ -32,12 +33,18 @@ public partial class MainWindow : Window
 	protected override void OnClosing(WindowClosingEventArgs e)
 	{
 		base.OnClosing(e);
-		if (closeConfirmed || DataContext is not MainWindowViewModel { IsDirty: true } viewModel) {
+		if (DataContext is not MainWindowViewModel viewModel) {
 			return;
 		}
 
-		e.Cancel = true;
-		_ = CloseIfDiscardConfirmedAsync(viewModel);
+		if (!closeConfirmed && viewModel.IsDirty) {
+			e.Cancel = true;
+			_ = CloseIfDiscardConfirmedAsync(viewModel);
+			return;
+		}
+
+		// The platform window still exists here, so its position and size are readable.
+		viewModel.SaveWindowGeometry(CaptureGeometry());
 	}
 
 	private async Task CloseIfDiscardConfirmedAsync(MainWindowViewModel viewModel)

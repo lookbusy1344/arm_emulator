@@ -94,9 +94,12 @@ public sealed record AppSettings
 		BackendUrl = IsHttpUrl(BackendUrl) ? BackendUrl : Default.BackendUrl,
 		EditorFontSize = Math.Clamp(EditorFontSize, 10, 24),
 		RecentFilesLimit = Math.Max(RecentFilesLimit, 1),
-		Layout = Layout ?? new WindowLayout(), // absent in files written before the layout existed
+		Layout = ValidLayout(),
 		RecentFiles = [.. RecentFiles.Take(Math.Max(RecentFilesLimit, 1))]
 	};
+
+	// Layout is absent in files written before it existed.
+	private WindowLayout ValidLayout() => (Layout ?? new WindowLayout()) with { Geometry = Layout?.Geometry?.Clamp() };
 
 	private static bool IsHttpUrl(string url) =>
 		Uri.TryCreate(url, UriKind.Absolute, out var uri) && uri.Scheme is "http" or "https";

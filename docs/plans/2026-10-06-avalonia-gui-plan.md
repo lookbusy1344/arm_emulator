@@ -192,9 +192,9 @@ Still open under this task: the C# files that build brushes from literals (`Edit
 - Tooltips still show `Ctrl` gestures; 3.11 switches them to `⌘` on macOS.
 - The status indicator becomes a labelled pill (e.g. "Idle", "Running", "Breakpoint") in the theme's state colours.
 
-### 3.3 Window layout
+### 3.3 Window layout (done except register cards)
 
-Status: the 1 px splitters are done. Open: drop the per-panel border and radius (`EditorView`, `RightPanelView`, `ConsoleView`, panel views); persist window size, position and splitter positions.
+Status 2026-10-07: the 1 px splitters, flush editor, console and inspector panels, and persisted geometry (`WindowGeometry` in `WindowLayout`, saved on close, restored on start with an off-screen check) are done. The register cards keep their borders until 3.5.
 
 - Thin dividers: 1 px visible line with a wider hit area for dragging.
 - Panels sit flush against the dividers; drop the per-panel border and corner radius.

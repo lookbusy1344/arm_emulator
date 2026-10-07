@@ -124,6 +124,19 @@ public sealed class MainWindowViewModelSettingsTests : IDisposable
 	}
 
 	[Fact]
+	public void SaveWindowGeometry_PersistsItAndKeepsTheSelectedPanel()
+	{
+		var geometry = new WindowGeometry { X = 1, Y = 2, Width = 900, Height = 700, InspectorWidth = 300, ConsoleHeight = 120, IsMaximized = false };
+		using var vm = CreateViewModel();
+		vm.SelectedInspectorPanel = InspectorPanel.Stack;
+		store.ClearReceivedCalls();
+
+		vm.SaveWindowGeometry(geometry);
+
+		store.Received(1).Save(AppSettings.Default with { Layout = new WindowLayout { SelectedPanel = InspectorPanel.Stack, Geometry = geometry } });
+	}
+
+	[Fact]
 	public void ApplySettings_DoesNotPersist()
 	{
 		using var vm = CreateViewModel();

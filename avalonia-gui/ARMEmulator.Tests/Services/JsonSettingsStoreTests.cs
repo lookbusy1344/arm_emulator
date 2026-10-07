@@ -67,6 +67,31 @@ public sealed class JsonSettingsStoreTests : IDisposable
 	}
 
 	[Fact]
+	public void SaveThenLoad_RoundTripsTheWindowGeometry()
+	{
+		var store = CreateStore();
+		var geometry = new WindowGeometry { X = -20, Y = 30, Width = 1100.5, Height = 777, InspectorWidth = 333, ConsoleHeight = 150, IsMaximized = true };
+
+		store.Save(Custom with { Layout = new WindowLayout { Geometry = geometry } });
+
+		store.Load().Settings.Layout.Geometry.Should().Be(geometry);
+	}
+
+	[Fact]
+	public void Load_ClampsAnUndersizedGeometry()
+	{
+		WriteSettingsFile("""
+			{ "BackendUrl": "http://localhost:8080", "EditorFontSize": 14, "Theme": "Auto",
+			  "RecentFilesLimit": 10, "AutoScrollToMemoryWrites": true,
+			  "Layout": { "Geometry": { "X": 0, "Y": 0, "Width": 100, "Height": 100, "InspectorWidth": 1, "ConsoleHeight": 1, "IsMaximized": false } } }
+			""");
+
+		var geometry = CreateStore().Load().Settings.Layout.Geometry!;
+
+		(geometry.Width, geometry.Height, geometry.InspectorWidth, geometry.ConsoleHeight).Should().Be((800, 600, 250, 100));
+	}
+
+	[Fact]
 	public void Load_WithFileLackingLayout_SelectsRegisters()
 	{
 		WriteSettingsFile("""

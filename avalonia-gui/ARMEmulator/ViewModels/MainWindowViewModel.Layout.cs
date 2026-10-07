@@ -18,4 +18,8 @@ public partial class MainWindowViewModel
 			SaveSettings(Settings with { Layout = Settings.Layout with { SelectedPanel = value } });
 		}
 	}
+
+	/// <summary>Saves where the window and its splitters were left.</summary>
+	public void SaveWindowGeometry(WindowGeometry geometry) =>
+		SaveSettings(Settings with { Layout = Settings.Layout with { Geometry = geometry } });
 }
