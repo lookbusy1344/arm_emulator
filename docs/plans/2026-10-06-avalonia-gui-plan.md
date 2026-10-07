@@ -232,7 +232,9 @@ Status 2026-10-07: done. Editor colours are tokens (`EditorBackgroundBrush`, `Ed
 - Vector breakpoint and PC glyphs, a gutter background and separator from the theme, and line numbers in secondary text.
 - Syntax colours defined for light and dark themes (the `.xshd` file references theme colours).
 
-### 3.8 Console
+### 3.8 Console (done)
+
+Status 2026-10-07: done. The console is a terminal-coloured surface (`ConsoleBackgroundBrush`, `ConsoleTextBrush`) in the bundled font, with a slim header and a waiting pill. The input row has a `>` prompt, a borderless field and a Send button; it takes the waiting tint instead of the panel border. The `DataContextChanged` handler no longer leaks a subscription per data context.
 
 - Monospace output on a terminal-style background.
 - An inline input row with a prompt marker; the waiting-for-input state highlights the input row rather than the whole panel border.
@@ -260,7 +262,7 @@ Status: `Ui/ScreenshotTests.cs` renders the main window with sample data in ligh
 - Screenshot tests with Avalonia.Headless rendering the main window and each panel to PNG in light and dark themes, compared against reviewed baselines with a small pixel tolerance.
 - A side-by-side review against the Swift GUI for each panel before closing the phase.
 
-Problem table progress: toolbar icons, separators, button widths and status pill are closed; splitters are closed. The register font, register cards and editor highlight are closed. The console, shortcuts and empty state rows are open.
+Problem table progress: toolbar icons, separators, button widths and status pill are closed; splitters are closed. The register font, register cards, editor highlight and console are closed. The shortcuts and empty state rows are open.
 
 **Exit criteria:** every row in the problem table is closed; screenshot baselines exist for light and dark themes; a side-by-side review against the Swift GUI finds no layout or typography gap.
 

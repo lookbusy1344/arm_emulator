@@ -3,77 +3,67 @@
              xmlns:vm="using:ARMEmulator.ViewModels"
              x:DataType="vm:MainWindowViewModel"
              x:Class="ARMEmulator.Views.ConsoleView">
-    <UserControl.Styles>
-        <Style Selector="Border.console">
-            <Setter Property="BorderThickness" Value="0" />
-        </Style>
-        <Style Selector="Border.console.waiting">
-            <Setter Property="BorderBrush" Value="{DynamicResource StateWaitingBrush}" />
-            <Setter Property="BorderThickness" Value="0,2,0,0" />
-        </Style>
-    </UserControl.Styles>
-
-    <Border Classes="console"
-            Classes.waiting="{Binding IsWaitingForInput}"
-            Padding="8">
-
+    <Border Name="ConsoleSurface" Background="{DynamicResource ConsoleBackgroundBrush}">
         <DockPanel>
-            <!-- Header with status indicator -->
-            <DockPanel DockPanel.Dock="Top" Margin="0,0,0,8">
-                <TextBlock Text="Console Output"
-                           FontWeight="SemiBold"
-                           DockPanel.Dock="Left" />
-                <Border DockPanel.Dock="Right"
-                        Background="{DynamicResource StateWaitingBrush}"
-                        CornerRadius="4"
-                        Padding="6,2"
+            <!-- Header -->
+            <DockPanel DockPanel.Dock="Top" Margin="8,4">
+                <Border Name="WaitingPill"
+                        DockPanel.Dock="Right"
+                        Classes="pill"
+                        Tag="WaitingForInput"
                         IsVisible="{Binding IsWaitingForInput}">
-                    <TextBlock Text="⏸️ Waiting for input"
-                               FontSize="11"
-                               FontWeight="SemiBold"
-                               Foreground="{DynamicResource OnStateBrush}" />
+                    <TextBlock Text="Waiting for input" />
                 </Border>
+                <TextBlock Text="Console"
+                           Foreground="{DynamicResource ConsoleTextBrush}"
+                           Opacity="0.6"
+                           FontSize="{DynamicResource FontSizeCaption}"
+                           FontWeight="SemiBold"
+                           VerticalAlignment="Center" />
             </DockPanel>
 
-            <!-- Input area at bottom -->
-            <StackPanel DockPanel.Dock="Bottom"
-                        Orientation="Horizontal"
-                        Spacing="8"
-                        Margin="0,8,0,0">
-                <TextBlock Text="Input:"
-                           VerticalAlignment="Center" />
-                <TextBox Name="InputBox"
-                         Width="400"
-                         Text="{Binding InputText}"
-                         PlaceholderText="Enter input..."
-                         VerticalAlignment="Center"
-                         ToolTip.Tip="Enter input for the running program (press Enter or click Send)"
-                         AutomationProperties.Name="Program Input"
-                         AutomationProperties.HelpText="Enter text input for the running program">
-                    <TextBox.KeyBindings>
-                        <KeyBinding Gesture="Enter" Command="{Binding SendInputCommand}" />
-                    </TextBox.KeyBindings>
-                </TextBox>
-                <Button Content="Send"
-                        Command="{Binding SendInputCommand}"
-                        VerticalAlignment="Center"
-                        ToolTip.Tip="Send input to program (Enter)"
-                        AutomationProperties.Name="Send Input"
-                        AutomationProperties.AcceleratorKey="Enter" />
-            </StackPanel>
+            <!-- Input row -->
+            <Border Name="InputRow"
+                    DockPanel.Dock="Bottom"
+                    Classes="inputRow"
+                    Classes.waiting="{Binding IsWaitingForInput}">
+                <Grid ColumnDefinitions="Auto,*,Auto">
+                    <TextBlock Name="PromptMarker" Classes="prompt" Text="&gt;" Margin="0,0,6,0" />
+                    <TextBox Name="InputBox"
+                             Grid.Column="1"
+                             Classes="terminal"
+                             Text="{Binding InputText}"
+                             PlaceholderText="Enter input..."
+                             VerticalAlignment="Center"
+                             ToolTip.Tip="Input for the running program (Enter to send)"
+                             AutomationProperties.Name="Program Input"
+                             AutomationProperties.HelpText="Enter text input for the running program">
+                        <TextBox.KeyBindings>
+                            <KeyBinding Gesture="Enter" Command="{Binding SendInputCommand}" />
+                        </TextBox.KeyBindings>
+                    </TextBox>
+                    <Button Grid.Column="2"
+                            Classes="tool"
+                            Content="Send"
+                            Command="{Binding SendInputCommand}"
+                            VerticalAlignment="Center"
+                            ToolTip.Tip="Send input to program (Enter)"
+                            AutomationProperties.Name="Send Input"
+                            AutomationProperties.AcceleratorKey="Enter" />
+                </Grid>
+            </Border>
 
-            <!-- Output area with auto-scroll -->
+            <!-- Output with auto-scroll -->
             <ScrollViewer Name="OutputScrollViewer"
                           VerticalScrollBarVisibility="Auto"
                           HorizontalScrollBarVisibility="Auto">
                 <TextBox Name="OutputBox"
+                         Classes="terminal"
                          Text="{Binding ConsoleOutput}"
                          IsReadOnly="True"
-                         BorderThickness="0"
-                         Background="Transparent"
-                         FontFamily="Consolas,Menlo,Monaco,Courier New,monospace"
                          TextWrapping="NoWrap"
                          AcceptsReturn="True"
+                         Padding="8,0"
                          AutomationProperties.Name="Console Output"
                          AutomationProperties.HelpText="Program output from stdout and stderr" />
             </ScrollViewer>

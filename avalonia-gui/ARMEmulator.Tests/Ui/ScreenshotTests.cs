@@ -50,7 +50,7 @@ public sealed class ScreenshotTests
 			ui.ViewModel.Breakpoints = [0x8008];
 			ui.ViewModel.UpdateRegisters(RegisterState.Create(r0: 0, r1: 5, sp: 0x50000, pc: 0x8004));
 			ui.ViewModel.UpdateRegisters(RegisterState.Create(r0: 0, r1: 5, r2: 0xDEADBEEF, sp: 0x50000, lr: 0x8020, pc: 0x8008, cpsr: new CPSRFlags(N: false, Z: true, C: true, V: false)));
-			ui.ViewModel.Status = VMState.Breakpoint;
+			ui.ViewModel.Status = dark ? VMState.WaitingForInput : VMState.Breakpoint;
 			ui.Events.OnNext(new OutputEvent(MainWindowHarness.SessionId, OutputStreamType.Stdout, "Sum of 1..5\nResult: 15\n"));
 
 			Dispatcher.UIThread.RunJobs();

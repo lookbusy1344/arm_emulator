@@ -149,4 +149,49 @@
     <Style Selector="Border.inlineError > TextBlock">
         <Setter Property="Foreground" Value="{DynamicResource ErrorTextBrush}" />
     </Style>
+
+    <!-- Console: terminal surface, borderless input -->
+    <Style Selector="TextBox.terminal">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="0" />
+        <Setter Property="Foreground" Value="{DynamicResource ConsoleTextBrush}" />
+        <Setter Property="FontFamily" Value="{DynamicResource DataFontFamily}" />
+        <Setter Property="FontSize" Value="{DynamicResource DataFontSize}" />
+    </Style>
+    <Style Selector="TextBox.terminal">
+        <Setter Property="PlaceholderForeground" Value="{DynamicResource ConsoleTextDimBrush}" />
+    </Style>
+    <Style Selector="Border.inputRow Button.tool">
+        <Setter Property="Foreground" Value="{DynamicResource ConsoleTextBrush}" />
+    </Style>
+    <Style Selector="Border.inputRow Button.tool:disabled /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Foreground" Value="{DynamicResource ConsoleTextDimBrush}" />
+    </Style>
+    <Style Selector="TextBox.terminal:pointerover /template/ Border#PART_BorderElement">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="0" />
+    </Style>
+    <Style Selector="TextBox.terminal:focus /template/ Border#PART_BorderElement">
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderThickness" Value="0" />
+    </Style>
+    <Style Selector="Border.inputRow">
+        <Setter Property="BorderBrush" Value="{DynamicResource DividerBrush}" />
+        <Setter Property="BorderThickness" Value="0,1,0,0" />
+        <Setter Property="Padding" Value="8,2" />
+    </Style>
+    <Style Selector="Border.inputRow.waiting">
+        <Setter Property="Background" Value="{DynamicResource ConsoleInputWaitingBrush}" />
+    </Style>
+    <Style Selector="TextBlock.prompt">
+        <Setter Property="Foreground" Value="{DynamicResource ConsoleTextBrush}" />
+        <Setter Property="Opacity" Value="0.6" />
+        <Setter Property="FontFamily" Value="{DynamicResource DataFontFamily}" />
+        <Setter Property="FontSize" Value="{DynamicResource DataFontSize}" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+    </Style>
+    <Style Selector="Border.inputRow.waiting TextBlock.prompt">
+        <Setter Property="Foreground" Value="{DynamicResource StateWaitingBrush}" />
+        <Setter Property="Opacity" Value="1" />
+    </Style>
 </Styles>

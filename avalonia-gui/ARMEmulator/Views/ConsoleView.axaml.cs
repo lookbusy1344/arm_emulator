@@ -1,11 +1,13 @@
+using System.ComponentModel;
 using ARMEmulator.ViewModels;
 using Avalonia.Controls;
-using Avalonia.Interactivity;
 
 namespace ARMEmulator.Views;
 
 public partial class ConsoleView : UserControl
 {
+	private MainWindowViewModel? observed;
+
 	public ConsoleView()
 	{
 		InitializeComponent();
@@ -14,19 +16,20 @@ public partial class ConsoleView : UserControl
 
 	private void OnDataContextChanged(object? sender, EventArgs e)
 	{
-		if (DataContext is MainWindowViewModel viewModel) {
-			// Subscribe to ConsoleOutput changes for auto-scroll
-			viewModel.PropertyChanged += (_, args) => {
-				if (args.PropertyName == nameof(MainWindowViewModel.ConsoleOutput)) {
-					ScrollToBottom();
-				}
-			};
+		if (observed is not null) {
+			observed.PropertyChanged -= OnViewModelPropertyChanged;
+		}
+
+		observed = DataContext as MainWindowViewModel;
+		if (observed is not null) {
+			observed.PropertyChanged += OnViewModelPropertyChanged;
 		}
 	}
 
-	private void ScrollToBottom()
+	private void OnViewModelPropertyChanged(object? sender, PropertyChangedEventArgs args)
 	{
-		var scrollViewer = this.FindControl<ScrollViewer>("OutputScrollViewer");
-		scrollViewer?.ScrollToEnd();
+		if (args.PropertyName == nameof(MainWindowViewModel.ConsoleOutput)) {
+			OutputScrollViewer.ScrollToEnd();
+		}
 	}
 }
