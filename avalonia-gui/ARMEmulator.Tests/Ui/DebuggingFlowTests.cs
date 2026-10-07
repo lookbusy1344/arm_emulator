@@ -9,6 +9,7 @@ using Avalonia.Headless;
 using Avalonia.Input;
 using Avalonia.Media;
 using Avalonia.Threading;
+using Avalonia.VisualTree;
 using AvaloniaEdit;
 using AwesomeAssertions;
 using NSubstitute;
@@ -52,7 +53,12 @@ public sealed class DebuggingFlowTests
 	private static EditorGutterMargin GutterOf(MainWindowHarness ui) =>
 		ui.Find<TextEditor>("TextEditor").TextArea.LeftMargins.OfType<EditorGutterMargin>().Single();
 
-	private static IBrush? RegisterBackground(MainWindowHarness ui, string register) => ui.Find<Border>($"{register}Cell").Background;
+	private static Border RegisterRow(MainWindowHarness ui, string register) =>
+		ui.Find<ItemsControl>("RegisterRows").ContainerFromIndex(ui.ViewModel.RegisterRows.ToList().FindIndex(row => row.Name == register))!
+			.GetVisualDescendants().OfType<Border>().First(border => border.Classes.Contains("registerRow"));
+
+	private static string RegisterHex(MainWindowHarness ui, string register) =>
+		RegisterRow(ui, register).GetVisualDescendants().OfType<TextBlock>().Single(text => text.Classes.Contains("hex")).Text!;
 
 	// Assembler errors
 
@@ -125,10 +131,10 @@ public sealed class DebuggingFlowTests
 			Execute(ui.ViewModel.StepCommand);
 			Settle(ui);
 
-			ui.Find<TextBlock>("R0Value").Text.Should().Be("0x00000005");
-			ui.Find<TextBlock>("PCValue").Text.Should().Be("0x00008004");
-			RegisterBackground(ui, "R0").Should().NotBeSameAs(Brushes.Transparent);
-			RegisterBackground(ui, "R1").Should().BeSameAs(Brushes.Transparent);
+			RegisterHex(ui, "R0").Should().Be("0x00000005");
+			RegisterHex(ui, "PC").Should().Be("0x00008004");
+			RegisterRow(ui, "R0").Classes.Should().Contain("changed");
+			RegisterRow(ui, "R1").Classes.Should().NotContain("changed");
 			GutterOf(ui).CurrentPCLine.Should().Be(SecondLine);
 		});
 

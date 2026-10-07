@@ -207,7 +207,9 @@ Status 2026-10-07: done. `WindowLayout` currently holds the selected panel; 3.3 
 - Replace the wrapping `TabControl` with a compact header: a "View:" selector with icon and label per panel (Registers, Memory, Stack, Disassembly, Evaluator, Watchpoints, Breakpoints), as in Swift.
 - Persist the selected panel in settings.
 
-### 3.5 Registers and status
+### 3.5 Registers and status (done)
+
+Status 2026-10-07: done. `RegisterTable` projects the state to rows and flags; the bundled JetBrains Mono is now embedded as an Avalonia resource (it had not been, so earlier data views fell back). `RegisterHighlightConverter`, `BoolToColorConverter` and `BoolToFontWeightConverter` are unused and kept with their tests until removal is approved.
 
 - A compact monospace table: name, hex and decimal on one row per register.
 - A status strip below it with VM state and N, Z, C, V flags as small pills, as in Swift's `StatusView`.
@@ -254,7 +256,7 @@ Status: `Ui/ScreenshotTests.cs` renders the main window with sample data in ligh
 - Screenshot tests with Avalonia.Headless rendering the main window and each panel to PNG in light and dark themes, compared against reviewed baselines with a small pixel tolerance.
 - A side-by-side review against the Swift GUI for each panel before closing the phase.
 
-Problem table progress: toolbar icons, separators, button widths and status pill are closed; splitters are closed. The register font, register cards, editor highlight, console, shortcuts and empty state rows are open.
+Problem table progress: toolbar icons, separators, button widths and status pill are closed; splitters are closed. The register font and register cards are closed. The editor highlight, console, shortcuts and empty state rows are open.
 
 **Exit criteria:** every row in the problem table is closed; screenshot baselines exist for light and dark themes; a side-by-side review against the Swift GUI finds no layout or typography gap.
 

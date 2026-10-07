@@ -22,6 +22,7 @@
 
   <ItemGroup>
     <EmbeddedResource Include="Resources\ARMAssembly.xshd" />
+    <AvaloniaResource Include="Assets\Fonts\*.ttf" />
   </ItemGroup>
 
   <PropertyGroup>

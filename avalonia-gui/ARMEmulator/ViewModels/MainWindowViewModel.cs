@@ -133,7 +133,11 @@ public partial class MainWindowViewModel : ReactiveObject, IDisposable
 	public RegisterState Registers
 	{
 		get => registers;
-		set => this.RaiseAndSetIfChanged(ref registers, value);
+		set
+		{
+			_ = this.RaiseAndSetIfChanged(ref registers, value);
+			RaiseRegisterTableChanged();
+		}
 	}
 
 	private RegisterState? previousRegisters;
@@ -149,7 +153,11 @@ public partial class MainWindowViewModel : ReactiveObject, IDisposable
 	public ImmutableHashSet<string> ChangedRegisters
 	{
 		get => changedRegisters;
-		set => this.RaiseAndSetIfChanged(ref changedRegisters, value);
+		set
+		{
+			_ = this.RaiseAndSetIfChanged(ref changedRegisters, value);
+			RaiseRegisterTableChanged();
+		}
 	}
 
 	private VMState status = VMState.Idle;
