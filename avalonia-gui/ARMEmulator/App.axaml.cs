@@ -1,7 +1,9 @@
 using ARMEmulator.Models;
 using ARMEmulator.Services;
 using ARMEmulator.ViewModels;
+using ARMEmulator.Views;
 using Avalonia;
+using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
 using ReactiveUI.Reactive;
@@ -49,6 +51,9 @@ public partial class App : Application
 			.Subscribe(current => themeService.ApplyTheme(current.Theme));
 
 		desktop.MainWindow = new MainWindow(viewModel);
+		if (OperatingSystem.IsMacOS()) {
+			NativeMenu.SetMenu(Current!, NativeMenus.CreateApplicationMenu(viewModel));
+		}
 		desktop.Exit += (_, _) => {
 			themeService.Dispose();
 			fileService.Dispose();

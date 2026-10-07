@@ -13,50 +13,13 @@
         MinWidth="800"
         MinHeight="600">
 
-    <!-- Keyboard Shortcuts -->
-    <Window.KeyBindings>
-        <!-- File Operations -->
-        <KeyBinding Gesture="Ctrl+O" Command="{Binding OpenFileCommand}" />
-        <KeyBinding Gesture="Ctrl+S" Command="{Binding SaveFileCommand}" />
-        <KeyBinding Gesture="Ctrl+Shift+S" Command="{Binding SaveAsCommand}" />
-        <KeyBinding Gesture="Ctrl+Shift+E" Command="{Binding OpenExampleCommand}" />
-        <KeyBinding Gesture="Ctrl+OemComma" Command="{Binding ShowPreferencesCommand}" />
-
-        <!-- Load: Ctrl+L -->
-        <KeyBinding Gesture="Ctrl+L" Command="{Binding LoadProgramCommand}" />
-
-        <!-- Run: F5, Ctrl+R -->
-        <KeyBinding Gesture="F5" Command="{Binding RunCommand}" />
-        <KeyBinding Gesture="Ctrl+R" Command="{Binding RunCommand}" />
-
-        <!-- Pause: Ctrl+. -->
-        <KeyBinding Gesture="Ctrl+OemPeriod" Command="{Binding PauseCommand}" />
-
-        <!-- Step: F11, Ctrl+T -->
-        <KeyBinding Gesture="F11" Command="{Binding StepCommand}" />
-        <KeyBinding Gesture="Ctrl+T" Command="{Binding StepCommand}" />
-
-        <!-- Step Over: F10, Ctrl+Shift+T -->
-        <KeyBinding Gesture="F10" Command="{Binding StepOverCommand}" />
-        <KeyBinding Gesture="Ctrl+Shift+T" Command="{Binding StepOverCommand}" />
-
-        <!-- Step Out: Ctrl+Alt+T -->
-        <KeyBinding Gesture="Ctrl+Alt+T" Command="{Binding StepOutCommand}" />
-
-        <!-- Reset: Ctrl+Shift+R -->
-        <KeyBinding Gesture="Ctrl+Shift+R" Command="{Binding ResetCommand}" />
-
-        <!-- Show PC: Ctrl+J -->
-        <KeyBinding Gesture="Ctrl+J" Command="{Binding ShowPcCommand}" />
-    </Window.KeyBindings>
-
     <DockPanel>
-        <!-- Menu Bar -->
-        <Menu DockPanel.Dock="Top">
+        <!-- Menu Bar. Each item's Tag names its shortcut; the code-behind shows the platform gesture. -->
+        <Menu Name="MenuBar" DockPanel.Dock="Top">
             <MenuItem Header="_File">
-                <MenuItem Header="_Open..." Command="{Binding OpenFileCommand}" InputGesture="Ctrl+O" />
-                <MenuItem Header="_Save" Command="{Binding SaveFileCommand}" InputGesture="Ctrl+S" />
-                <MenuItem Header="Save _As..." Command="{Binding SaveAsCommand}" InputGesture="Ctrl+Shift+S" />
+                <MenuItem Header="_Open..." Command="{Binding OpenFileCommand}" Tag="Open" />
+                <MenuItem Header="_Save" Command="{Binding SaveFileCommand}" Tag="Save" />
+                <MenuItem Header="Save _As..." Command="{Binding SaveAsCommand}" Tag="SaveAs" />
                 <Separator />
                 <MenuItem Header="_Recent Files" SubmenuOpened="RecentFilesMenu_SubmenuOpened" ItemsSource="{Binding RecentFiles}">
                     <MenuItem.ItemTemplate>
@@ -66,11 +29,21 @@
                     </MenuItem.ItemTemplate>
                 </MenuItem>
                 <Separator />
-                <MenuItem Header="_Examples..." Command="{Binding OpenExampleCommand}" InputGesture="Ctrl+Shift+E" />
+                <MenuItem Header="_Examples..." Command="{Binding OpenExampleCommand}" Tag="Examples" />
                 <Separator />
-                <MenuItem Header="_Preferences..." Command="{Binding ShowPreferencesCommand}" InputGesture="Ctrl+," />
+                <MenuItem Header="_Preferences..." Command="{Binding ShowPreferencesCommand}" Tag="Preferences" />
                 <MenuItem Header="Restart _Backend" Command="{Binding RestartBackendCommand}" />
                 <MenuItem Header="_About..." Command="{Binding ShowAboutCommand}" />
+            </MenuItem>
+            <MenuItem Header="_Debug">
+                <MenuItem Header="_Load Program" Command="{Binding LoadProgramCommand}" Tag="Load" />
+                <MenuItem Header="_Run" Command="{Binding RunCommand}" Tag="Run" />
+                <MenuItem Header="_Pause" Command="{Binding PauseCommand}" Tag="Pause" />
+                <MenuItem Header="_Step" Command="{Binding StepCommand}" Tag="Step" />
+                <MenuItem Header="Step _Over" Command="{Binding StepOverCommand}" Tag="StepOver" />
+                <MenuItem Header="Step Ou_t" Command="{Binding StepOutCommand}" Tag="StepOut" />
+                <MenuItem Header="R_eset" Command="{Binding ResetCommand}" Tag="Reset" />
+                <MenuItem Header="Show _PC" Command="{Binding ShowPcCommand}" Tag="ShowPc" />
             </MenuItem>
         </Menu>
 

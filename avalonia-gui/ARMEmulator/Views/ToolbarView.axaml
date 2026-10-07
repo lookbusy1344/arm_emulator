@@ -19,11 +19,10 @@
                 <TextBlock Name="StatusLabel" Text="{Binding StatusLabel}" />
             </Border>
 
-            <Button Classes="tool"
+            <Button Name="LoadButton"
+                    Classes="tool"
                     Command="{Binding LoadProgramCommand}"
-                    ToolTip.Tip="Load Program (Ctrl+L)"
-                    AutomationProperties.Name="Load Program"
-                    AutomationProperties.AcceleratorKey="Ctrl+L">
+                    AutomationProperties.Name="Load Program">
                 <StackPanel Orientation="Horizontal" Spacing="6">
                     <PathIcon Data="{StaticResource IconOpen}" />
                     <TextBlock Text="Load" />
@@ -32,21 +31,19 @@
 
             <Rectangle Classes="toolSeparator" />
 
-            <Button Classes="tool"
+            <Button Name="RunButton"
+                    Classes="tool"
                     Command="{Binding RunCommand}"
-                    ToolTip.Tip="Run (F5, Ctrl+R)"
-                    AutomationProperties.Name="Run Program"
-                    AutomationProperties.AcceleratorKey="F5">
+                    AutomationProperties.Name="Run Program">
                 <StackPanel Orientation="Horizontal" Spacing="6">
                     <PathIcon Data="{StaticResource IconPlay}" />
                     <TextBlock Text="Run" />
                 </StackPanel>
             </Button>
-            <Button Classes="tool"
+            <Button Name="PauseButton"
+                    Classes="tool"
                     Command="{Binding PauseCommand}"
-                    ToolTip.Tip="Pause (Ctrl+.)"
-                    AutomationProperties.Name="Pause Execution"
-                    AutomationProperties.AcceleratorKey="Ctrl+Period">
+                    AutomationProperties.Name="Pause Execution">
                 <StackPanel Orientation="Horizontal" Spacing="6">
                     <PathIcon Data="{StaticResource IconPause}" />
                     <TextBlock Text="Pause" />
@@ -55,31 +52,28 @@
 
             <Rectangle Classes="toolSeparator" />
 
-            <Button Classes="tool"
+            <Button Name="StepButton"
+                    Classes="tool"
                     Command="{Binding StepCommand}"
-                    ToolTip.Tip="Step (F11, Ctrl+T)"
-                    AutomationProperties.Name="Step Single Instruction"
-                    AutomationProperties.AcceleratorKey="F11">
+                    AutomationProperties.Name="Step Single Instruction">
                 <StackPanel Orientation="Horizontal" Spacing="6">
                     <PathIcon Data="{StaticResource IconStep}" />
                     <TextBlock Text="Step" />
                 </StackPanel>
             </Button>
-            <Button Classes="tool"
+            <Button Name="StepOverButton"
+                    Classes="tool"
                     Command="{Binding StepOverCommand}"
-                    ToolTip.Tip="Step Over (F10, Ctrl+Shift+T)"
-                    AutomationProperties.Name="Step Over Function"
-                    AutomationProperties.AcceleratorKey="F10">
+                    AutomationProperties.Name="Step Over Function">
                 <StackPanel Orientation="Horizontal" Spacing="6">
                     <PathIcon Data="{StaticResource IconStepOver}" />
                     <TextBlock Text="Step Over" />
                 </StackPanel>
             </Button>
-            <Button Classes="tool"
+            <Button Name="StepOutButton"
+                    Classes="tool"
                     Command="{Binding StepOutCommand}"
-                    ToolTip.Tip="Step Out (Ctrl+Alt+T)"
-                    AutomationProperties.Name="Step Out of Function"
-                    AutomationProperties.AcceleratorKey="Ctrl+Alt+T">
+                    AutomationProperties.Name="Step Out of Function">
                 <StackPanel Orientation="Horizontal" Spacing="6">
                     <PathIcon Data="{StaticResource IconStepOut}" />
                     <TextBlock Text="Step Out" />
@@ -88,21 +82,19 @@
 
             <Rectangle Classes="toolSeparator" />
 
-            <Button Classes="tool"
+            <Button Name="ResetButton"
+                    Classes="tool"
                     Command="{Binding ResetCommand}"
-                    ToolTip.Tip="Reset (Ctrl+Shift+R)"
-                    AutomationProperties.Name="Reset Virtual Machine"
-                    AutomationProperties.AcceleratorKey="Ctrl+Shift+R">
+                    AutomationProperties.Name="Reset Virtual Machine">
                 <StackPanel Orientation="Horizontal" Spacing="6">
                     <PathIcon Data="{StaticResource IconReset}" />
                     <TextBlock Text="Reset" />
                 </StackPanel>
             </Button>
-            <Button Classes="tool"
+            <Button Name="ShowPcButton"
+                    Classes="tool"
                     Command="{Binding ShowPcCommand}"
-                    ToolTip.Tip="Show PC (Ctrl+J)"
-                    AutomationProperties.Name="Show Program Counter in Editor"
-                    AutomationProperties.AcceleratorKey="Ctrl+J">
+                    AutomationProperties.Name="Show Program Counter in Editor">
                 <StackPanel Orientation="Horizontal" Spacing="6">
                     <PathIcon Data="{StaticResource IconShowPc}" />
                     <TextBlock Text="Show PC" />

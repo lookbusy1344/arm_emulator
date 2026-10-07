@@ -26,6 +26,7 @@ public partial class MainWindow : Window
 		DataContext = viewModel;
 		viewModel.SetParentWindow(this);
 		ApplyGeometry(viewModel.Settings.Layout.Geometry);
+		ApplyPlatformShortcuts(viewModel);
 	}
 
 	private bool closeConfirmed;

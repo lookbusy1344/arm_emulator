@@ -253,7 +253,9 @@ Status 2026-10-07: done. `ShortcutText` formats the platform shortcuts for the e
 - A connection view shown while the backend starts or after it fails, with the error and a retry button (uses 1.6), in place of a blank window.
 - The error bar (1.1) uses the theme's error colours and an icon.
 
-### 3.11 Platform conventions
+### 3.11 Platform conventions (done, native menus unverified)
+
+Status 2026-10-07: done. `Shortcuts.For(isMacOS)` is the one table of gestures (⌘ on macOS, Ctrl elsewhere); it drives the window key bindings, the toolbar tooltips and accelerator names, and the menu gesture hints. The in-window menu has a Debug menu mirroring the toolbar. On macOS the in-window menu is hidden and `NativeMenus` supplies File and Debug menus and the application menu items (About, Preferences). Native items carry no gesture, since the window's key bindings already handle the keys and a second registration could run a command twice. The native menus have headless structure tests only; check them on a Mac. No Window menu is added.
 
 - Key gestures use the platform modifier: `⌘` on macOS, `Ctrl` elsewhere (Avalonia `PlatformHotkeyConfiguration` or per-platform bindings).
 - macOS: a native application menu (`NativeMenu`) with About, Preferences (⌘,) and Quit, plus File, Debug and Window menus. Windows and Linux keep the in-window menu bar.
@@ -266,7 +268,7 @@ Status: `Ui/ScreenshotTests.cs` renders the main window with sample data in ligh
 - Screenshot tests with Avalonia.Headless rendering the main window and each panel to PNG in light and dark themes, compared against reviewed baselines with a small pixel tolerance.
 - A side-by-side review against the Swift GUI for each panel before closing the phase.
 
-Problem table progress: toolbar icons, separators, button widths and status pill are closed; splitters are closed. The register font, register cards, editor highlight, console and empty state rows are closed. The shortcuts row is open (3.11).
+Problem table progress: toolbar icons, separators, button widths and status pill are closed; splitters are closed. Every row is closed except the native macOS menus, which need a manual check.
 
 **Exit criteria:** every row in the problem table is closed; screenshot baselines exist for light and dark themes; a side-by-side review against the Swift GUI finds no layout or typography gap.
 
