@@ -10,7 +10,7 @@ public sealed class RegisterTableTests
 	[Fact]
 	public void Rows_ListSixteenRegistersInOrder()
 	{
-		var rows = RegisterTable.Rows(RegisterState.Create(), new HashSet<string>());
+		var rows = RegisterTable.ToRows(RegisterState.Create(), new HashSet<string>());
 
 		rows.Select(row => row.Name).Should().Equal(ExpectedNames);
 	}
@@ -18,7 +18,7 @@ public sealed class RegisterTableTests
 	[Fact]
 	public void Rows_FormatHexAsEightDigitsAndDecimalUnsigned()
 	{
-		var rows = RegisterTable.Rows(RegisterState.Create(r0: 5, r2: 0xDEADBEEF, pc: 0x8000), new HashSet<string>());
+		var rows = RegisterTable.ToRows(RegisterState.Create(r0: 5, r2: 0xDEADBEEF, pc: 0x8000), new HashSet<string>());
 
 		rows[0].Should().Be(new RegisterRow("R0", "0x00000005", "5", false));
 		rows[2].Should().Be(new RegisterRow("R2", "0xDEADBEEF", "3735928559", false));
@@ -28,7 +28,7 @@ public sealed class RegisterTableTests
 	[Fact]
 	public void Rows_MarkOnlyTheChangedRegisters()
 	{
-		var rows = RegisterTable.Rows(RegisterState.Create(), new HashSet<string> { "R1", "LR" });
+		var rows = RegisterTable.ToRows(RegisterState.Create(), new HashSet<string> { "R1", "LR" });
 
 		rows.Where(row => row.IsChanged).Select(row => row.Name).Should().Equal("R1", "LR");
 	}
@@ -36,7 +36,7 @@ public sealed class RegisterTableTests
 	[Fact]
 	public void Rows_IgnoreCpsrInTheChangedSet()
 	{
-		var rows = RegisterTable.Rows(RegisterState.Create(), new HashSet<string> { "CPSR" });
+		var rows = RegisterTable.ToRows(RegisterState.Create(), new HashSet<string> { "CPSR" });
 
 		rows.Should().OnlyContain(row => !row.IsChanged);
 	}
@@ -44,7 +44,7 @@ public sealed class RegisterTableTests
 	[Fact]
 	public void Flags_ListNZCVWithTheirState()
 	{
-		var flags = RegisterTable.Flags(RegisterState.Create(cpsr: new CPSRFlags(N: false, Z: true, C: true, V: false)));
+		var flags = RegisterTable.ToFlags(RegisterState.Create(cpsr: new CPSRFlags(N: false, Z: true, C: true, V: false)));
 
 		flags.Should().Equal(
 			new FlagItem('N', "Negative", false),

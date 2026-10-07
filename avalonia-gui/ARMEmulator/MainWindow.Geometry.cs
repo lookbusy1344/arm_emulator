@@ -1,5 +1,4 @@
 using ARMEmulator.Models;
-using ARMEmulator.ViewModels;
 using Avalonia;
 using Avalonia.Controls;
 
@@ -9,17 +8,33 @@ public partial class MainWindow
 {
 	private const int InspectorColumnIndex = 2;
 	private const int ConsoleRowIndex = 2;
+	private const double DefaultWidth = 1200;
+	private const double DefaultHeight = 800;
+	private const double DefaultInspectorWidth = 400;
+	private const double DefaultConsoleHeight = 250;
 
-	/// <summary>The geometry applied at start; kept as the restored size while the window is maximised.</summary>
-	private WindowGeometry? restoredGeometry;
+	private static readonly WindowGeometry DefaultGeometry = new() {
+		X = 0,
+		Y = 0,
+		Width = DefaultWidth,
+		Height = DefaultHeight,
+		InspectorWidth = DefaultInspectorWidth,
+		ConsoleHeight = DefaultConsoleHeight,
+		IsMaximized = false
+	};
+
+	private WindowGeometryTracker geometryTracker = new(DefaultGeometry);
+
+	private WindowGeometry? storedGeometry;
 
 	private void ApplyGeometry(WindowGeometry? geometry)
 	{
-		restoredGeometry = geometry;
+		storedGeometry = geometry;
 		if (geometry is null) {
 			return;
 		}
 
+		geometryTracker = new WindowGeometryTracker(geometry);
 		Width = geometry.Width;
 		Height = geometry.Height;
 		Position = new PixelPoint(geometry.X, geometry.Y);
@@ -31,11 +46,30 @@ public partial class MainWindow
 	protected override void OnOpened(EventArgs e)
 	{
 		base.OnOpened(e);
-		if (restoredGeometry is null) {
-			return;
+		if (storedGeometry is not null) {
+			RestoreOnScreen(storedGeometry);
 		}
 
-		if (Screens.All.Count > 0 && !restoredGeometry.IsVisibleOn(WorkingAreas())) {
+		ObserveGeometry();
+	}
+
+	protected override void OnResized(WindowResizedEventArgs e)
+	{
+		base.OnResized(e);
+		ObserveGeometry();
+	}
+
+	protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
+	{
+		base.OnPropertyChanged(change);
+		if (change.Property == WindowStateProperty) {
+			ObserveGeometry();
+		}
+	}
+
+	private void RestoreOnScreen(WindowGeometry geometry)
+	{
+		if (Screens.All.Count > 0 && !geometry.IsVisibleOn(WorkingAreas())) {
 			WindowStartupLocation = WindowStartupLocation.CenterScreen;
 			var primary = Screens.Primary;
 			if (primary is not null) {
@@ -43,9 +77,19 @@ public partial class MainWindow
 			}
 		}
 
-		if (restoredGeometry.IsMaximized) {
+		if (geometry.IsMaximized) {
 			WindowState = WindowState.Maximized;
 		}
+	}
+
+	private void ObserveGeometry()
+	{
+		var state = WindowState switch {
+			WindowState.Maximized or WindowState.FullScreen => ShownState.Maximized,
+			WindowState.Minimized => ShownState.Minimized,
+			_ => ShownState.Normal
+		};
+		geometryTracker.Observe(state, Position.X, Position.Y, ClientSize.Width, ClientSize.Height);
 	}
 
 	private IEnumerable<ScreenArea> WorkingAreas() =>
@@ -56,19 +100,9 @@ public partial class MainWindow
 
 	private WindowGeometry CaptureGeometry()
 	{
-		var inspectorWidth = TopSection.ColumnDefinitions[InspectorColumnIndex].ActualWidth;
-		var consoleHeight = ContentGrid.RowDefinitions[ConsoleRowIndex].ActualHeight;
-
-		return WindowState == WindowState.Normal || restoredGeometry is null
-			? new WindowGeometry {
-				X = Position.X,
-				Y = Position.Y,
-				Width = ClientSize.Width,
-				Height = ClientSize.Height,
-				InspectorWidth = inspectorWidth,
-				ConsoleHeight = consoleHeight,
-				IsMaximized = false
-			}.Clamp()
-			: restoredGeometry with { InspectorWidth = inspectorWidth, ConsoleHeight = consoleHeight, IsMaximized = true };
+		ObserveGeometry();
+		return geometryTracker.Capture(
+			TopSection.ColumnDefinitions[InspectorColumnIndex].ActualWidth,
+			ContentGrid.RowDefinitions[ConsoleRowIndex].ActualHeight);
 	}
 }

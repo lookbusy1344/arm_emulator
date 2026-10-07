@@ -76,7 +76,14 @@ public sealed record AppSettings
 	public EquatableArray<string> RecentFiles { get; init; } = [];
 
 	/// <summary>Window layout, including the selected inspector panel.</summary>
-	public WindowLayout Layout { get; init; } = new();
+	[AllowNull] // The source-generated deserialiser passes null for a missing key.
+	public WindowLayout Layout
+	{
+		get => layout;
+		init => layout = value ?? new WindowLayout();
+	}
+
+	private readonly WindowLayout layout = new();
 
 	/// <summary>Default settings instance.</summary>
 	public static AppSettings Default { get; } = new() {
@@ -94,12 +101,9 @@ public sealed record AppSettings
 		BackendUrl = IsHttpUrl(BackendUrl) ? BackendUrl : Default.BackendUrl,
 		EditorFontSize = Math.Clamp(EditorFontSize, 10, 24),
 		RecentFilesLimit = Math.Max(RecentFilesLimit, 1),
-		Layout = ValidLayout(),
+		Layout = Layout with { Geometry = Layout.Geometry?.Clamp() },
 		RecentFiles = [.. RecentFiles.Take(Math.Max(RecentFilesLimit, 1))]
 	};
-
-	// Layout is absent in files written before it existed.
-	private WindowLayout ValidLayout() => (Layout ?? new WindowLayout()) with { Geometry = Layout?.Geometry?.Clamp() };
 
 	private static bool IsHttpUrl(string url) =>
 		Uri.TryCreate(url, UriKind.Absolute, out var uri) && uri.Scheme is "http" or "https";

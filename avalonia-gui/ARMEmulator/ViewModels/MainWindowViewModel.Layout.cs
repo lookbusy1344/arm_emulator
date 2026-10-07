@@ -5,7 +5,7 @@ namespace ARMEmulator.ViewModels;
 
 public partial class MainWindowViewModel
 {
-	/// <summary>The inspector panel on show. A change is saved with the settings.</summary>
+	/// <summary>The inspector panel on show. It is saved with the window geometry when the window closes.</summary>
 	public InspectorPanel SelectedInspectorPanel
 	{
 		get => Settings.Layout.SelectedPanel;
@@ -15,7 +15,8 @@ public partial class MainWindowViewModel
 				return;
 			}
 
-			SaveSettings(Settings with { Layout = Settings.Layout with { SelectedPanel = value } });
+			Settings = Settings with { Layout = Settings.Layout with { SelectedPanel = value } };
+			this.RaisePropertyChanged(nameof(SelectedInspectorPanel));
 		}
 	}
 

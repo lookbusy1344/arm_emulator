@@ -49,6 +49,33 @@ public sealed class WindowGeometryUiTests
 		});
 
 	[Fact]
+	public Task Closing_WhileMaximized_SavesTheRestoredBoundsAndTheFlag() =>
+		UiTest.RunAsync(WithGeometry, ui => {
+			ui.Store.ClearReceivedCalls();
+			ui.Window.WindowState = WindowState.Maximized;
+			Dispatcher.UIThread.RunJobs();
+
+			ui.Window.Close();
+
+			ui.Store.Received().Save(Arg.Is<AppSettings>(saved =>
+				saved.Layout.Geometry!.IsMaximized && saved.Layout.Geometry.Width == 1000 && saved.Layout.Geometry.Height == 700));
+			return Task.CompletedTask;
+		});
+
+	[Fact]
+	public Task Closing_SavesTheSelectedInspectorPanel() =>
+		UiTest.RunAsync(WithGeometry, ui => {
+			ui.Store.ClearReceivedCalls();
+			ui.Find<ComboBox>("InspectorSelector").SelectedValue = InspectorPanel.Stack;
+			Dispatcher.UIThread.RunJobs();
+
+			ui.Window.Close();
+
+			ui.Store.Received().Save(Arg.Is<AppSettings>(saved => saved.Layout.SelectedPanel == InspectorPanel.Stack));
+			return Task.CompletedTask;
+		});
+
+	[Fact]
 	public Task Window_WithNoStoredGeometry_KeepsTheDefaultSize() =>
 		UiTest.Run(ui => {
 			ui.Window.Width.Should().Be(1200);

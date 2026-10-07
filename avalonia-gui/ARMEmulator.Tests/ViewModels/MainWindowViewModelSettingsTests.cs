@@ -92,14 +92,26 @@ public sealed class MainWindowViewModelSettingsTests : IDisposable
 	}
 
 	[Fact]
-	public void SelectingAnInspectorPanel_PersistsItInTheLayout()
+	public void SelectingAnInspectorPanel_UpdatesTheLayoutWithoutTouchingTheStore()
 	{
 		using var vm = CreateViewModel();
 
 		vm.SelectedInspectorPanel = InspectorPanel.Disassembly;
 
 		vm.Settings.Layout.SelectedPanel.Should().Be(InspectorPanel.Disassembly);
-		store.Received(1).Save(AppSettings.Default with { Layout = new WindowLayout { SelectedPanel = InspectorPanel.Disassembly } });
+		store.DidNotReceiveWithAnyArgs().Save(default!);
+	}
+
+	[Fact]
+	public void SelectingAnInspectorPanel_RaisesPropertyChanged()
+	{
+		using var vm = CreateViewModel();
+		var changed = new List<string?>();
+		vm.PropertyChanged += (_, args) => changed.Add(args.PropertyName);
+
+		vm.SelectedInspectorPanel = InspectorPanel.Stack;
+
+		changed.Should().Contain(nameof(MainWindowViewModel.SelectedInspectorPanel));
 	}
 
 	[Fact]
