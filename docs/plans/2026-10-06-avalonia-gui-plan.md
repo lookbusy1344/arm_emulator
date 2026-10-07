@@ -245,7 +245,9 @@ Status 2026-10-07: done. Preferences, About, Examples and Unsaved changes share 
 
 - Preferences, About and Examples use the theme spacing, a standard button row (default and cancel), and the platform's button order.
 
-### 3.10 Empty and connection states
+### 3.10 Empty and connection states (done)
+
+Status 2026-10-07: done. `ShortcutText` formats the platform shortcuts for the empty-editor hint (3.11 reuses it for tooltips). `MainWindowViewModel.Connection` (`Connecting`, `Connected`, `Failed`) and `ConnectionFailure` drive a connection view over the content area with a progress bar, the reason and a Retry button bound to `RestartBackendCommand`. The failure text survives dismissing the error bar. The error bar has an error icon and an icon dismiss button.
 
 - An empty-editor hint: "Open a file (⌘O) or choose an example (⇧⌘E)".
 - A connection view shown while the backend starts or after it fails, with the error and a retry button (uses 1.6), in place of a blank window.
@@ -264,7 +266,7 @@ Status: `Ui/ScreenshotTests.cs` renders the main window with sample data in ligh
 - Screenshot tests with Avalonia.Headless rendering the main window and each panel to PNG in light and dark themes, compared against reviewed baselines with a small pixel tolerance.
 - A side-by-side review against the Swift GUI for each panel before closing the phase.
 
-Problem table progress: toolbar icons, separators, button widths and status pill are closed; splitters are closed. The register font, register cards, editor highlight and console are closed. The shortcuts and empty state rows are open.
+Problem table progress: toolbar icons, separators, button widths and status pill are closed; splitters are closed. The register font, register cards, editor highlight, console and empty state rows are closed. The shortcuts row is open (3.11).
 
 **Exit criteria:** every row in the problem table is closed; screenshot baselines exist for light and dark themes; a side-by-side review against the Swift GUI finds no layout or typography gap.
 

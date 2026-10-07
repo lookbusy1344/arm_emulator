@@ -4,6 +4,7 @@ using Avalonia.Headless;
 using Avalonia.Styling;
 using Avalonia.Threading;
 using NSubstitute;
+using NSubstitute.ExceptionExtensions;
 
 namespace ARMEmulator.Tests.Ui;
 
@@ -110,5 +111,27 @@ public sealed class ScreenshotTests
 			AvaloniaHeadlessPlatform.ForceRenderTimerTick();
 			dialog.CaptureRenderedFrame()!.Save(Path.Combine(Environment.GetEnvironmentVariable(DirectoryVariable)!, $"dialog-{name}-{(dark ? "dark" : "light")}.png"));
 			dialog.Close();
+		});
+
+	[Theory(SkipUnless = nameof(WantsScreenshots), Skip = "Set ARM_SCREENSHOT_DIR to render screenshots")]
+	[InlineData("connecting")]
+	[InlineData("failed")]
+	[InlineData("empty")]
+	public Task StartState_Renders(string name) =>
+		UiTest.RunAsync(async ui => {
+			ui.Window.Width = WindowWidth;
+			ui.Window.Height = WindowHeight;
+			if (name == "failed") {
+				ui.Backend.StartAsync(default).ThrowsAsyncForAnyArgs(new ARMEmulator.Services.BackendStartException("backend binary not found next to the application"));
+			}
+
+			if (name != "connecting") {
+				await ui.ViewModel.StartAsync(ui.Backend, TestContext.Current.CancellationToken);
+			}
+
+			Dispatcher.UIThread.RunJobs();
+			ui.Window.UpdateLayout();
+			AvaloniaHeadlessPlatform.ForceRenderTimerTick();
+			ui.Window.CaptureRenderedFrame()!.Save(Path.Combine(Environment.GetEnvironmentVariable(DirectoryVariable)!, $"state-{name}.png"));
 		});
 }

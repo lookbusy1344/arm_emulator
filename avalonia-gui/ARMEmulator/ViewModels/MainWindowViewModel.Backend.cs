@@ -44,11 +44,12 @@ public partial class MainWindowViewModel
 
 	private async Task<bool> StartBackendAndSessionAsync(IBackendManager backend, CancellationToken ct)
 	{
+		ConnectionFailure = null;
 		try {
 			await backend.StartAsync(ct);
 		}
 		catch (BackendStartException ex) {
-			ErrorMessage = $"Failed to start backend: {ex.Message}";
+			ReportConnectionFailure($"Failed to start backend: {ex.Message}");
 			return false;
 		}
 
@@ -58,7 +59,7 @@ public partial class MainWindowViewModel
 			return true;
 		}
 		catch (ApiException ex) {
-			ErrorMessage = $"Failed to connect to backend: {ex.Message}";
+			ReportConnectionFailure($"Failed to connect to backend: {ex.Message}");
 			return false;
 		}
 	}

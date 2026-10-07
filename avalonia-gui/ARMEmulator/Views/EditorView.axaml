@@ -1,17 +1,27 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:ARMEmulator.ViewModels"
+             xmlns:svc="using:ARMEmulator.Services"
              xmlns:avaloniaEdit="https://github.com/avaloniaui/avaloniaedit"
              x:Class="ARMEmulator.Views.EditorView"
              x:DataType="vm:MainWindowViewModel">
-    <avaloniaEdit:TextEditor Name="TextEditor"
-                             FontFamily="{DynamicResource DataFontFamily}"
-                             FontSize="{Binding Settings.EditorFontSize}"
-                             ShowLineNumbers="True"
-                             WordWrap="False"
-                             Background="{DynamicResource EditorBackgroundBrush}"
-                             Foreground="{DynamicResource EditorForegroundBrush}"
-                             IsReadOnly="{Binding !IsEditorEditable}"
-                             HorizontalScrollBarVisibility="Auto"
-                             VerticalScrollBarVisibility="Auto" />
+    <Grid>
+        <avaloniaEdit:TextEditor Name="TextEditor"
+                                 FontFamily="{DynamicResource DataFontFamily}"
+                                 FontSize="{Binding Settings.EditorFontSize}"
+                                 ShowLineNumbers="True"
+                                 WordWrap="False"
+                                 Background="{DynamicResource EditorBackgroundBrush}"
+                                 Foreground="{DynamicResource EditorForegroundBrush}"
+                                 IsReadOnly="{Binding !IsEditorEditable}"
+                                 HorizontalScrollBarVisibility="Auto"
+                                 VerticalScrollBarVisibility="Auto" />
+        <TextBlock Name="EmptyEditorHint"
+                   Classes="hint"
+                   Text="{x:Static svc:ShortcutText.CurrentEmptyEditorHint}"
+                   IsVisible="{Binding IsEditorEmpty}"
+                   IsHitTestVisible="False"
+                   HorizontalAlignment="Center"
+                   VerticalAlignment="Center" />
+    </Grid>
 </UserControl>

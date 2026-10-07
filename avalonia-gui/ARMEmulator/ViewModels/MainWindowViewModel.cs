@@ -231,6 +231,7 @@ public partial class MainWindowViewModel : ReactiveObject, IDisposable
 			}
 
 			_ = this.RaiseAndSetIfChanged(ref sourceCode, value);
+			this.RaisePropertyChanged(nameof(IsEditorEmpty));
 			IsDirty = true;
 		}
 	}
@@ -274,7 +275,11 @@ public partial class MainWindowViewModel : ReactiveObject, IDisposable
 	public bool IsConnected
 	{
 		get => isConnected;
-		set => this.RaiseAndSetIfChanged(ref isConnected, value);
+		set
+		{
+			_ = this.RaiseAndSetIfChanged(ref isConnected, value);
+			RaiseConnectionChanged();
+		}
 	}
 
 	private string? sessionId;

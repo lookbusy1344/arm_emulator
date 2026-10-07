@@ -87,12 +87,24 @@
                 Padding="8,4">
             <DockPanel>
                 <Button DockPanel.Dock="Right"
-                        Content="Dismiss"
+                        Name="DismissErrorButton"
+                        Classes="tool"
                         Command="{Binding DismissErrorCommand}"
                         VerticalAlignment="Top"
-                        AutomationProperties.Name="Dismiss error" />
+                        ToolTip.Tip="Dismiss"
+                        AutomationProperties.Name="Dismiss error">
+                    <PathIcon Data="{StaticResource IconDismiss}" />
+                </Button>
+                <PathIcon DockPanel.Dock="Left"
+                          Name="ErrorIcon"
+                          Data="{StaticResource IconError}"
+                          Foreground="{DynamicResource ErrorTextBrush}"
+                          Width="16" Height="16"
+                          VerticalAlignment="Top"
+                          Margin="0,2,8,0" />
                 <SelectableTextBlock Name="ErrorText"
                                      Text="{Binding ErrorMessage}"
+                                     Foreground="{DynamicResource ErrorTextBrush}"
                                      TextWrapping="Wrap"
                                      MaxHeight="160"
                                      VerticalAlignment="Center"
@@ -143,6 +155,29 @@
 
             <!-- Console View -->
             <views:ConsoleView Grid.Row="2" />
+
+            <!-- Connection view: covers the content until the backend is reachable -->
+            <Border Name="ConnectionView"
+                    Grid.RowSpan="3"
+                    Background="{DynamicResource PanelBackgroundBrush}"
+                    IsVisible="{Binding Connection, Converter={x:Static ObjectConverters.NotEqual}, ConverterParameter={x:Static vm:ConnectionState.Connected}}">
+                <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="12" MaxWidth="480">
+                    <TextBlock Name="ConnectionTitle" Classes="dialogTitle" HorizontalAlignment="Center"
+                               Text="Starting the backend"
+                               IsVisible="{Binding Connection, Converter={x:Static ObjectConverters.Equal}, ConverterParameter={x:Static vm:ConnectionState.Connecting}}" />
+                    <TextBlock Name="ConnectionFailedTitle" Classes="dialogTitle" HorizontalAlignment="Center"
+                               Text="Could not reach the backend"
+                               IsVisible="{Binding Connection, Converter={x:Static ObjectConverters.Equal}, ConverterParameter={x:Static vm:ConnectionState.Failed}}" />
+                    <ProgressBar Name="ConnectionProgress" IsIndeterminate="True" Width="200"
+                                 IsVisible="{Binding Connection, Converter={x:Static ObjectConverters.Equal}, ConverterParameter={x:Static vm:ConnectionState.Connecting}}" />
+                    <TextBlock Name="ConnectionFailureText" Classes="hint" TextAlignment="Center"
+                               Text="{Binding ConnectionFailure}"
+                               IsVisible="{Binding ConnectionFailure, Converter={x:Static StringConverters.IsNotNullOrEmpty}}" />
+                    <Button Name="RetryButton" Classes="accent" Content="Retry" HorizontalAlignment="Center"
+                            Command="{Binding RestartBackendCommand}"
+                            IsVisible="{Binding Connection, Converter={x:Static ObjectConverters.Equal}, ConverterParameter={x:Static vm:ConnectionState.Failed}}" />
+                </StackPanel>
+            </Border>
         </Grid>
     </DockPanel>
 </Window>
