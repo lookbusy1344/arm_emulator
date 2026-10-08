@@ -20,7 +20,7 @@ public sealed class PreferencesWindowViewModelTests
 
 		// Assert
 		vm.BackendUrl.Should().Be("http://localhost:8080");
-		vm.EditorFontSize.Should().Be(14);
+		vm.EditorFontSize.Should().Be(10);
 		vm.SelectedTheme.Should().Be(AppTheme.Auto);
 		vm.RecentFilesLimit.Should().Be(10);
 		vm.AutoScrollToMemoryWrites.Should().BeTrue();

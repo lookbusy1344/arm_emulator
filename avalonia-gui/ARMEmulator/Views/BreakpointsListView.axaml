@@ -22,7 +22,7 @@
                         <TextBlock Grid.Column="0"
                                    Text="Breakpoints"
                                    FontWeight="SemiBold"
-                                   FontSize="14" />
+                                   FontSize="12" />
                         <TextBlock Grid.Column="1"
                                    Text="{Binding Breakpoints.Count, StringFormat='{}{0} active'}"
                                    FontSize="11"
@@ -41,7 +41,7 @@
                                         <!-- Icon -->
                                         <TextBlock Grid.Column="0"
                                                    Text="🔴"
-                                                   FontSize="14"
+                                                   FontSize="12"
                                                    Margin="0,0,12,0"
                                                    VerticalAlignment="Center" />
 
@@ -90,7 +90,7 @@
                         <TextBlock Grid.Column="0"
                                    Text="Watchpoints"
                                    FontWeight="SemiBold"
-                                   FontSize="14" />
+                                   FontSize="12" />
                         <TextBlock Grid.Column="1"
                                    Text="{Binding Watchpoints.Length, StringFormat='{}{0} active'}"
                                    FontSize="11"
@@ -109,7 +109,7 @@
                                         <!-- Type Icon -->
                                         <TextBlock Grid.Column="0"
                                                    Text="{Binding Type, Converter={StaticResource WatchpointTypeIconConverter}}"
-                                                   FontSize="14"
+                                                   FontSize="12"
                                                    Margin="0,0,12,0"
                                                    VerticalAlignment="Center" />
 

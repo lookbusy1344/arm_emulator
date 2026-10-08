@@ -20,7 +20,7 @@
                 <StackPanel Spacing="8">
                     <TextBlock Text="Add Watchpoint"
                                FontWeight="SemiBold"
-                               FontSize="14" />
+                               FontSize="12" />
 
                     <Grid ColumnDefinitions="Auto,*,Auto" RowDefinitions="Auto,Auto,Auto" ColumnSpacing="8" RowSpacing="8">
                         <!-- Address input -->
@@ -60,7 +60,7 @@
                 <StackPanel Spacing="8">
                     <TextBlock Text="Active Watchpoints"
                                FontWeight="SemiBold"
-                               FontSize="14" />
+                               FontSize="12" />
 
                     <ItemsControl ItemsSource="{Binding Watchpoints}">
                         <ItemsControl.ItemTemplate>
@@ -72,7 +72,7 @@
                                         <!-- Type Icon -->
                                         <TextBlock Grid.Column="0"
                                                    Text="{Binding Type, Converter={StaticResource WatchpointTypeIconConverter}}"
-                                                   FontSize="16"
+                                                   FontSize="12"
                                                    Margin="0,0,12,0"
                                                    VerticalAlignment="Center" />
 

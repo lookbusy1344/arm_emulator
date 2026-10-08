@@ -88,7 +88,7 @@ public sealed record AppSettings
 	/// <summary>Default settings instance.</summary>
 	public static AppSettings Default { get; } = new() {
 		BackendUrl = "http://localhost:8080",
-		EditorFontSize = 14,
+		EditorFontSize = 10,
 		Theme = AppTheme.Auto,
 		RecentFilesLimit = 10,
 		AutoScrollToMemoryWrites = true

@@ -19,7 +19,7 @@
                 <StackPanel Spacing="8">
                     <TextBlock Text="Expression Evaluator"
                                FontWeight="SemiBold"
-                               FontSize="14" />
+                               FontSize="12" />
 
                     <TextBlock Text="Examples: r0, r1+r2, [r0], 0x8000"
                                Foreground="{DynamicResource SystemControlForegroundBaseMediumBrush}"
@@ -57,7 +57,7 @@
                 <StackPanel Spacing="8">
                     <TextBlock Text="Result"
                                FontWeight="SemiBold"
-                               FontSize="14" />
+                               FontSize="12" />
 
                     <Grid RowDefinitions="Auto,Auto,Auto" ColumnDefinitions="Auto,*" ColumnSpacing="12" RowSpacing="6">
                         <TextBlock Grid.Row="0" Grid.Column="0" Text="Hex:" FontWeight="SemiBold" />
@@ -106,7 +106,7 @@
                         <TextBlock Grid.Column="0"
                                    Text="History"
                                    FontWeight="SemiBold"
-                                   FontSize="14" />
+                                   FontSize="12" />
                         <Button Grid.Column="1"
                                 Content="Clear"
                                 Command="{Binding ClearHistoryCommand}"

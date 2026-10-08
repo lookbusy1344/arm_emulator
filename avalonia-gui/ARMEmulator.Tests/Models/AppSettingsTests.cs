@@ -16,7 +16,7 @@ public class AppSettingsTests
 
 		// Assert
 		settings.BackendUrl.Should().Be("http://localhost:8080");
-		settings.EditorFontSize.Should().Be(14);
+		settings.EditorFontSize.Should().Be(10);
 		settings.Theme.Should().Be(AppTheme.Auto);
 		settings.RecentFilesLimit.Should().Be(10);
 		settings.AutoScrollToMemoryWrites.Should().BeTrue();
@@ -97,7 +97,7 @@ public class AppSettingsTests
 		};
 
 		// Assert
-		original.EditorFontSize.Should().Be(14);
+		original.EditorFontSize.Should().Be(10);
 		original.Theme.Should().Be(AppTheme.Auto);
 		original.AutoScrollToMemoryWrites.Should().BeTrue();
 
