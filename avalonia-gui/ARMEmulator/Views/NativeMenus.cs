@@ -10,16 +10,20 @@ namespace ARMEmulator.Views;
 /// </summary>
 public static class NativeMenus
 {
-	/// <summary>The File and Debug menus of the main window.</summary>
+	/// <summary>The File and Debug menus of the main window. They offer the same commands as the in-window menu.</summary>
 	public static NativeMenu CreateWindowMenu(MainWindowViewModel viewModel) => [
 		Submenu("File", [
 			Item("Open…", viewModel, ShortcutId.Open),
 			Item("Save", viewModel, ShortcutId.Save),
 			Item("Save As…", viewModel, ShortcutId.SaveAs),
 			new NativeMenuItemSeparator(),
+			RecentFilesItem(viewModel),
+			new NativeMenuItemSeparator(),
 			Item("Examples…", viewModel, ShortcutId.Examples),
 			new NativeMenuItemSeparator(),
-			new NativeMenuItem("Restart Backend") { Command = viewModel.RestartBackendCommand }
+			Item("Preferences…", viewModel, ShortcutId.Preferences),
+			new NativeMenuItem("Restart Backend") { Command = viewModel.RestartBackendCommand },
+			new NativeMenuItem("About…") { Command = viewModel.ShowAboutCommand }
 		]),
 		Submenu("Debug", [
 			Item("Load Program", viewModel, ShortcutId.Load),
@@ -39,6 +43,29 @@ public static class NativeMenus
 		new NativeMenuItem("About ARM Emulator") { Command = viewModel.ShowAboutCommand },
 		Item("Preferences…", viewModel, ShortcutId.Preferences)
 	];
+
+	/// <summary>Lists the recent files. Reopens the list from the file service each time the menu opens.</summary>
+	private static NativeMenuItem RecentFilesItem(MainWindowViewModel viewModel)
+	{
+		var menu = new NativeMenu();
+		void Populate()
+		{
+			menu.Items.Clear();
+			foreach (var file in viewModel.RecentFiles) {
+				menu.Items.Add(new NativeMenuItem(file.FileName) {
+					Command = viewModel.OpenRecentFileCommand,
+					CommandParameter = file.Path
+				});
+			}
+		}
+
+		menu.Opening += (_, _) => {
+			viewModel.RefreshRecentFiles();
+			Populate();
+		};
+		Populate();
+		return new NativeMenuItem("Recent Files") { Menu = menu };
+	}
 
 	private static NativeMenuItem Item(string header, MainWindowViewModel viewModel, ShortcutId id) =>
 		new(header) { Command = ShortcutBindings.CommandFor(viewModel, id) };
