@@ -18,7 +18,8 @@ public sealed class StackViewModel : ReactiveObject, IDisposable
 
 	// Stack typically starts at 0x50000 in ARM emulator
 	private const uint StackTop = 0x50000;
-	private const int StackDisplaySize = 256; // Display 256 bytes of stack
+	private const uint MaxStackBytes = 0x10000;
+	private const int GeneralRegisterCount = 13;
 
 	// Address ranges for annotation detection
 	private const uint CodeStart = 0x8000;
@@ -36,7 +37,8 @@ public sealed class StackViewModel : ReactiveObject, IDisposable
 		stackEntriesHelper = this.WhenAnyValue(
 				x => x.StackMemory,
 				x => x.StackPointer,
-				x => x.LinkRegister)
+				x => x.LinkRegister,
+				x => x.GeneralRegisters)
 			.Select(_ => FormatStackEntries())
 			.ToProperty(this, x => x.StackEntries)
 			.DisposeWith(disposables);
@@ -53,6 +55,13 @@ public sealed class StackViewModel : ReactiveObject, IDisposable
 	{
 		get => stackPointer;
 		set => this.RaiseAndSetIfChanged(ref stackPointer, value);
+	}
+
+	private ImmutableArray<uint> generalRegisters = [];
+	public ImmutableArray<uint> GeneralRegisters
+	{
+		get => generalRegisters;
+		private set => this.RaiseAndSetIfChanged(ref generalRegisters, value);
 	}
 
 	private uint linkRegister;
@@ -101,6 +110,7 @@ public sealed class StackViewModel : ReactiveObject, IDisposable
 	{
 		StackPointer = registers.SP;
 		LinkRegister = registers.LR;
+		GeneralRegisters = registers.Registers.Take(GeneralRegisterCount).ToImmutableArray();
 	}
 
 	public async Task RefreshStackAsync()
@@ -112,9 +122,20 @@ public sealed class StackViewModel : ReactiveObject, IDisposable
 		try {
 			ErrorMessage = null;
 
-			// Load memory from SP upward (stack grows downward)
-			var startAddress = StackPointer;
-			var data = await api.GetMemoryAsync(SessionId, startAddress, StackDisplaySize, CancellationToken.None);
+			var used = CalculateStackSize(StackPointer);
+			if (used > MaxStackBytes) {
+				StackMemory = [];
+				ErrorMessage = $"Stack of {used} bytes exceeds the {MaxStackBytes} byte limit; SP may be corrupt";
+				return;
+			}
+
+			if (used == 0) {
+				StackMemory = [];
+				return;
+			}
+
+			// Load the used stack from SP upward (the stack grows downward)
+			var data = await api.GetMemoryAsync(SessionId, StackPointer, (int)used, CancellationToken.None);
 			StackMemory = data;
 		}
 		catch (Exception ex) {
@@ -170,7 +191,7 @@ public sealed class StackViewModel : ReactiveObject, IDisposable
 	private string? GetAnnotation(uint value)
 	{
 		// Check if value matches LR
-		if (value == LinkRegister) {
+		if (value != 0 && value == LinkRegister) {
 			return "LR (return address)";
 		}
 
@@ -182,6 +203,11 @@ public sealed class StackViewModel : ReactiveObject, IDisposable
 		// Check if value is in stack range
 		if (value >= StackStart && value < StackEnd) {
 			return "stack address";
+		}
+
+		var registerIndex = GeneralRegisters.IndexOf(value);
+		if (value != 0 && registerIndex >= 0) {
+			return $"R{registerIndex}";
 		}
 
 		return null;

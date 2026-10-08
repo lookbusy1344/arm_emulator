@@ -79,7 +79,7 @@ public sealed class ScreenshotTests
 			ui.Api.GetDisassemblyAsync(default!, default, default, default).ReturnsForAnyArgs(
 				SourceMap.Select(entry => new DisassemblyInstruction(entry.Address, 0xE2800001, "ADD R0, R0, #1", entry.Address == 0x8008 ? "loop" : null)).ToImmutableArray());
 			ui.ViewModel.Breakpoints = [0x8008];
-			ui.ViewModel.UpdateRegisters(RegisterState.Create(r0: 0x8000, sp: 0x50000, pc: 0x8008));
+			ui.ViewModel.UpdateRegisters(RegisterState.Create(r0: 0x8000, sp: 0x4FF80, pc: 0x8008));
 			await ui.ViewModel.Memory.LoadMemoryAsync(0x8000);
 			ui.ViewModel.Memory.LastWriteAddress = 0x8013;
 			ui.ViewModel.SelectedInspectorPanel = panel;

@@ -189,7 +189,7 @@ public sealed class DebuggingFlowTests
 	public Task StackPanel_ShowsEntriesFromItsViewModel() =>
 		UiTest.RunAsync(async ui => {
 			await StartSessionAsync(ui);
-			const uint stackPointer = 0x7FF0;
+			const uint stackPointer = 0x4FFF0;
 			ui.Api.GetMemoryAsync(SessionId, stackPointer, Arg.Any<int>(), Arg.Any<CancellationToken>())
 				.Returns(ImmutableArray.Create<byte>(1, 0, 0, 0, 2, 0, 0, 0));
 			SelectTab(ui, InspectorPanel.Stack);

@@ -91,7 +91,7 @@ public sealed class InspectorTableTests
 	public Task StackRow_AtTheStackPointer_IsCurrent() =>
 		UiTest.RunAsync(async ui => {
 			await ShowPanelAsync(ui, InspectorPanel.Stack);
-			const uint stackPointer = 0x7FF0;
+			const uint stackPointer = 0x4FFF0;
 			ui.Api.GetMemoryAsync(SessionId, stackPointer, Arg.Any<int>(), Ct)
 				.ReturnsForAnyArgs(ImmutableArray.Create<byte>(1, 0, 0, 0, 2, 0, 0, 0));
 
