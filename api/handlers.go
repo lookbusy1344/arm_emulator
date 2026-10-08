@@ -205,7 +205,10 @@ func (s *Server) handleRun(w http.ResponseWriter, r *http.Request, sessionID str
 
 	// Run the program asynchronously
 	go func() {
-		_ = svc.RunUntilHalt()
+		runErr := svc.RunUntilHalt()
+		if runErr != nil && s.broadcaster != nil {
+			s.broadcaster.BroadcastExecutionEvent(sessionID, "error", map[string]interface{}{"message": runErr.Error()})
+		}
 
 		// Broadcast final state after execution completes
 		finalRegs := svc.GetRegisterState()

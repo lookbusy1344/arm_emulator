@@ -1,6 +1,10 @@
 package api
 
 import (
+	"fmt"
+	"net/http"
+	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
@@ -130,5 +134,36 @@ func TestBroadcasterFiltersBySession(t *testing.T) {
 		}
 	case <-time.After(waitLimit):
 		t.Fatal("no event for the subscribed session")
+	}
+}
+
+// A run that stops on a runtime fault tells the client why: an execution event named
+// "error" carries the fault's message, beside the state event with status "error".
+func TestRunFaultBroadcastsAnErrorEvent(t *testing.T) {
+	const waitLimit = 2 * time.Second
+	server := testServer()
+	sessionID := createTestSession(t, server)
+	// A store through a null pointer faults
+	loadProgram(t, server, sessionID, ".org 0x8000\n_start:\nMOV R1, #0\nMOV R0, #1\nSTR R0, [R1]\nSWI #0")
+	sub := server.GetBroadcaster().Subscribe(sessionID, []api.EventType{api.EventTypeExecution})
+
+	req := httptest.NewRequest(http.MethodPost, fmt.Sprintf("/api/v1/session/%s/run", sessionID), nil)
+	w := httptest.NewRecorder()
+	server.Handler().ServeHTTP(w, req)
+	if w.Code != http.StatusOK {
+		t.Fatalf("run status = %d: %s", w.Code, w.Body.String())
+	}
+
+	select {
+	case event := <-sub.Channel:
+		if got := event.Data["event"]; got != "error" {
+			t.Fatalf("execution event = %v, want error", got)
+		}
+		message, _ := event.Data["message"].(string)
+		if !strings.Contains(message, "memory access violation") {
+			t.Errorf("error event message = %q, want it to name the memory access violation", message)
+		}
+	case <-time.After(waitLimit):
+		t.Fatal("no execution event after a faulting run")
 	}
 }

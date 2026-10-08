@@ -726,25 +726,21 @@ Sent when program writes to stdout or stderr:
 
 #### Execution Event
 
-Sent for breakpoints, watchpoints, errors, or program completion:
+Sent when a run stops on a runtime fault. Breakpoints, watchpoints and program completion are reported by the `state` event's `status`:
 
 ```json
 {
   "type": "event",
   "sessionId": "a1b2c3...",
   "data": {
-    "event": "breakpoint_hit",
-    "address": 32780,
-    "symbol": "main+12"
+    "event": "error",
+    "message": "store failed at 0x00000000: memory access violation: address 0x00000000 is not mapped"
   }
 }
 ```
 
 **Event Types:**
-- `breakpoint_hit` - Breakpoint triggered
-- `watchpoint_hit` - Watchpoint triggered
-- `program_halted` - Program exited
-- `error` - Execution error
+- `error` - Execution fault; `message` holds the reason. Sent before the final `state` event with status `error`.
 
 ### Swift Example
 

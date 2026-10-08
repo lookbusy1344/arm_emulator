@@ -345,7 +345,7 @@ These are backend behaviours the GUI works around today. Each needs a Go change 
 - Done 2026-10-08: a load that parses but fails in the loader reset the VM and left the failed program's source map and symbols in the service. The service now clears them, so `GET /sourcemap` and `GET /symbols` match the empty VM. Parse errors never reach the service and leave the previous program loaded.
 - Done 2026-10-08: `/reset` is documented as "clear VM" and `/restart` is documented in `openapi.yaml` and `docs/HTTP_API.md`. Behaviour is unchanged; the GUIs use `/restart`.
 - The backend reports `halted` for a loaded program that has not run. An `idle` (or `loaded`) state would remove the GUI's special case.
-- Execution events (`breakpoint_hit`, `halted`, `error`) are defined in the broadcaster but no handler sends them.
+- Partly done 2026-10-08: a run that stops on a runtime fault now sends an `error` execution event with the fault's message (the GUIs show it in the error bar). `breakpoint_hit` and `halted` stay unsent; the state event carries both outcomes.
 
 ## Order of work
 
