@@ -26,7 +26,7 @@ public sealed class MemoryViewModel : ReactiveObject, IDisposable
 		JumpToRegisterCommand = ReactiveCommand.CreateFromTask<int>(JumpToRegisterAsync);
 
 		// Compute formatted rows whenever memory data or address changes
-		formattedRowsHelper = this.WhenAnyValue(x => x.MemoryData, x => x.CurrentAddress, x => x.LastWriteAddress)
+		formattedRowsHelper = this.WhenAnyValue(x => x.MemoryData, x => x.CurrentAddress, x => x.LastWriteAddress, x => x.LastWriteSize)
 			.Select(_ => FormatMemoryRows())
 			.ToProperty(this, x => x.FormattedRows)
 			.DisposeWith(disposables);
@@ -51,6 +51,15 @@ public sealed class MemoryViewModel : ReactiveObject, IDisposable
 	{
 		get => memoryData;
 		set => this.RaiseAndSetIfChanged(ref memoryData, value);
+	}
+
+	private uint lastWriteSize = 1;
+
+	/// <summary>Bytes covered by the last write, from <see cref="LastWriteAddress"/>.</summary>
+	public uint LastWriteSize
+	{
+		get => lastWriteSize;
+		private set => this.RaiseAndSetIfChanged(ref lastWriteSize, value);
 	}
 
 	private uint? lastWriteAddress;
@@ -105,6 +114,7 @@ public sealed class MemoryViewModel : ReactiveObject, IDisposable
 			return;
 		}
 
+		LastWriteSize = Math.Max(write.Size, 1);
 		LastWriteAddress = write.Address;
 
 		if (AutoScrollToWrites && SessionId is not null) {
@@ -204,8 +214,8 @@ public sealed class MemoryViewModel : ReactiveObject, IDisposable
 					HexBytes: hexBytes,
 					AsciiText: asciiText,
 					IsHighlighted: LastWriteAddress.HasValue &&
-								   rowAddress <= LastWriteAddress.Value &&
-								   LastWriteAddress.Value < rowAddress + rowLength
+								   rowAddress < (ulong)LastWriteAddress.Value + LastWriteSize &&
+								   LastWriteAddress.Value < (ulong)rowAddress + (uint)rowLength
 				);
 			})
 			.ToImmutableList();

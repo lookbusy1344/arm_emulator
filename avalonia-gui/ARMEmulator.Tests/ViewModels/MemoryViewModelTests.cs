@@ -155,6 +155,30 @@ public class MemoryViewModelTests : IDisposable
 	}
 
 	[Fact]
+	public void UpdateMemoryWrite_HighlightsEveryRowTheWriteTouches()
+	{
+		viewModel.AutoScrollToWrites = false;
+		viewModel.CurrentAddress = 0x8000;
+		viewModel.MemoryData = [.. new byte[48]];
+
+		viewModel.UpdateMemoryWrite(new MemoryWrite(0x800E, 4));
+
+		viewModel.FormattedRows.Select(row => row.IsHighlighted).Should().Equal(true, true, false);
+	}
+
+	[Fact]
+	public void UpdateMemoryWrite_DoesNotHighlightTheRowAfterTheLastWrittenByte()
+	{
+		viewModel.AutoScrollToWrites = false;
+		viewModel.CurrentAddress = 0x8000;
+		viewModel.MemoryData = [.. new byte[32]];
+
+		viewModel.UpdateMemoryWrite(new MemoryWrite(0x800C, 4));
+
+		viewModel.FormattedRows.Select(row => row.IsHighlighted).Should().Equal(true, false);
+	}
+
+	[Fact]
 	public async Task UpdateMemoryWrite_WithAutoScroll_ShouldNavigateToWriteAddress()
 	{
 		// Arrange
