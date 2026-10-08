@@ -102,7 +102,7 @@ dotnet test
 
 **Note:** `dotnet format` runs automatically after every change to the Avalonia project.
 
-**Docs:** `docs/AVALONIA_IMPLEMENTATION_PLAN.md`
+**Docs:** `docs/plans/2026-10-06-avalonia-gui-plan.md`
 
 ## Project Structure
 
@@ -123,5 +123,5 @@ dotnet test
 
 - **Instructions & Syscalls:** [docs/INSTRUCTIONS.md](docs/INSTRUCTIONS.md)
 - **Swift GUI Architecture:** `SWIFT_GUI_PLANNING.md`, `docs/SWIFT_CLI_AUTOMATION.md`, `docs/MCP_UI_DEBUGGING.md`
-- **Avalonia GUI Plan:** `docs/AVALONIA_IMPLEMENTATION_PLAN.md`
+- **Avalonia GUI Plan:** `docs/plans/2026-10-06-avalonia-gui-plan.md`
 - **Diagnostic Modes:** Code coverage, stack trace, flag trace, register trace (see `--help`)

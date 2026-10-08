@@ -90,8 +90,6 @@ Use **idiomatic .NET exception-based error handling** (not Result/Either monads)
   - ❌ `catch (Exception ex) { Log(ex); throw; }` - noise
   - ❌ Pokemon exception handling (catch 'em all) at low levels
 
-**See:** `../docs/AVALONIA_IMPLEMENTATION_PLAN.md` section "Exception Handling Philosophy" for detailed examples
-
 ### Naming Conventions
 
 - **Public properties/methods:** PascalCase
@@ -160,6 +158,6 @@ private async void OnWebSocketMessage(object? sender, MessageEventArgs e)
 
 ## Additional Documentation
 
-- **Implementation Plan:** `../docs/AVALONIA_IMPLEMENTATION_PLAN.md`
+- **Plan and status:** `../docs/plans/2026-10-06-avalonia-gui-plan.md`
 - **API Reference:** See Go backend `api/` directory
 - **Main Project Docs:** `../AGENTS.md`

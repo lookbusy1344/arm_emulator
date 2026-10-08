@@ -330,7 +330,7 @@ Check each item against the Swift GUI and record the result in this file:
 
 ## Phase 6: Release
 
-Status 2026-10-08: backend discovery moved into `BackendLocator` with tests for the macOS bundle, Windows and Linux layouts that `build-release.yml` packages. `avalonia-gui/README.md` is current. The release workflow's artefacts are unverified until a tagged run. Open: `docs/GUI.md`, retiring stale documents (needs approval to delete).
+Status 2026-10-08: backend discovery moved into `BackendLocator` with tests for the macOS bundle, Windows and Linux layouts that `build-release.yml` packages. `avalonia-gui/README.md` is current. The release workflow's artefacts are unverified until a tagged run. Stale documents removed: the old implementation plan, the phase 10–12 summaries and the gutter notes; references point here. `CONFIGURATION.md` and `TESTING_GUIDE.md` describe persistence and theme switching as they work.
 
 - Verify the release workflow artefacts on each platform: the app starts the bundled backend, loads an example and runs it.
 - macOS: bundle name, icon, signing status documented; backend in `Contents/Resources`.
@@ -360,4 +360,3 @@ These are backend behaviours the GUI works around today. Each needs a Go change 
 - Integration fixture fixes (4.2).
 - Whether backend items are fixed in Go or stay as GUI workarounds.
 - Settings file location on macOS: `~/Library/Application Support` (via `ApplicationData`) or a shared location with the Swift GUI's `UserDefaults`. Sharing is not practical; separate files are assumed.
-- Whether to keep the old implementation plan in `docs/` for reference or delete it.

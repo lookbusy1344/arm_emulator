@@ -211,7 +211,8 @@ open ARMEmulator.xcodeproj
 **Requirements:** .NET SDK 10.0+
 
 **Documentation:**
-- [docs/AVALONIA_IMPLEMENTATION_PLAN.md](docs/AVALONIA_IMPLEMENTATION_PLAN.md) - Implementation details
+- [avalonia-gui/README.md](avalonia-gui/README.md) - Build, run and configuration
+- [docs/plans/2026-10-06-avalonia-gui-plan.md](docs/plans/2026-10-06-avalonia-gui-plan.md) - Status and remaining work
 - [docs/HTTP_API.md](docs/HTTP_API.md) - REST API and WebSocket reference
 
 ### Symbol Table Dump

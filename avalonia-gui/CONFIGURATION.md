@@ -8,7 +8,7 @@ Settings are accessible via:
 - **Menu**: File → Preferences
 - **Keyboard**: `Ctrl+,` (Windows/Linux) or `Cmd+,` (macOS)
 
-All settings are stored in memory during the current session. **Settings do not currently persist across application restarts** (persistence planned for future release).
+Settings persist across restarts in a JSON file (see [Settings File](#settings-file)). Invalid values are clamped to their range.
 
 ## General Settings
 
@@ -24,8 +24,8 @@ All settings are stored in memory during the current session. **Settings do not 
 - `http://REMOTE_IP:8080` - Remote backend (network access required)
 
 **Notes**:
-- Backend must be running before starting the GUI
-- Changes take effect after restarting the application or creating a new session
+- The GUI uses a backend already listening on this URL, or starts the bundled one on its port
+- A change takes effect when the backend restarts (File → Restart Backend)
 - Ensure firewall allows connections if using remote backend
 
 ### Theme
@@ -38,7 +38,7 @@ All settings are stored in memory during the current session. **Settings do not 
 
 **Notes**:
 - Auto mode automatically switches when system theme changes
-- Theme changes require application restart to take full effect
+- Theme changes apply immediately
 - High contrast system themes are respected
 
 ### Auto-Scroll Memory Writes
@@ -86,52 +86,38 @@ All settings are stored in memory during the current session. **Settings do not 
 - Recent files list appears in File menu
 - Files are added when opened (Open or Examples)
 - List is cleared when limit is reduced below current size
-- **Not currently persisted across sessions**
+- Persisted across sessions; entries whose file no longer exists are dropped when the menu opens
 
-## Advanced Configuration
+## Settings File
 
-### Configuration File (Future Feature)
+Preferences, recent files, the selected inspector panel and the window geometry are stored as JSON:
 
-Settings will be stored in a JSON configuration file (not yet implemented):
+| Platform | Location |
+|----------|----------|
+| Windows | `%APPDATA%\ARMEmulator\settings.json` |
+| macOS | `~/Library/Application Support/ARMEmulator/settings.json` |
+| Linux | `~/.config/ARMEmulator/settings.json` |
 
-**Location**:
-- **Windows**: `%APPDATA%\ARMEmulator\settings.json`
-- **macOS**: `~/Library/Application Support/ARMEmulator/settings.json`
-- **Linux**: `~/.config/ARMEmulator/settings.json`
-
-**Future Schema**:
-```json
-{
-  "backendUrl": "http://localhost:8080",
-  "theme": "Auto",
-  "editorFontSize": 14,
-  "autoScrollMemoryWrites": true,
-  "recentFilesLimit": 10,
-  "recentFiles": [
-    "/path/to/file1.s",
-    "/path/to/file2.s"
-  ]
-}
-```
+An unreadable or invalid file is replaced by defaults, a message is shown once, and the damaged file is kept as `settings.json.bak`.
 
 ## Platform-Specific Settings
 
 ### Windows
 
-- Settings stored in roaming profile (future)
+- Settings stored in the roaming profile
 - Native file dialogs respect Windows theme
 - Font rendering uses ClearType
 
 ### macOS
 
-- Settings follow macOS conventions (future)
+- Settings stored in `~/Library/Application Support`
 - Native menu bar integration
 - Automatic dark mode switching based on system appearance
 - Font rendering uses Core Text
 
 ### Linux
 
-- Settings location follows XDG Base Directory spec (future)
+- Settings stored under `~/.config`
 - GTK file dialogs on GTK-based desktops
 - KDE integration on KDE Plasma
 - Font rendering depends on desktop environment
@@ -142,51 +128,22 @@ Keyboard shortcuts cannot currently be customized. See [KEYBOARD_SHORTCUTS.md](K
 
 ## Resetting to Defaults
 
-To reset all settings to defaults:
-1. Close the application
-2. Delete the configuration file (when persistence is implemented)
-3. Restart the application
-
-**Current Version**: Since settings are not persisted, simply restart the application to reset all settings.
-
-## Environment Variables
-
-The following environment variables can override settings:
-
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `ARM_EMULATOR_BACKEND_URL` | `http://localhost:8080` | Backend URL (not yet implemented) |
-| `ARM_EMULATOR_THEME` | `Auto` | Force theme: `Auto`, `Light`, or `Dark` (not yet implemented) |
-
-**Note**: Environment variable support planned for future release.
+Close the application, delete `settings.json`, and start it again.
 
 ## Troubleshooting
-
-### Settings Not Saving
-
-**Issue**: Settings reset after restarting application
-**Cause**: Settings persistence not yet implemented
-**Workaround**: Reconfigure settings each session
-**Status**: Planned for Phase 12 (Polish & Release)
 
 ### Backend Connection Failed
 
 **Issue**: "Cannot connect to backend" error
 **Solutions**:
-1. Verify backend is running: `./arm-emulator`
-2. Check backend URL in preferences matches running instance
+1. Use Retry on the connection screen, or File → Restart Backend
+2. Check the backend binary sits next to the application (see the README) and the backend URL in preferences matches running instance
 3. Verify firewall allows port 8080 (or configured port)
 4. Test connection: `curl http://localhost:8080/api/v1/version`
-
-### Theme Not Updating
-
-**Issue**: Theme changes don't take effect
-**Cause**: Theme switching requires application restart
-**Solution**: Restart application after changing theme
 
 ## See Also
 
 - [README.md](README.md) - Build and run instructions
 - [KEYBOARD_SHORTCUTS.md](KEYBOARD_SHORTCUTS.md) - Keyboard shortcut reference
 - [INTEGRATION_TESTING.md](INTEGRATION_TESTING.md) - Running integration tests
-- [../docs/AVALONIA_IMPLEMENTATION_PLAN.md](../docs/AVALONIA_IMPLEMENTATION_PLAN.md) - Implementation details
+- [../docs/plans/2026-10-06-avalonia-gui-plan.md](../docs/plans/2026-10-06-avalonia-gui-plan.md) - Plan and status

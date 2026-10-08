@@ -398,4 +398,4 @@ public async Task NewTest_Description()
 - [README.md](README.md) - Build and run instructions
 - [KEYBOARD_SHORTCUTS.md](KEYBOARD_SHORTCUTS.md) - Keyboard shortcuts
 - [CONFIGURATION.md](CONFIGURATION.md) - Configuration guide
-- [../docs/AVALONIA_IMPLEMENTATION_PLAN.md](../docs/AVALONIA_IMPLEMENTATION_PLAN.md) - Architecture details
+- [../docs/plans/2026-10-06-avalonia-gui-plan.md](../docs/plans/2026-10-06-avalonia-gui-plan.md) - Plan and status
