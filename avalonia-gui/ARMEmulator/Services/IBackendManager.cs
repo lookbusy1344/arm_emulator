@@ -27,6 +27,7 @@ public interface IBackendManager : IDisposable
 	/// </summary>
 	/// <param name="ct">Cancellation token</param>
 	/// <exception cref="BackendStartException">Failed to start backend</exception>
+	/// <exception cref="OperationCanceledException"><paramref name="ct"/> was cancelled; a process this call spawned is stopped</exception>
 	Task StartAsync(CancellationToken ct = default);
 
 	/// <summary>
@@ -39,6 +40,7 @@ public interface IBackendManager : IDisposable
 	/// </summary>
 	/// <param name="ct">Cancellation token</param>
 	/// <returns>True if backend is healthy and responding</returns>
+	/// <exception cref="OperationCanceledException"><paramref name="ct"/> was cancelled</exception>
 	Task<bool> HealthCheckAsync(CancellationToken ct = default);
 }
 

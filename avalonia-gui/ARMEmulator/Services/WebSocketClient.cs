@@ -11,7 +11,7 @@ namespace ARMEmulator.Services;
 
 /// <summary>
 /// WebSocket client for real-time event streaming from the ARM Emulator backend.
-/// Implements auto-reconnection with exponential backoff on disconnect.
+/// A lost connection is reported on <see cref="ConnectionState"/>; <see cref="ConnectAsync"/> opens a new one.
 /// </summary>
 public sealed class WebSocketClient : IWebSocketClient
 {
@@ -50,9 +50,8 @@ public sealed class WebSocketClient : IWebSocketClient
 
 	public async Task ConnectAsync(string sessionId, CancellationToken ct = default)
 	{
-		if (IsConnected) {
-			await DisconnectAsync();
-		}
+		// Also releases a socket whose receive loop failed
+		await DisconnectAsync();
 
 		currentSessionId = sessionId;
 
@@ -70,6 +69,10 @@ public sealed class WebSocketClient : IWebSocketClient
 
 			// Start receive loop
 			receiveTask = Task.Run(() => ReceiveLoopAsync(disposeCts.Token), disposeCts.Token);
+		}
+		catch (OperationCanceledException) {
+			connectionStateSubject.OnNext(false);
+			throw;
 		}
 		catch (Exception ex) {
 			connectionStateSubject.OnNext(false);
@@ -171,7 +174,8 @@ public sealed class WebSocketClient : IWebSocketClient
 			// Normal cancellation
 		}
 		catch (WebSocketException ex) {
-			eventsSubject.OnError(new WebSocketConnectionException("WebSocket error", ex));
+			// Events outlives any one socket: a fault there would end it for every subscriber
+			System.Diagnostics.Debug.WriteLine($"WebSocket receive failed: {ex.Message}");
 			connectionStateSubject.OnNext(false);
 		}
 	}

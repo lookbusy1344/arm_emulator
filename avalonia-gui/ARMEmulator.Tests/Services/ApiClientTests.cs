@@ -60,6 +60,58 @@ public sealed class ApiClientTests : IDisposable
 			.WithMessage("*Cannot connect to backend*");
 	}
 
+	public static TheoryData<string> EveryOperation => [.. Operations.Keys];
+
+	private static readonly ImmutableDictionary<string, Func<ApiClient, CancellationToken, Task>> Operations =
+		new Dictionary<string, Func<ApiClient, CancellationToken, Task>> {
+			[nameof(ApiClient.CreateSessionAsync)] = (api, ct) => api.CreateSessionAsync(ct),
+			[nameof(ApiClient.GetStatusAsync)] = (api, ct) => api.GetStatusAsync(SessionId, ct),
+			[nameof(ApiClient.DestroySessionAsync)] = (api, ct) => api.DestroySessionAsync(SessionId, ct),
+			[nameof(ApiClient.LoadProgramAsync)] = (api, ct) => api.LoadProgramAsync(SessionId, "MOV R0, #1", ct),
+			[nameof(ApiClient.RunAsync)] = (api, ct) => api.RunAsync(SessionId, ct),
+			[nameof(ApiClient.StopAsync)] = (api, ct) => api.StopAsync(SessionId, ct),
+			[nameof(ApiClient.StepAsync)] = (api, ct) => api.StepAsync(SessionId, ct),
+			[nameof(ApiClient.StepOverAsync)] = (api, ct) => api.StepOverAsync(SessionId, ct),
+			[nameof(ApiClient.StepOutAsync)] = (api, ct) => api.StepOutAsync(SessionId, ct),
+			[nameof(ApiClient.ResetAsync)] = (api, ct) => api.ResetAsync(SessionId, ct),
+			[nameof(ApiClient.RestartAsync)] = (api, ct) => api.RestartAsync(SessionId, ct),
+			[nameof(ApiClient.GetRegistersAsync)] = (api, ct) => api.GetRegistersAsync(SessionId, ct),
+			[nameof(ApiClient.GetMemoryAsync)] = (api, ct) => api.GetMemoryAsync(SessionId, 0x8000, 4, ct),
+			[nameof(ApiClient.GetDisassemblyAsync)] = (api, ct) => api.GetDisassemblyAsync(SessionId, 0x8000, 2, ct),
+			[nameof(ApiClient.GetSourceMapAsync)] = (api, ct) => api.GetSourceMapAsync(SessionId, ct),
+			[nameof(ApiClient.AddBreakpointAsync)] = (api, ct) => api.AddBreakpointAsync(SessionId, 0x8000, ct),
+			[nameof(ApiClient.RemoveBreakpointAsync)] = (api, ct) => api.RemoveBreakpointAsync(SessionId, 0x8000, ct),
+			[nameof(ApiClient.GetBreakpointsAsync)] = (api, ct) => api.GetBreakpointsAsync(SessionId, ct),
+			[nameof(ApiClient.AddWatchpointAsync)] = (api, ct) => api.AddWatchpointAsync(SessionId, 0x9000, WatchpointType.Write, ct),
+			[nameof(ApiClient.RemoveWatchpointAsync)] = (api, ct) => api.RemoveWatchpointAsync(SessionId, 1, ct),
+			[nameof(ApiClient.GetWatchpointsAsync)] = (api, ct) => api.GetWatchpointsAsync(SessionId, ct),
+			[nameof(ApiClient.EvaluateExpressionAsync)] = (api, ct) => api.EvaluateExpressionAsync(SessionId, "r0", ct),
+			[nameof(ApiClient.SendStdinAsync)] = (api, ct) => api.SendStdinAsync(SessionId, "x", ct),
+			[nameof(ApiClient.GetVersionAsync)] = (api, ct) => api.GetVersionAsync(ct),
+			[nameof(ApiClient.GetExamplesAsync)] = (api, ct) => api.GetExamplesAsync(ct),
+			[nameof(ApiClient.GetExampleContentAsync)] = (api, ct) => api.GetExampleContentAsync("hello.s", ct)
+		}.ToImmutableDictionary();
+
+	[Theory]
+	[MemberData(nameof(EveryOperation))]
+	public async Task EveryOperation_WhenBackendUnreachable_ThrowsBackendUnavailableWrappingTheCause(string operation)
+	{
+		var cause = new HttpRequestException("Connection refused");
+		handler.SetException(cause);
+
+		var act = () => Operations[operation](apiClient, Ct);
+
+		var exception = await act.Should().ThrowExactlyAsync<BackendUnavailableException>();
+		_ = exception.Which.Message.Should().Be("Cannot connect to backend - is the emulator running?");
+		_ = exception.Which.InnerException.Should().BeSameAs(cause);
+	}
+
+	[Fact]
+	public void EveryOperation_CoversEveryInterfaceMethod()
+	{
+		_ = Operations.Keys.Should().BeEquivalentTo(typeof(IApiClient).GetMethods().Select(m => m.Name));
+	}
+
 	[Fact]
 	public async Task GetStatusAsync_GetsSessionRouteAndParsesHaltedWithoutWrite()
 	{

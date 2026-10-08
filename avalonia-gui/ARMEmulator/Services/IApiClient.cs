@@ -4,7 +4,8 @@ namespace ARMEmulator.Services;
 
 /// <summary>
 /// Client for the ARM Emulator REST API.
-/// All methods throw <see cref="ApiException"/> or derived types on failure.
+/// All methods throw <see cref="ApiException"/> or derived types on failure,
+/// and <see cref="BackendUnavailableException"/> when the backend cannot be reached.
 /// </summary>
 public interface IApiClient
 {

@@ -1,4 +1,3 @@
-using System.Diagnostics.CodeAnalysis;
 using System.Net;
 using System.Text;
 using System.Text.Json;
@@ -14,31 +13,26 @@ namespace ARMEmulator.Services;
 public sealed class ApiClient(HttpClient http) : IApiClient
 {
 	private const string EmptyJsonObject = "{}";
+	private const string BackendUnreachableMessage = "Cannot connect to backend - is the emulator running?";
 
 	// Session Management
 
 	public async Task<SessionInfo> CreateSessionAsync(CancellationToken ct = default)
 	{
-		try {
-			using var content = new StringContent(EmptyJsonObject, Encoding.UTF8, "application/json");
-			var response = await http.PostAsync("/api/v1/session", content, ct);
-			return await ParseResponseOrThrowAsync(response, ApiJsonContext.Default.SessionInfo, ct);
-		}
-		catch (HttpRequestException ex) {
-			throw new BackendUnavailableException("Cannot connect to backend - is the emulator running?", ex);
-		}
+		var response = await SendAsync(HttpMethod.Post, "/api/v1/session", new StringContent(EmptyJsonObject, Encoding.UTF8, "application/json"), ct);
+		return await ParseResponseOrThrowAsync(response, ApiJsonContext.Default.SessionInfo, ct);
 	}
 
 	public async Task<VMStatus> GetStatusAsync(string sessionId, CancellationToken ct = default)
 	{
-		var response = await http.GetAsync($"/api/v1/session/{sessionId}", ct);
+		var response = await GetAsync($"/api/v1/session/{sessionId}", ct);
 		var status = await ParseResponseOrThrowAsync(response, ApiJsonContext.Default.SessionStatusResponse, ct, sessionId);
 		return status.ToVMStatus();
 	}
 
 	public async Task DestroySessionAsync(string sessionId, CancellationToken ct = default)
 	{
-		var response = await http.DeleteAsync($"/api/v1/session/{sessionId}", ct);
+		var response = await DeleteAsync($"/api/v1/session/{sessionId}", ct);
 		await EnsureSuccessAsync(response, sessionId, ct);
 	}
 
@@ -95,28 +89,28 @@ public sealed class ApiClient(HttpClient http) : IApiClient
 
 	public async Task<RegisterState> GetRegistersAsync(string sessionId, CancellationToken ct = default)
 	{
-		var response = await http.GetAsync($"/api/v1/session/{sessionId}/registers", ct);
+		var response = await GetAsync($"/api/v1/session/{sessionId}/registers", ct);
 		var registers = await ParseResponseOrThrowAsync(response, ApiJsonContext.Default.RegistersResponse, ct, sessionId);
 		return registers.ToRegisterState();
 	}
 
 	public async Task<ImmutableArray<byte>> GetMemoryAsync(string sessionId, uint address, int length, CancellationToken ct = default)
 	{
-		var response = await http.GetAsync($"/api/v1/session/{sessionId}/memory?address={address}&length={length}", ct);
+		var response = await GetAsync($"/api/v1/session/{sessionId}/memory?address={address}&length={length}", ct);
 		var wrapper = await ParseResponseOrThrowAsync(response, ApiJsonContext.Default.MemoryResponse, ct, sessionId);
 		return wrapper.ToBytes();
 	}
 
 	public async Task<ImmutableArray<DisassemblyInstruction>> GetDisassemblyAsync(string sessionId, uint address, int count, CancellationToken ct = default)
 	{
-		var response = await http.GetAsync($"/api/v1/session/{sessionId}/disassembly?address={address}&count={count}", ct);
+		var response = await GetAsync($"/api/v1/session/{sessionId}/disassembly?address={address}&count={count}", ct);
 		var wrapper = await ParseResponseOrThrowAsync(response, ApiJsonContext.Default.DisassemblyResponse, ct, sessionId);
 		return [.. wrapper.Instructions.Select(i => i.ToModel())];
 	}
 
 	public async Task<ImmutableArray<SourceMapEntry>> GetSourceMapAsync(string sessionId, CancellationToken ct = default)
 	{
-		var response = await http.GetAsync($"/api/v1/session/{sessionId}/sourcemap", ct);
+		var response = await GetAsync($"/api/v1/session/{sessionId}/sourcemap", ct);
 		var wrapper = await ParseResponseOrThrowAsync(response, ApiJsonContext.Default.SourceMapResponse, ct, sessionId);
 		return [.. wrapper.SourceMap.Select(e => e.ToModel())];
 	}
@@ -132,16 +126,14 @@ public sealed class ApiClient(HttpClient http) : IApiClient
 
 	public async Task RemoveBreakpointAsync(string sessionId, uint address, CancellationToken ct = default)
 	{
-		using var request = new HttpRequestMessage(HttpMethod.Delete, $"/api/v1/session/{sessionId}/breakpoint") {
-			Content = JsonContent(new BreakpointRequest(address), ApiJsonContext.Default.BreakpointRequest)
-		};
-		var response = await http.SendAsync(request, ct);
+		var response = await SendAsync(
+			HttpMethod.Delete, $"/api/v1/session/{sessionId}/breakpoint", JsonContent(new BreakpointRequest(address), ApiJsonContext.Default.BreakpointRequest), ct);
 		await EnsureSuccessAsync(response, sessionId, ct);
 	}
 
 	public async Task<ImmutableArray<uint>> GetBreakpointsAsync(string sessionId, CancellationToken ct = default)
 	{
-		var response = await http.GetAsync($"/api/v1/session/{sessionId}/breakpoints", ct);
+		var response = await GetAsync($"/api/v1/session/{sessionId}/breakpoints", ct);
 		var wrapper = await ParseResponseOrThrowAsync(response, ApiJsonContext.Default.BreakpointsResponse, ct, sessionId);
 		return [.. wrapper.Breakpoints];
 	}
@@ -161,13 +153,13 @@ public sealed class ApiClient(HttpClient http) : IApiClient
 
 	public async Task RemoveWatchpointAsync(string sessionId, int watchpointId, CancellationToken ct = default)
 	{
-		var response = await http.DeleteAsync($"/api/v1/session/{sessionId}/watchpoint/{watchpointId}", ct);
+		var response = await DeleteAsync($"/api/v1/session/{sessionId}/watchpoint/{watchpointId}", ct);
 		await EnsureSuccessAsync(response, sessionId, ct);
 	}
 
 	public async Task<ImmutableArray<Watchpoint>> GetWatchpointsAsync(string sessionId, CancellationToken ct = default)
 	{
-		var response = await http.GetAsync($"/api/v1/session/{sessionId}/watchpoints", ct);
+		var response = await GetAsync($"/api/v1/session/{sessionId}/watchpoints", ct);
 		var wrapper = await ParseResponseOrThrowAsync(response, ApiJsonContext.Default.WatchpointsResponse, ct, sessionId);
 		return [.. wrapper.Watchpoints.Select(w => w.ToModel())];
 	}
@@ -205,28 +197,23 @@ public sealed class ApiClient(HttpClient http) : IApiClient
 
 	public async Task<BackendVersion> GetVersionAsync(CancellationToken ct = default)
 	{
-		try {
-			var response = await http.GetAsync("/api/v1/version", ct);
-			var version = await ParseResponseOrThrowAsync(response, ApiJsonContext.Default.VersionResponse, ct);
-			return version.ToModel();
-		}
-		catch (HttpRequestException ex) {
-			throw new BackendUnavailableException("Cannot reach backend", ex);
-		}
+		var response = await GetAsync("/api/v1/version", ct);
+		var version = await ParseResponseOrThrowAsync(response, ApiJsonContext.Default.VersionResponse, ct);
+		return version.ToModel();
 	}
 
 	// Examples
 
 	public async Task<ImmutableArray<ExampleInfo>> GetExamplesAsync(CancellationToken ct = default)
 	{
-		var response = await http.GetAsync("/api/v1/examples", ct);
+		var response = await GetAsync("/api/v1/examples", ct);
 		var wrapper = await ParseResponseOrThrowAsync(response, ApiJsonContext.Default.ExamplesResponse, ct);
 		return [.. wrapper.Examples];
 	}
 
 	public async Task<string> GetExampleContentAsync(string name, CancellationToken ct = default)
 	{
-		var response = await http.GetAsync($"/api/v1/examples/{name}", ct);
+		var response = await GetAsync($"/api/v1/examples/{name}", ct);
 		if (!response.IsSuccessStatusCode) {
 			throw new ApiException($"Example '{name}' not found", response.StatusCode);
 		}
@@ -239,20 +226,35 @@ public sealed class ApiClient(HttpClient http) : IApiClient
 
 	private async Task PostCommandAsync(string sessionId, string action, CancellationToken ct)
 	{
-		var response = await http.PostAsync($"/api/v1/session/{sessionId}/{action}", null, ct);
+		var response = await SendAsync(HttpMethod.Post, $"/api/v1/session/{sessionId}/{action}", null, ct);
 		await EnsureSuccessAsync(response, sessionId, ct);
 	}
 
 	private async Task<RegisterState> PostForRegistersAsync(string sessionId, string action, CancellationToken ct)
 	{
-		var response = await http.PostAsync($"/api/v1/session/{sessionId}/{action}", null, ct);
+		var response = await SendAsync(HttpMethod.Post, $"/api/v1/session/{sessionId}/{action}", null, ct);
 		var registers = await ParseResponseOrThrowAsync(response, ApiJsonContext.Default.RegistersResponse, ct, sessionId);
 		return registers.ToRegisterState();
 	}
 
-	[SuppressMessage("Reliability", "CA2000:Dispose objects before losing scope", Justification = "HttpClient disposes request content after sending")]
 	private Task<HttpResponseMessage> PostJsonAsync<T>(string path, T body, JsonTypeInfo<T> typeInfo, CancellationToken ct) =>
-		http.PostAsync(path, JsonContent(body, typeInfo), ct);
+		SendAsync(HttpMethod.Post, path, JsonContent(body, typeInfo), ct);
+
+	private Task<HttpResponseMessage> GetAsync(string path, CancellationToken ct) => SendAsync(HttpMethod.Get, path, null, ct);
+
+	private Task<HttpResponseMessage> DeleteAsync(string path, CancellationToken ct) => SendAsync(HttpMethod.Delete, path, null, ct);
+
+	/// <summary>Sends one request, taking ownership of <paramref name="content"/>. A transport failure becomes <see cref="BackendUnavailableException"/>.</summary>
+	private async Task<HttpResponseMessage> SendAsync(HttpMethod method, string path, HttpContent? content, CancellationToken ct)
+	{
+		using var request = new HttpRequestMessage(method, path) { Content = content };
+		try {
+			return await http.SendAsync(request, ct);
+		}
+		catch (HttpRequestException ex) {
+			throw new BackendUnavailableException(BackendUnreachableMessage, ex);
+		}
+	}
 
 	private static ByteArrayContent JsonContent<T>(T body, JsonTypeInfo<T> typeInfo)
 	{

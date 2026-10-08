@@ -53,4 +53,45 @@ public sealed class BackendManagerTests
 		await act.Should().ThrowAsync<BackendStartException>().WithMessage("Backend binary not found*");
 		manager.Status.Should().Be(BackendStatus.Error);
 	}
+
+	[Fact]
+	public async Task StartAsync_WhenCancelled_ThrowsOperationCanceledAndReportsStopped()
+	{
+		using var handler = new TestHttpMessageHandler();
+		handler.SetException(new HttpRequestException("Connection refused"));
+		using var manager = new BackendManager("http://localhost:18080", handler, findBinary: static () => null);
+		using var cancelled = new CancellationTokenSource();
+		await cancelled.CancelAsync();
+
+		var act = async () => await manager.StartAsync(cancelled.Token);
+
+		await act.Should().ThrowAsync<OperationCanceledException>();
+		manager.Status.Should().Be(BackendStatus.Stopped);
+	}
+
+	[Fact]
+	public async Task HealthCheckAsync_WhenCancelled_ThrowsOperationCanceled()
+	{
+		using var handler = new TestHttpMessageHandler();
+		handler.SetException(new HttpRequestException("Connection refused"));
+		using var manager = new BackendManager("http://localhost:18080", handler);
+		using var cancelled = new CancellationTokenSource();
+		await cancelled.CancelAsync();
+
+		var act = async () => await manager.HealthCheckAsync(cancelled.Token);
+
+		await act.Should().ThrowAsync<OperationCanceledException>();
+	}
+
+	[Fact]
+	public async Task HealthCheckAsync_WhenBackendUnreachable_ReturnsFalse()
+	{
+		using var handler = new TestHttpMessageHandler();
+		handler.SetException(new HttpRequestException("Connection refused"));
+		using var manager = new BackendManager("http://localhost:18080", handler);
+
+		var healthy = await manager.HealthCheckAsync(TestContext.Current.CancellationToken);
+
+		healthy.Should().BeFalse();
+	}
 }

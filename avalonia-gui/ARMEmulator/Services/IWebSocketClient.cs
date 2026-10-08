@@ -2,13 +2,13 @@ namespace ARMEmulator.Services;
 
 /// <summary>
 /// WebSocket client for real-time event streaming from the ARM Emulator backend.
-/// Automatically reconnects on disconnect with exponential backoff.
+/// A lost connection is reported on <see cref="ConnectionState"/>; <see cref="ConnectAsync"/> opens a new one.
 /// </summary>
 public interface IWebSocketClient : IDisposable
 {
 	/// <summary>
-	/// Observable stream of emulator events from the backend.
-	/// Events are delivered on the main thread scheduler.
+	/// Observable stream of emulator events from the backend, delivered on a background thread.
+	/// It spans reconnections and never faults.
 	/// </summary>
 	IObservable<Models.EmulatorEvent> Events { get; }
 

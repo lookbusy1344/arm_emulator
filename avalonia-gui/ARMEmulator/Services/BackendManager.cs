@@ -55,13 +55,13 @@ public sealed class BackendManager : IBackendManager
 
 		statusSubject.OnNext(BackendStatus.Starting);
 
-		// Reuse a backend that is already serving this URL, e.g. one started from a terminal
-		if (await HealthCheckAsync(ct)) {
-			statusSubject.OnNext(BackendStatus.Running);
-			return;
-		}
-
 		try {
+			// Reuse a backend that is already serving this URL, e.g. one started from a terminal
+			if (await HealthCheckAsync(ct)) {
+				statusSubject.OnNext(BackendStatus.Running);
+				return;
+			}
+
 			var binaryPath = findBinary();
 			if (binaryPath is null) {
 				statusSubject.OnNext(BackendStatus.Error);
@@ -96,6 +96,11 @@ public sealed class BackendManager : IBackendManager
 
 			statusSubject.OnNext(BackendStatus.Error);
 			throw new BackendStartException("Backend started but health check failed");
+		}
+		catch (OperationCanceledException) {
+			// A cancelled start leaves no process behind
+			await StopAsync().ConfigureAwait(false);
+			throw;
 		}
 		catch (Exception ex) when (ex is not BackendStartException) {
 			statusSubject.OnNext(BackendStatus.Error);
@@ -133,6 +138,7 @@ public sealed class BackendManager : IBackendManager
 			return response.IsSuccessStatusCode;
 		}
 		catch {
+			ct.ThrowIfCancellationRequested();
 			return false;
 		}
 	}
