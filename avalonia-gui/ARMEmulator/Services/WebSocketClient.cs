@@ -16,9 +16,11 @@ namespace ARMEmulator.Services;
 public sealed class WebSocketClient : IWebSocketClient
 {
 	private const int ReceiveBufferBytes = 8192;
+	private static readonly TimeSpan DefaultCloseTimeout = TimeSpan.FromSeconds(2);
 
 	private readonly string wsUrl;
 	private readonly IWebSocketFactory factory;
+	private readonly TimeSpan closeTimeout;
 	private readonly Subject<EmulatorEvent> eventsSubject = new();
 	private readonly BehaviorSubject<bool> connectionStateSubject = new(false);
 	private readonly CancellationTokenSource disposeCts = new();
@@ -32,9 +34,11 @@ public sealed class WebSocketClient : IWebSocketClient
 	/// </summary>
 	/// <param name="wsUrl">WebSocket URL (e.g., "ws://localhost:8080/ws")</param>
 	/// <param name="factory">Factory for creating WebSocket instances (injectable for testing)</param>
-	public WebSocketClient(string wsUrl, IWebSocketFactory? factory = null)
+	/// <param name="closeTimeout">How long to wait for the server to answer the close handshake before aborting the socket</param>
+	public WebSocketClient(string wsUrl, IWebSocketFactory? factory = null, TimeSpan? closeTimeout = null)
 	{
 		this.wsUrl = wsUrl;
+		this.closeTimeout = closeTimeout ?? DefaultCloseTimeout;
 		this.factory = factory ?? new DefaultWebSocketFactory();
 	}
 
@@ -81,10 +85,7 @@ public sealed class WebSocketClient : IWebSocketClient
 
 		try {
 			if (ws.State == WebSocketState.Open) {
-				await ws.CloseAsync(
-					WebSocketCloseStatus.NormalClosure,
-					"Client disconnecting",
-					CancellationToken.None);
+				await CloseOrAbortAsync(ws).ConfigureAwait(false);
 			}
 
 			ws.Dispose();
@@ -99,6 +100,17 @@ public sealed class WebSocketClient : IWebSocketClient
 		}
 		catch {
 			// Ignore disconnect errors
+		}
+	}
+
+	private async Task CloseOrAbortAsync(WebSocket socket)
+	{
+		using var timeout = new CancellationTokenSource(closeTimeout);
+		try {
+			await socket.CloseAsync(WebSocketCloseStatus.NormalClosure, "Client disconnecting", timeout.Token).ConfigureAwait(false);
+		}
+		catch (OperationCanceledException) {
+			socket.Abort();
 		}
 	}
 

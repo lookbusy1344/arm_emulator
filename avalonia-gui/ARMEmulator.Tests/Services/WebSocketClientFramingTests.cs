@@ -14,6 +14,7 @@ public sealed class WebSocketClientFramingTests
 {
 	private const string Url = "ws://localhost:8080/api/v1/ws";
 	private const int ReceiveBufferBytes = 8192;
+	private static readonly TimeSpan CloseTimeout = TimeSpan.FromMilliseconds(100);
 	private static readonly TimeSpan Guard = TimeSpan.FromSeconds(10);
 
 	private static string OutputMessage(string content) =>
@@ -97,6 +98,49 @@ public sealed class WebSocketClientFramingTests
 			new OutputEvent("s1", OutputStreamType.Stdout, "two"));
 	}
 
+	[Fact]
+	public async Task Dispose_WhenServerNeverAnswersTheCloseHandshake_ReturnsAndAbortsTheSocket()
+	{
+		using var socket = new ScriptedWebSocket([], hangOnClose: true);
+#pragma warning disable CA2000 // Disposed on a worker thread below
+		var client = new WebSocketClient(Url, new SingleSocketFactory(socket), CloseTimeout);
+#pragma warning restore CA2000
+		await client.ConnectAsync("s1", TestContext.Current.CancellationToken);
+
+		await Task.Run(() => DisposeOnBlockedUiThread(client), TestContext.Current.CancellationToken)
+			.WaitAsync(Guard, TestContext.Current.CancellationToken);
+
+		socket.WasAborted.Should().BeTrue();
+	}
+
+	[Fact]
+	public async Task Dispose_OnAThreadWhoseSynchronizationContextIsNotPumping_DoesNotDeadlock()
+	{
+		using var socket = new ScriptedWebSocket([]);
+#pragma warning disable CA2000 // Disposed on a worker thread below
+		var client = new WebSocketClient(Url, new SingleSocketFactory(socket), CloseTimeout);
+#pragma warning restore CA2000
+		await client.ConnectAsync("s1", TestContext.Current.CancellationToken);
+
+		await Task.Run(() => DisposeOnBlockedUiThread(client), TestContext.Current.CancellationToken)
+			.WaitAsync(Guard, TestContext.Current.CancellationToken);
+	}
+
+	/// <summary>Disposes under a context that never runs posted work, as the UI thread does while it blocks in Dispose.</summary>
+	private static void DisposeOnBlockedUiThread(WebSocketClient client)
+	{
+		SynchronizationContext.SetSynchronizationContext(new NonPumpingContext());
+		client.Dispose();
+	}
+
+	private sealed class NonPumpingContext : SynchronizationContext
+	{
+		public override void Post(SendOrPostCallback d, object? state)
+		{
+			// Posted continuations never run: the owning thread is blocked
+		}
+	}
+
 	private sealed record Frame(byte[] Bytes, bool EndOfMessage);
 
 	private sealed class SingleSocketFactory(WebSocket socket) : IWebSocketFactory
@@ -105,7 +149,7 @@ public sealed class WebSocketClientFramingTests
 	}
 
 	/// <summary>Hands out scripted frames, splitting any frame larger than the caller's buffer, then waits for cancellation.</summary>
-	private sealed class ScriptedWebSocket(IEnumerable<Frame> frames) : WebSocket
+	private sealed class ScriptedWebSocket(IEnumerable<Frame> frames, bool hangOnClose = false) : WebSocket
 	{
 		private readonly Queue<Frame> pending = new(frames);
 		private WebSocketState state = WebSocketState.Open;
@@ -119,12 +163,21 @@ public sealed class WebSocketClientFramingTests
 
 		public override string? SubProtocol => null;
 
-		public override void Abort() => state = WebSocketState.Aborted;
+		public bool WasAborted { get; private set; }
 
-		public override Task CloseAsync(WebSocketCloseStatus closeStatus, string? statusDescription, CancellationToken cancellationToken)
+		public override void Abort()
 		{
+			WasAborted = true;
+			state = WebSocketState.Aborted;
+		}
+
+		public override async Task CloseAsync(WebSocketCloseStatus closeStatus, string? statusDescription, CancellationToken cancellationToken)
+		{
+			if (hangOnClose) {
+				await Task.Delay(Timeout.Infinite, cancellationToken).ConfigureAwait(false);
+			}
+
 			state = WebSocketState.Closed;
-			return Task.CompletedTask;
 		}
 
 		public override Task CloseOutputAsync(WebSocketCloseStatus closeStatus, string? statusDescription, CancellationToken cancellationToken) =>

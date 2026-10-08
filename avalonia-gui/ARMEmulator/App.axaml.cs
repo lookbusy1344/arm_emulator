@@ -59,9 +59,9 @@ public partial class App : Application
 			fileService.Dispose();
 			themeDetector.Dispose();
 			viewModel.Dispose();
+			backend.Dispose();
 			ws.Dispose();
 			http.Dispose();
-			backend.Dispose();
 		};
 
 		var startupFile = StartupArguments.FindSourceFile(desktop.Args ?? [], Environment.CurrentDirectory);

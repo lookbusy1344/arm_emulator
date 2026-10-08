@@ -112,7 +112,7 @@ public sealed class BackendManager : IBackendManager
 
 		try {
 			process.Kill(entireProcessTree: true);
-			await process.WaitForExitAsync();
+			await process.WaitForExitAsync().ConfigureAwait(false);
 			process.Dispose();
 			process = null;
 			statusSubject.OnNext(BackendStatus.Stopped);
