@@ -9,6 +9,7 @@ Cross-platform desktop GUI for the ARM Emulator built with Avalonia UI and .NET 
   - **Windows:** Windows 10 or later
   - **macOS:** macOS 13 or later
   - **Linux:** Ubuntu 22.04+ or equivalent
+- The Go backend binary (`arm-emulator`, built with `make build` at the repository root) for running from source
 
 ## Build
 
@@ -63,9 +64,8 @@ avalonia-gui/
 │   ├── Models/               # Model tests
 │   ├── Services/             # Service tests (with mocks)
 │   ├── ViewModels/           # ViewModel tests
-│   ├── Views/                # Headless UI tests
-│   ├── Integration/          # End-to-end integration tests
-│   └── Mocks/                # Mock implementations
+│   ├── Ui/                   # Headless UI tests and screenshot baselines
+│   └── Integration/          # End-to-end tests against a running backend
 ├── Directory.Build.props     # Shared build configuration
 └── README.md                 # This file
 ```
@@ -75,9 +75,9 @@ avalonia-gui/
 | Component | Technology |
 |-----------|------------|
 | **Runtime** | .NET 10 with C# 13 |
-| **UI Framework** | Avalonia UI 11.3.x |
-| **MVVM** | ReactiveUI 20.x with source generators |
-| **Text Editor** | AvaloniaEdit 0.10.x |
+| **UI Framework** | Avalonia UI 12.1.x |
+| **MVVM** | ReactiveUI 26.x |
+| **Text Editor** | AvaloniaEdit 12.x |
 | **Testing** | xUnit v3, NSubstitute, AwesomeAssertions, Avalonia.Headless |
 
 ## Architecture
@@ -94,7 +94,30 @@ This GUI connects to the ARM Emulator Go backend via:
 - **REST API:** Port 8080 (configurable in preferences)
 - **WebSocket:** Real-time state updates and console output
 
-The backend must be running before launching the GUI. See the main project README for backend setup.
+On start the GUI uses a healthy backend already listening on the configured port. Otherwise it starts the bundled `arm-emulator` with `-api-server -port N` and stops it on exit. The Restart Backend menu item, and the Retry button on the connection screen, start it again.
+
+### Backend location
+
+| Platform | Searched, in order |
+|----------|--------------------|
+| macOS app bundle | `Contents/Resources/arm-emulator`, next to the executable, its parent directory |
+| Windows | `arm-emulator.exe` next to the executable, then its parent directory |
+| Linux | next to the executable, `/usr/local/bin/arm-emulator`, `/usr/share/arm-emulator/arm-emulator` |
+
+### Settings
+
+Preferences, recent files, the selected inspector panel and the window geometry are stored as JSON in `ARMEmulator/settings.json` under the user's application data directory. An unreadable file is replaced by defaults and kept as `settings.json.bak`.
+
+### Command line
+
+`ARMEmulator prog.s` opens and loads the first argument that ends in `.s`.
+
+## Tests
+
+- Unit and headless UI tests run with `dotnet test`. Integration tests need a backend and are skipped otherwise; set `ARM_EMULATOR_URL` to point them at one.
+- Screenshot tests compare against reviewed baselines in `ARMEmulator.Tests/Ui/Baselines/<os>/`. Run with `ARM_UPDATE_BASELINES=1` to refresh them, `ARM_SCREENSHOT_DIR=<dir>` to write review copies, and `ARM_VERIFY_SCREENSHOTS=1` to fail when a platform has no baselines.
+
+See [KEYBOARD_SHORTCUTS.md](KEYBOARD_SHORTCUTS.md) for the key bindings.
 
 ## Development
 

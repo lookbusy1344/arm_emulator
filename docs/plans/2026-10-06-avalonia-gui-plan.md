@@ -330,6 +330,8 @@ Check each item against the Swift GUI and record the result in this file:
 
 ## Phase 6: Release
 
+Status 2026-10-08: backend discovery moved into `BackendLocator` with tests for the macOS bundle, Windows and Linux layouts that `build-release.yml` packages. `avalonia-gui/README.md` is current. The release workflow's artefacts are unverified until a tagged run. Open: `docs/GUI.md`, retiring stale documents (needs approval to delete).
+
 - Verify the release workflow artefacts on each platform: the app starts the bundled backend, loads an example and runs it.
 - macOS: bundle name, icon, signing status documented; backend in `Contents/Resources`.
 - Windows and Linux: backend next to the executable; `chmod +x` on Linux.
