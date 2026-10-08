@@ -343,7 +343,7 @@ Status 2026-10-08: backend discovery moved into `BackendLocator` with tests for 
 These are backend behaviours the GUI works around today. Each needs a Go change with tests and a check of both GUIs:
 
 - Done 2026-10-08: a load that parses but fails in the loader reset the VM and left the failed program's source map and symbols in the service. The service now clears them, so `GET /sourcemap` and `GET /symbols` match the empty VM. Parse errors never reach the service and leave the previous program loaded.
-- `/reset` leaves the session without a loaded program. Document it as "clear VM" or make it keep the program; the GUIs use `/restart`.
+- Done 2026-10-08: `/reset` is documented as "clear VM" and `/restart` is documented in `openapi.yaml` and `docs/HTTP_API.md`. Behaviour is unchanged; the GUIs use `/restart`.
 - The backend reports `halted` for a loaded program that has not run. An `idle` (or `loaded`) state would remove the GUI's special case.
 - Execution events (`breakpoint_hit`, `halted`, `error`) are defined in the broadcaster but no handler sends them.
 

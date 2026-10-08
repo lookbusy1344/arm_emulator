@@ -248,14 +248,33 @@ paths:
     post:
       tags:
         - Execution
-      summary: Reset VM
-      description: Resets VM to initial state (preserves loaded program)
+      summary: Clear VM
+      description: Clears registers, memory, queued input and the loaded program. Load a program again before running. Use restart to run the current program again.
       operationId: resetProgram
       parameters:
         - $ref: '#/components/parameters/SessionId'
       responses:
         '200':
           description: VM reset
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SuccessResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/session/{sessionId}/restart:
+    post:
+      tags:
+        - Execution
+      summary: Restart program
+      description: Resets the registers and returns execution to the entry point. Keeps the loaded program, its breakpoints, the source map and memory contents.
+      operationId: restartProgram
+      parameters:
+        - $ref: '#/components/parameters/SessionId'
+      responses:
+        '200':
+          description: VM restarted
           content:
             application/json:
               schema:

@@ -335,6 +335,7 @@ func (s *Server) handleStepOut(w http.ResponseWriter, r *http.Request, sessionID
 }
 
 // handleReset handles POST /api/v1/session/{id}/reset
+// Clears the VM and the loaded program. Use handleRestart to run the program again.
 func (s *Server) handleReset(w http.ResponseWriter, r *http.Request, sessionID string) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)

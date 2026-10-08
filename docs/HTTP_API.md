@@ -312,13 +312,27 @@ Returns updated register state after stepping.
 
 #### POST /api/v1/session/{id}/reset
 
-Reset VM to initial state (preserves loaded program).
+Clear the VM: registers, memory, queued input and the loaded program. Load a program again before running. To run the current program again, use `restart`.
 
 **Response:**
 ```json
 {
   "success": true,
   "message": "VM reset"
+}
+```
+
+---
+
+#### POST /api/v1/session/{id}/restart
+
+Reset the registers and return execution to the entry point. The loaded program, its breakpoints, the source map and memory contents are kept.
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "VM restarted to entry point"
 }
 ```
 
