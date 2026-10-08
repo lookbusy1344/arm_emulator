@@ -46,9 +46,9 @@
             <SolidColorBrush x:Key="SyntaxDirectiveBrush" Color="#AF00DB" />
 
             <SolidColorBrush x:Key="GutterBackgroundBrush" Color="#F3F3F3" />
-            <SolidColorBrush x:Key="ConsoleBackgroundBrush" Color="#1E1E1E" />
-            <SolidColorBrush x:Key="ConsoleTextBrush" Color="#D4D4D4" />
-            <SolidColorBrush x:Key="ConsoleTextDimBrush" Color="#8A8A8A" />
+            <SolidColorBrush x:Key="ConsoleBackgroundBrush" Color="#FFFFFF" />
+            <SolidColorBrush x:Key="ConsoleTextBrush" Color="#1F1F1F" />
+            <SolidColorBrush x:Key="ConsoleTextDimBrush" Color="#6B6B6B" />
             <SolidColorBrush x:Key="ConsoleInputWaitingBrush" Color="#33FF9F0A" />
 
             <SolidColorBrush x:Key="ErrorBackgroundBrush" Color="#FDECEA" />
@@ -91,7 +91,7 @@
             <SolidColorBrush x:Key="SyntaxDirectiveBrush" Color="#C586C0" />
 
             <SolidColorBrush x:Key="GutterBackgroundBrush" Color="#252526" />
-            <SolidColorBrush x:Key="ConsoleBackgroundBrush" Color="#121212" />
+            <SolidColorBrush x:Key="ConsoleBackgroundBrush" Color="#1E1E1E" />
             <SolidColorBrush x:Key="ConsoleTextBrush" Color="#D4D4D4" />
             <SolidColorBrush x:Key="ConsoleTextDimBrush" Color="#8A8A8A" />
             <SolidColorBrush x:Key="ConsoleInputWaitingBrush" Color="#33FF9F0A" />

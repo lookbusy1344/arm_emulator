@@ -14,9 +14,10 @@ public sealed class ConsoleAppearanceTests
 {
 	private const string DataFontName = "JetBrains Mono";
 	private const string WaitingClass = "waiting";
-	private static readonly Color LightSurface = Color.Parse("#1E1E1E");
-	private static readonly Color DarkSurface = Color.Parse("#121212");
-	private static readonly Color Text = Color.Parse("#D4D4D4");
+	private static readonly Color LightSurface = Color.Parse("#FFFFFF");
+	private static readonly Color DarkSurface = Color.Parse("#1E1E1E");
+	private static readonly Color LightText = Color.Parse("#1F1F1F");
+	private static readonly Color DarkText = Color.Parse("#D4D4D4");
 
 	private static void Settle(MainWindowHarness ui)
 	{
@@ -43,9 +44,15 @@ public sealed class ConsoleAppearanceTests
 	public Task Output_UsesTheBundledMonospaceFontAndConsoleTextColour() =>
 		UiTest.Run(ui => {
 			var output = ui.Find<TextBox>("OutputBox");
-
 			output.FontFamily.Name.Should().Be(DataFontName);
-			ColourOf(output.Foreground).Should().Be(Text);
+
+			ui.Window.RequestedThemeVariant = ThemeVariant.Light;
+			Settle(ui);
+			ColourOf(output.Foreground).Should().Be(LightText);
+
+			ui.Window.RequestedThemeVariant = ThemeVariant.Dark;
+			Settle(ui);
+			ColourOf(output.Foreground).Should().Be(DarkText);
 		});
 
 	[Fact]
