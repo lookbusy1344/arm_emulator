@@ -12,10 +12,19 @@ public sealed class ShortcutsTests
 		Shortcuts.For(isMacOS).Where(binding => binding.Id == id).Select(binding => binding.Gesture);
 
 	[Fact]
-	public void For_HasSeventeenBindings_OnEachPlatform()
+	public void For_HasNineteenBindings_OnEachPlatform()
 	{
-		Shortcuts.For(isMacOS: false).Should().HaveCount(17);
-		Shortcuts.For(isMacOS: true).Should().HaveCount(17);
+		Shortcuts.For(isMacOS: false).Should().HaveCount(19);
+		Shortcuts.For(isMacOS: true).Should().HaveCount(19);
+	}
+
+	[Fact]
+	public void For_BindsF7ToStepAndF8ToStepOver_OnEveryPlatform()
+	{
+		GesturesOf(ShortcutId.Step, isMacOS: false).Should().Contain(Gesture(Key.F7));
+		GesturesOf(ShortcutId.Step, isMacOS: true).Should().Contain(Gesture(Key.F7));
+		GesturesOf(ShortcutId.StepOver, isMacOS: false).Should().Contain(Gesture(Key.F8));
+		GesturesOf(ShortcutId.StepOver, isMacOS: true).Should().Contain(Gesture(Key.F8));
 	}
 
 	[Fact]

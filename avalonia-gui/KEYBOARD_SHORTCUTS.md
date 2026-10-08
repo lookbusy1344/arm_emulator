@@ -18,8 +18,8 @@ Comprehensive keyboard shortcuts for the ARM Emulator Avalonia GUI.
 |--------|---------------|-------|-------------|
 | **Run/Continue** | `F5` or `Ctrl+R` | `F5` or `Cmd+R` | Start or continue execution |
 | **Pause** | `Ctrl+.` | `Cmd+.` | Pause running program |
-| **Step** | `F11` or `Ctrl+T` | `F11` or `Cmd+T` | Execute single instruction |
-| **Step Over** | `F10` or `Ctrl+Shift+T` | `F10` or `Cmd+Shift+T` | Step over function calls |
+| **Step** | `F11`, `F7` or `Ctrl+T` | `F11`, `F7` or `Cmd+T` | Execute single instruction |
+| **Step Over** | `F10`, `F8` or `Ctrl+Shift+T` | `F10`, `F8` or `Cmd+Shift+T` | Step over function calls |
 | **Step Out** | `Ctrl+Alt+T` | `Cmd+Option+T` | Step out of current function |
 | **Reset** | `Ctrl+Shift+R` | `Cmd+Shift+R` | Reset VM to initial state |
 | **Load Program** | `Ctrl+L` | `Cmd+L` | Load current program into VM |
