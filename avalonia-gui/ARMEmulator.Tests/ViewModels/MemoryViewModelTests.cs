@@ -211,6 +211,33 @@ public class MemoryViewModelTests : IDisposable
 	}
 
 	[Fact]
+	public void UpdateMemoryWrite_WithAutoScroll_KeepsTheWindowWhenTheWriteIsVisible()
+	{
+		viewModel.AutoScrollToWrites = true;
+		viewModel.CurrentAddress = 0x5000;
+		viewModel.MemoryData = [.. new byte[256]];
+
+		viewModel.UpdateMemoryWrite(new MemoryWrite(0x50FC, 4));
+
+		apiClient.DidNotReceive().GetMemoryAsync(Arg.Any<string>(), Arg.Any<uint>(), Arg.Any<int>(), Arg.Any<CancellationToken>());
+		viewModel.CurrentAddress.Should().Be(0x5000);
+		viewModel.LastWriteAddress.Should().Be(0x50FC);
+	}
+
+	[Fact]
+	public void UpdateMemoryWrite_WithAutoScroll_NavigatesWhenTheWriteStartsPastTheWindow()
+	{
+		viewModel.AutoScrollToWrites = true;
+		viewModel.CurrentAddress = 0x5000;
+		viewModel.MemoryData = [.. new byte[256]];
+		apiClient.GetMemoryAsync(sessionId, 0x5100, 256, Arg.Any<CancellationToken>()).Returns([]);
+
+		viewModel.UpdateMemoryWrite(new MemoryWrite(0x5100, 4));
+
+		apiClient.Received(1).GetMemoryAsync(sessionId, 0x5100, 256, Arg.Any<CancellationToken>());
+	}
+
+	[Fact]
 	public async Task UpdateMemoryWrite_WithAutoScroll_ShouldNavigateToWriteAddress()
 	{
 		// Arrange

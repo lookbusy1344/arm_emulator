@@ -130,11 +130,16 @@ public sealed class MemoryViewModel : ReactiveObject, IDisposable
 			.ObserveOn(scheduler ?? RxSchedulers.MainThreadScheduler)
 			.Subscribe(_ => LastWriteAddress = null);
 
-		if (AutoScrollToWrites && SessionId is not null) {
+		if (AutoScrollToWrites && SessionId is not null && !IsInWindow(write)) {
 			// Navigate to write address asynchronously
 			_ = LoadMemoryAsync(write.Address);
 		}
 	}
+
+	/// <summary>Whether the whole write lies inside the bytes on display.</summary>
+	private bool IsInWindow(MemoryWrite write) =>
+		write.Address >= CurrentAddress
+		&& (ulong)write.Address + Math.Max(write.Size, 1) <= (ulong)CurrentAddress + (uint)MemoryData.Length;
 
 	public async Task LoadMemoryAsync(uint address)
 	{
