@@ -27,6 +27,7 @@
 
                     <Grid ColumnDefinitions="*,Auto">
                         <TextBox Grid.Column="0"
+                                 AutomationProperties.Name="Expression"
                                  Text="{Binding Expression}"
                                  PlaceholderText="Enter expression (e.g., r0, r1+4)"
                                  FontFamily="Consolas, Menlo, Monaco, monospace"

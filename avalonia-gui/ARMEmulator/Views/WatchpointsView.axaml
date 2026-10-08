@@ -28,6 +28,7 @@
                                    Text="Address:"
                                    VerticalAlignment="Center" />
                         <TextBox Grid.Row="0" Grid.Column="1"
+                                 AutomationProperties.Name="Watchpoint address"
                                  Text="{Binding WatchpointAddressText}"
                                  PlaceholderText="0x8000 or hex value"
                                  FontFamily="Consolas, Menlo, Monaco, monospace" />
@@ -37,6 +38,7 @@
                                    Text="Type:"
                                    VerticalAlignment="Center" />
                         <ComboBox Grid.Row="1" Grid.Column="1"
+                                  AutomationProperties.Name="Watchpoint access type"
                                   ItemsSource="{Binding WatchpointTypeOptions}"
                                   SelectedItem="{Binding SelectedWatchpointType}" />
 
@@ -99,6 +101,7 @@
                                         <!-- Remove Button -->
                                         <Button Grid.Column="3"
                                                 Content="✕"
+                                                AutomationProperties.Name="Remove watchpoint"
                                                 FontSize="12"
                                                 Padding="6,4"
                                                 Command="{Binding $parent[UserControl].((vm:MainWindowViewModel)DataContext).RemoveWatchpointCommand}"

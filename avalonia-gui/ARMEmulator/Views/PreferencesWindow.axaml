@@ -21,16 +21,16 @@
 			<TabItem Header="General">
 				<Grid Margin="0,16,0,0" ColumnDefinitions="Auto,12,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto" RowSpacing="8">
 					<TextBlock Grid.Row="0" Text="Backend URL" VerticalAlignment="Center" />
-					<TextBox Grid.Row="0" Grid.Column="2" Text="{Binding BackendUrl}" PlaceholderText="http://localhost:8080" />
+					<TextBox Grid.Row="0" Grid.Column="2" AutomationProperties.Name="Backend URL" Text="{Binding BackendUrl}" PlaceholderText="http://localhost:8080" />
 					<TextBlock Grid.Row="1" Grid.Column="2" Classes="hint" Margin="0,0,0,12"
 					           Text="The HTTP endpoint of the emulator backend. A change takes effect when the backend restarts." />
 
 					<TextBlock Grid.Row="2" Text="Theme" VerticalAlignment="Center" />
-					<ComboBox Grid.Row="2" Grid.Column="2" ItemsSource="{Binding ThemeOptions}" SelectedItem="{Binding SelectedTheme}" MinWidth="150" />
+					<ComboBox Grid.Row="2" Grid.Column="2" AutomationProperties.Name="Theme" ItemsSource="{Binding ThemeOptions}" SelectedItem="{Binding SelectedTheme}" MinWidth="150" />
 					<TextBlock Name="ThemeHint" Grid.Row="3" Grid.Column="2" Classes="hint" Margin="0,0,0,12" Text="Auto follows the system theme." />
 
 					<TextBlock Grid.Row="4" Text="Recent files" VerticalAlignment="Center" />
-					<NumericUpDown Grid.Row="4" Grid.Column="2" HorizontalAlignment="Left" MinWidth="120"
+					<NumericUpDown Grid.Row="4" Grid.Column="2" AutomationProperties.Name="Recent files limit" HorizontalAlignment="Left" MinWidth="120"
 					               Value="{Binding RecentFilesLimit}" Minimum="1" Maximum="50" Increment="5" />
 
 					<CheckBox Grid.Row="6" Grid.Column="2" Margin="0,8,0,0"
@@ -43,7 +43,7 @@
 				<Grid Margin="0,16,0,0" ColumnDefinitions="Auto,12,*" RowDefinitions="Auto,Auto,Auto" RowSpacing="8">
 					<TextBlock Grid.Row="0" Text="Font size" VerticalAlignment="Center" />
 					<StackPanel Grid.Row="0" Grid.Column="2" Orientation="Horizontal" Spacing="8">
-						<NumericUpDown Value="{Binding EditorFontSize}" Minimum="10" Maximum="24" Increment="1" MinWidth="120" />
+						<NumericUpDown AutomationProperties.Name="Editor font size" Value="{Binding EditorFontSize}" Minimum="10" Maximum="24" Increment="1" MinWidth="120" />
 						<TextBlock Text="pt" Classes="hint" VerticalAlignment="Center" />
 					</StackPanel>
 

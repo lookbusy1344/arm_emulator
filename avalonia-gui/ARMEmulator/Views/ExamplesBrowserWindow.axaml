@@ -33,6 +33,7 @@
 			<DockPanel Grid.Column="0">
 				<!-- Search -->
 				<TextBox DockPanel.Dock="Top"
+				         AutomationProperties.Name="Search examples"
 				         Text="{Binding SearchText}"
 				         PlaceholderText="Search examples..."
 				         Margin="0,0,0,8"
@@ -40,6 +41,7 @@
 
 				<!-- Examples List -->
 				<ListBox ItemsSource="{Binding FilteredExamples}"
+				         AutomationProperties.Name="Examples"
 				         SelectedItem="{Binding SelectedExample}">
 					<ListBox.ItemTemplate>
 						<DataTemplate>
@@ -72,6 +74,7 @@
 			<DockPanel Grid.Column="2">
 				<TextBlock DockPanel.Dock="Top" Text="Preview" Classes="sectionTitle" Margin="0,0,0,8" />
 				<TextBox Name="PreviewBox"
+				         AutomationProperties.Name="Example preview"
 				         Classes="data"
 				         Text="{Binding PreviewContent}"
 				         IsReadOnly="True"
