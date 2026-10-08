@@ -59,7 +59,7 @@ public partial class MainWindowViewModel : ReactiveObject, IDisposable
 		ResetCommand = CreateCommand("Reset", ResetAsync);
 		LoadProgramCommand = CreateCommand("Load", LoadProgramAsync);
 		ShowPcCommand = CreateCommand("Show PC", ShowPcAsync);
-		SendInputCommand = CreateCommand("Send input", SendInputAsync, this.WhenAnyValue(x => x.InputText).Select(s => !string.IsNullOrWhiteSpace(s)));
+		SendInputCommand = CreateCommand("Send input", SendInputAsync, this.WhenAnyValue(x => x.InputText).Select(s => !string.IsNullOrEmpty(s)));
 		ToggleBreakpointCommand = ReportFailures("Toggle breakpoint", ReactiveCommand.CreateFromTask<int>(ToggleBreakpointAtLineAsync, outputScheduler: RxSchedulers.MainThreadScheduler));
 		ToggleBreakpointAtAddressCommand = ReportFailures("Toggle breakpoint", ReactiveCommand.CreateFromTask<uint>(ToggleBreakpointAtAddressAsync, outputScheduler: RxSchedulers.MainThreadScheduler));
 		ToggleBreakpointAtCaretCommand = CreateCommand("Toggle breakpoint", ct => ToggleBreakpointAtLineAsync(CaretLine, ct));
@@ -644,7 +644,7 @@ public partial class MainWindowViewModel : ReactiveObject, IDisposable
 	/// </summary>
 	private async Task SendInputAsync(CancellationToken ct)
 	{
-		if (SessionId is null || string.IsNullOrWhiteSpace(InputText)) {
+		if (SessionId is null || string.IsNullOrEmpty(InputText)) {
 			return;
 		}
 

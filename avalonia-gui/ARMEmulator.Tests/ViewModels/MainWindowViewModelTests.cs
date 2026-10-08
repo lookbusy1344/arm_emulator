@@ -824,6 +824,29 @@ public class MainWindowViewModelTests : IDisposable
 	}
 
 	[Fact]
+	public async Task SendInputCommand_WithWhitespaceOnlyInput_SendsItAndTheNewline()
+	{
+		using var viewModel = new MainWindowViewModel(mockApi, mockWs, mockFileService);
+		viewModel.SessionId = "test-session";
+		viewModel.Status = VMState.Idle;
+		viewModel.InputText = "  ";
+		mockApi.StepAsync("test-session", Arg.Any<CancellationToken>()).Returns(RegisterState.Create());
+
+		await viewModel.SendInputCommand.Execute();
+
+		await mockApi.Received(1).SendStdinAsync("test-session", "  \n", Arg.Any<CancellationToken>());
+	}
+
+	[Fact]
+	public void SendInputCommand_WithEmptyInput_CannotExecute()
+	{
+		using var viewModel = new MainWindowViewModel(mockApi, mockWs, mockFileService);
+		viewModel.InputText = "";
+
+		viewModel.SendInputCommand.CanExecute.Subscribe(canExecute => canExecute.Should().BeFalse()).Dispose();
+	}
+
+	[Fact]
 	public async Task SendInputCommand_ClearsInputTextAfterSuccessfulSend()
 	{
 		// Arrange
