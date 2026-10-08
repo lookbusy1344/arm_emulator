@@ -30,6 +30,8 @@ Comprehensive keyboard shortcuts for the ARM Emulator Avalonia GUI.
 |--------|---------------|-------|-------------|
 | **Show PC** | `Ctrl+J` | `Cmd+J` | Scroll editor to current PC |
 | **Toggle Breakpoint** | `F9` | `F9` | Toggle breakpoint on the editor caret line, from any panel |
+| **Next Region** | `F6` | `F6` | Move focus to the next region: toolbar, editor, inspector, console input |
+| **Previous Region** | `Shift+F6` | `Shift+F6` | Move focus to the previous region |
 
 ## Editor
 

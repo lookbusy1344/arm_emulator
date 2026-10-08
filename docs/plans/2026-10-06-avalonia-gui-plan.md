@@ -324,7 +324,7 @@ Check each item against the Swift GUI and record the result in this file:
 ### 5.2 Accessibility
 
 - Keyboard navigation through every panel; automation names on controls (partly done).
-- Done 2026-10-08: `AccessibleNameTests` checks every button, text box, selector, number box, check box and list in each inspector panel and dialog for a name. It found 14 unnamed controls (icon-only remove buttons, address and expression boxes, preference fields, example search and list); all named. Open: keyboard-only traversal of each panel.
+- Done 2026-10-08: `AccessibleNameTests` checks every button, text box, selector, number box, check box and list in each inspector panel and dialog for a name. It found 14 unnamed controls (icon-only remove buttons, address and expression boxes, preference fields, example search and list); all named. Keyboard: Tab never left the editor, because AvaloniaEdit inserts a tab. F6 and Shift+F6 now move focus between the toolbar, editor, inspector selector and console input (`KeyboardTraversalTests`). Open: Tab order inside each inspector panel.
 
 **Exit criteria:** every parity row is checked and either matches or has a tracked follow-up.
 
