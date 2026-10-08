@@ -176,6 +176,17 @@ func (s *DebuggerService) SetStateChangedCallback(callback func()) {
 	s.stateChangedCallback = callback
 }
 
+// clearProgramLocked drops the loaded program's symbols and source map. A failed load
+// has already reset the VM, so they no longer describe it. The caller holds s.mu.
+func (s *DebuggerService) clearProgramLocked() {
+	s.program = nil
+	s.symbols = make(map[string]uint32)
+	s.sourceMap = nil
+	s.sourceMapByAddr = make(map[uint32]string)
+	s.debugger.LoadSymbols(s.symbols)
+	s.debugger.LoadSourceMap(s.sourceMapByAddr)
+}
+
 // LoadProgram loads and initializes a parsed program
 func (s *DebuggerService) LoadProgram(program *parser.Program, entryPoint uint32) error {
 	s.mu.Lock()
@@ -236,6 +247,7 @@ func (s *DebuggerService) LoadProgram(program *parser.Program, entryPoint uint32
 
 	// Load into VM memory
 	if err := loader.LoadProgramIntoVM(s.vm, program, entryPoint); err != nil {
+		s.clearProgramLocked()
 		return err
 	}
 
@@ -244,6 +256,7 @@ func (s *DebuggerService) LoadProgram(program *parser.Program, entryPoint uint32
 		s.vm.StackTop = vm.StackSegmentStart + vm.StackSegmentSize
 	}
 	if err := s.vm.CPU.SetSP(s.vm.StackTop); err != nil {
+		s.clearProgramLocked()
 		return fmt.Errorf("failed to initialize stack pointer: %w", err)
 	}
 

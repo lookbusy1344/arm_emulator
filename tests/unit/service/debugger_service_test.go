@@ -1355,3 +1355,34 @@ func TestDebuggerService_ResetToEntryPoint_NoProgramLoaded(t *testing.T) {
 		t.Errorf("Expected PC=0 after reset with no program, got 0x%08X", machine.CPU.PC)
 	}
 }
+
+func TestDebuggerService_FailedLoadLeavesNoProgramState(t *testing.T) {
+	machine := vm.NewVM()
+	machine.InitializeStack(vm.StackSegmentStart + vm.StackSegmentSize)
+	svc := service.NewDebuggerService(machine)
+
+	good, err := parser.NewParser(".org 0x8000\n_start:\nMOV R0, #1\nSWI #0", "good.s").Parse()
+	if err != nil {
+		t.Fatalf("parse error: %v", err)
+	}
+	if err := svc.LoadProgram(good, 0x8000); err != nil {
+		t.Fatalf("LoadProgram failed: %v", err)
+	}
+
+	// Parses, but .word names a symbol that does not exist, so the loader rejects it
+	bad, err := parser.NewParser(".org 0x8000\n_start:\nMOV R1, #2\nMOV R2, #3\nSWI #0\n.word missing_symbol", "bad.s").Parse()
+	if err != nil {
+		t.Fatalf("parse error: %v", err)
+	}
+	if err := svc.LoadProgram(bad, 0x8000); err == nil {
+		t.Fatal("expected the load to fail")
+	}
+
+	// The VM was reset for the failed load, so the service reports no program
+	if got := svc.GetSourceMap(); len(got) != 0 {
+		t.Errorf("source map has %d entries after a failed load, want 0: %+v", len(got), got)
+	}
+	if got := svc.GetSymbols(); len(got) != 0 {
+		t.Errorf("symbols after a failed load = %v, want none", got)
+	}
+}
