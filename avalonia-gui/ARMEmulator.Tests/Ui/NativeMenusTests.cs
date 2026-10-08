@@ -84,8 +84,8 @@ public sealed class NativeMenusTests : IDisposable
 	public Task RecentFilesMenu_ListsEachRecentFileAndOpensItsPath() =>
 		UiTest.RunOnUiThread(() => {
 			using var viewModel = CreateViewModel(
-				new RecentFile("/work/a.s", DateTime.UnixEpoch),
-				new RecentFile("/work/b.s", DateTime.UnixEpoch));
+				new RecentFile("/work/a.s", DateTimeOffset.UnixEpoch),
+				new RecentFile("/work/b.s", DateTimeOffset.UnixEpoch));
 
 			var recent = Submenu(Submenu(NativeMenus.CreateWindowMenu(viewModel), "File").Menu!, "Recent Files");
 

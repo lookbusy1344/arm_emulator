@@ -1,5 +1,6 @@
 using System.Reactive;
 using System.Reactive.Subjects;
+using ARMEmulator.Models;
 using Avalonia.Controls;
 using Avalonia.Platform.Storage;
 
@@ -25,14 +26,14 @@ public sealed class FileService : IFileService, IDisposable
 		get => recentFilesLimit;
 		set
 		{
-			recentFilesLimit = Math.Max(value, 1);
+			recentFilesLimit = Math.Max(value, AppSettings.MinRecentFilesLimit);
 			Update(recentFiles);
 		}
 	}
 
 	public string? CurrentFilePath { get; set; }
 
-	public async Task<(string path, string content)?> OpenFileAsync(Window parent)
+	public async Task<OpenedFile?> OpenFileAsync(Window parent)
 	{
 		var storage = parent.StorageProvider;
 		if (!storage.CanOpen) {
@@ -63,7 +64,7 @@ public sealed class FileService : IFileService, IDisposable
 		AddRecentFile(path);
 		CurrentFilePath = path;
 
-		return (path, content);
+		return new OpenedFile(path, content);
 	}
 
 	public async Task<string?> SaveFileAsync(Window parent, string content, string? currentPath)
@@ -110,7 +111,7 @@ public sealed class FileService : IFileService, IDisposable
 	public void AddRecentFile(string path) =>
 		Update(recentFiles
 			.RemoveAll(f => IsSamePath(f.Path, path))
-			.Insert(0, new RecentFile(path, DateTime.Now)));
+			.Insert(0, new RecentFile(path, DateTimeOffset.Now)));
 
 	public void ClearRecentFiles() => Update([]);
 
@@ -123,7 +124,7 @@ public sealed class FileService : IFileService, IDisposable
 	public void LoadRecentFiles(IEnumerable<string> paths) =>
 		recentFiles = Trim(paths
 			.DistinctBy(path => path, StringComparer.OrdinalIgnoreCase)
-			.Select(path => new RecentFile(path, DateTime.MinValue))
+			.Select(path => new RecentFile(path, DateTimeOffset.MinValue))
 			.ToImmutableList());
 
 	public void Dispose() => recentFilesChanged.Dispose();

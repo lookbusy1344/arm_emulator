@@ -974,7 +974,7 @@ public partial class MainWindowViewModel : ReactiveObject, IDisposable
 		try {
 			settingsStore?.Save(toSave);
 		}
-		catch (IOException ex) {
+		catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) {
 			ErrorMessage = $"Failed to save {what}: {ex.Message}";
 		}
 	}

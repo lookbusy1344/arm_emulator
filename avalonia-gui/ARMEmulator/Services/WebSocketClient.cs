@@ -26,8 +26,8 @@ public sealed class WebSocketClient : IWebSocketClient
 	private readonly CancellationTokenSource disposeCts = new();
 
 	private WebSocket? ws;
+	private CancellationTokenSource? receiveCts;
 	private Task? receiveTask;
-	private string currentSessionId = string.Empty;
 
 	/// <summary>
 	/// Creates a new WebSocket client.
@@ -53,22 +53,20 @@ public sealed class WebSocketClient : IWebSocketClient
 		// Also releases a socket whose receive loop failed
 		await DisconnectAsync();
 
-		currentSessionId = sessionId;
-
 		try {
-			ws = factory.CreateWebSocket();
+			var socket = factory.CreateWebSocket();
+			ws = socket;
 
-			if (ws is ClientWebSocket clientWs) {
+			if (socket is ClientWebSocket clientWs) {
 				await clientWs.ConnectAsync(new Uri(wsUrl), ct);
 			}
 
 			connectionStateSubject.OnNext(true);
+			await SendSubscriptionAsync(socket, sessionId, ct);
 
-			// Send subscription message
-			await SendSubscriptionAsync(sessionId, ct);
-
-			// Start receive loop
-			receiveTask = Task.Run(() => ReceiveLoopAsync(disposeCts.Token), disposeCts.Token);
+			receiveCts = CancellationTokenSource.CreateLinkedTokenSource(disposeCts.Token);
+			var receiveToken = receiveCts.Token;
+			receiveTask = Task.Run(() => ReceiveLoopAsync(socket, receiveToken), receiveToken);
 		}
 		catch (OperationCanceledException) {
 			connectionStateSubject.OnNext(false);
@@ -82,27 +80,34 @@ public sealed class WebSocketClient : IWebSocketClient
 
 	public async Task DisconnectAsync()
 	{
-		if (ws is null) {
+		var socket = ws;
+		if (socket is null) {
 			return;
 		}
 
+		ws = null;
 		try {
-			if (ws.State == WebSocketState.Open) {
-				await CloseOrAbortAsync(ws).ConfigureAwait(false);
-			}
-
-			ws.Dispose();
-			ws = null;
-
-			connectionStateSubject.OnNext(false);
-
-			if (receiveTask is not null) {
-				await receiveTask.ConfigureAwait(false);
-				receiveTask = null;
+			if (socket.State == WebSocketState.Open) {
+				await CloseOrAbortAsync(socket).ConfigureAwait(false);
 			}
 		}
-		catch {
-			// Ignore disconnect errors
+		finally {
+			receiveCts?.Cancel();
+			socket.Dispose();
+			connectionStateSubject.OnNext(false);
+		}
+
+		var receiving = receiveTask;
+		var receivingCts = receiveCts;
+		receiveTask = null;
+		receiveCts = null;
+		try {
+			if (receiving is not null) {
+				await receiving.ConfigureAwait(false);
+			}
+		}
+		finally {
+			receivingCts?.Dispose();
 		}
 	}
 
@@ -112,7 +117,7 @@ public sealed class WebSocketClient : IWebSocketClient
 		try {
 			await socket.CloseAsync(WebSocketCloseStatus.NormalClosure, "Client disconnecting", timeout.Token).ConfigureAwait(false);
 		}
-		catch (OperationCanceledException) {
+		catch (Exception ex) when (ex is OperationCanceledException or WebSocketException) {
 			socket.Abort();
 		}
 	}
@@ -124,34 +129,39 @@ public sealed class WebSocketClient : IWebSocketClient
 		try {
 			DisconnectAsync().ConfigureAwait(false).GetAwaiter().GetResult();
 		}
-		catch {
-			// Ignore dispose errors - may occur if connection already closed
+		catch (Exception ex) {
+			// Dispose must not throw; the socket is released by DisconnectAsync's finally block
+			System.Diagnostics.Debug.WriteLine($"WebSocket disconnect failed during dispose: {ex.Message}");
 		}
+
 		disposeCts.Dispose();
 		eventsSubject.Dispose();
 		connectionStateSubject.Dispose();
 	}
 
-	private async Task SendSubscriptionAsync(string sessionId, CancellationToken ct)
+	private static async Task SendSubscriptionAsync(WebSocket socket, string sessionId, CancellationToken ct)
 	{
-		// Manual JSON construction to avoid reflection
-		var json = $$"""{"type":"subscribe","sessionId":"{{sessionId}}","events":[]}""";
-		var bytes = Encoding.UTF8.GetBytes(json);
-		await ws!.SendAsync(
-			new ArraySegment<byte>(bytes),
-			WebSocketMessageType.Text,
-			endOfMessage: true,
-			ct);
+		var buffer = new ArrayBufferWriter<byte>();
+		using (var writer = new Utf8JsonWriter(buffer)) {
+			writer.WriteStartObject();
+			writer.WriteString("type", "subscribe");
+			writer.WriteString("sessionId", sessionId);
+			writer.WriteStartArray("events");
+			writer.WriteEndArray();
+			writer.WriteEndObject();
+		}
+
+		await socket.SendAsync(buffer.WrittenMemory, WebSocketMessageType.Text, endOfMessage: true, ct);
 	}
 
-	private async Task ReceiveLoopAsync(CancellationToken ct)
+	private async Task ReceiveLoopAsync(WebSocket socket, CancellationToken ct)
 	{
 		var buffer = new byte[ReceiveBufferBytes];
 		var message = new ArrayBufferWriter<byte>();
 
 		try {
-			while (!ct.IsCancellationRequested && ws?.State == WebSocketState.Open) {
-				var result = await ws.ReceiveAsync(new ArraySegment<byte>(buffer), ct);
+			while (!ct.IsCancellationRequested && socket.State == WebSocketState.Open) {
+				var result = await socket.ReceiveAsync(new ArraySegment<byte>(buffer), ct);
 
 				if (result.MessageType == WebSocketMessageType.Close) {
 					connectionStateSubject.OnNext(false);
@@ -170,8 +180,8 @@ public sealed class WebSocketClient : IWebSocketClient
 				}
 			}
 		}
-		catch (OperationCanceledException) {
-			// Normal cancellation
+		catch (Exception) when (ct.IsCancellationRequested) {
+			// DisconnectAsync cancelled the loop and is closing the socket
 		}
 		catch (WebSocketException ex) {
 			// Events outlives any one socket: a fault there would end it for every subscriber

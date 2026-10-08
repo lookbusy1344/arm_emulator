@@ -34,6 +34,9 @@ public sealed class JsonSettingsStore(string path) : ISettingsStore
 			Save(AppSettings.Default);
 			return new SettingsLoadResult(AppSettings.Default, DamagedWarning);
 		}
+		catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) {
+			return new SettingsLoadResult(AppSettings.Default, $"Settings could not be read: {ex.Message} Defaults are in use.");
+		}
 	}
 
 	public void Save(AppSettings settings)

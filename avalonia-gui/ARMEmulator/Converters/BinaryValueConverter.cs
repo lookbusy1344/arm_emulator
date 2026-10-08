@@ -25,11 +25,8 @@ public class BinaryValueConverter : IValueConverter
 			return 0u;
 		}
 
-		try {
-			return System.Convert.ToUInt32(str, 2);
-		}
-		catch {
-			return 0u;
-		}
+		return uint.TryParse(str, NumberStyles.AllowBinarySpecifier, culture, out var result)
+			? result
+			: 0u;
 	}
 }

@@ -127,8 +127,8 @@ public class ExpressionEvaluatorViewModelTests
 		// Arrange
 		var history = new List<ExpressionResult>
 		{
-			new("r0", 42, DateTime.Now),
-			new("r1", 100, DateTime.Now)
+			new("r0", 42, DateTimeOffset.Now),
+			new("r1", 100, DateTimeOffset.Now)
 		};
 		viewModel.History = [.. history];
 

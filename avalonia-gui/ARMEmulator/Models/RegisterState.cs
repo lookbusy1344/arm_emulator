@@ -5,8 +5,20 @@ namespace ARMEmulator.Models;
 /// </summary>
 public sealed record RegisterState
 {
+	/// <summary>Number of general-purpose registers, R0-R15.</summary>
+	public const int RegisterCount = 16;
+
+	private readonly ImmutableArray<uint> registers;
+
 	/// <summary>All 16 general-purpose registers (R0-R15).</summary>
-	public required ImmutableArray<uint> Registers { get; init; }
+	/// <exception cref="ArgumentException">The array does not hold exactly <see cref="RegisterCount"/> values.</exception>
+	public required ImmutableArray<uint> Registers
+	{
+		get => registers;
+		init => registers = !value.IsDefault && value.Length == RegisterCount
+			? value
+			: throw new ArgumentException($"Expected {RegisterCount} register values.", nameof(value));
+	}
 
 	/// <summary>Current Program Status Register flags.</summary>
 	public required CPSRFlags CPSR { get; init; }
@@ -101,6 +113,8 @@ public sealed record RegisterState
 	/// </summary>
 	public ImmutableHashSet<string> Diff(RegisterState other)
 	{
+		ArgumentNullException.ThrowIfNull(other);
+
 		var registerNames = new[] { "R0", "R1", "R2", "R3", "R4", "R5", "R6", "R7",
 									"R8", "R9", "R10", "R11", "R12", "SP", "LR", "PC" };
 

@@ -94,7 +94,7 @@ public class ExpressionEvaluatorViewModel : ReactiveObject
 			Result = value;
 
 			// Add to history (most recent first)
-			History = [new ExpressionResult(Expression, value, DateTime.Now), .. History];
+			History = [new ExpressionResult(Expression, value, DateTimeOffset.Now), .. History];
 		}
 		catch (ExpressionEvaluationException ex) {
 			ErrorMessage = ex.Message;

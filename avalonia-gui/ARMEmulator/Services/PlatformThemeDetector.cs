@@ -1,36 +1,34 @@
+using System.ComponentModel;
 using System.Diagnostics;
 using System.Reactive.Linq;
 using System.Reactive.Subjects;
-using System.Runtime.InteropServices;
 using Avalonia;
 using Avalonia.Platform;
-using Avalonia.Styling;
 
 namespace ARMEmulator.Services;
 
 /// <summary>
-/// Platform-specific theme detection using Avalonia's platform services
-/// and OS-specific APIs.
+/// Follows the operating system's light or dark preference through Avalonia's platform settings.
+/// Reads the platform, not the application, so a theme the user picked does not feed back into Auto.
 /// </summary>
 public sealed class PlatformThemeDetector : IPlatformThemeDetector, IDisposable
 {
+	private readonly IPlatformSettings? settings;
 	private readonly BehaviorSubject<PlatformTheme> themeSubject;
-	private readonly IDisposable? themeChangeSubscription;
 
+	/// <summary>Follows the platform settings of the running application.</summary>
 	public PlatformThemeDetector()
+		: this(Application.Current?.PlatformSettings)
 	{
-		var initialTheme = DetectSystemTheme();
-		themeSubject = new BehaviorSubject<PlatformTheme>(initialTheme);
+	}
 
-		// Subscribe to Avalonia's actual theme changed event if available
-		var app = Application.Current;
-		if (app is not null) {
-			themeChangeSubscription = Observable
-				.FromEventPattern(
-					h => app.ActualThemeVariantChanged += h,
-					h => app.ActualThemeVariantChanged -= h)
-				.Select(_ => DetectSystemTheme())
-				.Subscribe(theme => themeSubject.OnNext(theme));
+	/// <summary>Follows <paramref name="settings"/>. Without settings, macOS is asked directly and other systems report light.</summary>
+	private PlatformThemeDetector(IPlatformSettings? settings)
+	{
+		this.settings = settings;
+		themeSubject = new BehaviorSubject<PlatformTheme>(settings is null ? DetectWithoutAvalonia() : ToTheme(settings.GetColorValues()));
+		if (settings is not null) {
+			settings.ColorValuesChanged += OnColorValuesChanged;
 		}
 	}
 
@@ -38,93 +36,50 @@ public sealed class PlatformThemeDetector : IPlatformThemeDetector, IDisposable
 
 	public IObservable<PlatformTheme> ThemeChanged => themeSubject.AsObservable();
 
-	private static PlatformTheme DetectSystemTheme()
-	{
-		try {
-			// Use Avalonia's theme detection first
-			if (Application.Current?.ActualThemeVariant is ThemeVariant avaloniaTheme) {
-				return avaloniaTheme == ThemeVariant.Dark ? PlatformTheme.Dark : PlatformTheme.Light;
-			}
-
-			// Fall back to platform-specific detection
-			if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX)) {
-				return DetectMacOSTheme();
-			}
-
-			if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {
-				return DetectWindowsTheme();
-			}
-
-			if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux)) {
-				return DetectLinuxTheme();
-			}
-		}
-		catch {
-			// Fall back to light theme on detection failure
-		}
-
-		return PlatformTheme.Light;
-	}
-
-	private static PlatformTheme DetectMacOSTheme()
-	{
-		try {
-			using var process = new Process {
-				StartInfo = new ProcessStartInfo {
-					FileName = "defaults",
-					Arguments = "read -g AppleInterfaceStyle",
-					UseShellExecute = false,
-					RedirectStandardOutput = true,
-					RedirectStandardError = true,
-					CreateNoWindow = true
-				}
-			};
-
-			if (process.Start()) {
-				var output = process.StandardOutput.ReadToEnd().Trim();
-				process.WaitForExit();
-
-				// If "Dark" is returned, it's dark mode. If the key doesn't exist (exit code 1), it's light mode.
-				return output.Equals("Dark", StringComparison.OrdinalIgnoreCase)
-					? PlatformTheme.Dark
-					: PlatformTheme.Light;
-			}
-		}
-		catch {
-			// Fall back to light theme
-		}
-
-		return PlatformTheme.Light;
-	}
-
-	private static PlatformTheme DetectWindowsTheme()
-	{
-		// Windows 10/11 theme detection via registry
-		// This is a simplified version - Avalonia should handle this better
-		try {
-			if (OperatingSystem.IsWindows()) {
-				// Avalonia's platform detection should handle this
-				// For now, default to light
-			}
-		}
-		catch {
-			// Fall back to light theme
-		}
-
-		return PlatformTheme.Light;
-	}
-
-	private static PlatformTheme DetectLinuxTheme()
-	{
-		// Linux theme detection is complex (depends on DE: GNOME, KDE, etc.)
-		// Avalonia's platform services should handle this
-		// For now, default to light
-		return PlatformTheme.Light;
-	}
-
 	public void Dispose()
 	{
-		themeChangeSubscription?.Dispose();
+		if (settings is not null) {
+			settings.ColorValuesChanged -= OnColorValuesChanged;
+		}
+
 		themeSubject.Dispose();
+	}
+
+	private void OnColorValuesChanged(object? sender, PlatformColorValues colors) => themeSubject.OnNext(ToTheme(colors));
+
+	internal static PlatformTheme ToTheme(PlatformColorValues colors) =>
+		colors.ThemeVariant == PlatformThemeVariant.Dark ? PlatformTheme.Dark : PlatformTheme.Light;
+
+	private static PlatformTheme DetectWithoutAvalonia() =>
+		OperatingSystem.IsMacOS() ? ReadMacOSAppearance() : PlatformTheme.Light;
+
+	/// <summary>
+	/// <c>defaults read -g AppleInterfaceStyle</c> prints "Dark" in dark mode and fails when the key is absent, which means light.
+	/// </summary>
+	private static PlatformTheme ReadMacOSAppearance()
+	{
+		var startInfo = new ProcessStartInfo {
+			FileName = "defaults",
+			UseShellExecute = false,
+			RedirectStandardOutput = true,
+			RedirectStandardError = true,
+			CreateNoWindow = true,
+			ArgumentList = { "read", "-g", "AppleInterfaceStyle" }
+		};
+
+		try {
+			using var process = Process.Start(startInfo);
+			if (process is null) {
+				return PlatformTheme.Light;
+			}
+
+			var output = process.StandardOutput.ReadToEnd().Trim();
+			process.WaitForExit();
+			return output.Equals("Dark", StringComparison.OrdinalIgnoreCase) ? PlatformTheme.Dark : PlatformTheme.Light;
+		}
+		catch (Win32Exception) {
+			// defaults is missing or cannot run
+			return PlatformTheme.Light;
+		}
 	}
 }

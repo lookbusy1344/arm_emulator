@@ -195,6 +195,33 @@ public sealed class RegisterStateTests
 		_ = state.R0.Should().Be(42u);
 	}
 
+	[Theory]
+	[InlineData(0)]
+	[InlineData(15)]
+	[InlineData(17)]
+	public void Registers_WithOtherThanSixteenValues_ThrowsArgumentException(int count)
+	{
+		var act = () => new RegisterState { Registers = [.. Enumerable.Repeat(0u, count)], CPSR = default };
+
+		_ = act.Should().ThrowExactly<ArgumentException>().WithParameterName("value");
+	}
+
+	[Fact]
+	public void Registers_WithDefaultArray_ThrowsArgumentException()
+	{
+		var act = () => new RegisterState { Registers = default, CPSR = default };
+
+		_ = act.Should().ThrowExactly<ArgumentException>().WithParameterName("value");
+	}
+
+	[Fact]
+	public void Diff_WithNull_ThrowsArgumentNullException()
+	{
+		var act = () => RegisterState.Create().Diff(null!);
+
+		_ = act.Should().ThrowExactly<ArgumentNullException>().WithParameterName("other");
+	}
+
 	[Fact]
 	public void WithExpression_CreatesNewInstance()
 	{

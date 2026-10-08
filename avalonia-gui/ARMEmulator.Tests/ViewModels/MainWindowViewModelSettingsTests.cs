@@ -172,7 +172,7 @@ public sealed class MainWindowViewModelSettingsTests : IDisposable
 	[Fact]
 	public void SaveSettings_KeepsTheCurrentRecentFiles()
 	{
-		files.RecentFiles.Returns([new RecentFile("/p/b.s", DateTime.MinValue), new RecentFile("/p/a.s", DateTime.MinValue)]);
+		files.RecentFiles.Returns([new RecentFile("/p/b.s", DateTimeOffset.MinValue), new RecentFile("/p/a.s", DateTimeOffset.MinValue)]);
 		using var vm = CreateViewModel();
 
 		vm.SaveSettings(Changed);
@@ -185,7 +185,7 @@ public sealed class MainWindowViewModelSettingsTests : IDisposable
 	{
 		using var vm = CreateViewModel();
 		vm.ApplySettings(Changed);
-		files.RecentFiles.Returns([new RecentFile("/p/a.s", DateTime.MinValue)]);
+		files.RecentFiles.Returns([new RecentFile("/p/a.s", DateTimeOffset.MinValue)]);
 
 		recentFilesChanged.OnNext(Unit.Default);
 
@@ -202,6 +202,17 @@ public sealed class MainWindowViewModelSettingsTests : IDisposable
 		recentFilesChanged.OnNext(Unit.Default);
 
 		raised.Should().Contain(nameof(MainWindowViewModel.RecentFiles));
+	}
+
+	[Fact]
+	public void SaveSettings_WhenAccessIsDenied_ReportsError()
+	{
+		store.When(s => s.Save(Arg.Any<AppSettings>())).Throw(new UnauthorizedAccessException("access denied"));
+		using var vm = CreateViewModel();
+
+		vm.SaveSettings(Changed);
+
+		vm.ErrorMessage.Should().Be("Failed to save settings: access denied");
 	}
 
 	[Fact]

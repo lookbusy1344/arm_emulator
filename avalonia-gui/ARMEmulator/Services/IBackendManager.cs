@@ -31,8 +31,9 @@ public interface IBackendManager : IDisposable
 	Task StartAsync(CancellationToken ct = default);
 
 	/// <summary>
-	/// Stops the backend process gracefully.
+	/// Kills the backend process this manager started, with its child processes. A backend it reused is left running.
 	/// </summary>
+	/// <exception cref="System.ComponentModel.Win32Exception">The process could not be terminated</exception>
 	Task StopAsync();
 
 	/// <summary>

@@ -19,20 +19,20 @@ public sealed class ApiClient(HttpClient http) : IApiClient
 
 	public async Task<SessionInfo> CreateSessionAsync(CancellationToken ct = default)
 	{
-		var response = await SendAsync(HttpMethod.Post, "/api/v1/session", new StringContent(EmptyJsonObject, Encoding.UTF8, "application/json"), ct);
+		using var response = await SendAsync(HttpMethod.Post, "/api/v1/session", new StringContent(EmptyJsonObject, Encoding.UTF8, "application/json"), ct);
 		return await ParseResponseOrThrowAsync(response, ApiJsonContext.Default.SessionInfo, ct);
 	}
 
 	public async Task<VMStatus> GetStatusAsync(string sessionId, CancellationToken ct = default)
 	{
-		var response = await GetAsync($"/api/v1/session/{sessionId}", ct);
+		using var response = await GetAsync(SessionPath(sessionId), ct);
 		var status = await ParseResponseOrThrowAsync(response, ApiJsonContext.Default.SessionStatusResponse, ct, sessionId);
 		return status.ToVMStatus();
 	}
 
 	public async Task DestroySessionAsync(string sessionId, CancellationToken ct = default)
 	{
-		var response = await DeleteAsync($"/api/v1/session/{sessionId}", ct);
+		using var response = await DeleteAsync(SessionPath(sessionId), ct);
 		await EnsureSuccessAsync(response, sessionId, ct);
 	}
 
@@ -40,8 +40,8 @@ public sealed class ApiClient(HttpClient http) : IApiClient
 
 	public async Task<LoadProgramResponse> LoadProgramAsync(string sessionId, string source, CancellationToken ct = default)
 	{
-		var response = await PostJsonAsync(
-			$"/api/v1/session/{sessionId}/load", new LoadProgramRequest(source), ApiJsonContext.Default.LoadProgramRequest, ct);
+		using var response = await PostJsonAsync(
+			$"{SessionPath(sessionId)}/load", new LoadProgramRequest(source), ApiJsonContext.Default.LoadProgramRequest, ct);
 
 		// Assembler errors arrive as 400 with a LoadProgramResponse body; other 400s carry the generic error body
 		if (response.StatusCode == HttpStatusCode.BadRequest) {
@@ -89,28 +89,28 @@ public sealed class ApiClient(HttpClient http) : IApiClient
 
 	public async Task<RegisterState> GetRegistersAsync(string sessionId, CancellationToken ct = default)
 	{
-		var response = await GetAsync($"/api/v1/session/{sessionId}/registers", ct);
+		using var response = await GetAsync($"{SessionPath(sessionId)}/registers", ct);
 		var registers = await ParseResponseOrThrowAsync(response, ApiJsonContext.Default.RegistersResponse, ct, sessionId);
 		return registers.ToRegisterState();
 	}
 
 	public async Task<ImmutableArray<byte>> GetMemoryAsync(string sessionId, uint address, int length, CancellationToken ct = default)
 	{
-		var response = await GetAsync($"/api/v1/session/{sessionId}/memory?address={address}&length={length}", ct);
+		using var response = await GetAsync($"{SessionPath(sessionId)}/memory?address={address}&length={length}", ct);
 		var wrapper = await ParseResponseOrThrowAsync(response, ApiJsonContext.Default.MemoryResponse, ct, sessionId);
 		return wrapper.ToBytes();
 	}
 
 	public async Task<ImmutableArray<DisassemblyInstruction>> GetDisassemblyAsync(string sessionId, uint address, int count, CancellationToken ct = default)
 	{
-		var response = await GetAsync($"/api/v1/session/{sessionId}/disassembly?address={address}&count={count}", ct);
+		using var response = await GetAsync($"{SessionPath(sessionId)}/disassembly?address={address}&count={count}", ct);
 		var wrapper = await ParseResponseOrThrowAsync(response, ApiJsonContext.Default.DisassemblyResponse, ct, sessionId);
 		return [.. wrapper.Instructions.Select(i => i.ToModel())];
 	}
 
 	public async Task<ImmutableArray<SourceMapEntry>> GetSourceMapAsync(string sessionId, CancellationToken ct = default)
 	{
-		var response = await GetAsync($"/api/v1/session/{sessionId}/sourcemap", ct);
+		using var response = await GetAsync($"{SessionPath(sessionId)}/sourcemap", ct);
 		var wrapper = await ParseResponseOrThrowAsync(response, ApiJsonContext.Default.SourceMapResponse, ct, sessionId);
 		return [.. wrapper.SourceMap.Select(e => e.ToModel())];
 	}
@@ -119,21 +119,21 @@ public sealed class ApiClient(HttpClient http) : IApiClient
 
 	public async Task AddBreakpointAsync(string sessionId, uint address, CancellationToken ct = default)
 	{
-		var response = await PostJsonAsync(
-			$"/api/v1/session/{sessionId}/breakpoint", new BreakpointRequest(address), ApiJsonContext.Default.BreakpointRequest, ct);
+		using var response = await PostJsonAsync(
+			$"{SessionPath(sessionId)}/breakpoint", new BreakpointRequest(address), ApiJsonContext.Default.BreakpointRequest, ct);
 		await EnsureSuccessAsync(response, sessionId, ct);
 	}
 
 	public async Task RemoveBreakpointAsync(string sessionId, uint address, CancellationToken ct = default)
 	{
-		var response = await SendAsync(
-			HttpMethod.Delete, $"/api/v1/session/{sessionId}/breakpoint", JsonContent(new BreakpointRequest(address), ApiJsonContext.Default.BreakpointRequest), ct);
+		using var response = await SendAsync(
+			HttpMethod.Delete, $"{SessionPath(sessionId)}/breakpoint", JsonContent(new BreakpointRequest(address), ApiJsonContext.Default.BreakpointRequest), ct);
 		await EnsureSuccessAsync(response, sessionId, ct);
 	}
 
 	public async Task<ImmutableArray<uint>> GetBreakpointsAsync(string sessionId, CancellationToken ct = default)
 	{
-		var response = await GetAsync($"/api/v1/session/{sessionId}/breakpoints", ct);
+		using var response = await GetAsync($"{SessionPath(sessionId)}/breakpoints", ct);
 		var wrapper = await ParseResponseOrThrowAsync(response, ApiJsonContext.Default.BreakpointsResponse, ct, sessionId);
 		return [.. wrapper.Breakpoints];
 	}
@@ -142,8 +142,8 @@ public sealed class ApiClient(HttpClient http) : IApiClient
 
 	public async Task<Watchpoint> AddWatchpointAsync(string sessionId, uint address, WatchpointType type, CancellationToken ct = default)
 	{
-		var response = await PostJsonAsync(
-			$"/api/v1/session/{sessionId}/watchpoint",
+		using var response = await PostJsonAsync(
+			$"{SessionPath(sessionId)}/watchpoint",
 			new AddWatchpointRequest(address, WireFormat.ToWire(type)),
 			ApiJsonContext.Default.AddWatchpointRequest,
 			ct);
@@ -153,13 +153,13 @@ public sealed class ApiClient(HttpClient http) : IApiClient
 
 	public async Task RemoveWatchpointAsync(string sessionId, int watchpointId, CancellationToken ct = default)
 	{
-		var response = await DeleteAsync($"/api/v1/session/{sessionId}/watchpoint/{watchpointId}", ct);
+		using var response = await DeleteAsync($"{SessionPath(sessionId)}/watchpoint/{watchpointId}", ct);
 		await EnsureSuccessAsync(response, sessionId, ct);
 	}
 
 	public async Task<ImmutableArray<Watchpoint>> GetWatchpointsAsync(string sessionId, CancellationToken ct = default)
 	{
-		var response = await GetAsync($"/api/v1/session/{sessionId}/watchpoints", ct);
+		using var response = await GetAsync($"{SessionPath(sessionId)}/watchpoints", ct);
 		var wrapper = await ParseResponseOrThrowAsync(response, ApiJsonContext.Default.WatchpointsResponse, ct, sessionId);
 		return [.. wrapper.Watchpoints.Select(w => w.ToModel())];
 	}
@@ -168,8 +168,8 @@ public sealed class ApiClient(HttpClient http) : IApiClient
 
 	public async Task<uint> EvaluateExpressionAsync(string sessionId, string expression, CancellationToken ct = default)
 	{
-		var response = await PostJsonAsync(
-			$"/api/v1/session/{sessionId}/evaluate",
+		using var response = await PostJsonAsync(
+			$"{SessionPath(sessionId)}/evaluate",
 			new EvaluateExpressionRequest(expression),
 			ApiJsonContext.Default.EvaluateExpressionRequest,
 			ct);
@@ -188,8 +188,8 @@ public sealed class ApiClient(HttpClient http) : IApiClient
 
 	public async Task SendStdinAsync(string sessionId, string data, CancellationToken ct = default)
 	{
-		var response = await PostJsonAsync(
-			$"/api/v1/session/{sessionId}/stdin", new StdinRequest(data), ApiJsonContext.Default.StdinRequest, ct);
+		using var response = await PostJsonAsync(
+			$"{SessionPath(sessionId)}/stdin", new StdinRequest(data), ApiJsonContext.Default.StdinRequest, ct);
 		await EnsureSuccessAsync(response, sessionId, ct);
 	}
 
@@ -197,7 +197,7 @@ public sealed class ApiClient(HttpClient http) : IApiClient
 
 	public async Task<BackendVersion> GetVersionAsync(CancellationToken ct = default)
 	{
-		var response = await GetAsync("/api/v1/version", ct);
+		using var response = await GetAsync("/api/v1/version", ct);
 		var version = await ParseResponseOrThrowAsync(response, ApiJsonContext.Default.VersionResponse, ct);
 		return version.ToModel();
 	}
@@ -206,16 +206,16 @@ public sealed class ApiClient(HttpClient http) : IApiClient
 
 	public async Task<ImmutableArray<ExampleInfo>> GetExamplesAsync(CancellationToken ct = default)
 	{
-		var response = await GetAsync("/api/v1/examples", ct);
+		using var response = await GetAsync("/api/v1/examples", ct);
 		var wrapper = await ParseResponseOrThrowAsync(response, ApiJsonContext.Default.ExamplesResponse, ct);
 		return [.. wrapper.Examples];
 	}
 
 	public async Task<string> GetExampleContentAsync(string name, CancellationToken ct = default)
 	{
-		var response = await GetAsync($"/api/v1/examples/{name}", ct);
-		if (!response.IsSuccessStatusCode) {
-			throw new ApiException($"Example '{name}' not found", response.StatusCode);
+		using var response = await GetAsync($"/api/v1/examples/{Uri.EscapeDataString(name)}", ct);
+		if (response.StatusCode == HttpStatusCode.NotFound) {
+			throw new ApiException($"Example '{name}' not found.", response.StatusCode);
 		}
 
 		var example = await ParseResponseOrThrowAsync(response, ApiJsonContext.Default.ExampleContentResponse, ct);
@@ -224,15 +224,17 @@ public sealed class ApiClient(HttpClient http) : IApiClient
 
 	// Helper Methods
 
+	private static string SessionPath(string sessionId) => $"/api/v1/session/{Uri.EscapeDataString(sessionId)}";
+
 	private async Task PostCommandAsync(string sessionId, string action, CancellationToken ct)
 	{
-		var response = await SendAsync(HttpMethod.Post, $"/api/v1/session/{sessionId}/{action}", null, ct);
+		using var response = await SendAsync(HttpMethod.Post, $"{SessionPath(sessionId)}/{action}", null, ct);
 		await EnsureSuccessAsync(response, sessionId, ct);
 	}
 
 	private async Task<RegisterState> PostForRegistersAsync(string sessionId, string action, CancellationToken ct)
 	{
-		var response = await SendAsync(HttpMethod.Post, $"/api/v1/session/{sessionId}/{action}", null, ct);
+		using var response = await SendAsync(HttpMethod.Post, $"{SessionPath(sessionId)}/{action}", null, ct);
 		var registers = await ParseResponseOrThrowAsync(response, ApiJsonContext.Default.RegistersResponse, ct, sessionId);
 		return registers.ToRegisterState();
 	}

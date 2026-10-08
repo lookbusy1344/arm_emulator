@@ -92,13 +92,12 @@ public partial class MainWindowViewModel
 			return;
 		}
 
-		var result = await fileService.OpenFileAsync(parentWindow);
-		if (result is null) {
+		var opened = await fileService.OpenFileAsync(parentWindow);
+		if (opened is null) {
 			return;
 		}
 
-		var (path, content) = result.Value;
-		ShowDocument(content, path);
+		ShowDocument(opened.Content, opened.Path);
 		_ = await AssembleAsync(ct);
 	}
 

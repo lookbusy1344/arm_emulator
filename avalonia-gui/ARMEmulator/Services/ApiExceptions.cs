@@ -71,4 +71,4 @@ public sealed class WebSocketConnectionException(string message, Exception? inne
 /// </summary>
 [SuppressMessage("Design", "RCS1194:Implement exception constructors", Justification = "Uses primary constructor with domain-specific parameters")]
 public sealed class BackendStartException(string message, Exception? inner = null)
-	: ApiException(message, null, inner);
+	: Exception(message, inner);

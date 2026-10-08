@@ -1,4 +1,5 @@
 using System.Net;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Text.Json.Nodes;
 using ARMEmulator.Models;
@@ -472,6 +473,62 @@ public sealed class ApiClientTests : IDisposable
 		_ = handler.LastRequest!.RequestUri!.PathAndQuery.Should().Be("/api/v1/examples/hello.s");
 	}
 
+	[Fact]
+	public async Task GetExampleContentAsync_WhenMissing_ThrowsNotFoundWithStatus()
+	{
+		handler.SetResponse(HttpStatusCode.NotFound, "404 page not found");
+
+		var act = async () => await apiClient.GetExampleContentAsync("missing.s", Ct);
+
+		var exception = await act.Should().ThrowExactlyAsync<ApiException>();
+		_ = exception.Which.Message.Should().Be("Example 'missing.s' not found.");
+		_ = exception.Which.StatusCode.Should().Be(HttpStatusCode.NotFound);
+	}
+
+	[Fact]
+	public async Task GetExampleContentAsync_WithServerError_ThrowsWithBackendMessage()
+	{
+		handler.SetResponse(HttpStatusCode.InternalServerError, """{"error":"Internal Server Error","message":"Failed to read example","code":500}""");
+
+		var act = async () => await apiClient.GetExampleContentAsync("hello.s", Ct);
+
+		var exception = await act.Should().ThrowExactlyAsync<ApiException>();
+		_ = exception.Which.Message.Should().Be("API error: Failed to read example");
+		_ = exception.Which.StatusCode.Should().Be(HttpStatusCode.InternalServerError);
+	}
+
+	[Fact]
+	public async Task GetExampleContentAsync_EscapesTheNameAsOnePathSegment()
+	{
+		handler.SetResponse(HttpStatusCode.OK, """{"name":"x","content":""}""");
+
+		_ = await apiClient.GetExampleContentAsync("my file#1/../x.s", Ct);
+
+		_ = handler.LastRequest!.RequestUri!.AbsolutePath.Should().Be("/api/v1/examples/my%20file%231%2F..%2Fx.s");
+	}
+
+	[Fact]
+	public async Task SessionRoutes_EscapeTheSessionIdAsOnePathSegment()
+	{
+		handler.SetResponse(HttpStatusCode.OK, RegistersJson);
+
+		_ = await apiClient.GetRegistersAsync("a/b?c", Ct);
+
+		_ = handler.LastRequest!.RequestUri!.AbsolutePath.Should().Be("/api/v1/session/a%2Fb%3Fc/registers");
+	}
+
+	[Theory]
+	[MemberData(nameof(EveryOperation))]
+	public async Task EveryOperation_DisposesTheResponse(string operation)
+	{
+		handler.SetResponse(HttpStatusCode.InternalServerError, """{"error":"Internal Server Error","message":"boom","code":500}""");
+
+		var act = () => Operations[operation](apiClient, Ct);
+
+		_ = await act.Should().ThrowAsync<ApiException>();
+		_ = handler.LastResponseDisposed.Should().BeTrue();
+	}
+
 	public void Dispose()
 	{
 		httpClient.Dispose();
@@ -516,6 +573,21 @@ internal sealed class TestHttpMessageHandler : HttpMessageHandler
 			throw exception;
 		}
 
-		return new HttpResponseMessage(statusCode) { Content = new StringContent(content, Encoding.UTF8, "application/json") };
+		lastResponseDisposed = new StrongBox<bool>();
+		return new TrackedResponse(statusCode, lastResponseDisposed) { Content = new StringContent(content, Encoding.UTF8, "application/json") };
+	}
+
+	private StrongBox<bool>? lastResponseDisposed;
+
+	/// <summary>True when the caller disposed the last response it received.</summary>
+	public bool LastResponseDisposed => lastResponseDisposed?.Value ?? false;
+
+	private sealed class TrackedResponse(HttpStatusCode statusCode, StrongBox<bool> disposed) : HttpResponseMessage(statusCode)
+	{
+		protected override void Dispose(bool disposing)
+		{
+			disposed.Value = true;
+			base.Dispose(disposing);
+		}
 	}
 }

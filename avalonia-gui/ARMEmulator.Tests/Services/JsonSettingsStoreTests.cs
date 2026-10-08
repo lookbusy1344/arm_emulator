@@ -1,3 +1,4 @@
+using System.Runtime.Versioning;
 using ARMEmulator.Models;
 using ARMEmulator.Services;
 using AwesomeAssertions;
@@ -40,6 +41,29 @@ public sealed class JsonSettingsStoreTests : IDisposable
 
 		result.Settings.Should().Be(AppSettings.Default);
 		result.Warning.Should().BeNull();
+	}
+
+	[Fact]
+	[UnsupportedOSPlatform("windows")]
+	public void Load_WhenTheFileCannotBeRead_ReturnsDefaultsWithWarningAndLeavesTheFile()
+	{
+		Assert.SkipWhen(OperatingSystem.IsWindows(), "Uses POSIX file modes to make the file unreadable.");
+		const string stored = """{"backendUrl":"http://localhost:9090"}""";
+		WriteSettingsFile(stored);
+		File.SetUnixFileMode(SettingsPath, UnixFileMode.None);
+		try {
+			var result = CreateStore().Load();
+
+			result.Settings.Should().Be(AppSettings.Default);
+			result.Warning.Should().StartWith("Settings could not be read: ");
+			result.Warning.Should().EndWith(" Defaults are in use.");
+			File.Exists(BackupPath).Should().BeFalse();
+		}
+		finally {
+			File.SetUnixFileMode(SettingsPath, UnixFileMode.UserRead | UnixFileMode.UserWrite);
+		}
+
+		File.ReadAllText(SettingsPath).Should().Be(stored);
 	}
 
 	[Fact]

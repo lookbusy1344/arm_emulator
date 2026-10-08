@@ -57,10 +57,19 @@ public sealed record SourceMapEntry(
 /// </summary>
 public sealed record AppSettings
 {
+	/// <summary>Smallest editor font size, in points.</summary>
+	public const int MinEditorFontSize = 10;
+
+	/// <summary>Largest editor font size, in points.</summary>
+	public const int MaxEditorFontSize = 24;
+
+	/// <summary>Fewest recent files the list keeps.</summary>
+	public const int MinRecentFilesLimit = 1;
+
 	/// <summary>Backend API base URL.</summary>
 	public required string BackendUrl { get; init; }
 
-	/// <summary>Editor font size (10-24pt range).</summary>
+	/// <summary>Editor font size in points, from <see cref="MinEditorFontSize"/> to <see cref="MaxEditorFontSize"/>.</summary>
 	public required int EditorFontSize { get; init; }
 
 	/// <summary>Application color theme.</summary>
@@ -99,10 +108,10 @@ public sealed record AppSettings
 	/// </summary>
 	public AppSettings Validate() => this with {
 		BackendUrl = IsHttpUrl(BackendUrl) ? BackendUrl : Default.BackendUrl,
-		EditorFontSize = Math.Clamp(EditorFontSize, 10, 24),
-		RecentFilesLimit = Math.Max(RecentFilesLimit, 1),
+		EditorFontSize = Math.Clamp(EditorFontSize, MinEditorFontSize, MaxEditorFontSize),
+		RecentFilesLimit = Math.Max(RecentFilesLimit, MinRecentFilesLimit),
 		Layout = Layout with { Geometry = Layout.Geometry?.Clamp() },
-		RecentFiles = [.. RecentFiles.Take(Math.Max(RecentFilesLimit, 1))]
+		RecentFiles = [.. RecentFiles.Take(Math.Max(RecentFilesLimit, MinRecentFilesLimit))]
 	};
 
 	private static bool IsHttpUrl(string url) =>

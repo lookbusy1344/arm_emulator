@@ -14,9 +14,11 @@ public sealed class BackendManager : IBackendManager
 	private const string DefaultBaseUrl = "http://localhost:8080";
 	private const int StartupPollAttempts = 30;
 	private static readonly TimeSpan StartupPollInterval = TimeSpan.FromMilliseconds(100);
+	private static readonly TimeSpan HealthCheckTimeout = TimeSpan.FromSeconds(1);
 
 	private readonly BehaviorSubject<BackendStatus> statusSubject = new(BackendStatus.Stopped);
 	private readonly string baseUrl;
+	private readonly Uri baseUri;
 	private readonly HttpClient http;
 	private readonly Func<string?> findBinary;
 	private Process? process;
@@ -30,7 +32,12 @@ public sealed class BackendManager : IBackendManager
 		HttpMessageHandler? healthCheckHandler = null,
 		Func<string?>? findBinary = null)
 	{
+		if (!Uri.TryCreate(baseUrl, UriKind.Absolute, out var uri) || uri.Scheme is not ("http" or "https")) {
+			throw new ArgumentException($"'{baseUrl}' is not an absolute HTTP URL.", nameof(baseUrl));
+		}
+
 		this.baseUrl = baseUrl;
+		baseUri = uri;
 		http = healthCheckHandler is null ? new HttpClient() : new HttpClient(healthCheckHandler, disposeHandler: false);
 		this.findBinary = findBinary ?? FindBackendBinary;
 	}
@@ -62,29 +69,8 @@ public sealed class BackendManager : IBackendManager
 				return;
 			}
 
-			var binaryPath = findBinary();
-			if (binaryPath is null) {
-				statusSubject.OnNext(BackendStatus.Error);
-				throw new BackendStartException("Backend binary not found");
-			}
+			process = SpawnBackend(findBinary() ?? throw new BackendStartException("Backend binary not found"));
 
-			var startInfo = new ProcessStartInfo {
-				FileName = binaryPath,
-				UseShellExecute = false,
-				CreateNoWindow = true
-			};
-			foreach (var argument in ServerArguments(new Uri(baseUrl))) {
-				startInfo.ArgumentList.Add(argument);
-			}
-
-			process = new Process { StartInfo = startInfo };
-
-			if (!process.Start()) {
-				statusSubject.OnNext(BackendStatus.Error);
-				throw new BackendStartException("Failed to start backend process");
-			}
-
-			// Wait for backend to be ready
 			for (var attempt = 0; attempt < StartupPollAttempts; ++attempt) {
 				if (await HealthCheckAsync(ct)) {
 					statusSubject.OnNext(BackendStatus.Running);
@@ -94,7 +80,7 @@ public sealed class BackendManager : IBackendManager
 				await Task.Delay(StartupPollInterval, ct);
 			}
 
-			statusSubject.OnNext(BackendStatus.Error);
+			await StopAsync().ConfigureAwait(false);
 			throw new BackendStartException("Backend started but health check failed");
 		}
 		catch (OperationCanceledException) {
@@ -102,42 +88,68 @@ public sealed class BackendManager : IBackendManager
 			await StopAsync().ConfigureAwait(false);
 			throw;
 		}
-		catch (Exception ex) when (ex is not BackendStartException) {
+		catch (BackendStartException) {
+			statusSubject.OnNext(BackendStatus.Error);
+			throw;
+		}
+		catch (Exception ex) {
 			statusSubject.OnNext(BackendStatus.Error);
 			throw new BackendStartException("Failed to start backend", ex);
 		}
 	}
 
+	private Process SpawnBackend(string binaryPath)
+	{
+		var startInfo = new ProcessStartInfo {
+			FileName = binaryPath,
+			UseShellExecute = false,
+			CreateNoWindow = true
+		};
+		foreach (var argument in ServerArguments(baseUri)) {
+			startInfo.ArgumentList.Add(argument);
+		}
+
+		var spawned = new Process { StartInfo = startInfo };
+		try {
+			return spawned.Start() ? spawned : throw new BackendStartException("Failed to start backend process");
+		}
+		catch {
+			spawned.Dispose();
+			throw;
+		}
+	}
+
 	public async Task StopAsync()
 	{
-		if (process is null || process.HasExited) {
+		var running = process;
+		if (running is null) {
 			statusSubject.OnNext(BackendStatus.Stopped);
 			return;
 		}
 
 		try {
-			process.Kill(entireProcessTree: true);
-			await process.WaitForExitAsync().ConfigureAwait(false);
-			process.Dispose();
-			process = null;
-			statusSubject.OnNext(BackendStatus.Stopped);
+			running.Kill(entireProcessTree: true);
 		}
-		catch {
-			// Ignore stop errors
-			statusSubject.OnNext(BackendStatus.Stopped);
+		catch (InvalidOperationException) {
+			// The process has already exited
 		}
+
+		await running.WaitForExitAsync().ConfigureAwait(false);
+		running.Dispose();
+		process = null;
+		statusSubject.OnNext(BackendStatus.Stopped);
 	}
 
 	public async Task<bool> HealthCheckAsync(CancellationToken ct = default)
 	{
 		try {
-			using var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
-			cts.CancelAfter(TimeSpan.FromSeconds(1));
+			using var timeout = CancellationTokenSource.CreateLinkedTokenSource(ct);
+			timeout.CancelAfter(HealthCheckTimeout);
 
-			var response = await http.GetAsync($"{baseUrl}/health", cts.Token);
+			using var response = await http.GetAsync($"{baseUrl}/health", timeout.Token);
 			return response.IsSuccessStatusCode;
 		}
-		catch {
+		catch (Exception ex) when (ex is HttpRequestException or OperationCanceledException) {
 			ct.ThrowIfCancellationRequested();
 			return false;
 		}

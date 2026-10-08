@@ -13,8 +13,8 @@ public interface IFileService
 	/// Opens a file picker dialog for assembly files (.s extension).
 	/// </summary>
 	/// <param name="parent">Parent window for the dialog</param>
-	/// <returns>Selected file path and content, or null if cancelled</returns>
-	Task<(string path, string content)?> OpenFileAsync(Window parent);
+	/// <returns>The selected file, or null if cancelled</returns>
+	Task<OpenedFile?> OpenFileAsync(Window parent);
 
 	/// <summary>
 	/// Opens a save dialog for the current file or a new file.
@@ -71,10 +71,13 @@ public interface IFileService
 	string? CurrentFilePath { get; set; }
 }
 
+/// <summary>A file read from disk: where it came from and its text.</summary>
+public sealed record OpenedFile(string Path, string Content);
+
 /// <summary>
 /// Information about a recently opened file.
 /// </summary>
-public sealed record RecentFile(string Path, DateTime LastOpened)
+public sealed record RecentFile(string Path, DateTimeOffset LastOpened)
 {
 	/// <summary>Gets the file name without path.</summary>
 	public string FileName => System.IO.Path.GetFileName(Path);

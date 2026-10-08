@@ -93,7 +93,7 @@ public sealed class FileServiceTests
 	[Fact]
 	public void RecentFile_FileName_ExtractsCorrectly()
 	{
-		var recent = new RecentFile("/some/long/path/example.s", DateTime.Now);
+		var recent = new RecentFile("/some/long/path/example.s", DateTimeOffset.Now);
 		recent.FileName.Should().Be("example.s");
 	}
 }

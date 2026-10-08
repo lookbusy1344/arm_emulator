@@ -1,5 +1,6 @@
 using System.Net.WebSockets;
 using System.Text;
+using System.Text.Json.Nodes;
 using ARMEmulator.Models;
 using ARMEmulator.Services;
 using AwesomeAssertions;
@@ -186,6 +187,37 @@ public sealed class WebSocketClientFramingTests
 		states[^1].Should().BeFalse();
 	}
 
+	[Fact]
+	public async Task DisconnectAsync_WhenCloseFails_ReleasesTheSocketAndReportsDisconnected()
+	{
+		using var socket = new ScriptedWebSocket([], closeError: new WebSocketException(WebSocketError.ConnectionClosedPrematurely));
+		using var client = new WebSocketClient(Url, new SingleSocketFactory(socket), CloseTimeout);
+		var states = new List<bool>();
+		using var state = client.ConnectionState.Subscribe(states.Add);
+		await client.ConnectAsync("s1", TestContext.Current.CancellationToken);
+
+		await client.DisconnectAsync().WaitAsync(Guard, TestContext.Current.CancellationToken);
+
+		socket.WasDisposed.Should().BeTrue();
+		client.IsConnected.Should().BeFalse();
+		states.Should().Equal(false, true, false);
+	}
+
+	[Fact]
+	public async Task ConnectAsync_SendsTheSubscriptionAsJsonWithTheSessionIdEscaped()
+	{
+		const string sessionId = "a\"b\\c";
+		using var socket = new ScriptedWebSocket([]);
+		using var client = new WebSocketClient(Url, new SingleSocketFactory(socket), CloseTimeout);
+
+		await client.ConnectAsync(sessionId, TestContext.Current.CancellationToken);
+
+		var message = JsonNode.Parse(socket.SentText.Single())!;
+		message["type"]!.GetValue<string>().Should().Be("subscribe");
+		message["sessionId"]!.GetValue<string>().Should().Be(sessionId);
+		message["events"]!.AsArray().Should().BeEmpty();
+	}
+
 	/// <summary>Disposes under a context that never runs posted work, as the UI thread does while it blocks in Dispose.</summary>
 	private static void DisposeOnBlockedUiThread(WebSocketClient client)
 	{
@@ -219,7 +251,7 @@ public sealed class WebSocketClientFramingTests
 	/// Hands out scripted frames, splitting any frame larger than the caller's buffer. When the frames run out it waits for
 	/// cancellation or, with <paramref name="failWhenDrained"/>, aborts and throws as a dropped connection does.
 	/// </summary>
-	private sealed class ScriptedWebSocket(IEnumerable<Frame> frames, bool hangOnClose = false, bool failWhenDrained = false) : WebSocket
+	private sealed class ScriptedWebSocket(IEnumerable<Frame> frames, bool hangOnClose = false, bool failWhenDrained = false, Exception? closeError = null) : WebSocket
 	{
 		private readonly Queue<Frame> pending = new(frames);
 		private WebSocketState state = WebSocketState.Open;
@@ -237,6 +269,8 @@ public sealed class WebSocketClientFramingTests
 
 		public bool WasDisposed { get; private set; }
 
+		public List<string> SentText { get; } = [];
+
 		public int ReceiveCalls => Volatile.Read(ref receiveCalls);
 
 		private int receiveCalls;
@@ -249,6 +283,10 @@ public sealed class WebSocketClientFramingTests
 
 		public override async Task CloseAsync(WebSocketCloseStatus closeStatus, string? statusDescription, CancellationToken cancellationToken)
 		{
+			if (closeError is not null) {
+				throw closeError;
+			}
+
 			if (hangOnClose) {
 				await Task.Delay(Timeout.Infinite, cancellationToken).ConfigureAwait(false);
 			}
@@ -293,6 +331,7 @@ public sealed class WebSocketClientFramingTests
 		public override Task SendAsync(ArraySegment<byte> buffer, WebSocketMessageType messageType, bool endOfMessage, CancellationToken cancellationToken)
 		{
 			cancellationToken.ThrowIfCancellationRequested();
+			SentText.Add(Encoding.UTF8.GetString(buffer));
 			return Task.CompletedTask;
 		}
 	}
