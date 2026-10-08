@@ -80,7 +80,7 @@ struct MainView: View {
             ExamplesBrowserView { example in
                 Task {
                     if let content = try? String(contentsOf: example.url, encoding: .utf8) {
-                        await viewModel.loadProgram(source: content)
+                        await viewModel.openProgram(source: content)
                         fileService.currentFileURL = example.url
                     }
                 }
@@ -210,7 +210,7 @@ struct MainView: View {
         // Try to read file
         do {
             let content = try String(contentsOf: url, encoding: .utf8)
-            await viewModel.loadProgram(source: content)
+            await viewModel.openProgram(source: content)
             fileService.currentFileURL = url
             fileService.addToRecentFiles(url)
         } catch {

@@ -20,7 +20,7 @@ public static class Shortcuts
 			Bind(ShortcutId.SaveAs, Key.S, platform | KeyModifiers.Shift),
 			Bind(ShortcutId.Examples, Key.E, platform | KeyModifiers.Shift),
 			Bind(ShortcutId.Preferences, Key.OemComma, platform),
-			Bind(ShortcutId.Load, Key.L, platform),
+			Bind(ShortcutId.Assemble, Key.L, platform),
 			Bind(ShortcutId.Run, Key.F5, KeyModifiers.None),
 			Bind(ShortcutId.Run, Key.R, platform),
 			Bind(ShortcutId.Pause, Key.OemPeriod, platform),

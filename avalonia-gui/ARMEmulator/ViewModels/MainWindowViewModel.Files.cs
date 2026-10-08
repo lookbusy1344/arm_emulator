@@ -99,8 +99,7 @@ public partial class MainWindowViewModel
 
 		var (path, content) = result.Value;
 		ShowDocument(content, path);
-		// Auto-load program after opening
-		await LoadProgramAsync(ct);
+		_ = await AssembleAsync(ct);
 	}
 
 	private async Task SaveFileAsync(CancellationToken ct) => _ = await SaveDocumentAsync(FilePath);
@@ -120,7 +119,7 @@ public partial class MainWindowViewModel
 
 			if (window.SelectedExampleContent is not null && await ConfirmDiscardAsync()) {
 				ShowDocument(window.SelectedExampleContent, null);
-				await LoadProgramAsync(ct);
+				_ = await AssembleAsync(ct);
 			}
 		}
 		finally {
@@ -145,7 +144,7 @@ public partial class MainWindowViewModel
 			ShowDocument(await File.ReadAllTextAsync(path, ct), path);
 			fileService.AddRecentFile(path);
 			if (SessionId is not null) {
-				await LoadProgramAsync(ct);
+				_ = await AssembleAsync(ct);
 			}
 		}
 		catch (Exception ex) when (ex is FileNotFoundException or DirectoryNotFoundException) {

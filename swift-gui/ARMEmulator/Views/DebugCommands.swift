@@ -5,6 +5,16 @@ struct DebugCommands: Commands {
 
     var body: some Commands {
         CommandMenu("Debug") {
+            Button("Assemble") {
+                Task {
+                    await viewModel?.assemble()
+                }
+            }
+            .keyboardShortcut("l", modifiers: .command)
+            .disabled(!(viewModel?.isEditorEditable ?? false))
+
+            Divider()
+
             Button("Run/Continue") {
                 Task {
                     await viewModel?.run()

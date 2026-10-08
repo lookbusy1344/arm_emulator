@@ -3,6 +3,12 @@ import Foundation
 // MARK: - Debug Operations Extension
 
 extension EmulatorViewModel {
+    /// Toggles the breakpoint on a 1-based source line, assembling edited source first so the line maps to its address
+    func toggleBreakpoint(atLine line: Int) async {
+        guard await ensureAssembled(), let address = lineToAddress[line] else { return }
+        await toggleBreakpoint(at: address)
+    }
+
     func toggleBreakpoint(at address: UInt32) async {
         guard let sessionID else {
             errorMessage = "No active session"

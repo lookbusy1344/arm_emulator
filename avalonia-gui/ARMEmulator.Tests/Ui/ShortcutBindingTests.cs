@@ -40,7 +40,7 @@ public sealed class ShortcutBindingTests
 				[ShortcutId.SaveAs] = vm.SaveAsCommand,
 				[ShortcutId.Examples] = vm.OpenExampleCommand,
 				[ShortcutId.Preferences] = vm.ShowPreferencesCommand,
-				[ShortcutId.Load] = vm.LoadProgramCommand,
+				[ShortcutId.Assemble] = vm.AssembleCommand,
 				[ShortcutId.Run] = vm.RunCommand,
 				[ShortcutId.Pause] = vm.PauseCommand,
 				[ShortcutId.Step] = vm.StepCommand,
@@ -72,7 +72,6 @@ public sealed class ShortcutBindingTests
 		});
 
 	[Theory]
-	[InlineData("LoadButton", "Load Program", ShortcutId.Load)]
 	[InlineData("RunButton", "Run", ShortcutId.Run)]
 	[InlineData("PauseButton", "Pause", ShortcutId.Pause)]
 	[InlineData("StepButton", "Step", ShortcutId.Step)]
@@ -94,9 +93,9 @@ public sealed class ShortcutBindingTests
 			var debug = ui.Find<Menu>("MenuBar").Items.OfType<MenuItem>().Single(item => (string?)item.Header == "_Debug");
 
 			debug.Items.OfType<MenuItem>().Select(item => (string?)item.Header).Should().Equal(
-				"_Load Program", "_Run", "_Pause", "_Step", "Step _Over", "Step Ou_t", "R_eset", "Show _PC", "Toggle _Breakpoint");
+				"_Assemble", "_Run", "_Pause", "_Step", "Step _Over", "Step Ou_t", "R_eset", "Show _PC", "Toggle _Breakpoint");
 			debug.Items.OfType<MenuItem>().Select(item => item.Command).Should().Equal(
-				ui.ViewModel.LoadProgramCommand, ui.ViewModel.RunCommand, ui.ViewModel.PauseCommand, ui.ViewModel.StepCommand,
+				ui.ViewModel.AssembleCommand, ui.ViewModel.RunCommand, ui.ViewModel.PauseCommand, ui.ViewModel.StepCommand,
 				ui.ViewModel.StepOverCommand, ui.ViewModel.StepOutCommand, ui.ViewModel.ResetCommand, ui.ViewModel.ShowPcCommand,
 				ui.ViewModel.ToggleBreakpointAtCaretCommand);
 		});
@@ -118,7 +117,7 @@ public sealed class ShortcutBindingTests
 			menu.Items.OfType<NativeMenuItem>().Select(item => item.Header).Should().Equal("File", "Debug");
 			var debug = menu.Items.OfType<NativeMenuItem>().Single(item => item.Header == "Debug").Menu!;
 			debug.Items.OfType<NativeMenuItem>().Select(item => item.Command).Should().Equal(
-				ui.ViewModel.LoadProgramCommand, ui.ViewModel.RunCommand, ui.ViewModel.PauseCommand, ui.ViewModel.StepCommand,
+				ui.ViewModel.AssembleCommand, ui.ViewModel.RunCommand, ui.ViewModel.PauseCommand, ui.ViewModel.StepCommand,
 				ui.ViewModel.StepOverCommand, ui.ViewModel.StepOutCommand, ui.ViewModel.ResetCommand, ui.ViewModel.ShowPcCommand,
 				ui.ViewModel.ToggleBreakpointAtCaretCommand);
 		});

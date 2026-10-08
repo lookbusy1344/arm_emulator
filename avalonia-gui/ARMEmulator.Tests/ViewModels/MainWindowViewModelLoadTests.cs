@@ -138,7 +138,7 @@ public sealed class MainWindowViewModelLoadTests : IDisposable
 		using var vm = CreateViewModel(sessionId: null);
 		vm.SourceCode = Program;
 
-		await vm.LoadProgramCommand.Execute();
+		await vm.AssembleCommand.Execute();
 
 		vm.ErrorMessage.Should().Be("No active session");
 		_ = api.DidNotReceiveWithAnyArgs().LoadProgramAsync(default!, default!, Ct);
@@ -155,7 +155,7 @@ public sealed class MainWindowViewModelLoadTests : IDisposable
 		vm.ErrorMessage = "stale error";
 		vm.LastMemoryWrite = new MemoryWrite(0x9000, 4);
 
-		await vm.LoadProgramCommand.Execute();
+		await vm.AssembleCommand.Execute();
 
 		_ = api.Received(1).LoadProgramAsync(SessionId, Program, Arg.Any<CancellationToken>());
 		vm.AddressToLine.Should().BeEquivalentTo(new Dictionary<uint, int> { [0x8000] = 3, [0x8004] = 4 });
@@ -176,7 +176,7 @@ public sealed class MainWindowViewModelLoadTests : IDisposable
 		vm.UpdateRegisters(RegisterState.Create(r0: 2, pc: 0x9000));
 		vm.SourceCode = Program;
 
-		await vm.LoadProgramCommand.Execute();
+		await vm.AssembleCommand.Execute();
 
 		vm.PreviousRegisters.Should().BeNull();
 		vm.ChangedRegisters.Should().BeEmpty();
@@ -188,16 +188,16 @@ public sealed class MainWindowViewModelLoadTests : IDisposable
 		StubSuccessfulLoad(Program, RegisterState.Create(pc: 0x8000));
 		using var vm = CreateViewModel();
 		vm.SourceCode = Program;
-		await vm.LoadProgramCommand.Execute();
+		await vm.AssembleCommand.Execute();
 
 		const string broken = "_start:\n  FOO R0\n";
 		api.LoadProgramAsync(SessionId, broken, Arg.Any<CancellationToken>())
 			.ThrowsAsync(new ProgramLoadException(["api:2:2: unknown instruction: FOO", "api:3:1: undefined label: bar"]));
 		vm.SourceCode = broken;
 
-		await vm.LoadProgramCommand.Execute();
+		await vm.AssembleCommand.Execute();
 
-		vm.ErrorMessage.Should().Be("Failed to load program:\napi:2:2: unknown instruction: FOO\napi:3:1: undefined label: bar");
+		vm.ErrorMessage.Should().Be("Failed to assemble program:\napi:2:2: unknown instruction: FOO\napi:3:1: undefined label: bar");
 		vm.AddressToLine.Should().BeEmpty();
 		vm.LineToAddress.Should().BeEmpty();
 		vm.ValidBreakpointLines.Should().BeEmpty();
@@ -211,9 +211,9 @@ public sealed class MainWindowViewModelLoadTests : IDisposable
 		using var vm = CreateViewModel();
 		vm.SourceCode = Program;
 
-		await vm.LoadProgramCommand.Execute();
+		await vm.AssembleCommand.Execute();
 
-		vm.ErrorMessage.Should().Be("Failed to load program: Session 's1' not found or expired");
+		vm.ErrorMessage.Should().Be("Failed to assemble program: Session 's1' not found or expired");
 	}
 
 	[Fact]
@@ -224,9 +224,9 @@ public sealed class MainWindowViewModelLoadTests : IDisposable
 		using var vm = CreateViewModel();
 		vm.SourceCode = Program;
 
-		await vm.LoadProgramCommand.Execute();
+		await vm.AssembleCommand.Execute();
 
-		vm.ErrorMessage.Should().Be("Failed to load program: API error: boom");
+		vm.ErrorMessage.Should().Be("Failed to assemble program: API error: boom");
 		vm.AddressToLine.Should().BeEmpty();
 		vm.LineToAddress.Should().BeEmpty();
 	}
@@ -356,7 +356,7 @@ public sealed class MainWindowViewModelLoadTests : IDisposable
 		vm.SourceCode = Program;
 		events.OnNext(new OutputEvent(SessionId, OutputStreamType.Stdout, "old output\n"));
 
-		await vm.LoadProgramCommand.Execute();
+		await vm.AssembleCommand.Execute();
 
 		vm.ConsoleOutput.Should().BeEmpty();
 	}
@@ -370,7 +370,7 @@ public sealed class MainWindowViewModelLoadTests : IDisposable
 		vm.SourceCode = Program;
 		events.OnNext(new OutputEvent(SessionId, OutputStreamType.Stdout, "old output\n"));
 
-		await vm.LoadProgramCommand.Execute();
+		await vm.AssembleCommand.Execute();
 
 		vm.ConsoleOutput.Should().Be("old output\n");
 	}
@@ -422,7 +422,7 @@ public sealed class MainWindowViewModelLoadTests : IDisposable
 		api.StepAsync(SessionId, Arg.Any<CancellationToken>()).Returns(RegisterState.Create(r0: 5, pc: 0x8004));
 		using var vm = CreateViewModel();
 		vm.SourceCode = Program;
-		await vm.LoadProgramCommand.Execute();
+		await vm.AssembleCommand.Execute();
 
 		await vm.StepCommand.Execute();
 

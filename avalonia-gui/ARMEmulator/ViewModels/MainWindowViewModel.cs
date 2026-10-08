@@ -53,11 +53,11 @@ public partial class MainWindowViewModel : ReactiveObject, IDisposable
 #pragma warning disable CA2000 // Commands are disposed via DisposeWith(disposables) in ReportFailures
 		RunCommand = CreateCommand("Run", RunAsync, this.WhenAnyValue(x => x.Status).Select(s => !s.CanPause()));
 		PauseCommand = CreateCommand("Pause", PauseAsync, this.WhenAnyValue(x => x.Status).Select(s => s.CanPause()));
-		StepCommand = CreateCommand("Step", StepAsync, this.WhenAnyValue(x => x.Status).Select(s => s.CanStep()));
-		StepOverCommand = CreateCommand("Step over", StepOverAsync, this.WhenAnyValue(x => x.Status).Select(s => s.CanStep()));
-		StepOutCommand = CreateCommand("Step out", StepOutAsync, this.WhenAnyValue(x => x.Status).Select(s => s.CanStep()));
+		StepCommand = CreateCommand("Step", StepAsync, CanStepChanges());
+		StepOverCommand = CreateCommand("Step over", StepOverAsync, CanStepChanges());
+		StepOutCommand = CreateCommand("Step out", StepOutAsync, CanStepChanges());
 		ResetCommand = CreateCommand("Reset", ResetAsync);
-		LoadProgramCommand = CreateCommand("Load", LoadProgramAsync);
+		AssembleCommand = CreateCommand("Assemble", async ct => _ = await AssembleAsync(ct), this.WhenAnyValue(x => x.Status).Select(s => s.IsEditorEditable()));
 		ShowPcCommand = CreateCommand("Show PC", ShowPcAsync);
 		SendInputCommand = CreateCommand("Send input", SendInputAsync, this.WhenAnyValue(x => x.InputText).Select(s => !string.IsNullOrEmpty(s)));
 		ToggleBreakpointCommand = ReportFailures("Toggle breakpoint", ReactiveCommand.CreateFromTask<int>(ToggleBreakpointAtLineAsync, outputScheduler: RxSchedulers.MainThreadScheduler));
@@ -85,8 +85,7 @@ public partial class MainWindowViewModel : ReactiveObject, IDisposable
 			.ToProperty(this, x => x.CanPause)
 			.DisposeWith(disposables);
 
-		canStepHelper = this.WhenAnyValue(x => x.Status)
-			.Select(s => s.CanStep())
+		canStepHelper = CanStepChanges()
 			.ToProperty(this, x => x.CanStep)
 			.DisposeWith(disposables);
 
@@ -233,6 +232,7 @@ public partial class MainWindowViewModel : ReactiveObject, IDisposable
 
 			_ = this.RaiseAndSetIfChanged(ref sourceCode, value);
 			this.RaisePropertyChanged(nameof(IsEditorEmpty));
+			this.RaisePropertyChanged(nameof(NeedsAssembly));
 			IsDirty = true;
 		}
 	}
@@ -322,7 +322,9 @@ public partial class MainWindowViewModel : ReactiveObject, IDisposable
 	public ReactiveCommand<Unit, Unit> StepOverCommand { get; }
 	public ReactiveCommand<Unit, Unit> StepOutCommand { get; }
 	public ReactiveCommand<Unit, Unit> ResetCommand { get; }
-	public ReactiveCommand<Unit, Unit> LoadProgramCommand { get; }
+
+	/// <summary>Assembles the editor source into the session and resets the VM, whether or not the source changed.</summary>
+	public ReactiveCommand<Unit, Unit> AssembleCommand { get; }
 	public ReactiveCommand<Unit, Unit> ShowPcCommand { get; }
 
 	/// <summary>Removes the breakpoint at the parameter address.</summary>
@@ -444,7 +446,7 @@ public partial class MainWindowViewModel : ReactiveObject, IDisposable
 	// Command implementations
 	private async Task RunAsync(CancellationToken ct)
 	{
-		if (SessionId is null) {
+		if (!await EnsureAssembledAsync(ct) || SessionId is null) {
 			return;
 		}
 
@@ -462,7 +464,7 @@ public partial class MainWindowViewModel : ReactiveObject, IDisposable
 
 	private async Task StepAsync(CancellationToken ct)
 	{
-		if (SessionId is null) {
+		if (!await EnsureAssembledAsync(ct) || SessionId is null) {
 			return;
 		}
 
@@ -473,7 +475,7 @@ public partial class MainWindowViewModel : ReactiveObject, IDisposable
 
 	private async Task StepOverAsync(CancellationToken ct)
 	{
-		if (SessionId is null) {
+		if (!await EnsureAssembledAsync(ct) || SessionId is null) {
 			return;
 		}
 
@@ -484,7 +486,7 @@ public partial class MainWindowViewModel : ReactiveObject, IDisposable
 
 	private async Task StepOutAsync(CancellationToken ct)
 	{
-		if (SessionId is null) {
+		if (!await EnsureAssembledAsync(ct) || SessionId is null) {
 			return;
 		}
 
@@ -493,8 +495,14 @@ public partial class MainWindowViewModel : ReactiveObject, IDisposable
 		RequestScrollToPc();
 	}
 
+	/// <summary>Assembles edited source, which also resets the VM, or restarts the program in the session.</summary>
 	private async Task ResetAsync(CancellationToken ct)
 	{
+		if (NeedsAssembly) {
+			_ = await AssembleAsync(ct);
+			return;
+		}
+
 		if (SessionId is null) {
 			return;
 		}
@@ -528,55 +536,6 @@ public partial class MainWindowViewModel : ReactiveObject, IDisposable
 		PreviousRegisters = null;
 		ChangedRegisters = [];
 		LastMemoryWrite = null;
-	}
-
-	/// <summary>
-	/// Assembles <see cref="SourceCode"/> into the session, then rebuilds the source line maps and register state.
-	/// </summary>
-	private async Task LoadProgramAsync(CancellationToken ct)
-	{
-		if (SessionId is null) {
-			ErrorMessage = "No active session";
-			return;
-		}
-
-		ClearSourceMap();
-
-		try {
-			_ = await api.LoadProgramAsync(SessionId, SourceCode, ct);
-			var sourceMap = await api.GetSourceMapAsync(SessionId, ct);
-			var registers = await api.GetRegistersAsync(SessionId, ct);
-
-			AddressToLine = sourceMap.ToImmutableDictionary(e => e.Address, e => e.LineNumber);
-			LineToAddress = sourceMap.ToImmutableDictionary(e => e.LineNumber, e => e.Address);
-			ValidBreakpointLines = [.. sourceMap.Select(e => e.LineNumber)];
-
-			// A new program starts without output or highlights carried over from the previous one
-			ConsoleOutput = "";
-			ResetRegisterBaseline(registers);
-
-			// The backend reports "halted" for a loaded program that has not run; the GUI treats it as ready
-			Status = VMState.Idle;
-			ErrorMessage = null;
-			isProgramLoaded = true;
-		}
-		catch (ProgramLoadException ex) {
-			ErrorMessage = $"Failed to load program:\n{string.Join('\n', ex.Errors)}";
-		}
-		catch (ApiException ex) {
-			ClearSourceMap();
-			ErrorMessage = $"Failed to load program: {ex.Message}";
-		}
-	}
-
-	private bool isProgramLoaded;
-
-	private void ClearSourceMap()
-	{
-		isProgramLoaded = false;
-		AddressToLine = ImmutableDictionary<uint, int>.Empty;
-		LineToAddress = ImmutableDictionary<int, uint>.Empty;
-		ValidBreakpointLines = [];
 	}
 
 	/// <summary>
@@ -733,8 +692,13 @@ public partial class MainWindowViewModel : ReactiveObject, IDisposable
 		WatchpointAddressText = "";
 	}
 
+	/// <summary>Toggles the breakpoint on a 1-based source line, assembling edited source first so the line maps to its address.</summary>
 	private async Task ToggleBreakpointAtLineAsync(int line, CancellationToken ct)
 	{
+		if (!await EnsureAssembledAsync(ct)) {
+			return;
+		}
+
 		if (!LineToAddress.TryGetValue(line, out var address)) {
 			ErrorMessage = $"Line {line} has no instruction for a breakpoint";
 			return;

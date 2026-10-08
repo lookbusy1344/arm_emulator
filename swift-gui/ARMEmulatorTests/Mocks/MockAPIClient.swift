@@ -8,7 +8,10 @@ final class MockAPIClient: APIClientProtocol, @unchecked Sendable {
     var createSessionCalled = false
     var destroySessionCalled = false
     var loadProgramCalled = false
+    var loadProgramCallCount = 0
     var lastLoadedSource: String?
+    /// Execution, load and breakpoint calls in the order they arrived
+    var callSequence: [String] = []
     var runCalled = false
     var runCallCount = 0 // Track multiple run calls
     var stopCalled = false
@@ -25,6 +28,8 @@ final class MockAPIClient: APIClientProtocol, @unchecked Sendable {
     var addBreakpointCallCount = 0 // Track multiple breakpoint additions
     var removeBreakpointCalled = false
     var lastBreakpointAddress: UInt32?
+    var addedBreakpoints: [UInt32] = []
+    var removedBreakpoints: [UInt32] = []
     var addWatchpointCalled = false
     var removeWatchpointCalled = false
     var getWatchpointsCalled = false
@@ -46,6 +51,7 @@ final class MockAPIClient: APIClientProtocol, @unchecked Sendable {
     var mockRegisters = RegisterState.empty
     var mockStatus = VMStatus(state: "idle", pc: 0x8000, instruction: nil, cycleCount: nil, error: nil)
     var mockMemoryData: [UInt8]? // Custom memory data for tests
+    var mockSourceMap: [SourceMapEntry] = []
 
     /// Performance simulation
     var simulateDelay: TimeInterval = 0 // Simulate slow API responses
@@ -91,7 +97,9 @@ final class MockAPIClient: APIClientProtocol, @unchecked Sendable {
             try await Task.sleep(nanoseconds: UInt64(simulateDelay * 1_000_000_000))
         }
         loadProgramCalled = true
+        loadProgramCallCount += 1
         lastLoadedSource = source
+        callSequence.append("loadProgram")
         if shouldFailLoadProgram {
             throw NSError(
                 domain: "MockAPIClient",
@@ -108,6 +116,7 @@ final class MockAPIClient: APIClientProtocol, @unchecked Sendable {
         }
         runCalled = true
         runCallCount += 1
+        callSequence.append("run")
         if shouldFailRun {
             let message = runErrorMessage ?? "Mock run failed"
             throw NSError(domain: "MockAPIClient", code: -1, userInfo: [NSLocalizedDescriptionKey: message])
@@ -120,6 +129,7 @@ final class MockAPIClient: APIClientProtocol, @unchecked Sendable {
 
     func step(sessionID: String) async throws {
         stepCalled = true
+        callSequence.append("step")
         if shouldFailStep {
             throw NSError(
                 domain: "MockAPIClient",
@@ -131,6 +141,7 @@ final class MockAPIClient: APIClientProtocol, @unchecked Sendable {
 
     func stepOver(sessionID: String) async throws {
         stepOverCalled = true
+        callSequence.append("stepOver")
         if shouldFailStep {
             throw NSError(
                 domain: "MockAPIClient",
@@ -142,6 +153,7 @@ final class MockAPIClient: APIClientProtocol, @unchecked Sendable {
 
     func stepOut(sessionID: String) async throws {
         stepOutCalled = true
+        callSequence.append("stepOut")
         if shouldFailStep {
             throw NSError(
                 domain: "MockAPIClient",
@@ -157,6 +169,7 @@ final class MockAPIClient: APIClientProtocol, @unchecked Sendable {
 
     func restart(sessionID: String) async throws {
         restartCalled = true
+        callSequence.append("restart")
     }
 
     func sendStdin(sessionID: String, data: String) async throws {
@@ -173,6 +186,8 @@ final class MockAPIClient: APIClientProtocol, @unchecked Sendable {
         addBreakpointCalled = true
         addBreakpointCallCount += 1
         lastBreakpointAddress = address
+        addedBreakpoints.append(address)
+        callSequence.append("addBreakpoint")
         if shouldFailAddBreakpoint {
             throw NSError(
                 domain: "MockAPIClient",
@@ -185,6 +200,8 @@ final class MockAPIClient: APIClientProtocol, @unchecked Sendable {
     func removeBreakpoint(sessionID: String, address: UInt32) async throws {
         removeBreakpointCalled = true
         lastBreakpointAddress = address
+        removedBreakpoints.append(address)
+        callSequence.append("removeBreakpoint")
         if shouldFailRemoveBreakpoint {
             throw NSError(
                 domain: "MockAPIClient",
@@ -195,7 +212,7 @@ final class MockAPIClient: APIClientProtocol, @unchecked Sendable {
     }
 
     func getSourceMap(sessionID: String) async throws -> [SourceMapEntry] {
-        []
+        mockSourceMap
     }
 
     func getBreakpoints(sessionID: String) async throws -> [UInt32] {

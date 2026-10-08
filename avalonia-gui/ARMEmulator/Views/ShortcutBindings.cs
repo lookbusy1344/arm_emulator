@@ -17,7 +17,7 @@ public static class ShortcutBindings
 		ShortcutId.SaveAs => viewModel.SaveAsCommand,
 		ShortcutId.Examples => viewModel.OpenExampleCommand,
 		ShortcutId.Preferences => viewModel.ShowPreferencesCommand,
-		ShortcutId.Load => viewModel.LoadProgramCommand,
+		ShortcutId.Assemble => viewModel.AssembleCommand,
 		ShortcutId.Run => viewModel.RunCommand,
 		ShortcutId.Pause => viewModel.PauseCommand,
 		ShortcutId.Step => viewModel.StepCommand,

@@ -12,7 +12,7 @@ struct FileCommands: Commands {
             Button("Open...") {
                 Task {
                     if let content = await fileService.openFile() {
-                        await viewModel?.loadProgram(source: content)
+                        await viewModel?.openProgram(source: content)
                     }
                 }
             }
@@ -51,7 +51,7 @@ struct FileCommands: Commands {
                         Button(url.lastPathComponent) {
                             Task {
                                 if let content = try? String(contentsOf: url, encoding: .utf8) {
-                                    await viewModel?.loadProgram(source: content)
+                                    await viewModel?.openProgram(source: content)
                                     fileService.currentFileURL = url
                                 }
                             }

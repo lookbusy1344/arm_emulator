@@ -8,7 +8,7 @@ public enum ShortcutId
 	SaveAs,
 	Examples,
 	Preferences,
-	Load,
+	Assemble,
 	Run,
 	Pause,
 	Step,

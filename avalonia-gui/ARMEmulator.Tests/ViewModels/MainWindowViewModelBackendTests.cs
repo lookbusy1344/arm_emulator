@@ -138,7 +138,7 @@ public sealed class MainWindowViewModelBackendTests : IDisposable
 	{
 		using var vm = await StartedViewModelAsync();
 		vm.SourceCode = Program;
-		Execute(vm.LoadProgramCommand);
+		Execute(vm.AssembleCommand);
 		api.ClearReceivedCalls();
 
 		await RestartAsync(vm);
@@ -193,7 +193,7 @@ public sealed class MainWindowViewModelBackendTests : IDisposable
 	{
 		using var vm = await StartedViewModelAsync();
 		vm.SourceCode = Program;
-		Execute(vm.LoadProgramCommand);
+		Execute(vm.AssembleCommand);
 		api.ClearReceivedCalls();
 		api.CreateSessionAsync(Arg.Any<CancellationToken>()).ThrowsAsync(new BackendUnavailableException("refused"));
 

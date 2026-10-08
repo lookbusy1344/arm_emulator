@@ -103,8 +103,8 @@ public sealed class NativeMenusTests : IDisposable
 			var debug = Submenu(NativeMenus.CreateWindowMenu(viewModel), "Debug");
 
 			Headers(debug).Should().Equal(
-				"Load Program", "Run", "Pause", "Step", "Step Over", "Step Out", "Reset", "Show PC", "Toggle Breakpoint");
-			CommandOf(debug, "Load Program").Should().BeSameAs(viewModel.LoadProgramCommand);
+				"Assemble", "Run", "Pause", "Step", "Step Over", "Step Out", "Reset", "Show PC", "Toggle Breakpoint");
+			CommandOf(debug, "Assemble").Should().BeSameAs(viewModel.AssembleCommand);
 			CommandOf(debug, "Run").Should().BeSameAs(viewModel.RunCommand);
 			CommandOf(debug, "Pause").Should().BeSameAs(viewModel.PauseCommand);
 			CommandOf(debug, "Step").Should().BeSameAs(viewModel.StepCommand);

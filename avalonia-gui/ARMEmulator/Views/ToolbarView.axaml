@@ -19,18 +19,6 @@
                 <TextBlock Name="StatusLabel" Text="{Binding StatusLabel}" />
             </Border>
 
-            <Button Name="LoadButton"
-                    Classes="tool"
-                    Command="{Binding LoadProgramCommand}"
-                    AutomationProperties.Name="Load Program">
-                <StackPanel Orientation="Horizontal" Spacing="6">
-                    <PathIcon Data="{StaticResource IconOpen}" />
-                    <TextBlock Text="Load" />
-                </StackPanel>
-            </Button>
-
-            <Rectangle Classes="toolSeparator" />
-
             <Button Name="RunButton"
                     Classes="tool"
                     Command="{Binding RunCommand}"

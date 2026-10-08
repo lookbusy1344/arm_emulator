@@ -43,7 +43,7 @@ public sealed class KeyboardTraversalTests
 				return FocusedName(ui);
 			}).ToList();
 
-			visited.Should().Equal("InspectorSelector", "InputBox", "LoadButton", "TextArea");
+			visited.Should().Equal("InspectorSelector", "InputBox", "RunButton", "TextArea");
 		});
 
 	[Fact]
@@ -56,7 +56,7 @@ public sealed class KeyboardTraversalTests
 
 			Press(ui, PhysicalKey.F6, RawInputModifiers.Shift);
 
-			FocusedName(ui).Should().Be("LoadButton");
+			FocusedName(ui).Should().Be("RunButton");
 		});
 
 	[Fact]

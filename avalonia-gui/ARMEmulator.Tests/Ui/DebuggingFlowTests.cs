@@ -30,13 +30,16 @@ public sealed class DebuggingFlowTests
 
 	private static CancellationToken Ct => TestContext.Current.CancellationToken;
 
+	/// <summary>Starts a session with a two-instruction program assembled, then clears the API call log.</summary>
 	private static async Task StartSessionAsync(MainWindowHarness ui)
 	{
 		await ui.ViewModel.StartAsync(ui.Backend, Ct);
+		ui.Api.GetSourceMapAsync(SessionId, Arg.Any<CancellationToken>())
+			.Returns([new SourceMapEntry(FirstAddress, FirstLine, "MOV R0, #5"), new SourceMapEntry(SecondAddress, SecondLine, "MOV R1, #6")]);
 		ui.ViewModel.SourceCode = "MOV R0, #5\nMOV R1, #6\n";
-		ui.ViewModel.AddressToLine = ImmutableDictionary<uint, int>.Empty.Add(FirstAddress, FirstLine).Add(SecondAddress, SecondLine);
-		ui.ViewModel.LineToAddress = ImmutableDictionary<int, uint>.Empty.Add(FirstLine, FirstAddress).Add(SecondLine, SecondAddress);
+		Execute(ui.ViewModel.AssembleCommand);
 		Settle(ui);
+		ui.Api.ClearReceivedCalls();
 	}
 
 	/// <summary>Runs pending UI work and a layout pass so bindings and visual lines are current.</summary>
@@ -69,12 +72,12 @@ public sealed class DebuggingFlowTests
 			ui.Api.LoadProgramAsync(SessionId, Arg.Any<string>(), Arg.Any<CancellationToken>())
 				.ThrowsAsync(new ProgramLoadException(["line 2: unknown instruction 'MOVV'", "line 5: undefined label 'done'"]));
 
-			Execute(ui.ViewModel.LoadProgramCommand);
+			Execute(ui.ViewModel.AssembleCommand);
 			Settle(ui);
 
 			ui.Find<Border>("ErrorBar").IsVisible.Should().BeTrue();
 			ui.Find<SelectableTextBlock>("ErrorText").Text.Should().Be(
-				"Failed to load program:\nline 2: unknown instruction 'MOVV'\nline 5: undefined label 'done'");
+				"Failed to assemble program:\nline 2: unknown instruction 'MOVV'\nline 5: undefined label 'done'");
 		});
 
 	// Breakpoints

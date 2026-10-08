@@ -26,7 +26,7 @@ public static class NativeMenus
 			new NativeMenuItem("About…") { Command = viewModel.ShowAboutCommand }
 		]),
 		Submenu("Debug", [
-			Item("Load Program", viewModel, ShortcutId.Load),
+			Item("Assemble", viewModel, ShortcutId.Assemble),
 			Item("Run", viewModel, ShortcutId.Run),
 			Item("Pause", viewModel, ShortcutId.Pause),
 			Item("Step", viewModel, ShortcutId.Step),

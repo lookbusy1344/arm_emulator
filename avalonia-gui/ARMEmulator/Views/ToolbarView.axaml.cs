@@ -16,7 +16,6 @@ public partial class ToolbarView : UserControl
 	private void ApplyShortcutHints(bool isMacOS)
 	{
 		(Button Button, string Label, ShortcutId Id)[] buttons = [
-			(LoadButton, "Load Program", ShortcutId.Load),
 			(RunButton, "Run", ShortcutId.Run),
 			(PauseButton, "Pause", ShortcutId.Pause),
 			(StepButton, "Step", ShortcutId.Step),

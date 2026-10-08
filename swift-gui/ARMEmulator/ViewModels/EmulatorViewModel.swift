@@ -57,9 +57,22 @@ class EmulatorViewModel: ObservableObject {
         status == .running || status == .waitingForInput
     }
 
-    /// Computed property: determines if step buttons should be enabled
+    /// The source in the session, or nil before the first successful assembly or after a failed one
+    @Published private(set) var assembledSource: String?
+
+    /// True when the editor holds source that is not in the session. An empty editor needs nothing.
+    var needsAssembly: Bool {
+        sourceCode != (assembledSource ?? "")
+    }
+
+    /// The editor accepts edits only while the program is stopped
+    var isEditorEditable: Bool {
+        status == .idle || status == .halted || status == .error
+    }
+
+    /// Step is available while paused, and while stopped with edits that stepping will assemble
     var canStep: Bool {
-        status == .idle || status == .breakpoint
+        status == .idle || status == .breakpoint || (isEditorEditable && needsAssembly)
     }
 
     func highlightRegister(_ name: String) {
@@ -145,43 +158,47 @@ class EmulatorViewModel: ObservableObject {
         }
     }
 
-    func loadProgram(source: String) async {
-        DebugLog.log("loadProgram() called", category: "ViewModel")
-        DebugLog.log("Source length: \(source.count) chars", category: "ViewModel")
+    /// Shows `source` in the editor and assembles it
+    func openProgram(source: String) async {
+        sourceCode = source
+        await assemble()
+    }
 
-        // Clear highlights when loading new program
+    /// Assembles when the editor holds source that is not in the session. Returns false when assembly failed.
+    func ensureAssembled() async -> Bool {
+        needsAssembly ? await assemble() : true
+    }
+
+    /// Assembles the editor source into the session and resets the VM.
+    /// Breakpoints stay on their source lines. Returns false when assembly failed.
+    @discardableResult
+    func assemble() async -> Bool {
+        let source = sourceCode
+        DebugLog.log("assemble() called, source length: \(source.count) chars", category: "ViewModel")
+
         cancelAllHighlights()
 
         guard let sessionID else {
-            DebugLog.error("No active session for loadProgram", category: "ViewModel")
+            DebugLog.error("No active session for assemble", category: "ViewModel")
             errorMessage = "No active session"
-            return
+            return false
         }
 
-        DebugLog.log("SessionID: \(sessionID)", category: "ViewModel")
+        let breakpointLines = breakpoints.compactMap { addressToLine[$0] }
 
         do {
-            DebugLog.log("Calling apiClient.loadProgram()...", category: "ViewModel")
             let response = try await apiClient.loadProgram(sessionID: sessionID, source: source)
 
-            DebugLog.log("Load response - success: \(response.success)", category: "ViewModel")
-
-            // Check if load was successful
-            if !response.success {
+            guard response.success else {
                 let errors = response.errors?.joined(separator: "\n") ?? "Unknown error"
-                DebugLog.error("Load failed with errors: \(errors)", category: "ViewModel")
-                errorMessage = "Failed to load program:\n\(errors)"
-                return
+                DebugLog.error("Assembly failed with errors: \(errors)", category: "ViewModel")
+                assembledSource = nil
+                errorMessage = "Failed to assemble program:\n\(errors)"
+                return false
             }
 
-            if let symbols = response.symbols {
-                DebugLog.log("Loaded \(symbols.count) symbols", category: "ViewModel")
-                for (name, addr) in symbols.prefix(5) {
-                    DebugLog.log("  Symbol: \(name) -> 0x\(String(format: "%08X", addr))", category: "ViewModel")
-                }
-            }
-
-            sourceCode = source
+            assembledSource = source
+            consoleOutput = ""
             errorMessage = nil
 
             DebugLog.log("Refreshing state...", category: "ViewModel")
@@ -211,13 +228,34 @@ class EmulatorViewModel: ObservableObject {
             currentPC = 0xFFFF_FFFF // Temporary different value
             currentPC = savedPC // Restore actual PC, triggering onChange with valid mapping
 
+            try await moveBreakpoints(toLines: breakpointLines)
+
             DebugLog.success(
-                "Program loaded successfully, PC: 0x\(String(format: "%08X", currentPC))",
+                "Program assembled, PC: 0x\(String(format: "%08X", currentPC))",
                 category: "ViewModel",
             )
+            return true
         } catch {
-            DebugLog.error("loadProgram() failed: \(error.localizedDescription)", category: "ViewModel")
-            errorMessage = "Failed to load program: \(error.localizedDescription)"
+            DebugLog.error("assemble() failed: \(error.localizedDescription)", category: "ViewModel")
+            assembledSource = nil
+            errorMessage = "Failed to assemble program: \(error.localizedDescription)"
+            return false
+        }
+    }
+
+    /// The session keeps breakpoints by address across assembly. Replaces them with the new addresses of `lines`;
+    /// lines without an instruction lose their breakpoint.
+    private func moveBreakpoints(toLines lines: [Int]) async throws {
+        guard let sessionID else { return }
+
+        for address in breakpoints {
+            try await apiClient.removeBreakpoint(sessionID: sessionID, address: address)
+        }
+        breakpoints = []
+
+        for address in Set(lines.compactMap { lineToAddress[$0] }) {
+            try await apiClient.addBreakpoint(sessionID: sessionID, address: address)
+            breakpoints.insert(address)
         }
     }
 

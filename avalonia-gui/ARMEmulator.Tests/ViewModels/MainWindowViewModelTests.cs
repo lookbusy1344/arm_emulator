@@ -85,7 +85,7 @@ public class MainWindowViewModelTests : IDisposable
 		viewModel.StepOverCommand.Should().NotBeNull();
 		viewModel.StepOutCommand.Should().NotBeNull();
 		viewModel.ResetCommand.Should().NotBeNull();
-		viewModel.LoadProgramCommand.Should().NotBeNull();
+		viewModel.AssembleCommand.Should().NotBeNull();
 		viewModel.ShowPcCommand.Should().NotBeNull();
 	}
 

@@ -5,6 +5,7 @@ import Foundation
 extension EmulatorViewModel {
     func run() async {
         DebugLog.log("run() called", category: "ViewModel")
+        guard await ensureAssembled() else { return }
 
         guard let sessionID else {
             DebugLog.error("No active session", category: "ViewModel")
@@ -54,6 +55,7 @@ extension EmulatorViewModel {
 
     func step() async {
         DebugLog.log("step() called - status: \(status), canStep: \(canStep)", category: "ViewModel")
+        guard await ensureAssembled() else { return }
 
         guard let sessionID else {
             errorMessage = "No active session"
@@ -81,6 +83,7 @@ extension EmulatorViewModel {
     }
 
     func stepOver() async {
+        guard await ensureAssembled() else { return }
         guard let sessionID else {
             errorMessage = "No active session"
             return
@@ -107,6 +110,7 @@ extension EmulatorViewModel {
     }
 
     func stepOut() async {
+        guard await ensureAssembled() else { return }
         guard let sessionID else {
             errorMessage = "No active session"
             return
@@ -132,7 +136,13 @@ extension EmulatorViewModel {
         }
     }
 
+    /// Assembles edited source, which also resets the VM, or restarts the program in the session
     func reset() async {
+        if needsAssembly {
+            await assemble()
+            return
+        }
+
         // Clear highlights when restarting
         cancelAllHighlights()
 

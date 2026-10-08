@@ -67,7 +67,7 @@ public partial class MainWindowViewModel
 	private async Task RestartBackendAsync(CancellationToken ct)
 	{
 		var backend = backendManager ?? throw new InvalidOperationException("no backend to restart");
-		var reloadSource = isProgramLoaded;
+		var reloadSource = AssembledSource is not null;
 
 		await ws.DisconnectAsync();
 		try {
@@ -81,10 +81,10 @@ public partial class MainWindowViewModel
 		// The old session died with the process
 		SessionId = null;
 		IsConnected = false;
-		isProgramLoaded = false;
+		AssembledSource = null;
 
 		if (await StartBackendAndSessionAsync(backend, ct) && reloadSource) {
-			await LoadProgramAsync(ct);
+			_ = await AssembleAsync(ct);
 		}
 	}
 }

@@ -20,15 +20,6 @@ struct MainViewToolbar: ToolbarContent {
             Divider()
 
             Button(
-                action: { Task { await viewModel.loadProgram(source: viewModel.sourceCode) } },
-                label: { Label("Load", systemImage: "doc.text") },
-            )
-            .help("Load program (⌘L)")
-            .keyboardShortcut("l", modifiers: .command)
-
-            Divider()
-
-            Button(
                 action: {
                     DebugLog.ui("Run/Continue button clicked")
                     Task { await viewModel.run() }

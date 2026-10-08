@@ -9,13 +9,6 @@ struct EditorView: View {
     @State private var scrollView: NSScrollView?
     @EnvironmentObject var viewModel: EmulatorViewModel
 
-    /// Compute editor editability based on VM state
-    /// Editor is editable only when VM is completely stopped (idle, halted, error)
-    /// Editor is read-only during any form of execution (running, paused, breakpoint, waitingForInput)
-    private var isEditable: Bool {
-        viewModel.status == .idle || viewModel.status == .halted || viewModel.status == .error
-    }
-
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             Text("Assembly Editor")
@@ -29,7 +22,7 @@ struct EditorView: View {
                 text: $text,
                 breakpoints: $breakpoints,
                 currentLine: $currentLine,
-                isEditable: isEditable,
+                isEditable: viewModel.isEditorEditable,
                 onBreakpointToggle: { lineNumber in
                     toggleBreakpoint(at: lineNumber)
                 },
@@ -144,31 +137,8 @@ struct EditorView: View {
     }
 
     private func toggleBreakpoint(at lineNumber: Int) {
-        // Check if this line already has a breakpoint (allow removal)
-        if breakpoints.contains(lineNumber) {
-            // Get address for this line to remove breakpoint
-            if let address = viewModel.lineToAddress[lineNumber] {
-                Task {
-                    await viewModel.toggleBreakpoint(at: address)
-                }
-            }
-            return
-        }
-
-        // Validate line can have a breakpoint (must be executable code)
-        guard viewModel.validBreakpointLines.contains(lineNumber) else {
-            print("Cannot set breakpoint on line \(lineNumber) - not executable code")
-            return
-        }
-
-        // Get actual address for this line from the backend-provided mapping
-        guard let address = viewModel.lineToAddress[lineNumber] else {
-            print("Cannot set breakpoint on line \(lineNumber) - no address mapping found")
-            return
-        }
-
         Task {
-            await viewModel.toggleBreakpoint(at: address)
+            await viewModel.toggleBreakpoint(atLine: lineNumber)
         }
     }
 }

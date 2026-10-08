@@ -78,67 +78,382 @@ final class EmulatorViewModelProgramLoadingTests: XCTestCase {
         viewModel.sessionID = "test-session" // Set session ID for testing
     }
 
-    func testLoadProgramSuccess() async {
+    func testOpenProgramShowsAndAssemblesTheSource() async {
         let sourceCode = "MOV R0, #42\nSWI #0"
 
-        await viewModel.loadProgram(source: sourceCode)
+        await viewModel.openProgram(source: sourceCode)
 
-        XCTAssertTrue(mockAPIClient.loadProgramCalled)
         XCTAssertEqual(mockAPIClient.lastLoadedSource, sourceCode)
         XCTAssertEqual(viewModel.sourceCode, sourceCode)
+        XCTAssertEqual(viewModel.assembledSource, sourceCode)
+        XCTAssertFalse(viewModel.needsAssembly)
         XCTAssertNil(viewModel.errorMessage)
         XCTAssertTrue(mockAPIClient.getRegistersCalled)
         XCTAssertTrue(mockAPIClient.getStatusCalled)
     }
 
-    func testLoadProgramFailureFromAPI() async {
-        mockAPIClient.shouldFailLoadProgram = true
+    func testOpenProgramWithAssemblerErrorsStillShowsTheSource() async {
+        mockAPIClient.mockLoadProgramResponse = LoadProgramResponse(
+            success: false,
+            errors: ["line 1: bad"],
+            symbols: nil,
+        )
 
-        await viewModel.loadProgram(source: "MOV R0, #42")
+        await viewModel.openProgram(source: "INVALID")
 
-        XCTAssertTrue(mockAPIClient.loadProgramCalled)
-        XCTAssertNotNil(viewModel.errorMessage)
-        XCTAssertTrue(viewModel.errorMessage?.contains("Failed to load program") ?? false)
+        XCTAssertEqual(viewModel.sourceCode, "INVALID")
+        XCTAssertNil(viewModel.assembledSource)
+        XCTAssertTrue(viewModel.needsAssembly)
     }
 
-    func testLoadProgramFailureFromResponse() async {
+    func testAssembleFailureFromAPI() async {
+        mockAPIClient.shouldFailLoadProgram = true
+        viewModel.sourceCode = "MOV R0, #42"
+
+        let assembled = await viewModel.assemble()
+
+        XCTAssertFalse(assembled)
+        XCTAssertEqual(viewModel.errorMessage, "Failed to assemble program: Mock load program failed")
+        XCTAssertNil(viewModel.assembledSource)
+    }
+
+    func testAssembleFailureFromResponseListsEveryError() async {
         mockAPIClient.mockLoadProgramResponse = LoadProgramResponse(
             success: false,
             errors: ["Syntax error on line 1", "Undefined symbol"],
             symbols: nil,
         )
+        viewModel.sourceCode = "INVALID"
 
-        await viewModel.loadProgram(source: "INVALID")
+        let assembled = await viewModel.assemble()
 
-        XCTAssertTrue(mockAPIClient.loadProgramCalled)
-        XCTAssertNotNil(viewModel.errorMessage)
-        XCTAssertTrue(viewModel.errorMessage?.contains("Syntax error") ?? false)
-        XCTAssertTrue(viewModel.errorMessage?.contains("Undefined symbol") ?? false)
+        XCTAssertFalse(assembled)
+        XCTAssertEqual(viewModel.errorMessage, "Failed to assemble program:\nSyntax error on line 1\nUndefined symbol")
     }
 
-    func testLoadProgramWithoutSession() async {
+    func testAssembleWithoutSession() async {
         viewModel.sessionID = nil
+        viewModel.sourceCode = "MOV R0, #42"
 
-        await viewModel.loadProgram(source: "MOV R0, #42")
+        let assembled = await viewModel.assemble()
 
+        XCTAssertFalse(assembled)
         XCTAssertFalse(mockAPIClient.loadProgramCalled)
-        XCTAssertNotNil(viewModel.errorMessage)
         XCTAssertEqual(viewModel.errorMessage, "No active session")
     }
 
-    func testLoadProgramClearsHighlights() async {
-        // Set up some highlights
-        viewModel.highlightRegister("R0")
-        viewModel.highlightMemoryAddress(0x8000, size: 4)
+    func testAssembleClearsTheConsole() async {
+        viewModel.consoleOutput = "old output\n"
+        viewModel.sourceCode = "MOV R0, #42"
 
-        XCTAssertFalse(viewModel.registerHighlights.isEmpty)
-        XCTAssertFalse(viewModel.memoryHighlights.isEmpty)
+        await viewModel.assemble()
 
-        await viewModel.loadProgram(source: "MOV R0, #42")
+        XCTAssertEqual(viewModel.consoleOutput, "")
+    }
 
-        // After a brief moment, highlights should be cancelled
-        // Note: They may still exist briefly due to async nature, but tasks are cancelled
-        XCTAssertTrue(true) // Highlights are cleared via cancelAllHighlights()
+    func testAssembleFailureKeepsTheConsole() async {
+        mockAPIClient.shouldFailLoadProgram = true
+        viewModel.consoleOutput = "old output\n"
+        viewModel.sourceCode = "MOV R0, #42"
+
+        await viewModel.assemble()
+
+        XCTAssertEqual(viewModel.consoleOutput, "old output\n")
+    }
+
+    func testAssembleAlwaysAssemblesEvenWhenUnchanged() async {
+        viewModel.sourceCode = "MOV R0, #42"
+
+        await viewModel.assemble()
+        await viewModel.assemble()
+
+        XCTAssertEqual(mockAPIClient.loadProgramCallCount, 2)
+    }
+}
+
+// MARK: - Assemble On Demand Tests
+
+@MainActor
+final class EmulatorViewModelAssembleOnDemandTests: XCTestCase {
+    var viewModel: EmulatorViewModel!
+    var mockAPIClient: MockAPIClient!
+
+    private let program = "_start:\n  MOV R0, #1\n  MOV R1, #2\n  SWI #0\n"
+    private let edited = "_start:\n  MOV R0, #1\n  MOV R1, #3\n  SWI #0\n"
+
+    override func setUp() async throws {
+        mockAPIClient = MockAPIClient()
+        viewModel = EmulatorViewModel(apiClient: mockAPIClient, wsClient: MockWebSocketClient())
+        viewModel.sessionID = "test-session"
+    }
+
+    private func entry(_ address: UInt32, _ line: Int) -> SourceMapEntry {
+        SourceMapEntry(address: address, lineNumber: line, line: "")
+    }
+
+    /// Assembles `program` with instructions on lines 2, 3 and 4, then clears the call log
+    private func assembleProgram() async {
+        mockAPIClient.mockSourceMap = [entry(0x8000, 2), entry(0x8004, 3), entry(0x8008, 4)]
+        viewModel.sourceCode = program
+        await viewModel.assemble()
+        mockAPIClient.callSequence = []
+        mockAPIClient.addedBreakpoints = []
+        mockAPIClient.removedBreakpoints = []
+    }
+
+    func testEmptyEditorNeedsNoAssembly() {
+        XCTAssertFalse(viewModel.needsAssembly)
+    }
+
+    func testEditedSourceNeedsAssembly() async {
+        await assembleProgram()
+
+        viewModel.sourceCode = edited
+
+        XCTAssertTrue(viewModel.needsAssembly)
+    }
+
+    func testEditingBackToTheAssembledSourceNeedsNoAssembly() async {
+        await assembleProgram()
+
+        viewModel.sourceCode = edited
+        viewModel.sourceCode = program
+
+        XCTAssertFalse(viewModel.needsAssembly)
+    }
+
+    func testRunAssemblesEditedSourceThenRuns() async {
+        viewModel.sourceCode = program
+
+        await viewModel.run()
+
+        XCTAssertEqual(mockAPIClient.callSequence, ["loadProgram", "run"])
+        XCTAssertEqual(mockAPIClient.lastLoadedSource, program)
+    }
+
+    func testRunWithUnchangedSourceDoesNotReassemble() async {
+        await assembleProgram()
+
+        await viewModel.run()
+
+        XCTAssertEqual(mockAPIClient.callSequence, ["run"])
+    }
+
+    func testRunWithEmptyEditorDoesNotAssemble() async {
+        await viewModel.run()
+
+        XCTAssertEqual(mockAPIClient.callSequence, ["run"])
+    }
+
+    func testRunDoesNotStartWhenAssemblyFails() async {
+        mockAPIClient.mockLoadProgramResponse = LoadProgramResponse(
+            success: false,
+            errors: ["line 2: bad"],
+            symbols: nil,
+        )
+        viewModel.sourceCode = "_start:\n  FOO\n"
+
+        await viewModel.run()
+
+        XCTAssertFalse(mockAPIClient.runCalled)
+        XCTAssertEqual(viewModel.errorMessage, "Failed to assemble program:\nline 2: bad")
+    }
+
+    func testRunRetriesAssemblyAfterAFailure() async {
+        mockAPIClient.shouldFailLoadProgram = true
+        viewModel.sourceCode = program
+        await viewModel.run()
+        mockAPIClient.shouldFailLoadProgram = false
+
+        await viewModel.run()
+
+        XCTAssertEqual(mockAPIClient.loadProgramCallCount, 2)
+        XCTAssertEqual(mockAPIClient.runCallCount, 1)
+    }
+
+    func testStepAssemblesEditedSourceThenSteps() async {
+        viewModel.sourceCode = program
+
+        await viewModel.step()
+
+        XCTAssertEqual(mockAPIClient.callSequence, ["loadProgram", "step"])
+    }
+
+    func testStepOverAssemblesEditedSourceThenSteps() async {
+        viewModel.sourceCode = program
+
+        await viewModel.stepOver()
+
+        XCTAssertEqual(mockAPIClient.callSequence, ["loadProgram", "stepOver"])
+    }
+
+    func testStepOutAssemblesEditedSourceThenSteps() async {
+        viewModel.sourceCode = program
+
+        await viewModel.stepOut()
+
+        XCTAssertEqual(mockAPIClient.callSequence, ["loadProgram", "stepOut"])
+    }
+
+    func testStepDoesNotStepWhenAssemblyFails() async {
+        mockAPIClient.shouldFailLoadProgram = true
+        viewModel.sourceCode = program
+
+        await viewModel.step()
+
+        XCTAssertFalse(mockAPIClient.stepCalled)
+    }
+
+    func testResetWithEditedSourceAssemblesInsteadOfRestarting() async {
+        await assembleProgram()
+        viewModel.sourceCode = edited
+
+        await viewModel.reset()
+
+        XCTAssertEqual(mockAPIClient.callSequence, ["loadProgram"])
+        XCTAssertEqual(mockAPIClient.lastLoadedSource, edited)
+    }
+
+    func testResetWithUnchangedSourceRestarts() async {
+        await assembleProgram()
+
+        await viewModel.reset()
+
+        XCTAssertEqual(mockAPIClient.callSequence, ["restart"])
+    }
+
+    func testCanStepWhenHaltedWithEditedSource() async {
+        await assembleProgram()
+        viewModel.status = .halted
+
+        viewModel.sourceCode = edited
+
+        XCTAssertTrue(viewModel.canStep)
+    }
+
+    func testCanStepWhenErrorWithEditedSource() async {
+        await assembleProgram()
+        viewModel.status = .error
+
+        viewModel.sourceCode = edited
+
+        XCTAssertTrue(viewModel.canStep)
+    }
+
+    func testCannotStepWhenHaltedWithUnchangedSource() async {
+        await assembleProgram()
+
+        viewModel.status = .halted
+
+        XCTAssertFalse(viewModel.canStep)
+    }
+
+    func testCannotStepWhenRunningWithEditedSource() async {
+        await assembleProgram()
+        viewModel.sourceCode = edited
+
+        viewModel.status = .running
+
+        XCTAssertFalse(viewModel.canStep)
+    }
+
+    // MARK: Breakpoints
+
+    func testReassemblyMovesBreakpointsToTheNewAddressOfTheirLine() async {
+        await assembleProgram()
+        await viewModel.toggleBreakpoint(at: 0x8008) // line 4
+        mockAPIClient.mockSourceMap = [entry(0x8000, 2), entry(0x8004, 3), entry(0x800C, 4)]
+        viewModel.sourceCode = edited
+
+        await viewModel.run()
+
+        XCTAssertEqual(mockAPIClient.removedBreakpoints, [0x8008])
+        XCTAssertEqual(mockAPIClient.addedBreakpoints, [0x8008, 0x800C])
+        XCTAssertEqual(viewModel.breakpoints, [0x800C])
+        XCTAssertEqual(mockAPIClient.callSequence.last, "run")
+    }
+
+    func testReassemblyDropsBreakpointsOnLinesWithoutAnInstruction() async {
+        await assembleProgram()
+        await viewModel.toggleBreakpoint(at: 0x8008) // line 4
+        mockAPIClient.mockSourceMap = [entry(0x8000, 2), entry(0x8004, 3)]
+        mockAPIClient.addedBreakpoints = []
+        viewModel.sourceCode = edited
+
+        await viewModel.run()
+
+        XCTAssertEqual(mockAPIClient.removedBreakpoints, [0x8008])
+        XCTAssertEqual(mockAPIClient.addedBreakpoints, [])
+        XCTAssertEqual(viewModel.breakpoints, [])
+    }
+
+    func testFailedReassemblyKeepsBreakpoints() async {
+        await assembleProgram()
+        await viewModel.toggleBreakpoint(at: 0x8008)
+        mockAPIClient.shouldFailLoadProgram = true
+        viewModel.sourceCode = edited
+
+        await viewModel.run()
+
+        XCTAssertEqual(mockAPIClient.removedBreakpoints, [])
+        XCTAssertEqual(viewModel.breakpoints, [0x8008])
+    }
+
+    func testReassemblyAfterAFailureRestoresBreakpointsOnTheirLines() async {
+        await assembleProgram()
+        await viewModel.toggleBreakpoint(at: 0x8008) // line 4
+        mockAPIClient.mockLoadProgramResponse = LoadProgramResponse(
+            success: false,
+            errors: ["line 3: bad"],
+            symbols: nil,
+        )
+        viewModel.sourceCode = "_start:\n  MOV R0, #1\n  FOO\n  SWI #0\n"
+        await viewModel.run()
+        mockAPIClient.mockLoadProgramResponse = LoadProgramResponse(success: true, errors: nil, symbols: [:])
+        mockAPIClient.mockSourceMap = [entry(0x8000, 2), entry(0x8004, 3), entry(0x800C, 4)]
+        viewModel.sourceCode = edited
+
+        await viewModel.run()
+
+        XCTAssertEqual(viewModel.breakpoints, [0x800C])
+    }
+
+    func testToggleBreakpointAtLineAssemblesEditedSourceFirst() async {
+        mockAPIClient.mockSourceMap = [entry(0x8000, 2), entry(0x8004, 3), entry(0x8008, 4)]
+        viewModel.sourceCode = program
+
+        await viewModel.toggleBreakpoint(atLine: 3)
+
+        XCTAssertEqual(mockAPIClient.callSequence, ["loadProgram", "addBreakpoint"])
+        XCTAssertEqual(viewModel.breakpoints, [0x8004])
+    }
+
+    func testToggleBreakpointAtLineRemovesAnExistingBreakpoint() async {
+        await assembleProgram()
+        await viewModel.toggleBreakpoint(atLine: 3)
+
+        await viewModel.toggleBreakpoint(atLine: 3)
+
+        XCTAssertEqual(mockAPIClient.removedBreakpoints, [0x8004])
+        XCTAssertEqual(viewModel.breakpoints, [])
+    }
+
+    func testToggleBreakpointAtLineWithoutAnInstructionDoesNothing() async {
+        await assembleProgram()
+
+        await viewModel.toggleBreakpoint(atLine: 1)
+
+        XCTAssertEqual(mockAPIClient.callSequence, [])
+        XCTAssertEqual(viewModel.breakpoints, [])
+    }
+
+    func testToggleBreakpointAtLineDoesNothingWhenAssemblyFails() async {
+        mockAPIClient.shouldFailLoadProgram = true
+        viewModel.sourceCode = program
+
+        await viewModel.toggleBreakpoint(atLine: 3)
+
+        XCTAssertFalse(mockAPIClient.addBreakpointCalled)
     }
 }
 
@@ -447,6 +762,17 @@ final class EmulatorViewModelExecutionTests: XCTestCase {
 
         XCTAssertTrue(mockAPIClient.runCalled)
         XCTAssertNil(viewModel.errorMessage)
+    }
+
+    func testRunWithEditedSourceWithoutSession() async {
+        viewModel.sessionID = nil
+        viewModel.sourceCode = "MOV R0, #1"
+
+        await viewModel.run()
+
+        XCTAssertFalse(mockAPIClient.loadProgramCalled)
+        XCTAssertFalse(mockAPIClient.runCalled)
+        XCTAssertEqual(viewModel.errorMessage, "No active session")
     }
 
     func testRunFailure() async {
@@ -1130,10 +1456,10 @@ final class VMWebSocketReconnectionTests: XCTestCase {
         mockAPIClient.simulateDelay = 1.0 // 1 second delay
 
         Task {
-            await viewModel.loadProgram(source: "MOV R0, #42")
+            await viewModel.openProgram(source: "MOV R0, #42")
         }
 
-        // While loadProgram is running, send WebSocket events
+        // While openProgram is running, send WebSocket events
         try await Task.sleep(nanoseconds: 100_000_000) // 0.1s (during API call)
 
         let event = EmulatorEvent(

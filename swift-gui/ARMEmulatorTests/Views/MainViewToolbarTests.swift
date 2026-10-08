@@ -147,14 +147,6 @@ final class ToolbarStatusTextTests: XCTestCase {
 // MARK: - Button Label Tests
 
 final class ToolbarButtonLabelTests: XCTestCase {
-    func testLoadButtonLabel() {
-        let label = "Load"
-        let icon = "doc.text"
-
-        XCTAssertEqual(label, "Load")
-        XCTAssertEqual(icon, "doc.text")
-    }
-
     func testRunContinueButtonLabel() {
         /// Button label changes based on status
         func runButtonLabel(for status: VMState) -> String {
@@ -232,7 +224,6 @@ final class ToolbarKeyboardShortcutTests: XCTestCase {
         }
 
         let shortcuts = [
-            Shortcut(key: "l", modifiers: ["⌘"], description: "Load program"),
             Shortcut(key: "r", modifiers: ["⌘"], description: "Run/Continue"),
             Shortcut(key: ".", modifiers: ["⌘"], description: "Pause"),
             Shortcut(key: "t", modifiers: ["⌘"], description: "Step"),
@@ -242,7 +233,7 @@ final class ToolbarKeyboardShortcutTests: XCTestCase {
             Shortcut(key: "j", modifiers: ["⌘"], description: "Show PC"),
         ]
 
-        XCTAssertEqual(shortcuts.count, 8)
+        XCTAssertEqual(shortcuts.count, 7)
 
         // Verify all shortcuts have non-empty keys
         for shortcut in shortcuts {
@@ -269,7 +260,6 @@ final class ToolbarKeyboardShortcutTests: XCTestCase {
         }
 
         let shortcuts: [ShortcutKey] = [
-            ShortcutKey(key: "l", modifiers: ["⌘"]),
             ShortcutKey(key: "r", modifiers: ["⌘"]),
             ShortcutKey(key: ".", modifiers: ["⌘"]),
             ShortcutKey(key: "t", modifiers: ["⌘"]),
@@ -339,7 +329,6 @@ final class ToolbarHelpTextTests: XCTestCase {
     func testHelpTexts() {
         // Document help text (tooltips) for buttons
         let helpTexts: [String: String] = [
-            "Load": "Load program (⌘L)",
             "Run": "Run program (⌘R)",
             "Continue": "Continue execution (⌘R)",
             "Pause": "Pause execution (⌘.)",
@@ -350,7 +339,7 @@ final class ToolbarHelpTextTests: XCTestCase {
             "ShowPC": "Scroll to current PC (⌘J)",
         ]
 
-        XCTAssertEqual(helpTexts.count, 9)
+        XCTAssertEqual(helpTexts.count, 8)
 
         // Verify all help texts are non-empty
         for (_, helpText) in helpTexts {
@@ -364,7 +353,6 @@ final class ToolbarHelpTextTests: XCTestCase {
             "\(action) (\(shortcut))"
         }
 
-        XCTAssertEqual(formatHelpText(action: "Load program", shortcut: "⌘L"), "Load program (⌘L)")
         XCTAssertEqual(formatHelpText(action: "Run program", shortcut: "⌘R"), "Run program (⌘R)")
     }
 
@@ -457,18 +445,17 @@ final class ToolbarLayoutTests: XCTestCase {
         // Document logical grouping of toolbar items
         let groups: [String: [String]] = [
             "Status": ["Status Indicator"],
-            "Program": ["Load"],
             "Execution": ["Run/Continue", "Pause", "Step", "Step Over", "Step Out", "Reset"],
             "Navigation": ["Show PC"],
         ]
 
-        XCTAssertEqual(groups.count, 4)
+        XCTAssertEqual(groups.count, 3)
         XCTAssertEqual(groups["Execution"]?.count, 6)
     }
 
     func testDividerPlacement() {
         // Dividers separate logical groups
-        // Status | Program | Execution | Navigation
+        // Status | Execution | Navigation
 
         let dividerCount = 2
 
@@ -517,14 +504,8 @@ final class ToolbarButtonActionTests: XCTestCase {
         // This is necessary for async ViewModel methods
 
         // Simulate button actions
-        var loadCalled = false
         var runCalled = false
         var pauseCalled = false
-
-        // Load button
-        Task {
-            loadCalled = true
-        }
 
         // Run button
         Task {
@@ -540,7 +521,6 @@ final class ToolbarButtonActionTests: XCTestCase {
         let expectation = XCTestExpectation(description: "Tasks execute")
         Task {
             try? await Task.sleep(nanoseconds: 10_000_000) // 10ms
-            XCTAssertTrue(loadCalled)
             XCTAssertTrue(runCalled)
             XCTAssertTrue(pauseCalled)
             expectation.fulfill()

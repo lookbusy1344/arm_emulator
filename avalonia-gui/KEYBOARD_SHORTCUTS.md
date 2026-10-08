@@ -22,7 +22,9 @@ Comprehensive keyboard shortcuts for the ARM Emulator Avalonia GUI.
 | **Step Over** | `F10`, `F8` or `Ctrl+Shift+T` | `F10`, `F8` or `Cmd+Shift+T` | Step over function calls |
 | **Step Out** | `Ctrl+Alt+T` | `Cmd+Option+T` | Step out of current function |
 | **Reset** | `Ctrl+Shift+R` | `Cmd+Shift+R` | Reset VM to initial state |
-| **Load Program** | `Ctrl+L` | `Cmd+L` | Load current program into VM |
+| **Assemble** | `Ctrl+L` | `Cmd+L` | Assemble the editor source and reset the VM |
+
+Run, Step, Step Over, Step Out, Reset and breakpoint toggles assemble the editor source first when it has changed since the last assembly. Breakpoints stay on their source lines across assembly.
 
 ## Navigation
 

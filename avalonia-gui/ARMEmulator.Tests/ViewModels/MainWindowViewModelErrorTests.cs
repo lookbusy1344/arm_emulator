@@ -53,7 +53,7 @@ public sealed class MainWindowViewModelErrorTests : IDisposable
 	public void DismissErrorCommand_ClearsErrorMessage()
 	{
 		using var vm = CreateViewModel();
-		vm.ErrorMessage = "Failed to load program: boom";
+		vm.ErrorMessage = "Failed to assemble program: boom";
 
 		Execute(vm.DismissErrorCommand);
 

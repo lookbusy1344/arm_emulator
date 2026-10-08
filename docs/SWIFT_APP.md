@@ -363,7 +363,7 @@ class EmulatorViewModel: ObservableObject {
     @Published var executionState: ExecutionState
     @Published var error: String?
 
-    func loadProgram(source: String) async
+    func assemble() async -> Bool
     func run() async
     func step() async
     func stop() async
@@ -536,11 +536,13 @@ The project uses automatic ad-hoc code signing for development. If you encounter
 
 | Shortcut | Action |
 |----------|--------|
-| ⌘L | Load program |
+| ⌘L | Assemble the editor source and reset the VM |
 | ⌘R | Run program |
 | ⌘T | Step instruction |
 | ⌘. | Stop execution |
 | ⌘⇧R | Reset VM |
+
+Run, Step, Step Over, Step Out, Reset and breakpoint toggles assemble the editor source first when it has changed since the last assembly. Breakpoints stay on their source lines across assembly.
 
 ## Performance
 
