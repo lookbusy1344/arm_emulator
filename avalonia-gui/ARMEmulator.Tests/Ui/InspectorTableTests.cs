@@ -1,4 +1,5 @@
 using ARMEmulator.Models;
+using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
@@ -77,6 +78,29 @@ public sealed class InspectorTableTests
 
 			IsMarkerVisible(Row(ui, "DisassemblyRows", 0), "breakpointMarker").Should().BeFalse();
 			IsMarkerVisible(Row(ui, "DisassemblyRows", 1), "breakpointMarker").Should().BeTrue();
+		});
+
+	[Fact]
+	public Task DisassemblyPanel_ScrollsTheCurrentRowIntoView() =>
+		UiTest.RunAsync(async ui => {
+			await ShowPanelAsync(ui, InspectorPanel.Disassembly);
+			const int pcIndex = 48;
+			const uint pc = FirstAddress + (pcIndex * 4);
+			ui.Api.GetDisassemblyAsync(SessionId, Arg.Any<uint>(), Arg.Any<int>(), Ct)
+				.ReturnsForAnyArgs(Enumerable.Range(0, 64)
+					.Select(i => new DisassemblyInstruction(FirstAddress + (uint)(i * 4), 0xE3A00005, "MOV R0, #5", null))
+					.ToImmutableArray());
+
+			ui.ViewModel.UpdateRegisters(RegisterState.Create(pc: pc));
+			Settle(ui);
+			Settle(ui);
+
+			var scroll = ui.Find<ScrollViewer>("DisassemblyScroll");
+			var row = ui.Find<ItemsControl>("DisassemblyRows").ContainerFromIndex(pcIndex)!;
+			scroll.Offset.Y.Should().BeGreaterThan(0);
+			var rowTop = ((Visual)row).TranslatePoint(default, scroll)!.Value.Y;
+			rowTop.Should().BeGreaterThanOrEqualTo(0);
+			(rowTop + row.Bounds.Height).Should().BeLessThanOrEqualTo(scroll.Viewport.Height);
 		});
 
 	[Fact]
