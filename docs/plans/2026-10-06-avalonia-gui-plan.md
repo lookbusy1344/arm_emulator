@@ -305,21 +305,19 @@ Use `Avalonia.Headless` through `HeadlessUnitTestSession` (`ARMEmulator.Tests/Ui
 
 ### 5.1 Parity check against the Swift GUI
 
-Status 2026-10-08: Shortcuts checked. Every Swift binding exists (F5, F9, F10, F11, ⌘O/S/⇧S/⇧E/L/R/./T/J). F9 worked only with editor focus; it is now a window binding that toggles on the caret line (`MainWindowViewModel.CaretLine`) and has a Debug menu entry. `KEYBOARD_SHORTCUTS.md` listed Find, Replace and Go to Line, which the editor does not provide; removed. Stack checked: the panel always read 256 bytes from SP, including above the stack top; it now reads the used stack (limit 64 KB, as Swift), shows nothing when SP is at the top, and annotates values equal to R0–R12. Memory matches Swift (jumps, write highlight, preference). Disassembly checked: content matches Swift (window, symbols, markers). The 64-row window put the PC row below the visible area; the view now scrolls the PC row into view when the rows change. Execution checked: run/pause/step enablement and the send-input flow (no extra step while waiting) match Swift; whitespace-only console input was rejected and is now sent. Registers (hex/decimal, flags, per-register 1.5 s highlight), editor (read-only while running, font size), expression history and examples search/preview match Swift. Memory: the write highlight covered only the first written byte; it now covers the whole write, and a write that crosses a row highlights both rows. The write highlight now ends 1.5 s after the last write, as in Swift. Auto-scroll now moves the window only when the write is not already on display (as in Swift). Open: an identical write repeated after the highlight ends does not highlight again; the backend reports the last write, not a new one, so the GUI cannot tell them apart. Watchpoint types (read, write, read/write; default read/write) match Swift.
+Checked 2026-10-08 against the Swift source. Every row matches or has a recorded follow-up.
 
-Check each item against the Swift GUI and record the result in this file:
-
-| Area | Items |
-|------|-------|
-| Editor | Line numbers, current-line highlight, read-only while running, font size from settings |
-| Execution | Run/continue from breakpoint, pause while waiting for input, step after input (`docs/stepping-after-user-input-issue.md`) |
-| Registers | Hex and decimal, CPSR flags, highlight fade timing |
-| Memory | Jump to PC, SP, R0–R3; write highlight and auto-scroll setting from preferences |
-| Stack | SP marker, offsets, annotations, LR detection |
-| Disassembly | Window around PC, symbol labels, breakpoint markers |
-| Debugging | Watchpoint types, expression history |
-| Files | Examples browser search and preview |
-| Shortcuts | Every Swift shortcut has an Avalonia binding; `KEYBOARD_SHORTCUTS.md` matches the bindings |
+| Area | Result |
+|------|--------|
+| Editor | Line numbers, current-line and PC-line highlight, read-only while running, font size from settings: match. |
+| Execution | Run/pause/step enablement and the send-input flow (no extra step while waiting) match. Whitespace-only console input was rejected; now sent. |
+| Registers | Hex and decimal, CPSR flags, per-register 1.5 s highlight: match. |
+| Memory | Jumps to PC, SP, R0–R3 and the preference match. The write highlight covered one byte and never ended; it now covers the whole write and ends after 1.5 s. Auto-scroll moves the window only when the write is off display. Follow-up: an identical write repeated after the highlight ends does not highlight again, because the backend reports the last write, not a new one. |
+| Stack | The panel read a fixed 256 bytes from SP, including above the stack top; it now reads the used stack (limit 64 KB) and annotates values equal to R0–R12. |
+| Disassembly | Window, symbols and markers match. The PC row sat off screen; the view now scrolls to it. |
+| Debugging | Watchpoint types (default read/write) and expression history match. |
+| Files | Examples search and preview match. |
+| Shortcuts | Every Swift binding exists. F9 worked only with editor focus; it is now a window binding that toggles on the caret line (Swift toggles at the PC). `KEYBOARD_SHORTCUTS.md` listed Find, Replace and Go to Line, which the editor does not provide; removed. |
 
 ### 5.2 Accessibility
 
