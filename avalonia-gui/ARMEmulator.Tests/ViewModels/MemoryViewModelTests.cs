@@ -1,4 +1,5 @@
 using System.Collections.Immutable;
+using System.Reactive.Concurrency;
 using ARMEmulator.Models;
 using ARMEmulator.Services;
 using ARMEmulator.ViewModels;
@@ -176,6 +177,37 @@ public class MemoryViewModelTests : IDisposable
 		viewModel.UpdateMemoryWrite(new MemoryWrite(0x800C, 4));
 
 		viewModel.FormattedRows.Select(row => row.IsHighlighted).Should().Equal(true, false);
+	}
+
+	[Fact]
+	public void UpdateMemoryWrite_HighlightEndsAfter1500Milliseconds()
+	{
+		var clock = new HistoricalScheduler();
+		using var timed = new MemoryViewModel(apiClient, clock) { AutoScrollToWrites = false, MemoryData = [.. new byte[16]] };
+
+		timed.UpdateMemoryWrite(new MemoryWrite(0x4, 4));
+		clock.AdvanceBy(TimeSpan.FromMilliseconds(1499));
+		timed.FormattedRows[0].IsHighlighted.Should().BeTrue();
+
+		clock.AdvanceBy(TimeSpan.FromMilliseconds(1));
+		timed.FormattedRows[0].IsHighlighted.Should().BeFalse();
+		timed.LastWriteAddress.Should().BeNull();
+	}
+
+	[Fact]
+	public void UpdateMemoryWrite_ASecondWriteRestartsTheHighlightTimer()
+	{
+		var clock = new HistoricalScheduler();
+		using var timed = new MemoryViewModel(apiClient, clock) { AutoScrollToWrites = false, MemoryData = [.. new byte[16]] };
+
+		timed.UpdateMemoryWrite(new MemoryWrite(0x4, 4));
+		clock.AdvanceBy(TimeSpan.FromMilliseconds(1000));
+		timed.UpdateMemoryWrite(new MemoryWrite(0x8, 4));
+		clock.AdvanceBy(TimeSpan.FromMilliseconds(1000));
+
+		timed.LastWriteAddress.Should().Be(0x8u);
+		clock.AdvanceBy(TimeSpan.FromMilliseconds(500));
+		timed.LastWriteAddress.Should().BeNull();
 	}
 
 	[Fact]

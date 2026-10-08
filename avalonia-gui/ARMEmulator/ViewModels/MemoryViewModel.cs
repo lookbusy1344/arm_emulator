@@ -1,7 +1,9 @@
 using System.Collections.Immutable;
 using System.Reactive;
+using System.Reactive.Concurrency;
 using System.Reactive.Disposables;
 using System.Reactive.Disposables.Fluent;
+using System.Reactive.Linq;
 using ARMEmulator.Models;
 using ARMEmulator.Services;
 using ReactiveUI.Reactive;
@@ -14,11 +16,19 @@ namespace ARMEmulator.ViewModels;
 public sealed class MemoryViewModel : ReactiveObject, IDisposable
 {
 	private readonly IApiClient api;
-	private readonly CompositeDisposable disposables = [];
+	private static readonly TimeSpan WriteHighlightDuration = TimeSpan.FromSeconds(1.5);
 
-	public MemoryViewModel(IApiClient apiClient)
+	private readonly CompositeDisposable disposables = [];
+	private readonly SerialDisposable highlightTimer = new();
+	private readonly IScheduler? scheduler;
+
+	/// <summary>Creates the memory panel's view model.</summary>
+	/// <param name="apiClient">The backend client.</param>
+	/// <param name="scheduler">Times and delivers the end of the write highlight; null uses the clock and the UI thread.</param>
+	public MemoryViewModel(IApiClient apiClient, IScheduler? scheduler = null)
 	{
 		api = apiClient;
+		this.scheduler = scheduler;
 
 		NavigateToAddressCommand = ReactiveCommand.CreateFromTask(NavigateToAddressAsync);
 		JumpToPCCommand = ReactiveCommand.CreateFromTask(JumpToPCAsync);
@@ -116,6 +126,9 @@ public sealed class MemoryViewModel : ReactiveObject, IDisposable
 
 		LastWriteSize = Math.Max(write.Size, 1);
 		LastWriteAddress = write.Address;
+		highlightTimer.Disposable = Observable.Timer(WriteHighlightDuration, scheduler ?? DefaultScheduler.Instance)
+			.ObserveOn(scheduler ?? RxSchedulers.MainThreadScheduler)
+			.Subscribe(_ => LastWriteAddress = null);
 
 		if (AutoScrollToWrites && SessionId is not null) {
 			// Navigate to write address asynchronously
@@ -221,7 +234,11 @@ public sealed class MemoryViewModel : ReactiveObject, IDisposable
 			.ToImmutableList();
 	}
 
-	public void Dispose() => disposables.Dispose();
+	public void Dispose()
+	{
+		highlightTimer.Dispose();
+		disposables.Dispose();
+	}
 }
 
 public sealed record MemoryRow(
