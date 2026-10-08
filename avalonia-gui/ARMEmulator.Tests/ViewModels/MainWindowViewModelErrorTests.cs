@@ -198,6 +198,30 @@ public sealed class MainWindowViewModelErrorTests : IDisposable
 	// Breakpoint toggling by address (disassembly marker column)
 
 	[Fact]
+	public void ToggleBreakpointAtCaret_UsesTheEditorCaretLine()
+	{
+		using var vm = CreateViewModel();
+		vm.LineToAddress = ImmutableDictionary<int, uint>.Empty.Add(3, 0x8000).Add(5, 0x8004);
+		vm.CaretLine = 5;
+
+		Execute(vm.ToggleBreakpointAtCaretCommand);
+
+		_ = api.Received(1).AddBreakpointAsync(SessionId, 0x8004, Arg.Any<CancellationToken>());
+		vm.Breakpoints.Should().BeEquivalentTo([0x8004u]);
+	}
+
+	[Fact]
+	public void ToggleBreakpointAtCaret_OnLineWithoutInstruction_ReportsLine()
+	{
+		using var vm = CreateViewModel();
+		vm.CaretLine = 7;
+
+		Execute(vm.ToggleBreakpointAtCaretCommand);
+
+		vm.ErrorMessage.Should().Be("Line 7 has no instruction for a breakpoint");
+	}
+
+	[Fact]
 	public void ToggleBreakpointAtAddress_WithoutBreakpoint_AddsIt()
 	{
 		using var vm = CreateViewModel();

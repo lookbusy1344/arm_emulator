@@ -47,7 +47,8 @@ public sealed class ShortcutBindingTests
 				[ShortcutId.StepOver] = vm.StepOverCommand,
 				[ShortcutId.StepOut] = vm.StepOutCommand,
 				[ShortcutId.Reset] = vm.ResetCommand,
-				[ShortcutId.ShowPc] = vm.ShowPcCommand
+				[ShortcutId.ShowPc] = vm.ShowPcCommand,
+				[ShortcutId.ToggleBreakpoint] = vm.ToggleBreakpointAtCaretCommand
 			};
 
 			foreach (var table in Shortcuts.For(IsMacOS)) {
@@ -93,10 +94,11 @@ public sealed class ShortcutBindingTests
 			var debug = ui.Find<Menu>("MenuBar").Items.OfType<MenuItem>().Single(item => (string?)item.Header == "_Debug");
 
 			debug.Items.OfType<MenuItem>().Select(item => (string?)item.Header).Should().Equal(
-				"_Load Program", "_Run", "_Pause", "_Step", "Step _Over", "Step Ou_t", "R_eset", "Show _PC");
+				"_Load Program", "_Run", "_Pause", "_Step", "Step _Over", "Step Ou_t", "R_eset", "Show _PC", "Toggle _Breakpoint");
 			debug.Items.OfType<MenuItem>().Select(item => item.Command).Should().Equal(
 				ui.ViewModel.LoadProgramCommand, ui.ViewModel.RunCommand, ui.ViewModel.PauseCommand, ui.ViewModel.StepCommand,
-				ui.ViewModel.StepOverCommand, ui.ViewModel.StepOutCommand, ui.ViewModel.ResetCommand, ui.ViewModel.ShowPcCommand);
+				ui.ViewModel.StepOverCommand, ui.ViewModel.StepOutCommand, ui.ViewModel.ResetCommand, ui.ViewModel.ShowPcCommand,
+				ui.ViewModel.ToggleBreakpointAtCaretCommand);
 		});
 
 	[Fact]
@@ -117,6 +119,7 @@ public sealed class ShortcutBindingTests
 			var debug = menu.Items.OfType<NativeMenuItem>().Single(item => item.Header == "Debug").Menu!;
 			debug.Items.OfType<NativeMenuItem>().Select(item => item.Command).Should().Equal(
 				ui.ViewModel.LoadProgramCommand, ui.ViewModel.RunCommand, ui.ViewModel.PauseCommand, ui.ViewModel.StepCommand,
-				ui.ViewModel.StepOverCommand, ui.ViewModel.StepOutCommand, ui.ViewModel.ResetCommand, ui.ViewModel.ShowPcCommand);
+				ui.ViewModel.StepOverCommand, ui.ViewModel.StepOutCommand, ui.ViewModel.ResetCommand, ui.ViewModel.ShowPcCommand,
+				ui.ViewModel.ToggleBreakpointAtCaretCommand);
 		});
 }

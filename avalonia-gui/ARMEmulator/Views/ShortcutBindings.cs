@@ -25,6 +25,7 @@ public static class ShortcutBindings
 		ShortcutId.StepOut => viewModel.StepOutCommand,
 		ShortcutId.Reset => viewModel.ResetCommand,
 		ShortcutId.ShowPc => viewModel.ShowPcCommand,
+		ShortcutId.ToggleBreakpoint => viewModel.ToggleBreakpointAtCaretCommand,
 		_ => throw new ArgumentOutOfRangeException(nameof(id), id, "No command for this shortcut.")
 	};
 

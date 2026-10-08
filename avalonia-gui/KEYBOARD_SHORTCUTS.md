@@ -29,16 +29,12 @@ Comprehensive keyboard shortcuts for the ARM Emulator Avalonia GUI.
 | Action | Windows/Linux | macOS | Description |
 |--------|---------------|-------|-------------|
 | **Show PC** | `Ctrl+J` | `Cmd+J` | Scroll editor to current PC |
-| **Toggle Breakpoint** | `F9` | `F9` | Toggle breakpoint on current line |
+| **Toggle Breakpoint** | `F9` | `F9` | Toggle breakpoint on the editor caret line, from any panel |
 
 ## Editor
 
 | Action | Windows/Linux | macOS | Description |
 |--------|---------------|-------|-------------|
-| **Find** | `Ctrl+F` | `Cmd+F` | Open find dialog (AvaloniaEdit) |
-| **Find Next** | `F3` | `F3` | Find next occurrence |
-| **Replace** | `Ctrl+H` | `Cmd+H` | Open find/replace dialog |
-| **Go to Line** | `Ctrl+G` | `Cmd+G` | Go to line number |
 | **Select All** | `Ctrl+A` | `Cmd+A` | Select all text |
 | **Undo** | `Ctrl+Z` | `Cmd+Z` | Undo last edit |
 | **Redo** | `Ctrl+Y` or `Ctrl+Shift+Z` | `Cmd+Shift+Z` | Redo last undone edit |
@@ -61,10 +57,7 @@ Comprehensive keyboard shortcuts for the ARM Emulator Avalonia GUI.
 
 ## Accessibility
 
-All keyboard shortcuts are designed to work with:
-- Screen readers
-- High contrast themes
-- Keyboard-only navigation
+Window shortcuts work from any panel. Editor shortcuts need editor focus.
 
 ## Customization
 
@@ -90,7 +83,6 @@ Keyboard shortcuts are defined in the application and cannot currently be custom
 
 ## Tips
 
-- **Editor Focus**: Many shortcuts require the editor to have keyboard focus
 - **Modal Dialogs**: Shortcuts are disabled when modal dialogs (Preferences, About) are open
 - **Execution State**: Some shortcuts are only enabled in specific VM states:
   - **Run/Continue**: Only when idle or at breakpoint

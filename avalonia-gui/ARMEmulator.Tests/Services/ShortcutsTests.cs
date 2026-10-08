@@ -12,10 +12,17 @@ public sealed class ShortcutsTests
 		Shortcuts.For(isMacOS).Where(binding => binding.Id == id).Select(binding => binding.Gesture);
 
 	[Fact]
-	public void For_HasSixteenBindings_OnEachPlatform()
+	public void For_HasSeventeenBindings_OnEachPlatform()
 	{
-		Shortcuts.For(isMacOS: false).Should().HaveCount(16);
-		Shortcuts.For(isMacOS: true).Should().HaveCount(16);
+		Shortcuts.For(isMacOS: false).Should().HaveCount(17);
+		Shortcuts.For(isMacOS: true).Should().HaveCount(17);
+	}
+
+	[Fact]
+	public void For_BindsF9ToToggleBreakpointOnEveryPlatform()
+	{
+		GesturesOf(ShortcutId.ToggleBreakpoint, isMacOS: false).Should().Equal(Gesture(Key.F9));
+		GesturesOf(ShortcutId.ToggleBreakpoint, isMacOS: true).Should().Equal(Gesture(Key.F9));
 	}
 
 	[Fact]

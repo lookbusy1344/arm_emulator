@@ -305,6 +305,8 @@ Use `Avalonia.Headless` through `HeadlessUnitTestSession` (`ARMEmulator.Tests/Ui
 
 ### 5.1 Parity check against the Swift GUI
 
+Status 2026-10-08: Shortcuts checked. Every Swift binding exists (F5, F9, F10, F11, ⌘O/S/⇧S/⇧E/L/R/./T/J). F9 worked only with editor focus; it is now a window binding that toggles on the caret line (`MainWindowViewModel.CaretLine`) and has a Debug menu entry. `KEYBOARD_SHORTCUTS.md` listed Find, Replace and Go to Line, which the editor does not provide; removed. Other rows are open.
+
 Check each item against the Swift GUI and record the result in this file:
 
 | Area | Items |

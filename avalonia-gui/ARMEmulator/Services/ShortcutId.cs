@@ -15,5 +15,6 @@ public enum ShortcutId
 	StepOver,
 	StepOut,
 	Reset,
-	ShowPc
+	ShowPc,
+	ToggleBreakpoint
 }

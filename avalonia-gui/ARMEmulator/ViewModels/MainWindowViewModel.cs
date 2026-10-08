@@ -62,6 +62,7 @@ public partial class MainWindowViewModel : ReactiveObject, IDisposable
 		SendInputCommand = CreateCommand("Send input", SendInputAsync, this.WhenAnyValue(x => x.InputText).Select(s => !string.IsNullOrWhiteSpace(s)));
 		ToggleBreakpointCommand = ReportFailures("Toggle breakpoint", ReactiveCommand.CreateFromTask<int>(ToggleBreakpointAtLineAsync, outputScheduler: RxSchedulers.MainThreadScheduler));
 		ToggleBreakpointAtAddressCommand = ReportFailures("Toggle breakpoint", ReactiveCommand.CreateFromTask<uint>(ToggleBreakpointAtAddressAsync, outputScheduler: RxSchedulers.MainThreadScheduler));
+		ToggleBreakpointAtCaretCommand = CreateCommand("Toggle breakpoint", ct => ToggleBreakpointAtLineAsync(CaretLine, ct));
 		RestartBackendCommand = CreateCommand("Restart backend", RestartBackendAsync);
 		RemoveBreakpointCommand = ReportFailures("Remove breakpoint", ReactiveCommand.CreateFromTask<uint>((address, ct) => RemoveBreakpointAsync(address, ct), outputScheduler: RxSchedulers.MainThreadScheduler));
 		RemoveWatchpointCommand = ReportFailures("Remove watchpoint", ReactiveCommand.CreateFromTask<int>((id, ct) => RemoveWatchpointAsync(id, ct), outputScheduler: RxSchedulers.MainThreadScheduler));
@@ -351,6 +352,12 @@ public partial class MainWindowViewModel : ReactiveObject, IDisposable
 
 	/// <summary>Toggles a breakpoint at the instruction on the given 1-based source line.</summary>
 	public ReactiveCommand<int, Unit> ToggleBreakpointCommand { get; }
+
+	/// <summary>Toggles a breakpoint on the editor's caret line.</summary>
+	public ReactiveCommand<Unit, Unit> ToggleBreakpointAtCaretCommand { get; }
+
+	/// <summary>The editor's caret line, 1-based. Set by the editor view.</summary>
+	public int CaretLine { get; set; } = 1;
 
 	/// <summary>Clears <see cref="ErrorMessage"/>.</summary>
 	public ReactiveCommand<Unit, Unit> DismissErrorCommand { get; }

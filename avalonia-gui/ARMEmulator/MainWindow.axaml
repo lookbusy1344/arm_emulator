@@ -44,6 +44,7 @@
                 <MenuItem Header="Step Ou_t" Command="{Binding StepOutCommand}" Tag="StepOut" />
                 <MenuItem Header="R_eset" Command="{Binding ResetCommand}" Tag="Reset" />
                 <MenuItem Header="Show _PC" Command="{Binding ShowPcCommand}" Tag="ShowPc" />
+                <MenuItem Header="Toggle _Breakpoint" Command="{Binding ToggleBreakpointAtCaretCommand}" Tag="ToggleBreakpoint" />
             </MenuItem>
         </Menu>
 

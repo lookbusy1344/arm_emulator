@@ -81,15 +81,14 @@ public partial class EditorView : ReactiveUserControl<MainWindowViewModel>
 				.Subscribe(ScrollToLineIfHidden)
 				.DisposeWith(disposables));
 
-			// F9 toggles a breakpoint on the caret line
-			_ = Observable.FromEventPattern<KeyEventArgs>(
-					handler => TextEditor.KeyDown += handler,
-					handler => TextEditor.KeyDown -= handler)
-				.Select(args => args.EventArgs)
-				.Where(args => args.Key == Key.F9)
-				.Subscribe(args => {
-					args.Handled = true;
-					((ICommand?)ViewModel?.ToggleBreakpointCommand)?.Execute(TextEditor.TextArea.Caret.Line);
+			// The window-level F9 binding toggles a breakpoint on the caret line
+			_ = Observable.FromEventPattern(
+					handler => TextEditor.TextArea.Caret.PositionChanged += handler,
+					handler => TextEditor.TextArea.Caret.PositionChanged -= handler)
+				.Subscribe(_ => {
+					if (ViewModel is not null) {
+						ViewModel.CaretLine = TextEditor.TextArea.Caret.Line;
+					}
 				})
 				.DisposeWith(disposables);
 

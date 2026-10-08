@@ -29,7 +29,8 @@ public static class NativeMenus
 			Item("Step Over", viewModel, ShortcutId.StepOver),
 			Item("Step Out", viewModel, ShortcutId.StepOut),
 			Item("Reset", viewModel, ShortcutId.Reset),
-			Item("Show PC", viewModel, ShortcutId.ShowPc)
+			Item("Show PC", viewModel, ShortcutId.ShowPc),
+			Item("Toggle Breakpoint", viewModel, ShortcutId.ToggleBreakpoint)
 		])
 	];
 

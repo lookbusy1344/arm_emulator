@@ -30,7 +30,8 @@ public static class Shortcuts
 			Bind(ShortcutId.StepOver, Key.T, platform | KeyModifiers.Shift),
 			Bind(ShortcutId.StepOut, Key.T, platform | KeyModifiers.Alt),
 			Bind(ShortcutId.Reset, Key.R, platform | KeyModifiers.Shift),
-			Bind(ShortcutId.ShowPc, Key.J, platform)
+			Bind(ShortcutId.ShowPc, Key.J, platform),
+			Bind(ShortcutId.ToggleBreakpoint, Key.F9, KeyModifiers.None)
 		];
 	}
 
