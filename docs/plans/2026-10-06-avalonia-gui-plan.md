@@ -176,7 +176,7 @@ Every task checks light and dark themes, and 100 % and 200 % scaling.
 
 Status 2026-10-06: `Themes/Tokens.axaml` (colours per theme variant, spacing, type sizes, `DataFontFamily`), `Themes/Icons.axaml` (Fluent icons as `StreamGeometry`), `Themes/CustomStyles.axaml` (splitter, text roles, tool button, status pill) and the bundled JetBrains Mono (`Assets/Fonts`, notices in `THIRD_PARTY_NOTICES.md`) exist. `FluentTheme` uses `DensityStyle="Compact"`. `CodeStyle_LiteralColours` fails the build for a literal colour in any `.axaml` outside `Themes/`.
 
-Still open under this task: `BoolToColorConverter` and `RegisterHighlightConverter` build brushes from literals; both are unused and wait for approval to remove with their tests. Those static brushes also belong to whichever thread first uses them; resolve them from resources and the screenshot test can run in the full suite.
+The unused `BoolToColorConverter`, `BoolToFontWeightConverter` and `RegisterHighlightConverter`, which built brushes from literals, are removed with their tests. Static brushes no longer belong to whichever thread first uses them.
 
 - One resource dictionary (`Themes/`) holds the design tokens. Views use the tokens, never literal colours or sizes.
 - **Colours:** semantic names (window background, panel background, divider, secondary text, accent, changed-register highlight, memory-write highlight, breakpoint, PC marker, error), with `ThemeVariant` light and dark entries.
@@ -209,7 +209,7 @@ Status 2026-10-07: done. `WindowLayout` currently holds the selected panel; 3.3 
 
 ### 3.5 Registers and status (done)
 
-Status 2026-10-07: done. `RegisterTable` projects the state to rows and flags; the bundled JetBrains Mono is now embedded as an Avalonia resource (it had not been, so earlier data views fell back). `RegisterHighlightConverter`, `BoolToColorConverter` and `BoolToFontWeightConverter` are unused and kept with their tests until removal is approved.
+Status 2026-10-07: done. `RegisterTable` projects the state to rows and flags; the bundled JetBrains Mono is now embedded as an Avalonia resource (it had not been, so earlier data views fell back).
 
 - A compact monospace table: name, hex and decimal on one row per register.
 - A status strip below it with VM state and N, Z, C, V flags as small pills, as in Swift's `StatusView`.
