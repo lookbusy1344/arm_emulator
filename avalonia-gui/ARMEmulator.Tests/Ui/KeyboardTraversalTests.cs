@@ -1,7 +1,10 @@
+using ARMEmulator.Models;
+using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Headless;
 using Avalonia.Input;
 using Avalonia.Threading;
+using Avalonia.VisualTree;
 using AwesomeAssertions;
 
 namespace ARMEmulator.Tests.Ui;
@@ -68,5 +71,27 @@ public sealed class KeyboardTraversalTests
 			Press(ui, PhysicalKey.Tab);
 
 			editor.Text.Should().Be("\t");
+		});
+
+	[Theory]
+	[InlineData(InspectorPanel.Memory, typeof(Views.MemoryView))]
+	[InlineData(InspectorPanel.Stack, typeof(Views.StackView))]
+	[InlineData(InspectorPanel.Disassembly, typeof(Views.DisassemblyView))]
+	[InlineData(InspectorPanel.Evaluator, typeof(Views.ExpressionEvaluatorView))]
+	[InlineData(InspectorPanel.Watchpoints, typeof(Views.WatchpointsView))]
+	[InlineData(InspectorPanel.Breakpoints, typeof(Views.BreakpointsListView))]
+	public Task Tab_FromTheInspectorSelector_EntersThePanel(InspectorPanel panel, Type view) =>
+		UiTest.RunAsync(async ui => {
+			await ui.ViewModel.StartAsync(ui.Backend, TestContext.Current.CancellationToken);
+			ui.ViewModel.Breakpoints = [0x8000];
+			ui.ViewModel.SelectedInspectorPanel = panel;
+			Settle(ui);
+			ui.Find<ComboBox>("InspectorSelector").Focus();
+
+			Press(ui, PhysicalKey.Tab);
+
+			var focused = ui.Window.FocusManager?.GetFocusedElement() as Visual;
+			focused.Should().NotBeNull();
+			focused!.GetSelfAndVisualAncestors().Should().Contain(ancestor => ancestor.GetType() == view);
 		});
 }
