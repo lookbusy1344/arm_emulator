@@ -15,6 +15,7 @@ public enum BackendPlatform
 public static class BackendLocator
 {
 	private const string BundleMarker = ".app/Contents/";
+	private static readonly int BundleContentsLength = BundleMarker.Length - 1;
 	private const string UnixBinaryName = "arm-emulator";
 	private const string WindowsBinaryName = "arm-emulator.exe";
 
@@ -56,10 +57,11 @@ public static class BackendLocator
 
 	private static IEnumerable<string> BundleResources(string appDir)
 	{
-		var markerIndex = appDir.IndexOf(BundleMarker, StringComparison.Ordinal);
+		var normalized = appDir.Replace('\\', '/');
+		var markerIndex = normalized.IndexOf(BundleMarker, StringComparison.Ordinal);
 		return markerIndex < 0
 			? []
-			: [Path.Combine(appDir[..markerIndex] + ".app/Contents", "Resources", UnixBinaryName)];
+			: [Path.Combine(appDir[..(markerIndex + BundleContentsLength)], "Resources", UnixBinaryName)];
 	}
 
 	private static IEnumerable<string> NextToApp(string appDir, string? parentDir, string name) =>

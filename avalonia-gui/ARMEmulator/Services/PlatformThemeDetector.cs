@@ -23,11 +23,12 @@ public sealed class PlatformThemeDetector : IPlatformThemeDetector, IDisposable
 		themeSubject = new BehaviorSubject<PlatformTheme>(initialTheme);
 
 		// Subscribe to Avalonia's actual theme changed event if available
-		if (Application.Current is not null) {
+		var app = Application.Current;
+		if (app is not null) {
 			themeChangeSubscription = Observable
 				.FromEventPattern(
-					h => Application.Current.ActualThemeVariantChanged += h,
-					h => Application.Current.ActualThemeVariantChanged -= h)
+					h => app.ActualThemeVariantChanged += h,
+					h => app.ActualThemeVariantChanged -= h)
 				.Select(_ => DetectSystemTheme())
 				.Subscribe(theme => themeSubject.OnNext(theme));
 		}
