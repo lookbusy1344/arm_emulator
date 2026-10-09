@@ -40,6 +40,15 @@ public sealed class NativeMenusTests : IDisposable
 	private static string?[] Headers(NativeMenuItem submenu) =>
 		[.. submenu.Menu!.Items.OfType<NativeMenuItem>().Where(item => item is not NativeMenuItemSeparator).Select(item => item.Header)];
 
+	private const string Separator = "---";
+
+	/// <summary>The headers of a menu in order, with <see cref="Separator"/> for each separator.</summary>
+	private static string?[] Layout(NativeMenu menu) =>
+		[.. menu.Items.Select(item => item is NativeMenuItemSeparator ? Separator : ((NativeMenuItem)item).Header)];
+
+	private static NativeMenuItem[] CommandItems(NativeMenu menu) =>
+		[.. menu.Items.OfType<NativeMenuItem>().Where(item => item is not NativeMenuItemSeparator)];
+
 	private static ICommand? CommandOf(NativeMenuItem submenu, string header) =>
 		submenu.Menu!.Items.OfType<NativeMenuItem>().Single(item => item.Header == header).Command;
 
@@ -79,15 +88,35 @@ public sealed class NativeMenusTests : IDisposable
 		});
 
 	[Fact]
-	public Task ApplicationMenu_OffersAboutAndPreferences() =>
+	public Task ApplicationMenu_SeparatesPreferencesFromAboutWithoutCommandsUntilBound() =>
+		UiTest.RunOnUiThread(() => {
+			var menu = new ApplicationMenu().Menu;
+
+			Layout(menu).Should().Equal("About ARM Emulator", Separator, "Preferences…");
+			CommandItems(menu).Select(item => item.Command).Should().AllSatisfy(command => command.Should().BeNull());
+		});
+
+	[Fact]
+	public Task ApplicationMenu_BindRunsTheViewModelCommands() =>
 		UiTest.RunOnUiThread(() => {
 			using var viewModel = CreateViewModel();
+			var menu = new ApplicationMenu();
 
-			var items = NativeMenus.CreateApplicationMenu(viewModel).Items.OfType<NativeMenuItem>().ToArray();
+			menu.Bind(viewModel);
 
-			items.Select(item => item.Header).Should().Equal("About ARM Emulator", "Preferences…");
-			items.Select(item => item.Command).Should().Equal(viewModel.ShowAboutCommand, viewModel.ShowPreferencesCommand);
+			CommandItems(menu.Menu).Select(item => item.Command)
+				.Should().Equal(viewModel.ShowAboutCommand, viewModel.ShowPreferencesCommand);
 		});
+
+	/// <summary>
+	/// Avalonia.Native exports the application menu once, after Initialize and before OnFrameworkInitializationCompleted.
+	/// A menu set later never reaches the macOS menu bar.
+	/// </summary>
+	[Fact]
+	public Task Application_HasTheApplicationMenuAfterInitialize() =>
+		UiTest.RunOnUiThread(() =>
+			Layout(NativeMenu.GetMenu(Avalonia.Application.Current!)!)
+				.Should().StartWith(["About ARM Emulator", Separator, "Preferences…"]));
 
 	[Fact]
 	public Task RecentFilesMenu_ListsEachRecentFileAndOpensItsPath() =>

@@ -12,9 +12,12 @@ namespace ARMEmulator;
 
 public partial class App : Application
 {
+	private readonly ApplicationMenu applicationMenu = new();
+
 	public override void Initialize()
 	{
 		AvaloniaXamlLoader.Load(this);
+		NativeMenu.SetMenu(this, applicationMenu.Menu);
 	}
 
 	public override void OnFrameworkInitializationCompleted()
@@ -30,7 +33,7 @@ public partial class App : Application
 	/// Builds the services and main view model, shows the window, then starts the backend and session in the background.
 	/// Everything built here is disposed when the application exits.
 	/// </summary>
-	private static void ComposeMainWindow(IClassicDesktopStyleApplicationLifetime desktop, JsonSettingsStore settingsStore)
+	private void ComposeMainWindow(IClassicDesktopStyleApplicationLifetime desktop, JsonSettingsStore settingsStore)
 	{
 		var loaded = settingsStore.Load();
 		var settings = loaded.Settings;
@@ -51,9 +54,7 @@ public partial class App : Application
 			.Subscribe(current => themeService.ApplyTheme(current.Theme));
 
 		desktop.MainWindow = new MainWindow(viewModel);
-		if (OperatingSystem.IsMacOS()) {
-			NativeMenu.SetMenu(Current!, NativeMenus.CreateApplicationMenu(viewModel));
-		}
+		applicationMenu.Bind(viewModel);
 		desktop.Exit += (_, _) => {
 			themeService.Dispose();
 			fileService.Dispose();

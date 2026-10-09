@@ -12,7 +12,7 @@ public static class NativeMenus
 {
 	/// <summary>
 	/// The File and Debug menus of the main window. They offer the in-window commands, except Preferences and About,
-	/// which macOS shows in the application menu.
+	/// which macOS shows in the application menu (<see cref="ApplicationMenu"/>).
 	/// </summary>
 	public static NativeMenu CreateWindowMenu(MainWindowViewModel viewModel) => [
 		Submenu("File", [
@@ -37,12 +37,6 @@ public static class NativeMenus
 			Item("Show PC", viewModel, ShortcutId.ShowPc),
 			Item("Toggle Breakpoint", viewModel, ShortcutId.ToggleBreakpoint)
 		])
-	];
-
-	/// <summary>The items macOS shows in the application menu, above Quit.</summary>
-	public static NativeMenu CreateApplicationMenu(MainWindowViewModel viewModel) => [
-		new NativeMenuItem("About ARM Emulator") { Command = viewModel.ShowAboutCommand },
-		Item("Preferences…", viewModel, ShortcutId.Preferences)
 	];
 
 	/// <summary>Lists the recent files. Reopens the list from the file service each time the menu opens.</summary>
