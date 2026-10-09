@@ -203,6 +203,25 @@ public sealed class WebSocketClientFramingTests
 		states.Should().Equal(false, true, false);
 	}
 
+	/// <summary>
+	/// Disconnecting before the thread pool starts the receive loop must not surface the loop's cancellation.
+	/// The loop starts on another thread, so one cycle hits that window only sometimes; many cycles hit it reliably.
+	/// </summary>
+	[Fact]
+	public async Task DisconnectAsync_RightAfterConnect_Completes()
+	{
+		const int Cycles = 500;
+		for (var cycle = 0; cycle < Cycles; ++cycle) {
+			using var socket = new ScriptedWebSocket([]);
+			using var client = new WebSocketClient(Url, new SingleSocketFactory(socket), CloseTimeout);
+			await client.ConnectAsync("s1", TestContext.Current.CancellationToken);
+
+			await client.DisconnectAsync().WaitAsync(Guard, TestContext.Current.CancellationToken);
+
+			socket.WasDisposed.Should().BeTrue();
+		}
+	}
+
 	[Fact]
 	public async Task ConnectAsync_SendsTheSubscriptionAsJsonWithTheSessionIdEscaped()
 	{

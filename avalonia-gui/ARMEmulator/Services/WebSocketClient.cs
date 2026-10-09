@@ -66,7 +66,8 @@ public sealed class WebSocketClient : IWebSocketClient
 
 			receiveCts = CancellationTokenSource.CreateLinkedTokenSource(disposeCts.Token);
 			var receiveToken = receiveCts.Token;
-			receiveTask = Task.Run(() => ReceiveLoopAsync(socket, receiveToken), receiveToken);
+			// The loop observes the token; passing it to Task.Run too would cancel a loop that has not started yet
+			receiveTask = Task.Run(() => ReceiveLoopAsync(socket, receiveToken), CancellationToken.None);
 		}
 		catch (OperationCanceledException) {
 			connectionStateSubject.OnNext(false);
