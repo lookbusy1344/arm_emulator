@@ -7,6 +7,42 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- Swift and Avalonia GUI builds report the release version. Release builds take it from the git tag; local builds use the version in `swift-gui/project.yml` and `ARMEmulator.csproj`.
+
+## [3.0.0] - 2026-10-09
+
+### Added
+- Avalonia GUI for Windows, macOS and Linux, matching the Swift GUI feature for feature. Release archives for Linux x64, macOS arm64 and Windows x64/arm64 bundle the backend.
+- Both GUIs assemble the editor source on demand before Run, Step, Step Over, Step Out, Reset and breakpoint toggles. Debug > Assemble (Cmd+L / Ctrl+L) assembles on request.
+- API: a run that stops on a runtime fault sends an `error` execution event with the fault message.
+- Debugger: step out.
+- Assembler: `MRS` and `MSR`; `LDR Rd, =-value`; PC-relative `LDR Rd, label`; expressions in `.equ` and `.set`.
+
+### Changed
+- The toolbar Load button is removed from both GUIs.
+- Go 1.27.1, Swift 6.4, Avalonia 12 and xunit v3.
+
+### Removed
+- Wails GUI and its `arm-emulator-wails-*` release artifacts. The Avalonia GUI replaces it.
+
+### Fixed
+- CPU: ADC, SBC and RSC carry and overflow; ROR and zero-amount shift carries; PC reads as +12 with register shifts and in `STR R15`; `S` writes to PC restore CPSR; `MSR` field mask and SPSR select; `LDRSB` and `LDRSH` execute; `LDM` with write-back keeps the loaded base; long multiplies encode and decode signedness.
+- Assembler and loader: `LDRH`/`STRH` encodings, negative load/store offsets, `LSR #32`/`ASR #32`/`RRX`, `STMFA`/`LDMFA`/`STMEA`/`LDMEA` modes, `.half` data, `.byte` range checks, `LDR=` literals placed in their `.ltorg` pools, validation of `.space`, `.align`, `.balign`, `MUL` and `MLA`.
+- File syscalls: `READ` returns 0 at end of file, `SEEK` takes a signed offset and leaves the position unchanged on failure, a full descriptor table closes the host file, standard descriptors survive Reset.
+- Debugger and service: resume past the breakpoint that stopped execution, step over recursive calls, enter the error state when a stepped instruction faults, serialise VM access between execution and API calls, clear watchpoints on Reset and symbols on a failed load.
+- API: execution and state events survive event queue overflow and slow clients.
+
+### Security
+- API rejects cross-origin requests and non-loopback `Host` headers, which blocks remote pages and DNS rebinding.
+- Guest file access goes through `os.Root`. A guest `CLOSE` cannot close the host's standard streams.
+
+## [1.0.1] – [2.1.1]
+
+Not recorded here. See the [GitHub releases](https://github.com/lookbusy1344/arm_emulator/releases).
+
+## Development Notes, October–November 2025
+
 ### November 2025 Updates
 
 #### 2025-11-11: Filesystem Sandboxing Implementation - CRITICAL SECURITY IMPROVEMENT

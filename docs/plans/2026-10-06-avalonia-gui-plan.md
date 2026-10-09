@@ -18,38 +18,26 @@ The Avalonia GUI is ready for use when a user on Windows, macOS or Linux can:
 
 ## Current state
 
-Verified against the code and a live backend on 2026-10-06 (commits `d03413e8`, `9e120b84`).
+Verified against the code on 2026-10-09 at v3.0.0. Every gap recorded on 2026-10-06 is closed:
 
-### Working
+| Gap on 2026-10-06 | Resolution |
+|-----|-------|
+| `ErrorMessage` bound in no view | Error bar in `MainWindow.axaml` with icons |
+| Execution commands did not catch API errors | Commands report failures to the error bar |
+| Reset called `/reset`, which unloads the program | Reset calls `/restart` |
+| Show PC was a stub | Show PC scrolls the editor to the PC line |
+| No F9 toggle; no toggle in the disassembly view | F9 is a window binding; the disassembly view toggles by address |
+| No backend status display or restart action | Connection view with Retry; Restart Backend menu item |
+| Preferences not loaded or saved | `JsonSettingsStore` persists preferences and window state |
+| Recent files kept in memory only | Recent files persisted; missing entries pruned |
+| Command-line file argument ignored | `StartupArguments` opens the first `.s` argument |
+| Breakpoint and watchpoint views swallowed errors | List actions are commands that report errors |
+| WebSocket read one frame of up to 8 KB | Receive loop reassembles multi-frame messages |
+| macOS menu read "Avalonia Application" | Application menu set to "ARM Emulator" before export |
+| No file name in the title; no unsaved-changes prompt | Title shows the file and dirty state; prompt before discarding |
+| Three integration tests had wrong fixtures | Fixed; CI runs them on three platforms against a started backend |
 
-- **Startup.** `App` builds the services and the main view model. `BackendManager` reuses a healthy backend on the configured port or starts the bundled binary with `-api-server -port N`. The view model creates a session and connects the WebSocket.
-- **REST and WebSocket clients.** Both match the Go backend's wire format. The fixtures in `ApiClientTests` and `WebSocketClientTests` are JSON captured from the backend.
-- **Program loading.** Loading assembles the source, builds the address↔line maps from `/sourcemap`, loads registers and sets the state to `Idle`. Assembler errors arrive as `ProgramLoadException` with one message per error.
-- **Execution.** Run, pause, step, step over and step out call the API. Status, registers and output arrive over the WebSocket.
-- **Inspector panels.** Registers (with change highlighting), memory, stack, disassembly, expression evaluator, watchpoints and breakpoints. Memory, stack and disassembly receive session, register, breakpoint and memory-write updates. Stack and disassembly reload when the registers change while the VM is stopped.
-- **Editor.** AvaloniaEdit with ARM syntax highlighting, a gutter showing breakpoints and the current PC, and breakpoint toggling by gutter click. The editor is read-only while the program runs.
-- **Dialogs.** File open and save, examples browser, preferences and about.
-- **Tests.** 426 pass and 9 integration tests are skipped. The CodeStyle_* guards cover empty-braces patterns, nested conditionals, postfix increments, mutable constant tables, file length, method length and struct size.
-- **CI and release.** CI builds and tests on Ubuntu. The release workflow builds for Linux, macOS arm64 and Windows.
-
-### Not working or missing
-
-| Gap | Where | Effect |
-|-----|-------|--------|
-| `MainWindowViewModel.ErrorMessage` is bound in no view | `MainWindow.axaml` | Startup, load and execution errors are invisible |
-| Execution commands do not catch API errors; no `ThrownExceptions` handler | `MainWindowViewModel` | A backend error during run, step or reset can terminate the app |
-| Reset calls `/reset`, which unloads the program | `MainWindowViewModel.ResetAsync` | Stepping after reset fails with "no program loaded". Swift calls `/restart` |
-| Show PC is a stub; the editor does not follow the PC | `MainWindowViewModel.ShowPcAsync` | The user loses the current line while stepping |
-| No F9 breakpoint toggle; no breakpoint toggle in the disassembly view | Key bindings, `DisassemblyView` | Parity gap with Swift |
-| No backend status display or restart action | Main window | A failed backend start leaves an empty window |
-| Preferences are not loaded or saved | `ShowPreferencesAsync` | Settings reset on every start; font size is fixed at 14 |
-| Recent files are kept in memory only | `FileService` | The list is empty on every start |
-| Command-line file argument is ignored | `Program`, `App` | `ARMEmulator prog.s` opens an empty editor |
-| Breakpoint and watchpoint list views swallow errors (six `TODO`s) | `BreakpointsListView`, `WatchpointsView` code-behind | Failed add or remove gives no feedback |
-| WebSocket receive reads one frame of up to 8 KB | `WebSocketClient.ReceiveLoopAsync` | Long output arrives split or corrupt across a UTF-8 boundary |
-| macOS application menu reads "Avalonia Application" | `App.axaml` | Wrong app name in the menu bar |
-| No window title with the file name; no unsaved-changes prompt | `MainWindow` | Edits can be lost on close or load |
-| Three integration tests have wrong fixtures | `BackendIntegrationTests` | Suite cannot run unskipped |
+The v3.0.0 release run built and published the Avalonia artifacts for Linux, macOS arm64 and Windows (amd64, arm64). The open items are the remaining backend items below.
 
 ## Constraints
 
@@ -328,7 +316,7 @@ Checked 2026-10-08 against the Swift source. Every row matches or has a recorded
 
 ## Phase 6: Release
 
-Status 2026-10-08: backend discovery moved into `BackendLocator` with tests for the macOS bundle, Windows and Linux layouts that `build-release.yml` packages. `avalonia-gui/README.md` is current. The release workflow's artefacts are unverified until a tagged run. Stale documents removed: the old implementation plan, the phase 10–12 summaries and the gutter notes; references point here. `CONFIGURATION.md` and `TESTING_GUIDE.md` describe persistence and theme switching as they work.
+Status 2026-10-09: the v3.0.0 release run published every artifact; `docs/GUI.md` describes both GUIs. Status 2026-10-08: backend discovery moved into `BackendLocator` with tests for the macOS bundle, Windows and Linux layouts that `build-release.yml` packages. `avalonia-gui/README.md` is current. The release workflow's artefacts are unverified until a tagged run. Stale documents removed: the old implementation plan, the phase 10–12 summaries and the gutter notes; references point here. `CONFIGURATION.md` and `TESTING_GUIDE.md` describe persistence and theme switching as they work.
 
 - Verify the release workflow artefacts on each platform: the app starts the bundled backend, loads an example and runs it.
 - macOS: bundle name, icon, signing status documented; backend in `Contents/Resources`.
@@ -355,6 +343,5 @@ These are backend behaviours the GUI works around today. Each needs a Go change 
 
 ## Open decisions
 
-- Integration fixture fixes (4.2).
 - Whether backend items are fixed in Go or stay as GUI workarounds.
 - Settings file location on macOS: `~/Library/Application Support` (via `ApplicationData`) or a shared location with the Swift GUI's `UserDefaults`. Sharing is not practical; separate files are assumed.

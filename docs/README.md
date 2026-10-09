@@ -10,6 +10,15 @@ Start here if you're new to the emulator:
 - **[Tutorial](TUTORIAL.md)** - Learn ARM2 assembly programming from scratch with hands-on examples
 - **[FAQ](FAQ.md)** - Common questions, troubleshooting tips, and platform-specific issues
 
+## GUI Apps
+
+Two desktop apps drive the emulator through its HTTP API:
+
+- **[GUI Overview](GUI.md)** - What each app offers and which to choose
+- **[Swift App](SWIFT_APP.md)** - Native macOS app (SwiftUI)
+- **[Avalonia App](../avalonia-gui/README.md)** - Cross-platform app for Windows, macOS and Linux (.NET, Avalonia)
+- **[Avalonia Keyboard Shortcuts](../avalonia-gui/KEYBOARD_SHORTCUTS.md)** - Shortcut reference for both platforms
+
 ## Reference Documentation
 
 Complete reference materials for programming:
@@ -30,7 +39,7 @@ Tools and guides for debugging ARM2 programs:
 
 For developers extending or integrating the emulator:
 
-- **[API Reference](API.md)** - Comprehensive API documentation for all packages (VM, Parser, Debugger, Encoder, Tools, Config)
+- **[HTTP API Reference](HTTP_API.md)** - REST and WebSocket API used by both GUI apps
 - **[Architecture Overview](architecture.md)** - Internal architecture, project structure, package organization, and execution pipeline
 - **[Literal Pool Implementation](ltorg_implementation.md)** - Technical details of the .ltorg directive and dynamic literal pool management
 
@@ -50,8 +59,9 @@ Release notes, version history, and security:
 Development process and code review documentation:
 
 - **[Implementation Plan](IMPLEMENTATION_PLAN.md)** - Original project development plan and phases
-- **[Code Review](CODE_REVIEW.md)** - Detailed code review findings and recommendations
-- **[Review Summary](REVIEW_SUMMARY.md)** - Summary of code review results
+- **[Code Review, Dec 2025](2025-12-31-CODE_REVIEW.md)** - Code review findings and recommendations
+- **[Code Review, Jan 2026](2026-01-08-CODE_REVIEW_OPUS.md)** - Follow-up code review
+- **[Avalonia GUI Plan](plans/2026-10-06-avalonia-gui-plan.md)** - Avalonia development plan and Swift parity results
 
 ---
 
@@ -65,7 +75,8 @@ Development process and code review documentation:
 - **Debug a program** → Read [Debugging Tutorial](debugging_tutorial.md)
 - **Understand assembler syntax** → Review [Assembler Directives](ASSEMBLER.md)
 - **Install the emulator** → Follow [Installation Guide](installation.md)
-- **Extend the emulator** → Study [API Reference](API.md) and [Architecture Overview](architecture.md)
+- **Use a GUI** → See [GUI Overview](GUI.md)
+- **Extend the emulator** → Study [HTTP API Reference](HTTP_API.md) and [Architecture Overview](architecture.md)
 - **Report a security issue** → See [Security Policy](SECURITY.md)
 
 ## Documentation Standards

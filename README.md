@@ -38,7 +38,7 @@ https://en.wikichip.org/wiki/acorn/microarchitectures/arm1
 
 This is a AI-assisted coded project. Details of the initial prompt and development process followed in the first few weeks are documented in [ai-assisted.md](ai-assisted.md).
 
-As a rough guide to the size of the project, the Go code on 13 Jan 2026 is around **61,000 lines**. The Swift GUI code is around **6,100 lines**.
+As a rough guide to the size of the project, on 9 Oct 2026 (v3.0.0) the Go code is around **49,000 lines**, the Swift GUI around **12,700 lines** and the Avalonia GUI around **13,700 lines**. Each figure counts code lines including tests.
 
 ## Documentation
 
@@ -61,9 +61,11 @@ As a rough guide to the size of the project, the Go code on 13 Jan 2026 is aroun
 
 ### Developer Documentation
 - [docs/HTTP_API.md](docs/HTTP_API.md) - Complete HTTP REST API and WebSocket reference
-- [API_VERSION_SUMMARY.md](API_VERSION_SUMMARY.md) - Version endpoint implementation details
+- [docs/API_VERSION_SUMMARY.md](docs/API_VERSION_SUMMARY.md) - Version endpoint implementation details
 - [openapi.yaml](openapi.yaml) - OpenAPI 3.0 specification (machine-readable)
+- [docs/GUI.md](docs/GUI.md) - Overview of the two GUI apps
 - [docs/SWIFT_APP.md](docs/SWIFT_APP.md) - Swift native macOS app guide
+- [avalonia-gui/README.md](avalonia-gui/README.md) - Avalonia cross-platform app guide
 - [docs/architecture.md](docs/architecture.md) - System architecture and design
 - [docs/ltorg_implementation.md](docs/ltorg_implementation.md) - Literal pool implementation details
 
@@ -96,16 +98,26 @@ As a rough guide to the size of the project, the Go code on 13 Jan 2026 is aroun
 
 Pre-built binaries are available for download from the [Releases](https://github.com/lookbusy1344/arm_emulator/releases) page.
 
-**Available platforms:**
+**Command-line emulator and TUI debugger:**
 - **Linux (64-bit):** `arm-emulator-linux-amd64`
 - **macOS (Apple Silicon):** `arm-emulator-macos-arm64`
 - **Windows:** `arm-emulator-win-amd64.exe` (AMD64/x64) and `arm-emulator-win-arm64.exe` (ARM64)
 
+**GUI apps** (each archive contains the app and the `arm-emulator` backend it starts):
+- **Swift, macOS (Apple Silicon):** `arm-emulator-swift-gui.app.tar.gz`
+- **Avalonia, macOS (Apple Silicon):** `arm-emulator-avalonia-macos-arm64.app.tar.gz`
+- **Avalonia, Linux (64-bit):** `arm-emulator-avalonia-linux-amd64.tar.gz`
+- **Avalonia, Windows:** `arm-emulator-avalonia-win-amd64.zip` and `arm-emulator-avalonia-win-arm64.zip`
+
+`SHA256SUMS` lists the checksum of every file.
+
 **To install:**
 1. Visit the [Releases](https://github.com/lookbusy1344/arm_emulator/releases) page
-2. Download the binary for your platform
-3. On Linux/macOS, make it executable: `chmod +x arm-emulator-*`
-4. Optionally verify the download using the provided SHA256 checksums
+2. Download the file for your platform
+3. On Linux/macOS, make the command-line binary executable: `chmod +x arm-emulator-*`
+4. Optionally verify the download: `shasum -a 256 -c SHA256SUMS --ignore-missing`
+
+The macOS apps are ad-hoc signed, not notarised. On first launch, right-click the app and choose **Open**, or clear the quarantine flag with `xattr -dr com.apple.quarantine ARMEmulator.app`.
 
 **Security Note for Windows Users:**
 Some anti-virus software may flag the Windows binary due to heuristic detection of emulator behavior patterns (memory management, file I/O). This is a **false positive** - the software is safe. See [docs/SECURITY.md](docs/SECURITY.md) for a complete security audit. You may need to whitelist the application or build from source.
@@ -208,11 +220,27 @@ open ARMEmulator.xcodeproj
 
 .NET-based GUI for Windows, Linux, and macOS. Built with Avalonia UI and ReactiveUI using MVVM architecture.
 
+**Quick start:**
+```bash
+# Build the backend; the app finds it at the repository root
+make build
+
+cd avalonia-gui
+dotnet run --project ARMEmulator
+```
+
+**Features:**
+- Same feature set as the Swift app: editor with breakpoint gutter, registers, memory, stack, disassembly, watchpoints, expression evaluator and console
+- Starts the bundled backend, or reuses one already running on the configured port
+- Platform shortcuts (Ctrl on Windows/Linux, Cmd on macOS) and native macOS menus
+- Light and dark themes, persistent preferences and recent files
+
 **Requirements:** .NET SDK 10.0+
 
 **Documentation:**
 - [avalonia-gui/README.md](avalonia-gui/README.md) - Build, run and configuration
-- [docs/plans/2026-10-06-avalonia-gui-plan.md](docs/plans/2026-10-06-avalonia-gui-plan.md) - Status and remaining work
+- [avalonia-gui/KEYBOARD_SHORTCUTS.md](avalonia-gui/KEYBOARD_SHORTCUTS.md) - Keyboard shortcuts
+- [docs/plans/2026-10-06-avalonia-gui-plan.md](docs/plans/2026-10-06-avalonia-gui-plan.md) - Development plan and Swift parity results
 - [docs/HTTP_API.md](docs/HTTP_API.md) - REST API and WebSocket reference
 
 ### Symbol Table Dump
@@ -330,10 +358,10 @@ go build -ldflags="-s -w" -o arm-emulator  # ~30-40% smaller
 ```
 
 **Automated releases:**
-Push a git tag to trigger GitHub Actions building binaries for linux-amd64, macos-arm64, windows-amd64, windows-arm64:
+Push a git tag to trigger GitHub Actions. It builds the command-line binary for linux-amd64, macos-arm64, windows-amd64 and windows-arm64, the Swift app for macOS arm64, and the Avalonia app for the same four platforms. The tag sets the version of every artifact.
 ```bash
-git tag v1.0.0
-git push origin v1.0.0
+git tag v3.0.0
+git push origin v3.0.0
 ```
 
 Download pre-built binaries with SHA256 checksums from [Releases](https://github.com/lookbusy1344/arm_emulator/releases).

@@ -99,7 +99,7 @@ brew install xcodegen swiftlint swiftformat xcbeautify
 **System Requirements:**
 - macOS 13.0+ (Ventura or later)
 - Xcode Command Line Tools
-- Go 1.21+ (for API backend)
+- Go 1.27+ (for API backend)
 
 ## Getting Started
 
