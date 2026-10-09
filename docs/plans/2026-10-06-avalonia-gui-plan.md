@@ -316,7 +316,7 @@ Checked 2026-10-08 against the Swift source. Every row matches or has a recorded
 
 ## Phase 6: Release
 
-Status 2026-10-09: the v3.0.0 release run published every artifact; `docs/GUI.md` describes both GUIs. Status 2026-10-08: backend discovery moved into `BackendLocator` with tests for the macOS bundle, Windows and Linux layouts that `build-release.yml` packages. `avalonia-gui/README.md` is current. The release workflow's artefacts are unverified until a tagged run. Stale documents removed: the old implementation plan, the phase 10–12 summaries and the gutter notes; references point here. `CONFIGURATION.md` and `TESTING_GUIDE.md` describe persistence and theme switching as they work.
+Status 2026-10-09: the v3.0.0 release run published every artifact; `docs/GUI.md` describes both GUIs. Status 2026-10-08: backend discovery moved into `BackendLocator` with tests for the macOS bundle, Windows and Linux layouts that `build-release.yml` packages. `avalonia-gui/README.md` is current. Stale documents removed: the old implementation plan, the phase 10–12 summaries and the gutter notes; references point here. `CONFIGURATION.md` and `TESTING_GUIDE.md` describe persistence and theme switching as they work.
 
 - Verify the release workflow artefacts on each platform: the app starts the bundled backend, loads an example and runs it.
 - macOS: bundle name, icon, signing status documented; backend in `Contents/Resources`.

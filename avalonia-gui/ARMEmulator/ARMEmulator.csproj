@@ -9,7 +9,7 @@
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
     <!-- Release builds override this with -p:Version from the git tag -->
-    <Version>3.0.0</Version>
+    <Version>3.0.1</Version>
     <BuiltInComInteropSupport>true</BuiltInComInteropSupport>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>

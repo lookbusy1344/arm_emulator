@@ -358,10 +358,15 @@ go build -ldflags="-s -w" -o arm-emulator  # ~30-40% smaller
 ```
 
 **Automated releases:**
-Push a git tag to trigger GitHub Actions. It builds the command-line binary for linux-amd64, macos-arm64, windows-amd64 and windows-arm64, the Swift app for macOS arm64, and the Avalonia app for the same four platforms. The tag sets the version of every artifact.
+Push a version tag to trigger GitHub Actions. It builds the command-line binary for linux-amd64, macos-arm64, windows-amd64 and windows-arm64, the Swift app for macOS arm64, and the Avalonia app for the same four platforms. The tag sets the version of every artifact. Bump the GUI versions first; see [docs/VERSION.md](docs/VERSION.md#preparing-a-release).
 ```bash
-git tag v3.0.0
-git push origin v3.0.0
+# jj: tag the last committed change (@-), then push the tag
+jj tag set vX.Y.Z -r @-
+jj git push --tag vX.Y.Z
+
+# Git
+git tag vX.Y.Z
+git push origin vX.Y.Z
 ```
 
 Download pre-built binaries with SHA256 checksums from [Releases](https://github.com/lookbusy1344/arm_emulator/releases).

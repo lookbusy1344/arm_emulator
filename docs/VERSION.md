@@ -66,13 +66,32 @@ go build -o arm-emulator
 # Output: ARM2 Emulator dev
 ```
 
+## GUI App Versions
+
+The Swift and Avalonia apps carry their own version numbers:
+
+| App | Setting | Shown in |
+|-----|---------|----------|
+| Swift | `MARKETING_VERSION` and `CURRENT_PROJECT_VERSION` in `swift-gui/project.yml` | `CFBundleShortVersionString` and `CFBundleVersion` in `Info.plist`; Finder Get Info. The About window shows the backend version only |
+| Avalonia | `<Version>` in `avalonia-gui/ARMEmulator/ARMEmulator.csproj` | Assembly version; the About window |
+
+Release builds override both from the tag: the workflow passes `MARKETING_VERSION=<tag without v>` and `CURRENT_PROJECT_VERSION=<run number>` to `xcodebuild`, and `-p:Version=<tag without v>` to `dotnet publish`. The checked-in values set the version of local builds. Bump them to the next release number before tagging.
+
 ## Creating Releases
+
+### Preparing a Release
+
+1. Set the next version in `swift-gui/project.yml` (`MARKETING_VERSION`) and `avalonia-gui/ARMEmulator/ARMEmulator.csproj` (`<Version>`).
+2. Move the `[Unreleased]` entries in [CHANGELOG.md](CHANGELOG.md) under a new version heading with the release date.
 
 ### Local Tagging
 
+The repository works with jj (colocated with Git) or plain Git. In jj, tag a committed change such as `@-`, not the working-copy change `@`.
+
 1. Tag the commit:
    ```bash
-   git tag v1.0.1
+   jj tag set v1.0.1 -r @-   # jj
+   git tag v1.0.1            # Git
    ```
 
 2. Build with the new version:
@@ -81,9 +100,12 @@ go build -o arm-emulator
    ./arm-emulator --version  # Shows v1.0.1
    ```
 
+   `make build` reads the tag with `git describe`. A colocated jj repository exports the tag to Git, so this works in both.
+
 3. Push the tag to trigger automated release builds:
    ```bash
-   git push origin v1.0.1
+   jj git push --tag v1.0.1   # jj
+   git push origin v1.0.1     # Git
    ```
 
 ### Automated Release Process
@@ -96,9 +118,10 @@ When a tag starting with `v` is pushed to GitHub:
    - macos-arm64
    - windows-amd64
    - windows-arm64
-3. Embeds version info into each binary
-4. Generates SHA256 checksums
-5. Creates a GitHub Release with all artifacts
+3. Builds the Swift app for macOS arm64 and the Avalonia app for the same four platforms, each with the backend bundled
+4. Embeds version info into each binary and app
+5. Generates SHA256 checksums
+6. Creates a GitHub Release with all artifacts
 
 Each released binary contains the exact version, commit, and build timestamp.
 
@@ -179,6 +202,8 @@ git push origin v1.0.0
 **Solution**: Use `make build` or ensure `-ldflags` are passed to `go build`.
 
 ## Version History
+
+See [CHANGELOG.md](CHANGELOG.md) and the [GitHub releases](https://github.com/lookbusy1344/arm_emulator/releases) for later versions.
 
 - **v1.0.1** (2025-10-23): Professional version management implementation
 - **v1.0.0** (2025-10): Initial stable release

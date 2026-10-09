@@ -7,8 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.0.1] - 2026-10-09
+
 ### Fixed
-- Swift and Avalonia GUI builds report the release version. Release builds take it from the git tag; local builds use the version in `swift-gui/project.yml` and `ARMEmulator.csproj`.
+- Swift and Avalonia GUI builds report the release version. Release builds take it from the git tag; local builds use the version in `swift-gui/project.yml` and `ARMEmulator.csproj`. The 3.0.0 Swift app reported 1.0 (1).
+
+### Documentation
+- README and installation guide list the Swift and Avalonia release archives, the macOS first-launch step and how to build the GUIs from source.
+- `docs/GUI.md` describes both GUI apps. The Wails guide and the Wails E2E testing docs are removed.
 
 ## [3.0.0] - 2026-10-09
 
