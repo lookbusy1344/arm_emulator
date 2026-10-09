@@ -28,6 +28,8 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.lookbusy1344.ARMEmulator
         PRODUCT_NAME: ARMEmulator
+        MARKETING_VERSION: "3.0.0"
+        CURRENT_PROJECT_VERSION: "1"
         INFOPLIST_FILE: ARMEmulator/Resources/Info.plist
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         GENERATE_INFOPLIST_FILE: NO
