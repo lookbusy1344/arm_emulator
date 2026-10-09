@@ -10,7 +10,10 @@ namespace ARMEmulator.Views;
 /// </summary>
 public static class NativeMenus
 {
-	/// <summary>The File and Debug menus of the main window. They offer the same commands as the in-window menu.</summary>
+	/// <summary>
+	/// The File and Debug menus of the main window. They offer the in-window commands, except Preferences and About,
+	/// which macOS shows in the application menu.
+	/// </summary>
 	public static NativeMenu CreateWindowMenu(MainWindowViewModel viewModel) => [
 		Submenu("File", [
 			Item("Open…", viewModel, ShortcutId.Open),
@@ -21,9 +24,7 @@ public static class NativeMenus
 			new NativeMenuItemSeparator(),
 			Item("Examples…", viewModel, ShortcutId.Examples),
 			new NativeMenuItemSeparator(),
-			Item("Preferences…", viewModel, ShortcutId.Preferences),
-			new NativeMenuItem("Restart Backend") { Command = viewModel.RestartBackendCommand },
-			new NativeMenuItem("About…") { Command = viewModel.ShowAboutCommand }
+			new NativeMenuItem("Restart Backend") { Command = viewModel.RestartBackendCommand }
 		]),
 		Submenu("Debug", [
 			Item("Assemble", viewModel, ShortcutId.Assemble),

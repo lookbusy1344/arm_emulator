@@ -61,7 +61,7 @@ public sealed class NativeMenusTests : IDisposable
 			var file = Submenu(NativeMenus.CreateWindowMenu(viewModel), "File");
 
 			Headers(file).Should().Equal(
-				"Open…", "Save", "Save As…", "Recent Files", "Examples…", "Preferences…", "Restart Backend", "About…");
+				"Open…", "Save", "Save As…", "Recent Files", "Examples…", "Restart Backend");
 		});
 
 	[Fact]
@@ -75,9 +75,18 @@ public sealed class NativeMenusTests : IDisposable
 			CommandOf(file, "Save").Should().BeSameAs(viewModel.SaveFileCommand);
 			CommandOf(file, "Save As…").Should().BeSameAs(viewModel.SaveAsCommand);
 			CommandOf(file, "Examples…").Should().BeSameAs(viewModel.OpenExampleCommand);
-			CommandOf(file, "Preferences…").Should().BeSameAs(viewModel.ShowPreferencesCommand);
 			CommandOf(file, "Restart Backend").Should().BeSameAs(viewModel.RestartBackendCommand);
-			CommandOf(file, "About…").Should().BeSameAs(viewModel.ShowAboutCommand);
+		});
+
+	[Fact]
+	public Task ApplicationMenu_OffersAboutAndPreferences() =>
+		UiTest.RunOnUiThread(() => {
+			using var viewModel = CreateViewModel();
+
+			var items = NativeMenus.CreateApplicationMenu(viewModel).Items.OfType<NativeMenuItem>().ToArray();
+
+			items.Select(item => item.Header).Should().Equal("About ARM Emulator", "Preferences…");
+			items.Select(item => item.Command).Should().Equal(viewModel.ShowAboutCommand, viewModel.ShowPreferencesCommand);
 		});
 
 	[Fact]
