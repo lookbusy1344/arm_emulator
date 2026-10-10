@@ -133,6 +133,18 @@ func (vm *VM) SetState(state ExecutionState) {
 	}
 }
 
+// CloseFiles closes every file the guest opened and empties the descriptor table.
+func (vm *VM) CloseFiles() {
+	vm.fdMu.Lock()
+	defer vm.fdMu.Unlock()
+	for _, f := range vm.files {
+		if f != nil && f != os.Stdin && f != os.Stdout && f != os.Stderr {
+			_ = f.Close()
+		}
+	}
+	vm.files = make([]*os.File, DefaultFDTableSize) // standard descriptors initialise lazily
+}
+
 // Reset resets the VM to initial state, clearing all program data and I/O state
 func (vm *VM) Reset() {
 	// Reset CPU and memory
@@ -150,15 +162,7 @@ func (vm *VM) Reset() {
 	vm.ProgramArguments = nil
 	vm.ExitCode = 0
 
-	// Clear I/O state
-	vm.fdMu.Lock()
-	for _, f := range vm.files {
-		if f != nil && f != os.Stdin && f != os.Stdout && f != os.Stderr {
-			_ = f.Close() // Close all non-standard file descriptors
-		}
-	}
-	vm.files = make([]*os.File, DefaultFDTableSize) // standard descriptors initialise lazily
-	vm.fdMu.Unlock()
+	vm.CloseFiles()
 
 	// Note: Do NOT reset stdinReader here - it may be intentionally redirected
 	// by TUI/GUI frontends. Use ResetStdinReader() explicitly if needed.
