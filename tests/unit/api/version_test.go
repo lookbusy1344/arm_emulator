@@ -1,4 +1,4 @@
-package api_test
+package api
 
 import (
 	"encoding/json"
@@ -39,7 +39,7 @@ func TestVersionEndpoint(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// Create server with specific version info
-			server := api.NewServerWithVersion(8080, tt.version, tt.commit, tt.date)
+			server := withCleanup(t, api.NewServerWithVersion(8080, tt.version, tt.commit, tt.date))
 
 			// Create test request
 			req := httptest.NewRequest(http.MethodGet, "/api/v1/version", nil)
@@ -87,7 +87,7 @@ func TestVersionEndpoint(t *testing.T) {
 }
 
 func TestVersionEndpoint_MethodNotAllowed(t *testing.T) {
-	server := api.NewServerWithVersion(8080, "v1.0.0", "abc123", "2026-01-07")
+	server := withCleanup(t, api.NewServerWithVersion(8080, "v1.0.0", "abc123", "2026-01-07"))
 
 	methods := []string{
 		http.MethodPost,
@@ -111,7 +111,7 @@ func TestVersionEndpoint_MethodNotAllowed(t *testing.T) {
 }
 
 func TestVersionEndpoint_CORS(t *testing.T) {
-	server := api.NewServerWithVersion(8080, "v1.0.0", "abc123", "2026-01-07")
+	server := withCleanup(t, api.NewServerWithVersion(8080, "v1.0.0", "abc123", "2026-01-07"))
 
 	tests := []struct {
 		name           string
@@ -169,7 +169,7 @@ func TestVersionEndpoint_CORS(t *testing.T) {
 }
 
 func TestVersionEndpoint_JSONFormat(t *testing.T) {
-	server := api.NewServerWithVersion(8080, "v1.0.0", "abc123", "2026-01-07")
+	server := withCleanup(t, api.NewServerWithVersion(8080, "v1.0.0", "abc123", "2026-01-07"))
 
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/version", nil)
 	w := httptest.NewRecorder()
@@ -200,7 +200,7 @@ func TestVersionEndpoint_JSONFormat(t *testing.T) {
 
 func TestVersionEndpoint_NewServerBackwardsCompatibility(t *testing.T) {
 	// Test that NewServer (without version) still works and returns defaults
-	server := api.NewServer(8080)
+	server := withCleanup(t, api.NewServer(8080))
 
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/version", nil)
 	w := httptest.NewRecorder()

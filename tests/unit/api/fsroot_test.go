@@ -28,7 +28,7 @@ func createSessionWith(t *testing.T, server *api.Server, body any, origin string
 }
 
 func TestFSRootFromBrowserIsForbidden(t *testing.T) {
-	server := testServer()
+	server := testServer(t)
 
 	w := createSessionWith(t, server, api.SessionCreateRequest{FSRoot: t.TempDir()}, "http://localhost:3000")
 
@@ -41,7 +41,7 @@ func TestFSRootFromBrowserIsForbidden(t *testing.T) {
 }
 
 func TestSessionWithoutFSRootFromBrowserIsAllowed(t *testing.T) {
-	server := testServer()
+	server := testServer(t)
 
 	w := createSessionWith(t, server, api.SessionCreateRequest{}, "http://localhost:3000")
 
@@ -64,7 +64,7 @@ func TestFSRootMustBeExistingAbsoluteDirectory(t *testing.T) {
 	}
 	for name, root := range tests {
 		t.Run(name, func(t *testing.T) {
-			server := testServer()
+			server := testServer(t)
 
 			w := createSessionWith(t, server, api.SessionCreateRequest{FSRoot: root}, "")
 
@@ -79,7 +79,7 @@ func TestFSRootMustBeExistingAbsoluteDirectory(t *testing.T) {
 }
 
 func TestFSRootFromNativeClientIsUsed(t *testing.T) {
-	server := testServer()
+	server := testServer(t)
 	dir := t.TempDir()
 
 	w := createSessionWith(t, server, api.SessionCreateRequest{FSRoot: dir}, "")

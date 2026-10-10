@@ -53,7 +53,7 @@ func TestOriginPolicy(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			server := api.NewServer(8080)
+			server := withCleanup(t, api.NewServer(8080))
 
 			req := httptest.NewRequest(http.MethodPost, "/api/v1/session", strings.NewReader("{}"))
 			req.Header.Set("Content-Type", "text/plain")
@@ -88,7 +88,7 @@ func TestOriginPolicy(t *testing.T) {
 }
 
 func TestWebSocketRejectsForeignOrigin(t *testing.T) {
-	server := api.NewServer(8080)
+	server := withCleanup(t, api.NewServer(8080))
 	ts := httptest.NewServer(server.Handler())
 	defer ts.Close()
 

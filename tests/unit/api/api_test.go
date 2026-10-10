@@ -2,6 +2,7 @@ package api
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -11,16 +12,27 @@ import (
 	"github.com/lookbusy1344/arm-emulator/api"
 )
 
-// testServer creates a test server for testing
-func testServer() *api.Server {
-	server := api.NewServer(8080)
-	// For testing, we need to wrap mux with CORS middleware manually since Start() isn't called
+// testServer returns a server whose sessions are destroyed when the test ends
+func testServer(tb testing.TB) *api.Server {
+	tb.Helper()
+	return withCleanup(tb, api.NewServer(8080))
+}
+
+// withCleanup shuts server down when the test ends, which destroys its sessions and
+// removes their temporary directories.
+func withCleanup(tb testing.TB, server *api.Server) *api.Server {
+	tb.Helper()
+	tb.Cleanup(func() {
+		if err := server.Shutdown(context.Background()); err != nil {
+			tb.Errorf("server shutdown: %v", err)
+		}
+	})
 	return server
 }
 
 // TestHealthCheck tests the health check endpoint
 func TestHealthCheck(t *testing.T) {
-	server := testServer()
+	server := testServer(t)
 
 	req := httptest.NewRequest(http.MethodGet, "/health", nil)
 	w := httptest.NewRecorder()
@@ -43,7 +55,7 @@ func TestHealthCheck(t *testing.T) {
 
 // TestCreateSession tests session creation
 func TestCreateSession(t *testing.T) {
-	server := testServer()
+	server := testServer(t)
 
 	reqBody := api.SessionCreateRequest{
 		MemorySize: 1024 * 1024,
@@ -76,7 +88,7 @@ func TestCreateSession(t *testing.T) {
 
 // TestListSessions tests listing sessions
 func TestListSessions(t *testing.T) {
-	server := testServer()
+	server := testServer(t)
 
 	// Create a few sessions
 	for i := 0; i < 3; i++ {
@@ -108,7 +120,7 @@ func TestListSessions(t *testing.T) {
 
 // TestLoadProgram tests loading a program
 func TestLoadProgram(t *testing.T) {
-	server := testServer()
+	server := testServer(t)
 
 	// Create session
 	sessionID := createTestSession(t, server)
@@ -158,7 +170,7 @@ main:
 
 // TestLoadInvalidProgram tests loading an invalid program
 func TestLoadInvalidProgram(t *testing.T) {
-	server := testServer()
+	server := testServer(t)
 	sessionID := createTestSession(t, server)
 
 	reqBody := api.LoadProgramRequest{
@@ -192,7 +204,7 @@ func TestLoadInvalidProgram(t *testing.T) {
 
 // TestStepExecution tests single-step execution
 func TestStepExecution(t *testing.T) {
-	server := testServer()
+	server := testServer(t)
 	sessionID := createTestSession(t, server)
 
 	// Load program
@@ -240,7 +252,7 @@ func TestStepExecution(t *testing.T) {
 
 // TestGetRegisters tests getting register state
 func TestGetRegisters(t *testing.T) {
-	server := testServer()
+	server := testServer(t)
 	sessionID := createTestSession(t, server)
 
 	req := httptest.NewRequest(http.MethodGet,
@@ -267,7 +279,7 @@ func TestGetRegisters(t *testing.T) {
 
 // TestGetMemory tests reading memory
 func TestGetMemory(t *testing.T) {
-	server := testServer()
+	server := testServer(t)
 	sessionID := createTestSession(t, server)
 
 	req := httptest.NewRequest(http.MethodGet,
@@ -300,7 +312,7 @@ func TestGetMemory(t *testing.T) {
 
 // TestGetMemoryTooLarge tests memory read size limit
 func TestGetMemoryTooLarge(t *testing.T) {
-	server := testServer()
+	server := testServer(t)
 	sessionID := createTestSession(t, server)
 
 	// Try to read 2MB (should fail)
@@ -317,7 +329,7 @@ func TestGetMemoryTooLarge(t *testing.T) {
 
 // TestBreakpoints tests breakpoint management
 func TestBreakpoints(t *testing.T) {
-	server := testServer()
+	server := testServer(t)
 	sessionID := createTestSession(t, server)
 
 	// Load a program first so we have valid addresses
@@ -381,7 +393,7 @@ func TestBreakpoints(t *testing.T) {
 
 // TestBreakpointValidation tests that invalid breakpoints are rejected
 func TestBreakpointValidation(t *testing.T) {
-	server := testServer()
+	server := testServer(t)
 	sessionID := createTestSession(t, server)
 
 	// Load a program with some actual code
@@ -431,7 +443,7 @@ func TestBreakpointValidation(t *testing.T) {
 
 // TestSourceMap tests the source map endpoint
 func TestSourceMap(t *testing.T) {
-	server := testServer()
+	server := testServer(t)
 	sessionID := createTestSession(t, server)
 
 	// Load a simple program
@@ -486,7 +498,7 @@ func TestSourceMap(t *testing.T) {
 
 // TestReset tests VM reset
 func TestReset(t *testing.T) {
-	server := testServer()
+	server := testServer(t)
 	sessionID := createTestSession(t, server)
 
 	// Load and execute program
@@ -526,7 +538,7 @@ func TestReset(t *testing.T) {
 
 // TestDestroySession tests session destruction
 func TestDestroySession(t *testing.T) {
-	server := testServer()
+	server := testServer(t)
 	sessionID := createTestSession(t, server)
 
 	// Destroy session
@@ -554,7 +566,7 @@ func TestDestroySession(t *testing.T) {
 
 // TestSessionNotFound tests error handling for non-existent session
 func TestSessionNotFound(t *testing.T) {
-	server := testServer()
+	server := testServer(t)
 
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/session/nonexistent", nil)
 	w := httptest.NewRecorder()
@@ -568,7 +580,7 @@ func TestSessionNotFound(t *testing.T) {
 
 // TestCORS tests CORS headers with localhost restriction
 func TestCORS(t *testing.T) {
-	server := testServer()
+	server := testServer(t)
 
 	tests := []struct {
 		name           string
@@ -654,7 +666,7 @@ func TestCORS(t *testing.T) {
 
 // TestCORSWithActualRequest tests CORS with a real GET request
 func TestCORSWithActualRequest(t *testing.T) {
-	server := testServer()
+	server := testServer(t)
 
 	req := httptest.NewRequest(http.MethodGet, "/health", nil)
 	req.Header.Set("Origin", "http://localhost:5173")
@@ -743,7 +755,7 @@ func waitForState(t *testing.T, server *api.Server, sessionID, state string) api
 
 // TestStopExecution tests stop execution
 func TestStopExecution(t *testing.T) {
-	server := testServer()
+	server := testServer(t)
 	sessionID := createTestSession(t, server)
 
 	// Load infinite loop
@@ -788,7 +800,7 @@ func TestStopExecution(t *testing.T) {
 
 // TestStopDuringBreakpoint tests stopping when VM is paused at a breakpoint
 func TestStopDuringBreakpoint(t *testing.T) {
-	server := testServer()
+	server := testServer(t)
 	sessionID := createTestSession(t, server)
 
 	// Load simple program with multiple instructions
@@ -864,7 +876,7 @@ func TestStopDuringBreakpoint(t *testing.T) {
 
 // TestRunExecution tests that /run actually executes the program
 func TestRunExecution(t *testing.T) {
-	server := testServer()
+	server := testServer(t)
 	sessionID := createTestSession(t, server)
 
 	// Load a simple program that sets R0=42 and exits
@@ -915,7 +927,7 @@ func TestRunExecution(t *testing.T) {
 
 // TestDisassembly tests disassembly endpoint
 func TestDisassembly(t *testing.T) {
-	server := testServer()
+	server := testServer(t)
 	sessionID := createTestSession(t, server)
 
 	// Load program
@@ -949,7 +961,7 @@ func TestDisassembly(t *testing.T) {
 
 // TestWatchpoints tests watchpoint management
 func TestWatchpoints(t *testing.T) {
-	server := testServer()
+	server := testServer(t)
 	sessionID := createTestSession(t, server)
 
 	// Add watchpoint
@@ -1022,7 +1034,7 @@ func TestWatchpoints(t *testing.T) {
 
 // TestExecutionTrace tests trace management
 func TestExecutionTrace(t *testing.T) {
-	server := testServer()
+	server := testServer(t)
 	sessionID := createTestSession(t, server)
 
 	// Load simple program
@@ -1084,7 +1096,7 @@ func TestExecutionTrace(t *testing.T) {
 
 // TestStatistics tests statistics collection
 func TestStatistics(t *testing.T) {
-	server := testServer()
+	server := testServer(t)
 	sessionID := createTestSession(t, server)
 
 	// Load simple program
@@ -1150,7 +1162,7 @@ func TestStatistics(t *testing.T) {
 
 // TestConfiguration tests configuration management
 func TestConfiguration(t *testing.T) {
-	server := testServer()
+	server := testServer(t)
 
 	// Get configuration
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/config", nil)
@@ -1192,7 +1204,7 @@ func TestConfiguration(t *testing.T) {
 
 // TestExamples tests example file management
 func TestExamples(t *testing.T) {
-	server := testServer()
+	server := testServer(t)
 
 	// List examples
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/examples", nil)
@@ -1247,7 +1259,7 @@ func TestExamples(t *testing.T) {
 
 // TestExamplesPathTraversal tests path traversal protection
 func TestExamplesPathTraversal(t *testing.T) {
-	server := testServer()
+	server := testServer(t)
 
 	// Try path traversal attack
 	req := httptest.NewRequest(http.MethodGet, "/api/v1/examples/../../../etc/passwd", nil)
@@ -1263,7 +1275,7 @@ func TestExamplesPathTraversal(t *testing.T) {
 
 // TestConsoleOutput tests retrieving console output via API
 func TestConsoleOutput(t *testing.T) {
-	server := testServer()
+	server := testServer(t)
 	sessionID := createTestSession(t, server)
 
 	// Load a program that writes to console
@@ -1319,7 +1331,7 @@ message:
 
 // TestConsoleOutputEmpty tests console output with no program output
 func TestConsoleOutputEmpty(t *testing.T) {
-	server := testServer()
+	server := testServer(t)
 	sessionID := createTestSession(t, server)
 
 	// Load a program that doesn't write anything
@@ -1361,7 +1373,7 @@ func TestConsoleOutputEmpty(t *testing.T) {
 
 // TestReRunProgram tests that a program can be run multiple times after completion
 func TestReRunProgram(t *testing.T) {
-	server := testServer()
+	server := testServer(t)
 	sessionID := createTestSession(t, server)
 
 	// Load a simple program that increments R0 and exits
@@ -1466,7 +1478,7 @@ func TestReRunProgram(t *testing.T) {
 // TestRestart tests the restart endpoint which resets execution to entry point
 // while preserving the loaded program (unlike reset which clears everything)
 func TestRestart(t *testing.T) {
-	server := testServer()
+	server := testServer(t)
 
 	// Create session
 	req := httptest.NewRequest(http.MethodPost, "/api/v1/session", bytes.NewReader([]byte("{}")))
@@ -1596,7 +1608,7 @@ func TestRestart(t *testing.T) {
 
 // TestMemoryWriteSize_STRB tests that API returns writeSize=1 for STRB instruction
 func TestMemoryWriteSize_STRB(t *testing.T) {
-	server := testServer()
+	server := testServer(t)
 	sessionID := createTestSession(t, server)
 
 	// Load program with STRB instruction
@@ -1635,7 +1647,7 @@ data_area:
 
 // TestMemoryWriteSize_STR tests that API returns writeSize=4 for STR instruction
 func TestMemoryWriteSize_STR(t *testing.T) {
-	server := testServer()
+	server := testServer(t)
 	sessionID := createTestSession(t, server)
 
 	// Load program with STR instruction

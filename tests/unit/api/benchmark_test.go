@@ -2,7 +2,6 @@ package api
 
 import (
 	"bytes"
-	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -16,8 +15,7 @@ import (
 
 // BenchmarkCreateSession benchmarks session creation performance
 func BenchmarkCreateSession(b *testing.B) {
-	server := testServerBench()
-	defer shutdownServer(server)
+	server := testServer(b)
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
@@ -33,8 +31,7 @@ func BenchmarkCreateSession(b *testing.B) {
 
 // BenchmarkLoadProgram benchmarks program loading performance
 func BenchmarkLoadProgram(b *testing.B) {
-	server := testServerBench()
-	defer shutdownServer(server)
+	server := testServer(b)
 
 	// Create session
 	sessionID := createBenchSession(b, server)
@@ -64,8 +61,7 @@ main:
 
 // BenchmarkStepExecution benchmarks single-step execution performance
 func BenchmarkStepExecution(b *testing.B) {
-	server := testServerBench()
-	defer shutdownServer(server)
+	server := testServer(b)
 
 	sessionID := createBenchSession(b, server)
 
@@ -100,8 +96,7 @@ main:
 
 // BenchmarkGetRegisters benchmarks register state retrieval performance
 func BenchmarkGetRegisters(b *testing.B) {
-	server := testServerBench()
-	defer shutdownServer(server)
+	server := testServer(b)
 
 	sessionID := createBenchSession(b, server)
 
@@ -127,8 +122,7 @@ main:
 
 // BenchmarkGetMemory benchmarks memory read performance
 func BenchmarkGetMemory(b *testing.B) {
-	server := testServerBench()
-	defer shutdownServer(server)
+	server := testServer(b)
 
 	sessionID := createBenchSession(b, server)
 
@@ -155,8 +149,7 @@ main:
 
 // BenchmarkBreakpointOperations benchmarks breakpoint add/remove performance
 func BenchmarkBreakpointOperations(b *testing.B) {
-	server := testServerBench()
-	defer shutdownServer(server)
+	server := testServer(b)
 
 	sessionID := createBenchSession(b, server)
 
@@ -197,8 +190,7 @@ main:
 
 // BenchmarkConcurrentSessions benchmarks concurrent session handling
 func BenchmarkConcurrentSessions(b *testing.B) {
-	server := testServerBench()
-	defer shutdownServer(server)
+	server := testServer(b)
 
 	program := `.org 0x8000
 main:
@@ -249,8 +241,7 @@ main:
 
 // BenchmarkJSONSerialization benchmarks JSON encoding/decoding performance
 func BenchmarkJSONSerialization(b *testing.B) {
-	server := testServerBench()
-	defer shutdownServer(server)
+	server := testServer(b)
 
 	sessionID := createBenchSession(b, server)
 
@@ -292,8 +283,7 @@ func TestConcurrentSessionsStressTest(t *testing.T) {
 		t.Skip("Skipping stress test in short mode")
 	}
 
-	server := testServerBench()
-	defer shutdownServer(server)
+	server := testServer(t)
 
 	const numSessions = 20
 	const numOperations = 4 // Program has 5 instructions, so 4 steps before SWI exit
@@ -407,8 +397,7 @@ main:
 
 // TestNetworkFailureScenarios tests error handling and recovery
 func TestNetworkFailureScenarios(t *testing.T) {
-	server := testServerBench()
-	defer shutdownServer(server)
+	server := testServer(t)
 
 	t.Run("invalid session ID", func(t *testing.T) {
 		req := httptest.NewRequest("GET", "/api/v1/session/invalid-id/registers", nil)
@@ -500,16 +489,6 @@ main:
 }
 
 // Helper functions
-
-func testServerBench() *api.Server {
-	return api.NewServer(8080)
-}
-
-func shutdownServer(server *api.Server) {
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancel()
-	server.Shutdown(ctx)
-}
 
 func createBenchSession(tb testing.TB, server *api.Server) string {
 	req := httptest.NewRequest("POST", "/api/v1/session", bytes.NewReader([]byte("{}")))

@@ -33,7 +33,7 @@ func waitUntil(t *testing.T, what string, cond func() bool) {
 }
 
 func TestStepWhileRunningConflicts(t *testing.T) {
-	server := testServer()
+	server := testServer(t)
 	sessionID := createTestSession(t, server)
 	loadProgram(t, server, sessionID, spinLoop)
 	session, err := server.GetSession(sessionID)
@@ -60,7 +60,7 @@ func TestStepWhileRunningConflicts(t *testing.T) {
 }
 
 func TestDestroySessionStopsExecution(t *testing.T) {
-	server := testServer()
+	server := testServer(t)
 	sessionID := createTestSession(t, server)
 	loadProgram(t, server, sessionID, spinLoop)
 	session, err := server.GetSession(sessionID)
@@ -95,7 +95,7 @@ func TestDestroySessionStopsExecution(t *testing.T) {
 }
 
 func TestRunWhileRunningConflicts(t *testing.T) {
-	server := testServer()
+	server := testServer(t)
 	sessionID := createTestSession(t, server)
 	loadProgram(t, server, sessionID, spinLoop)
 	session, err := server.GetSession(sessionID)
@@ -122,7 +122,7 @@ func TestRunWhileRunningConflicts(t *testing.T) {
 }
 
 func TestRunAfterDestroyIsGone(t *testing.T) {
-	server := testServer()
+	server := testServer(t)
 	sessionID := createTestSession(t, server)
 	loadProgram(t, server, sessionID, spinLoop)
 	session, err := server.GetSession(sessionID)

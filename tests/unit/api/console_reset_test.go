@@ -36,7 +36,7 @@ func runToHalted(t *testing.T, server *api.Server, sessionID string) {
 }
 
 func TestConsoleClearedOnLoad(t *testing.T) {
-	server := testServer()
+	server := testServer(t)
 	sessionID := createTestSession(t, server)
 	loadProgram(t, server, sessionID, printA)
 	runToHalted(t, server, sessionID)
@@ -49,7 +49,7 @@ func TestConsoleClearedOnLoad(t *testing.T) {
 }
 
 func TestConsoleHoldsOnlyLatestRun(t *testing.T) {
-	server := testServer()
+	server := testServer(t)
 	sessionID := createTestSession(t, server)
 	loadProgram(t, server, sessionID, printA)
 	runToHalted(t, server, sessionID)
@@ -62,7 +62,7 @@ func TestConsoleHoldsOnlyLatestRun(t *testing.T) {
 }
 
 func TestConsoleClearedOnRestartAndReset(t *testing.T) {
-	server := testServer()
+	server := testServer(t)
 	sessionID := createTestSession(t, server)
 	loadProgram(t, server, sessionID, printA)
 

@@ -14,7 +14,7 @@ import (
 )
 
 func TestShutdownDestroysSessions(t *testing.T) {
-	server := testServer()
+	server := testServer(t)
 	sessionID := createTestSession(t, server)
 	loadProgram(t, server, sessionID, spinLoop)
 	session, err := server.GetSession(sessionID)
@@ -44,7 +44,7 @@ func TestShutdownDestroysSessions(t *testing.T) {
 }
 
 func TestShutdownKeepsClientFSRoot(t *testing.T) {
-	server := testServer()
+	server := testServer(t)
 	dir := t.TempDir()
 	w := createSessionWith(t, server, api.SessionCreateRequest{FSRoot: dir}, "")
 	if w.Code != http.StatusCreated {

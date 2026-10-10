@@ -141,7 +141,7 @@ func TestBroadcasterFiltersBySession(t *testing.T) {
 // "error" carries the fault's message, beside the state event with status "error".
 func TestRunFaultBroadcastsAnErrorEvent(t *testing.T) {
 	const waitLimit = 2 * time.Second
-	server := testServer()
+	server := testServer(t)
 	sessionID := createTestSession(t, server)
 	// A store through a null pointer faults
 	loadProgram(t, server, sessionID, ".org 0x8000\n_start:\nMOV R1, #0\nMOV R0, #1\nSTR R0, [R1]\nSWI #0")
