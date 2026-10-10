@@ -146,6 +146,17 @@ private async void OnWebSocketMessage(object? sender, MessageEventArgs e)
 - Mock backend services for unit tests
 - Integration tests should use real WebSocket/HTTP (with backend running)
 - Aim for high coverage of business logic
+- Give every test that touches sockets, processes or timers `[Fact(Timeout = ...)]` of a few seconds, and pass `TestContext.Current.CancellationToken` to every await. A hang then fails in seconds with the test's name.
+
+### Running Tests
+
+Do not make the user wait on long, silent runs. A filtered test run takes under a few seconds once built; a run that takes much longer is hung, not slow.
+
+- **Build and test separately.** Build first (`dotnet build -v q`); compile errors surface in seconds and do not hide behind a test timeout. Then run `dotnet test --no-build`.
+- **Run targeted tests while iterating:** `dotnet test --no-build --filter "FullyQualifiedName~ClassName"`. Run the full suite once, before commit.
+- **Set tight timeouts:** wrap commands in `gtimeout` sized to the expected time plus a margin (about 60 s for a filtered run, 180 s for the full suite). Never set a ten-minute ceiling.
+- **Log full output to a file**, then read its tail. Do not pipe test output through `grep`; a filter that matches nothing hides both hangs and failures.
+- **After a timeout, find the hung test** (run the suspect classes alone) before rerunning anything. Never rerun the same command unchanged.
 
 ## Common Pitfalls
 
