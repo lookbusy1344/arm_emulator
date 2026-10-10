@@ -117,7 +117,7 @@ func (s *Server) Start() error {
 	return srv.ListenAndServe()
 }
 
-// Shutdown gracefully shuts down the server
+// Shutdown gracefully shuts down the server, then destroys every session
 func (s *Server) Shutdown(ctx context.Context) error {
 	// Close broadcaster to disconnect all WebSocket clients
 	if s.broadcaster != nil {
@@ -127,10 +127,12 @@ func (s *Server) Shutdown(ctx context.Context) error {
 	s.serverMu.Lock()
 	srv := s.server
 	s.serverMu.Unlock()
-	if srv == nil {
-		return nil
+	var err error
+	if srv != nil {
+		err = srv.Shutdown(ctx)
 	}
-	return srv.Shutdown(ctx)
+	s.sessions.DestroyAll()
+	return err
 }
 
 // GetBroadcaster returns the broadcaster (for testing)

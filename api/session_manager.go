@@ -150,17 +150,29 @@ func (sm *SessionManager) DestroySession(sessionID string) error {
 	if !exists {
 		return ErrSessionNotFound
 	}
+	destroy(session)
+	delete(sm.sessions, sessionID)
+	return nil
+}
 
+// DestroyAll removes every session
+func (sm *SessionManager) DestroyAll() {
+	sm.mu.Lock()
+	defer sm.mu.Unlock()
+	for _, session := range sm.sessions {
+		destroy(session)
+	}
+	clear(sm.sessions)
+}
+
+// destroy stops a session's execution and removes the temporary directory it created.
+// A client-supplied filesystem root is left alone.
+func destroy(session *Session) {
 	// Handlers may still hold the session, so stop execution rather than clearing Service.
 	session.Service.Close()
-
-	// Clean up temporary directory if it was created
 	if session.TempDir != "" {
 		_ = os.RemoveAll(session.TempDir)
 	}
-
-	delete(sm.sessions, sessionID)
-	return nil
 }
 
 // ListSessions returns a list of all session IDs
