@@ -157,4 +157,72 @@ class CustomGutterViewTests: XCTestCase {
         // Just verify the callback is set
         XCTAssertTrue(true, "Breakpoint toggle callback should be configurable")
     }
+
+    // MARK: - Line geometry
+
+    private var lineHeight: CGFloat {
+        let font = NSFont.monospacedSystemFont(ofSize: 13, weight: .regular)
+        return textView.layoutManager!.defaultLineHeight(for: font)
+    }
+
+    func testLinesWithoutTrailingNewlineAreNumberedFromOne() {
+        textView.string = "A\nB"
+
+        XCTAssertEqual(gutterView.gutterLines().map(\.number), [1, 2])
+    }
+
+    func testTrailingNewlineAddsAnEmptyFinalLine() {
+        textView.string = "A\nB\n"
+
+        let lines = gutterView.gutterLines()
+
+        XCTAssertEqual(lines.map(\.number), [1, 2, 3])
+        XCTAssertEqual(lines[2].minY, lines[1].minY + lineHeight, accuracy: 0.01)
+        XCTAssertEqual(lines[2].height, lineHeight, accuracy: 0.01)
+    }
+
+    func testEmptyTextHasOneLine() {
+        textView.string = ""
+
+        XCTAssertEqual(gutterView.gutterLines().map(\.number), [1])
+    }
+
+    func testWrappedLineIndicatorRowIsItsFirstFragment() {
+        textView.string = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\nB"
+        textView.textContainer?.widthTracksTextView = false
+        textView.textContainer?.containerSize = NSSize(width: 60, height: CGFloat.greatestFiniteMagnitude)
+
+        let lines = gutterView.gutterLines()
+
+        XCTAssertEqual(lines.map(\.number), [1, 2])
+        XCTAssertEqual(lines[0].height, lineHeight, accuracy: 0.01)
+        XCTAssertGreaterThan(lines[0].hitHeight, 2 * lineHeight)
+        XCTAssertEqual(lines[1].minY, lines[0].minY + lines[0].hitHeight, accuracy: 0.01)
+    }
+
+    func testClickOnLaterFragmentOfWrappedLineHitsThatLine() {
+        textView.string = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\nB"
+        textView.textContainer?.widthTracksTextView = false
+        textView.textContainer?.containerSize = NSSize(width: 60, height: CGFloat.greatestFiniteMagnitude)
+
+        let first = gutterView.gutterLines()[0]
+
+        XCTAssertEqual(gutterView.lineNumber(atY: first.minY + 2 * lineHeight), 1)
+    }
+
+    func testClickBelowLastLineHitsNothing() {
+        textView.string = "A\nB"
+
+        let last = gutterView.gutterLines()[1]
+
+        XCTAssertNil(gutterView.lineNumber(atY: last.minY + last.hitHeight + 1))
+    }
+
+    func testClickOnTrailingEmptyLineHitsIt() {
+        textView.string = "A\n"
+
+        let last = gutterView.gutterLines()[1]
+
+        XCTAssertEqual(gutterView.lineNumber(atY: last.minY + 1), 2)
+    }
 }

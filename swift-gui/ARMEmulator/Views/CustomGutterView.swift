@@ -101,46 +101,74 @@ class CustomGutterView: NSView {
         separatorPath.lineWidth = 1
         separatorPath.stroke()
 
-        // Draw line numbers
+        let attributes = lineNumberAttributes()
+
+        for line in gutterLines() where line.minY + line.height >= 0 && line.minY < bounds.height {
+            drawCurrentLineIndicatorIfNeeded(line.number, yPos: line.minY, lineHeight: line.height)
+            drawLineNumber(line.number, yPos: line.minY, lineHeight: line.height, attributes: attributes)
+            drawBreakpointIfNeeded(line.number, yPos: line.minY, lineHeight: line.height)
+        }
+    }
+
+    /// One row per logical line, in gutter coordinates.
+    /// `height` is the first visual fragment, where the number and indicators sit.
+    /// `hitHeight` spans every fragment of a wrapped line.
+    struct GutterLine: Equatable {
+        let number: Int
+        let minY: CGFloat
+        let height: CGFloat
+        let hitHeight: CGFloat
+    }
+
+    func gutterLines() -> [GutterLine] {
         guard let textView,
               let layoutManager = textView.layoutManager,
               let textContainer = textView.textContainer,
               let scrollView
         else {
-            return
+            return []
         }
 
+        layoutManager.ensureLayout(for: textContainer)
         let text = textView.string as NSString
-        guard text.length > 0 else { return }
+        let offsetY = textView.textContainerInset.height - scrollView.documentVisibleRect.origin.y
 
-        let visibleRect = scrollView.documentVisibleRect
-        let glyphRange = layoutManager.glyphRange(for: textContainer)
-        var lineNumber = 1
-        var glyphIndex = glyphRange.location
-
-        let attributes = lineNumberAttributes()
-
-        while glyphIndex < glyphRange.upperBound {
+        var lines: [GutterLine] = []
+        var glyphIndex = 0
+        while glyphIndex < layoutManager.numberOfGlyphs {
             let characterIndex = layoutManager.characterIndexForGlyph(at: glyphIndex)
             let lineRange = text.lineRange(for: NSRange(location: characterIndex, length: 0))
-            let glyphRange = layoutManager.glyphRange(forCharacterRange: lineRange, actualCharacterRange: nil)
-            let lineRect = layoutManager.boundingRect(forGlyphRange: glyphRange, in: textContainer)
+            let lineGlyphRange = layoutManager.glyphRange(forCharacterRange: lineRange, actualCharacterRange: nil)
+            let firstFragment = layoutManager.lineFragmentRect(forGlyphAt: glyphIndex, effectiveRange: nil)
+            let lastFragment = layoutManager.lineFragmentRect(
+                forGlyphAt: NSMaxRange(lineGlyphRange) - 1,
+                effectiveRange: nil,
+            )
 
-            // Convert from text container coordinates to gutter view coordinates
-            // Account for text view's textContainerInset (5pt top padding)
-            let textInset = textView.textContainerInset.height
-            let yPos = lineRect.minY - visibleRect.origin.y + textInset
-
-            // Only draw if visible
-            if yPos + lineRect.height >= 0, yPos < bounds.height {
-                drawCurrentLineIndicatorIfNeeded(lineNumber, yPos: yPos, lineHeight: lineRect.height)
-                drawLineNumber(lineNumber, yPos: yPos, lineHeight: lineRect.height, attributes: attributes)
-                drawBreakpointIfNeeded(lineNumber, yPos: yPos, lineHeight: lineRect.height)
-            }
-
-            glyphIndex = NSMaxRange(glyphRange)
-            lineNumber += 1
+            lines.append(GutterLine(
+                number: lines.count + 1,
+                minY: firstFragment.minY + offsetY,
+                height: firstFragment.height,
+                hitHeight: lastFragment.maxY - firstFragment.minY,
+            ))
+            glyphIndex = NSMaxRange(lineGlyphRange)
         }
+
+        // The empty line after a trailing newline (or the only line of empty text) has no glyphs.
+        let extra = layoutManager.extraLineFragmentRect
+        if !extra.isEmpty {
+            lines.append(GutterLine(
+                number: lines.count + 1,
+                minY: extra.minY + offsetY,
+                height: extra.height,
+                hitHeight: extra.height,
+            ))
+        }
+        return lines
+    }
+
+    func lineNumber(atY y: CGFloat) -> Int? {
+        gutterLines().first { y >= $0.minY && y < $0.minY + $0.hitHeight }?.number
     }
 
     private func lineNumberAttributes() -> [NSAttributedString.Key: Any] {
@@ -211,40 +239,8 @@ class CustomGutterView: NSView {
 
     override func mouseDown(with event: NSEvent) {
         let location = convert(event.locationInWindow, from: nil)
-
-        guard let textView,
-              let layoutManager = textView.layoutManager,
-              let textContainer = textView.textContainer,
-              let scrollView
-        else {
-            return
-        }
-
-        let text = textView.string as NSString
-        guard text.length > 0 else { return }
-
-        let visibleRect = scrollView.documentVisibleRect
-        let glyphRange = layoutManager.glyphRange(for: textContainer)
-        var lineNumber = 1
-        var glyphIndex = glyphRange.location
-
-        while glyphIndex < glyphRange.upperBound {
-            let characterIndex = layoutManager.characterIndexForGlyph(at: glyphIndex)
-            let lineRange = text.lineRange(for: NSRange(location: characterIndex, length: 0))
-            let glyphRange = layoutManager.glyphRange(forCharacterRange: lineRange, actualCharacterRange: nil)
-            let lineRect = layoutManager.boundingRect(forGlyphRange: glyphRange, in: textContainer)
-
-            // Account for text view's textContainerInset
-            let textInset = textView.textContainerInset.height
-            let yPos = lineRect.minY - visibleRect.origin.y + textInset
-
-            if location.y >= yPos, location.y < yPos + lineRect.height {
-                onBreakpointToggle?(lineNumber)
-                return
-            }
-
-            glyphIndex = NSMaxRange(glyphRange)
-            lineNumber += 1
+        if let number = lineNumber(atY: location.y) {
+            onBreakpointToggle?(number)
         }
     }
 
