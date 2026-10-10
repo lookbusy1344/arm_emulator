@@ -33,6 +33,10 @@ func (s *Server) handleCreateSession(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, err.Error())
 		return
 	}
+	if errors.Is(err, ErrTooManySessions) {
+		writeError(w, http.StatusTooManyRequests, err.Error())
+		return
+	}
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, fmt.Sprintf("Failed to create session: %v", err))
 		return
@@ -667,6 +671,10 @@ func (s *Server) handleSendStdin(w http.ResponseWriter, r *http.Request, session
 	}
 
 	stdinErr := session.Service.SendInput(req.Data)
+	if errors.Is(stdinErr, service.ErrInputQueueFull) {
+		writeError(w, http.StatusTooManyRequests, stdinErr.Error())
+		return
+	}
 	if stdinErr != nil {
 		writeError(w, http.StatusInternalServerError, fmt.Sprintf("Failed to send stdin: %v", stdinErr))
 		return

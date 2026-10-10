@@ -103,6 +103,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          description: 64 sessions already exist; destroy one first
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
         '500':
           description: Failed to create session
           content:
@@ -751,6 +757,12 @@ paths:
                 $ref: '#/components/schemas/SuccessResponse'
         '404':
           $ref: '#/components/responses/NotFound'
+        '429':
+          description: The input would take queued, unread stdin past 1 MiB
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 
   /api/v1/config:
     get:

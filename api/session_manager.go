@@ -21,7 +21,12 @@ var (
 	// ErrInvalidFSRoot is returned when a requested filesystem root is not a clean
 	// absolute path to an existing directory
 	ErrInvalidFSRoot = errors.New("fsRoot must be a clean absolute path to an existing directory")
+	// ErrTooManySessions is returned when MaxSessions sessions already exist
+	ErrTooManySessions = errors.New("too many sessions")
 )
+
+// MaxSessions is the most sessions that can exist at once.
+const MaxSessions = 64
 
 // validateFSRoot checks a client-supplied filesystem root.
 func validateFSRoot(root string) error {
@@ -59,6 +64,11 @@ func NewSessionManager(broadcaster *Broadcaster) *SessionManager {
 
 // CreateSession creates a new session with a unique ID
 func (sm *SessionManager) CreateSession(opts SessionCreateRequest) (*Session, error) {
+	// Refuse early to skip the temporary directory; the check under the lock decides.
+	if sm.Count() >= MaxSessions {
+		return nil, ErrTooManySessions
+	}
+
 	// Generate unique session ID
 	sessionID, err := generateSessionID()
 	if err != nil {
@@ -120,8 +130,15 @@ func (sm *SessionManager) CreateSession(opts SessionCreateRequest) (*Session, er
 	sm.mu.Lock()
 	defer sm.mu.Unlock()
 
+	var refusal error
 	if _, exists := sm.sessions[sessionID]; exists {
-		return nil, ErrSessionAlreadyExists
+		refusal = ErrSessionAlreadyExists
+	} else if len(sm.sessions) >= MaxSessions {
+		refusal = ErrTooManySessions
+	}
+	if refusal != nil {
+		destroy(session)
+		return nil, refusal
 	}
 
 	sm.sessions[sessionID] = session

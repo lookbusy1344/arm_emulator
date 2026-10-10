@@ -26,11 +26,16 @@ const (
 	stepsBeforeYield    = 1000   // Yield every N steps during execution
 )
 
+// MaxQueuedInput is the most stdin input, in bytes, that waits for the guest to read it.
+const MaxQueuedInput = 1024 * 1024
+
 var (
 	// ErrExecutionInProgress is returned when guest code is already executing.
 	ErrExecutionInProgress = errors.New("execution in progress")
 	// ErrClosed is returned after Close.
 	ErrClosed = errors.New("debugger service closed")
+	// ErrInputQueueFull is returned when input would exceed MaxQueuedInput.
+	ErrInputQueueFull = errors.New("stdin queue full")
 )
 
 var serviceLog *log.Logger
@@ -1022,15 +1027,20 @@ func (s *DebuggerService) EvaluateExpression(expr string) (uint32, error) {
 // SendInput sends user input to the guest program's stdin.
 // Input sent while nothing runs is queued as-is for the next run (batch pattern).
 // Input sent during execution is echoed to the output and terminated with a newline.
+// Input that would take the queue past MaxQueuedInput is refused with ErrInputQueueFull.
 func (s *DebuggerService) SendInput(input string) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	if s.debugger.Running || s.executing {
-		if s.vm.OutputWriter != nil {
-			_, _ = s.vm.OutputWriter.Write([]byte(input + "\n"))
-		}
+	running := s.debugger.Running || s.executing
+	if running {
 		input += "\n"
+	}
+	if len(s.stdin)+len(input) > MaxQueuedInput {
+		return ErrInputQueueFull
+	}
+	if running && s.vm.OutputWriter != nil {
+		_, _ = s.vm.OutputWriter.Write([]byte(input))
 	}
 	s.stdin = append(s.stdin, input...)
 	s.stdinReady.Broadcast()
