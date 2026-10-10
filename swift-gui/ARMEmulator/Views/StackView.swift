@@ -158,9 +158,9 @@ struct StackView: View {
     private func detectAnnotation(value: UInt32, offset: Int) -> String {
         // Detect likely saved registers
 
-        // Check if it's a code address (in typical code range)
+        // A code-range value on the stack is most likely a saved return address
         if (0x8000 ... 0x10000).contains(value) {
-            return "← Code?"
+            return "← Return addr?"
         }
 
         // Check if it's a stack address
