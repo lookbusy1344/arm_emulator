@@ -29,10 +29,17 @@ enum APIError: Error, LocalizedError {
 class APIClient: APIClientProtocol, @unchecked Sendable {
     private let baseURL: URL
     private let session: URLSession
+    private let token: @Sendable () -> String?
 
-    init(baseURL: URL = URL(string: "http://localhost:8080")!) {
+    init(
+        baseURL: URL = URL(string: "http://localhost:8080")!,
+        session: URLSession = .shared,
+        token: (@Sendable () -> String?)? = nil,
+    ) {
         self.baseURL = baseURL
-        session = URLSession.shared
+        self.session = session
+        let port = baseURL.port ?? BackendToken.defaultPort
+        self.token = token ?? { BackendToken.read(port: port) }
     }
 
     // MARK: - Session Management
@@ -346,6 +353,8 @@ class APIClient: APIClientProtocol, @unchecked Sendable {
     }
 
     private func performRequest<T: Decodable>(request: URLRequest) async throws -> T {
+        var request = request
+        BackendToken.authorize(&request, token: token())
         let (data, response) = try await session.data(for: request)
 
         guard let httpResponse = response as? HTTPURLResponse else {

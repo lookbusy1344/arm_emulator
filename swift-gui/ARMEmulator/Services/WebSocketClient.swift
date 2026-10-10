@@ -12,6 +12,11 @@ class WebSocketClient: NSObject, WebSocketClientProtocol, URLSessionWebSocketDel
     private var isReconnecting = false
     private var retryCount = 0
     private let maxRetries = 5
+    private let token: @Sendable () -> String?
+
+    init(token: @escaping @Sendable () -> String? = { BackendToken.read(port: BackendToken.defaultPort) }) {
+        self.token = token
+    }
 
     var events: AnyPublisher<EmulatorEvent, Never> {
         eventSubject.eraseToAnyPublisher()
@@ -23,8 +28,18 @@ class WebSocketClient: NSObject, WebSocketClientProtocol, URLSessionWebSocketDel
         connectInternal()
     }
 
+    /// The upgrade request, carrying the backend token.
+    func makeRequest() -> URLRequest? {
+        guard let url = URL(string: "ws://localhost:\(BackendToken.defaultPort)/api/v1/ws") else {
+            return nil
+        }
+        var request = URLRequest(url: url)
+        BackendToken.authorize(&request, token: token())
+        return request
+    }
+
     private func connectInternal() {
-        guard let url = URL(string: "ws://localhost:8080/api/v1/ws") else {
+        guard let request = makeRequest() else {
             return
         }
 
@@ -32,7 +47,7 @@ class WebSocketClient: NSObject, WebSocketClientProtocol, URLSessionWebSocketDel
         webSocket?.cancel(with: .goingAway, reason: nil)
 
         session = URLSession(configuration: .default, delegate: self, delegateQueue: OperationQueue())
-        webSocket = session?.webSocketTask(with: url)
+        webSocket = session?.webSocketTask(with: request)
         webSocket?.resume()
 
         if let sessionID = currentSessionID {
