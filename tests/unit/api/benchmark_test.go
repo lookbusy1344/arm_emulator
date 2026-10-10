@@ -85,11 +85,14 @@ main:
 			b.Fatalf("Expected 200, got %d: %s", w.Code, w.Body.String())
 		}
 
-		// Reset for next iteration
+		// Return to the entry point for the next iteration
 		if i < b.N-1 {
-			resetReq := httptest.NewRequest("POST", fmt.Sprintf("/api/v1/session/%s/reset", sessionID), nil)
-			resetW := httptest.NewRecorder()
-			server.Handler().ServeHTTP(resetW, resetReq)
+			restartReq := httptest.NewRequest("POST", fmt.Sprintf("/api/v1/session/%s/restart", sessionID), nil)
+			restartW := httptest.NewRecorder()
+			server.Handler().ServeHTTP(restartW, restartReq)
+			if restartW.Code != http.StatusOK {
+				b.Fatalf("restart: expected 200, got %d: %s", restartW.Code, restartW.Body.String())
+			}
 		}
 	}
 }
@@ -177,13 +180,14 @@ main:
 		}
 
 		// Remove breakpoint
-		deleteReq := httptest.NewRequest("DELETE",
-			fmt.Sprintf("/api/v1/session/%s/breakpoint?address=32768", sessionID), nil)
+		deleteReq := httptest.NewRequest("DELETE", fmt.Sprintf("/api/v1/session/%s/breakpoint", sessionID),
+			bytes.NewBuffer(bodyBytes))
+		deleteReq.Header.Set("Content-Type", "application/json")
 		deleteW := httptest.NewRecorder()
 		server.Handler().ServeHTTP(deleteW, deleteReq)
 
 		if deleteW.Code != http.StatusOK {
-			b.Fatalf("Expected 200, got %d", deleteW.Code)
+			b.Fatalf("Expected 200, got %d: %s", deleteW.Code, deleteW.Body.String())
 		}
 	}
 }
