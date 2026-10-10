@@ -29,6 +29,22 @@ public sealed class BackendManagerTests : IDisposable
 		return script;
 	}
 
+	private string TermMarker => Path.Combine(directory.FullName, "backend.term");
+
+	/// <summary>
+	/// Writes a stand-in backend that records its PID and runs until signalled. With <paramref name="handlesTerm"/> it
+	/// records SIGTERM and exits; otherwise it ignores SIGTERM, like a backend stuck in shutdown.
+	/// </summary>
+	[UnsupportedOSPlatform("windows")]
+	private string WriteSignalAwareBackend(bool handlesTerm)
+	{
+		var script = Path.Combine(directory.FullName, "signal-backend.sh");
+		var trap = handlesTerm ? $"trap 'echo term > \"{TermMarker}\"; exit 0' TERM" : "trap '' TERM";
+		File.WriteAllText(script, $"#!/bin/sh\n{trap}\necho $$ > '{PidFile}'\nwhile :; do sleep 0.05; done\n");
+		File.SetUnixFileMode(script, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
+		return script;
+	}
+
 	private bool FakeBackendIsRunning()
 	{
 		var pid = int.Parse(File.ReadAllText(PidFile).Trim(), System.Globalization.CultureInfo.InvariantCulture);
@@ -172,6 +188,54 @@ public sealed class BackendManagerTests : IDisposable
 		var healthy = await manager.HealthCheckAsync(TestContext.Current.CancellationToken);
 
 		healthy.Should().BeFalse();
+	}
+
+	private const int ProcessTestTimeoutMs = 5000;
+
+	[Fact(Timeout = ProcessTestTimeoutMs)]
+	[UnsupportedOSPlatform("windows")]
+	public async Task StopAsync_SendsSigtermSoTheBackendCanCleanUp()
+	{
+		Assert.SkipWhen(OperatingSystem.IsWindows(), "Signals are POSIX only.");
+		var ct = TestContext.Current.CancellationToken;
+		using var handler = new HealthyWhenHandler(() => File.Exists(PidFile));
+		var backend = WriteSignalAwareBackend(handlesTerm: true);
+		using var manager = new BackendManager("http://localhost:18080", handler, findBinary: () => backend);
+		await manager.StartAsync(ct);
+
+		await manager.StopAsync();
+
+		(await File.ReadAllTextAsync(TermMarker, ct)).Should().Be("term\n");
+		FakeBackendIsRunning().Should().BeFalse();
+		manager.Status.Should().Be(BackendStatus.Stopped);
+	}
+
+	[Fact(Timeout = ProcessTestTimeoutMs)]
+	[UnsupportedOSPlatform("windows")]
+	public async Task StopAsync_KillsABackendThatIgnoresSigterm()
+	{
+		Assert.SkipWhen(OperatingSystem.IsWindows(), "Signals are POSIX only.");
+		var ct = TestContext.Current.CancellationToken;
+		using var handler = new HealthyWhenHandler(() => File.Exists(PidFile));
+		var backend = WriteSignalAwareBackend(handlesTerm: false);
+		using var manager = new BackendManager("http://localhost:18080", handler, findBinary: () => backend) {
+			StopGracePeriod = TimeSpan.FromMilliseconds(200)
+		};
+		await manager.StartAsync(ct);
+
+		await manager.StopAsync();
+
+		FakeBackendIsRunning().Should().BeFalse();
+		manager.Status.Should().Be(BackendStatus.Stopped);
+	}
+
+	/// <summary>Refuses connections until <paramref name="healthy"/> holds, then answers 200.</summary>
+	private sealed class HealthyWhenHandler(Func<bool> healthy) : HttpMessageHandler
+	{
+		protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken) =>
+			healthy()
+				? Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK))
+				: throw new HttpRequestException("Connection refused");
 	}
 
 	/// <summary>Refuses every connection, and cancels <paramref name="cancellation"/> on the first request after <paramref name="when"/> holds.</summary>

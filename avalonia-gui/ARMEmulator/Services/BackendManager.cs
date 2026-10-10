@@ -48,6 +48,9 @@ public sealed class BackendManager : IBackendManager
 
 	public string BaseUrl => baseUrl;
 
+	/// <summary>How long <see cref="StopAsync"/> waits after SIGTERM before killing the backend.</summary>
+	internal TimeSpan StopGracePeriod { get; init; } = TimeSpan.FromSeconds(3);
+
 	/// <summary>
 	/// Command-line arguments that start the backend as an API server on <paramref name="baseUrl"/>'s port.
 	/// </summary>
@@ -125,6 +128,17 @@ public sealed class BackendManager : IBackendManager
 		if (running is null) {
 			statusSubject.OnNext(BackendStatus.Stopped);
 			return;
+		}
+
+		// SIGTERM lets the backend shut down cleanly and remove its token file
+		if (!OperatingSystem.IsWindows() && !running.HasExited && PosixSignal.Terminate(running.Id)) {
+			using var grace = new CancellationTokenSource(StopGracePeriod);
+			try {
+				await running.WaitForExitAsync(grace.Token).ConfigureAwait(false);
+			}
+			catch (OperationCanceledException) {
+				// Still running after the grace period; killed below
+			}
 		}
 
 		try {
