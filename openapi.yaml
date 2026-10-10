@@ -16,6 +16,10 @@ info:
     - Example program library
 
     **Security:** Server binds to localhost only (127.0.0.1) with strict CORS policy.
+    Every request except `GET /health` needs `Authorization: Bearer <token>`. The server
+    writes the token on start to `api-token-<port>` in `~/.config/arm-emu/` (macOS, Linux)
+    or `%APPDATA%\arm-emu\` (Windows), readable only by the owner, and answers `401`
+    without it.
   version: 1.0.0
   contact:
     name: ARM Emulator Project
@@ -52,8 +56,9 @@ paths:
       tags:
         - Health
       summary: Health check
-      description: Returns server health status and session count
+      description: Returns server health status and session count. Needs no token.
       operationId: getHealth
+      security: []
       responses:
         '200':
           description: Server is healthy
@@ -909,6 +914,11 @@ paths:
           description: Switching Protocols (WebSocket upgrade)
 
 components:
+  securitySchemes:
+    bearerToken:
+      type: http
+      scheme: bearer
+      description: Per-launch token from the token file for the server's port
   parameters:
     SessionId:
       name: sessionId
@@ -1421,4 +1431,5 @@ components:
           type: integer
           example: 404
 
-security: []
+security:
+  - bearerToken: []

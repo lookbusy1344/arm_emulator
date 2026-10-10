@@ -5,7 +5,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"net"
 	"net/http"
+	"os"
 	"strings"
 	"sync"
 	"time"
@@ -18,6 +20,7 @@ type Server struct {
 	mux         *http.ServeMux
 	serverMu    sync.Mutex
 	server      *http.Server
+	tokenPath   string // token file Start wrote; Shutdown removes it
 	port        int
 	version     string
 	commit      string
@@ -99,22 +102,48 @@ func (s *Server) registerRoutes() {
 	s.mux.HandleFunc("/api/v1/examples/", s.handleExamplesRoute)
 }
 
-// Start starts the HTTP server
+// Start binds the port, writes a fresh API token to the token file for the port, and
+// serves requests that carry the token. The port is bound first, so a backend that
+// cannot bind leaves the running backend's token file alone.
 func (s *Server) Start() error {
+	ln, err := net.Listen("tcp", fmt.Sprintf("127.0.0.1:%d", s.port))
+	if err != nil {
+		return err
+	}
+	token, err := GenerateToken()
+	if err != nil {
+		_ = ln.Close()
+		return err
+	}
+	tokenPath, err := TokenPath(s.port)
+	if err != nil {
+		_ = ln.Close()
+		return err
+	}
+
 	srv := &http.Server{
-		Addr:         fmt.Sprintf("127.0.0.1:%d", s.port),
-		Handler:      LoopbackHostOnly(s.Handler()),
+		Handler:      LoopbackHostOnly(RequireToken(token, s.Handler())),
 		ReadTimeout:  15 * time.Second,
 		WriteTimeout: 15 * time.Second,
 		IdleTimeout:  60 * time.Second,
 	}
 
+	// Clients may call as soon as the token file exists, so Shutdown must already
+	// see the server; holding the lock across the write orders the two.
 	s.serverMu.Lock()
-	s.server = srv
+	err = WriteTokenFile(tokenPath, token)
+	if err == nil {
+		s.server = srv
+		s.tokenPath = tokenPath
+	}
 	s.serverMu.Unlock()
+	if err != nil {
+		_ = ln.Close()
+		return err
+	}
 
-	log.Printf("API server starting on http://127.0.0.1:%d (version: %s, commit: %s, built: %s)", s.port, s.version, s.commit, s.date)
-	return srv.ListenAndServe()
+	log.Printf("API server starting on http://127.0.0.1:%d (version: %s, commit: %s, built: %s), token file %s", s.port, s.version, s.commit, s.date, tokenPath)
+	return srv.Serve(ln)
 }
 
 // Shutdown gracefully shuts down the server, then destroys every session
@@ -125,11 +154,14 @@ func (s *Server) Shutdown(ctx context.Context) error {
 	}
 
 	s.serverMu.Lock()
-	srv := s.server
+	srv, tokenPath := s.server, s.tokenPath
 	s.serverMu.Unlock()
 	var err error
 	if srv != nil {
 		err = srv.Shutdown(ctx)
+	}
+	if tokenPath != "" {
+		_ = os.Remove(tokenPath)
 	}
 	s.sessions.DestroyAll()
 	return err

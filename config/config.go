@@ -99,39 +99,37 @@ func DefaultConfig() *Config {
 	return cfg
 }
 
-// GetConfigPath returns the platform-specific config file path
-func GetConfigPath() string {
-	var configDir string
-
+// UserDir returns the per-user arm-emu directory: %APPDATA%\arm-emu on Windows and
+// ~/.config/arm-emu on macOS and Linux. It does not create the directory.
+func UserDir() (string, error) {
 	switch runtime.GOOS {
 	case "windows":
-		// Windows: %APPDATA%\arm-emu\config.toml
-		configDir = os.Getenv("APPDATA")
-		if configDir == "" {
-			configDir = filepath.Join(os.Getenv("USERPROFILE"), "AppData", "Roaming")
+		appData := os.Getenv("APPDATA")
+		if appData == "" {
+			appData = filepath.Join(os.Getenv("USERPROFILE"), "AppData", "Roaming")
 		}
-		configDir = filepath.Join(configDir, "arm-emu")
-
+		return filepath.Join(appData, "arm-emu"), nil
 	case "darwin", "linux":
-		// macOS/Linux: ~/.config/arm-emu/config.toml
 		homeDir, err := os.UserHomeDir()
 		if err != nil {
-			// Fallback to current directory
-			return "config.toml"
+			return "", err
 		}
-		configDir = filepath.Join(homeDir, ".config", "arm-emu")
-
+		return filepath.Join(homeDir, ".config", "arm-emu"), nil
 	default:
-		// Unknown platform: use current directory
+		return "", fmt.Errorf("no per-user directory on %s", runtime.GOOS)
+	}
+}
+
+// GetConfigPath returns the platform-specific config file path, or config.toml in the
+// current directory when the per-user directory is unavailable.
+func GetConfigPath() string {
+	configDir, err := UserDir()
+	if err != nil {
 		return "config.toml"
 	}
-
-	// Ensure directory exists
 	if err := os.MkdirAll(configDir, 0750); err != nil { // #nosec G703 -- path derived from OS-provided home dir, not user input
-		// If we can't create the directory, fall back to current directory
 		return "config.toml"
 	}
-
 	return filepath.Join(configDir, "config.toml")
 }
 

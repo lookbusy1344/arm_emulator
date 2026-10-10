@@ -24,6 +24,9 @@ The API server provides a RESTful HTTP interface with JSON payloads, allowing mu
 
 # Custom port
 ./arm-emulator --api-server --port 3000
+
+# Call it with the token the server wrote for its port
+curl -H "Authorization: Bearer $(cat ~/.config/arm-emu/api-token-8080)" http://localhost:8080/api/v1/session
 ```
 
 ### Automatic Start (Swift macOS app)
@@ -72,8 +75,11 @@ Example: `http://localhost:8080/api/v1/session`
 - Web-based GUIs must run on localhost
 
 **Authentication:**
-- Currently none - localhost-only binding + strict CORS provides security
-- Future: API key or token-based auth for optional remote access
+- On start the server writes a random token to `api-token-<port>` in the per-user directory: `~/.config/arm-emu/` on macOS and Linux, `%APPDATA%\arm-emu\` on Windows. The file is readable only by the owner and is removed on shutdown.
+- The server binds the port before writing the file, so a second server that fails to bind leaves the running server's token alone.
+- Every request except `GET /health` must send `Authorization: Bearer <token>`, including the WebSocket upgrade. Without it the server answers `401` with `WWW-Authenticate: Bearer`.
+- The Swift and Avalonia GUIs read the token file before each request, so a restarted backend's new token is used.
+- Browser pages cannot read the token file and cannot set the header on a WebSocket, so a local web page cannot drive the API.
 
 ## Endpoints
 

@@ -26,9 +26,9 @@ public sealed class BackendWebSocketIntegrationTests
 	public async Task Step_BroadcastsAStateEventWithRegisters()
 	{
 		var ct = TestContext.Current.CancellationToken;
-		using var http = new HttpClient { BaseAddress = BackendAvailability.BaseUri };
+		using var http = BackendAvailability.CreateHttpClient();
 		var api = new ApiClient(http);
-		using var client = new WebSocketClient(BackendEndpoints.WebSocketUri(BackendAvailability.BaseUri).ToString());
+		using var client = BackendAvailability.CreateWebSocketClient();
 		var stepped = new TaskCompletionSource<StateEvent>(TaskCreationOptions.RunContinuationsAsynchronously);
 		using var subscription = client.Events
 			.OfType<StateEvent>()

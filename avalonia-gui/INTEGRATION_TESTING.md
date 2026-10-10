@@ -44,8 +44,10 @@ Keep this terminal open while running integration tests.
 ### 3. Verify Backend is Running
 
 ```bash
-curl http://localhost:8080/api/v1/version
+curl -H "Authorization: Bearer $(cat ~/.config/arm-emu/api-token-8080)" http://localhost:8080/api/v1/version
 ```
+
+The tests read the same token file, so run them as the user who started the backend.
 
 **Expected Response**:
 ```json
@@ -301,7 +303,7 @@ To run integration tests in CI:
 
 - name: Wait for Backend
   run: |
-    timeout 30 bash -c 'until curl -s http://localhost:8080/api/v1/version; do sleep 1; done'
+    timeout 30 bash -c 'until curl -sf http://localhost:8080/health; do sleep 1; done'
 ```
 
 2. **Enable Integration Tests**:

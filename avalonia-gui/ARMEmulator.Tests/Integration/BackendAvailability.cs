@@ -1,3 +1,5 @@
+using ARMEmulator.Services;
+
 namespace ARMEmulator.Tests.Integration;
 
 /// <summary>Probes the backend once so integration tests skip when it is not running.</summary>
@@ -27,4 +29,18 @@ internal static class BackendAvailability
 	public const string SkipReason = "Requires running backend at localhost:8080 (./arm-emulator -api-server), or set ARM_EMULATOR_URL";
 
 	public static bool IsRunning => Probe.Value;
+
+	/// <summary>Reads the running backend's API token afresh.</summary>
+	public static string? ReadToken() =>
+		BackendToken.Read(BackendToken.FilePath(BackendToken.GetDefaultConfigDirectory(), BaseUri.Port));
+
+	/// <summary>An HTTP client for the backend under test that sends its API token.</summary>
+#pragma warning disable CA2000 // The HttpClient owns the handler chain and disposes it
+	public static HttpClient CreateHttpClient() =>
+		new(new BackendTokenHandler(ReadToken) { InnerHandler = new HttpClientHandler() }) { BaseAddress = BaseUri };
+#pragma warning restore CA2000
+
+	/// <summary>A WebSocket client for the backend under test that sends its API token.</summary>
+	public static WebSocketClient CreateWebSocketClient() =>
+		new(BackendEndpoints.WebSocketUri(BaseUri).ToString(), new AuthorizedWebSocketFactory(ReadToken));
 }

@@ -21,10 +21,8 @@ public sealed class BackendIntegrationTests : IDisposable
 
 	public BackendIntegrationTests()
 	{
-		_httpClient = new HttpClient {
-			BaseAddress = BackendAvailability.BaseUri,
-			Timeout = TimeSpan.FromSeconds(5)
-		};
+		_httpClient = BackendAvailability.CreateHttpClient();
+		_httpClient.Timeout = TimeSpan.FromSeconds(5);
 		_apiClient = new ApiClient(_httpClient);
 		_cts = new CancellationTokenSource();
 	}
