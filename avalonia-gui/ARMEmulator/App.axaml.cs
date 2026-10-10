@@ -42,8 +42,10 @@ public partial class App : Application
 		var backend = new BackendManager(settings.BackendUrl);
 		var themeDetector = new PlatformThemeDetector();
 		var themeService = new ThemeService(themeDetector);
-		var http = new HttpClient { BaseAddress = baseUri };
-		var ws = new WebSocketClient(BackendEndpoints.WebSocketUri(baseUri).ToString());
+		var tokenPath = BackendToken.FilePath(BackendToken.GetDefaultConfigDirectory(), baseUri.Port);
+		string? ReadToken() => BackendToken.Read(tokenPath);
+		var http = new HttpClient(new BackendTokenHandler(ReadToken) { InnerHandler = new HttpClientHandler() }) { BaseAddress = baseUri };
+		var ws = new WebSocketClient(BackendEndpoints.WebSocketUri(baseUri).ToString(), new AuthorizedWebSocketFactory(ReadToken));
 #pragma warning restore CA2000
 		var fileService = new FileService { RecentFilesLimit = settings.RecentFilesLimit };
 		fileService.LoadRecentFiles(settings.RecentFiles);
