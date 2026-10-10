@@ -69,7 +69,7 @@ cat > "$OUTPUT_DIR/$APP_NAME.app/Contents/Info.plist" << EOF
     <key>CFBundleInfoDictionaryVersion</key>
     <string>6.0</string>
     <key>CFBundleName</key>
-    <string>ARMEmulator</string>
+    <string>ARM Emulator</string>
     <key>CFBundlePackageType</key>
     <string>APPL</string>
     <key>CFBundleShortVersionString</key>
