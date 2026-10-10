@@ -193,13 +193,22 @@ func (s *DebuggerService) LoadProgram(program *parser.Program, entryPoint uint32
 	defer s.mu.Unlock()
 	s.stopExecutionLocked()
 
-	// Start from a clean machine. Keep the configured stack top and the diagnostics
-	// the client enabled; vm.Reset clears both.
+	// Drop queued input, including bytes the VM has already buffered
+	s.stdin = nil
+	s.vm.SetStdinReader(stdinSource{s})
+
+	return s.loadLocked(program, entryPoint)
+}
+
+// loadLocked puts the program into a clean machine: registers, memory, heap and guest
+// files start fresh. Queued input, breakpoints and watchpoints are kept. The caller
+// holds s.mu and has stopped execution.
+func (s *DebuggerService) loadLocked(program *parser.Program, entryPoint uint32) error {
+	// Keep the configured stack top and the diagnostics the client enabled; vm.Reset
+	// clears both.
 	stackTop, trace, stats := s.vm.StackTop, s.vm.ExecutionTrace, s.vm.Statistics
 	s.vm.Reset()
 	s.vm.StackTop, s.vm.ExecutionTrace, s.vm.Statistics = stackTop, trace, stats
-	s.stdin = nil
-	s.vm.SetStdinReader(stdinSource{s})
 
 	s.program = program
 	s.entryPoint = entryPoint
@@ -366,8 +375,8 @@ func (s *DebuggerService) Reset() error {
 	return nil
 }
 
-// ResetToEntryPoint resets VM to program entry point without clearing the loaded program
-// This is useful for restarting execution of the current program
+// ResetToEntryPoint reloads the current program so it runs again from a clean machine.
+// Breakpoints, watchpoints and queued input are kept.
 func (s *DebuggerService) ResetToEntryPoint() error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -381,14 +390,7 @@ func (s *DebuggerService) ResetToEntryPoint() error {
 		return nil
 	}
 
-	// Reset registers and execution state but preserve memory contents
-	if err := s.vm.ResetRegisters(); err != nil {
-		return fmt.Errorf("failed to reset registers: %w", err)
-	}
-	s.debugger.Running = false
-	s.atEntry = true
-
-	return nil
+	return s.loadLocked(s.program, s.entryPoint)
 }
 
 // GetExecutionState returns current execution state
