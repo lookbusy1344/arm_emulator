@@ -10,7 +10,15 @@ class CustomGutterView: NSView {
     private var currentLine: Int?
     private var onBreakpointToggle: ((Int) -> Void)?
 
-    private let gutterWidth: CGFloat = 50
+    static let gutterWidth: CGFloat = 64
+    private var gutterWidth: CGFloat {
+        Self.gutterWidth
+    }
+
+    private let arrowMargin: CGFloat = 4
+    private let arrowSize: CGFloat = 8
+    private let lineNumberMinX: CGFloat = 14
+    private let lineNumberTrailingInset: CGFloat = 16
     private let breakpointMargin: CGFloat = 8
     private let breakpointSize: CGFloat = 10
 
@@ -153,7 +161,12 @@ class CustomGutterView: NSView {
         attributes: [NSAttributedString.Key: Any],
     ) {
         let lineNumberString = "\(lineNumber)" as NSString
-        let rect = NSRect(x: 5, y: yPos, width: gutterWidth - 20, height: lineHeight)
+        let rect = NSRect(
+            x: lineNumberMinX,
+            y: yPos,
+            width: gutterWidth - lineNumberMinX - lineNumberTrailingInset,
+            height: lineHeight,
+        )
         lineNumberString.draw(in: rect, withAttributes: attributes)
     }
 
@@ -168,8 +181,7 @@ class CustomGutterView: NSView {
         #endif
 
         // Draw arrow pointing to current line
-        let arrowSize: CGFloat = 8
-        let arrowX = gutterWidth - breakpointMargin - breakpointSize - arrowSize - 2
+        let arrowX = arrowMargin
         let arrowY = yPos + (lineHeight - arrowSize) / 2
 
         let arrow = NSBezierPath()

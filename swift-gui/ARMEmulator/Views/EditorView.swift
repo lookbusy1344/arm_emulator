@@ -236,7 +236,7 @@ struct EditorWithGutterView: NSViewRepresentable {
             gutterView.leadingAnchor.constraint(equalTo: containerView.leadingAnchor),
             gutterView.topAnchor.constraint(equalTo: containerView.topAnchor),
             gutterView.bottomAnchor.constraint(equalTo: containerView.bottomAnchor),
-            gutterView.widthAnchor.constraint(equalToConstant: 50),
+            gutterView.widthAnchor.constraint(equalToConstant: CustomGutterView.gutterWidth),
 
             // Scroll view fills remaining space
             scrollView.leadingAnchor.constraint(equalTo: gutterView.trailingAnchor),
