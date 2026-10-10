@@ -395,15 +395,18 @@ func (s *DebuggerService) ResetToEntryPoint() error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.stopExecutionLocked()
+	return s.restartLocked()
+}
 
+// restartLocked reloads the current program, or resets the VM when none is loaded.
+// The caller holds s.mu and has stopped execution.
+func (s *DebuggerService) restartLocked() error {
 	if s.program == nil {
-		// No program loaded, perform full reset
 		s.vm.Reset()
 		s.vm.State = vm.StateHalted
 		s.debugger.Running = false
 		return nil
 	}
-
 	return s.loadLocked(s.program, s.entryPoint)
 }
 
@@ -572,6 +575,50 @@ func (s *DebuggerService) RunUntilHalt() error {
 	if err := s.beginExecutionLocked(); err != nil {
 		return err
 	}
+	defer s.endExecutionLocked()
+	if resuming {
+		s.debugger.ResumeFromCurrentPC()
+	}
+	return s.runLocked()
+}
+
+// StartRun claims the VM and runs the program in a new goroutine until it halts, hits
+// a breakpoint or is stopped. A halted or failed program restarts from its entry point
+// first. The goroutine calls onStart before it executes guest code and onDone with the
+// result after it releases the VM; neither runs with the service lock held.
+// StartRun returns ErrExecutionInProgress or ErrClosed without starting.
+func (s *DebuggerService) StartRun(onStart func(), onDone func(error)) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.closed {
+		return ErrClosed
+	}
+	if s.executing {
+		return ErrExecutionInProgress
+	}
+	if s.vm.State == vm.StateHalted || s.vm.State == vm.StateError {
+		if err := s.restartLocked(); err != nil {
+			return err
+		}
+	}
+	resuming := !s.atEntry
+	if err := s.beginExecutionLocked(); err != nil {
+		return err
+	}
+	s.debugger.Running = true
+	s.vm.State = vm.StateRunning
+
+	go func() {
+		onStart()
+		onDone(s.runClaimed(resuming))
+	}()
+	return nil
+}
+
+// runClaimed runs guest code for a StartRun that has already claimed execution.
+func (s *DebuggerService) runClaimed(resuming bool) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
 	defer s.endExecutionLocked()
 	if resuming {
 		s.debugger.ResumeFromCurrentPC()

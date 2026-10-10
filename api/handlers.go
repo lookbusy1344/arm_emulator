@@ -184,37 +184,21 @@ func (s *Server) handleRun(w http.ResponseWriter, r *http.Request, sessionID str
 	// Capture service pointer to avoid race with DestroySession
 	svc := session.Service
 
-	// If program is halted or in error state, reset to entry point for re-run
-	state := svc.GetExecutionState()
-	if state == service.StateHalted || state == service.StateError {
-		if err := svc.ResetToEntryPoint(); err != nil {
-			writeError(w, http.StatusInternalServerError, fmt.Sprintf("Failed to reset: %v", err))
-			return
-		}
+	onStart := func() {
+		regs := svc.GetRegisterState()
+		s.broadcastStateChange(sessionID, &regs, service.StateRunning)
 	}
-
-	// Set running state synchronously BEFORE launching goroutine
-	// This ensures the frontend can immediately observe the state change
-	// and RunUntilHalt() will proceed with execution
-	svc.SetRunning(true)
-
-	// Broadcast initial state change (status: running)
-	regs := svc.GetRegisterState()
-	broadcastState := svc.GetExecutionState()
-	s.broadcastStateChange(sessionID, &regs, broadcastState)
-
-	// Run the program asynchronously
-	go func() {
-		runErr := svc.RunUntilHalt()
+	onDone := func(runErr error) {
 		if runErr != nil && s.broadcaster != nil {
 			s.broadcaster.BroadcastExecutionEvent(sessionID, "error", map[string]interface{}{"message": runErr.Error()})
 		}
-
-		// Broadcast final state after execution completes
-		finalRegs := svc.GetRegisterState()
-		finalState := svc.GetExecutionState()
-		s.broadcastStateChange(sessionID, &finalRegs, finalState)
-	}()
+		regs := svc.GetRegisterState()
+		s.broadcastStateChange(sessionID, &regs, svc.GetExecutionState())
+	}
+	if err := svc.StartRun(onStart, onDone); err != nil {
+		writeError(w, executionErrorStatus(err), fmt.Sprintf("Run failed: %v", err))
+		return
+	}
 
 	writeJSON(w, http.StatusOK, SuccessResponse{
 		Success: true,

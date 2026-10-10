@@ -93,3 +93,47 @@ func TestDestroySessionStopsExecution(t *testing.T) {
 		t.Errorf("expected ErrClosed after destroy, got %v", err)
 	}
 }
+
+func TestRunWhileRunningConflicts(t *testing.T) {
+	server := testServer()
+	sessionID := createTestSession(t, server)
+	loadProgram(t, server, sessionID, spinLoop)
+	session, err := server.GetSession(sessionID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	svc := session.Service
+	runPath := fmt.Sprintf("/api/v1/session/%s/run", sessionID)
+
+	if w := post(t, server.Handler(), runPath); w.Code != http.StatusOK {
+		t.Fatalf("first run: status %d", w.Code)
+	}
+	w := post(t, server.Handler(), runPath)
+
+	if w.Code != http.StatusConflict {
+		t.Errorf("second run: expected 409, got %d: %s", w.Code, w.Body.String())
+	}
+	if !svc.IsRunning() {
+		t.Error("first run stopped after the rejected second run")
+	}
+	if w := post(t, server.Handler(), fmt.Sprintf("/api/v1/session/%s/stop", sessionID)); w.Code != http.StatusOK {
+		t.Fatalf("stop: status %d", w.Code)
+	}
+}
+
+func TestRunAfterDestroyIsGone(t *testing.T) {
+	server := testServer()
+	sessionID := createTestSession(t, server)
+	loadProgram(t, server, sessionID, spinLoop)
+	session, err := server.GetSession(sessionID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	session.Service.Close()
+
+	w := post(t, server.Handler(), fmt.Sprintf("/api/v1/session/%s/run", sessionID))
+
+	if w.Code != http.StatusGone {
+		t.Errorf("run after close: expected 410, got %d: %s", w.Code, w.Body.String())
+	}
+}

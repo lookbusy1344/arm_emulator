@@ -192,7 +192,7 @@ paths:
       tags:
         - Execution
       summary: Start execution
-      description: Starts program execution asynchronously (non-blocking)
+      description: Starts program execution asynchronously (non-blocking). A halted or failed program restarts from its entry point with a freshly loaded image.
       operationId: runProgram
       parameters:
         - $ref: '#/components/parameters/SessionId'
@@ -205,6 +205,18 @@ paths:
                 $ref: '#/components/schemas/SuccessResponse'
         '404':
           $ref: '#/components/responses/NotFound'
+        '409':
+          description: Guest code is already executing
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '410':
+          description: The session is being destroyed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
 
   /api/v1/session/{sessionId}/stop:
     post:
