@@ -41,6 +41,7 @@ type Broadcaster struct {
 	register      chan *Subscription
 	unregister    chan *Subscription
 	done          chan struct{}
+	closeOnce     sync.Once
 }
 
 // NewBroadcaster creates and starts a new event broadcaster
@@ -120,13 +121,22 @@ func (b *Broadcaster) Subscribe(sessionID string, eventTypes []EventType) *Subsc
 		queue:      queue,
 	}
 
-	b.register <- sub
+	select {
+	case b.register <- sub:
+	case <-b.done:
+		// Closed: hand back a subscription that delivers nothing
+		close(sub.Channel)
+	}
 	return sub
 }
 
-// Unsubscribe removes a subscription and closes its channel
+// Unsubscribe removes a subscription and closes its channel. After Close it does
+// nothing, because Close has closed every subscription.
 func (b *Broadcaster) Unsubscribe(sub *Subscription) {
-	b.unregister <- sub
+	select {
+	case b.unregister <- sub:
+	case <-b.done:
+	}
 }
 
 // Broadcast sends an event to all matching subscriptions
@@ -258,9 +268,9 @@ func (b *Broadcaster) BroadcastExecutionEvent(sessionID string, eventName string
 	})
 }
 
-// Close shuts down the broadcaster and closes all subscriptions
+// Close shuts down the broadcaster and closes all subscriptions. Later calls do nothing.
 func (b *Broadcaster) Close() {
-	close(b.done)
+	b.closeOnce.Do(func() { close(b.done) })
 }
 
 // SubscriptionCount returns the number of active subscriptions
