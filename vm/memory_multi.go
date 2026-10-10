@@ -75,6 +75,7 @@ func ExecuteLoadStoreMultiple(vm *VM, inst *Instruction) error {
 	}
 
 	// Process each register in the list
+	startAddr := addr
 	pcLoaded := false
 	for i := 0; i < 16; i++ {
 		if (regList & (1 << i)) == 0 {
@@ -118,14 +119,17 @@ func ExecuteLoadStoreMultiple(vm *VM, inst *Instruction) error {
 				return fmt.Errorf("store multiple failed at 0x%08X: %w", addr, err)
 			}
 
-			// Track last memory write for GUI
-			vm.LastMemoryWrite = addr
-			vm.HasMemoryWrite = true
-
 			vm.recordMemoryAccess(true, addr, value, "WORD", MultiRegisterWordSize)
 		}
 
 		addr += MultiRegisterWordSize
+	}
+
+	// Track the stored block for GUI highlighting
+	if load == 0 {
+		vm.LastMemoryWrite = startAddr
+		vm.LastMemoryWriteSize = regOffset
+		vm.HasMemoryWrite = true
 	}
 
 	// Write back to base register if requested. When an LDM loads the base, the

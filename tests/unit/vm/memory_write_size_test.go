@@ -137,3 +137,37 @@ func TestMemoryWriteSize_ClearedOnReset(t *testing.T) {
 		t.Errorf("expected LastMemoryWriteSize=0 after reset, got %d", v.LastMemoryWriteSize)
 	}
 }
+
+// STM reports the whole block it stored, from its lowest address.
+func TestSTM_TracksWrittenBlock(t *testing.T) {
+	tests := []struct {
+		name     string
+		opcode   uint32
+		base     uint32
+		wantAddr uint32
+		wantSize uint32
+	}{
+		// STMDB SP!, {R0-R2}: three words below 0x50000
+		{"STMDB", 0xE92D0007, 0x50000, 0x4FFF4, 12},
+		// STMIA R1, {R0, R2}: two words from 0x20000
+		{"STMIA", 0xE8810005, 0x20000, 0x20000, 8},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			v := vm.NewVM()
+			v.CPU.R[1] = tc.base
+			v.CPU.R[vm.SP] = tc.base
+			v.CPU.PC = 0x8000
+			v.LastMemoryWriteSize = 1 // left by an earlier STRB
+			setupCodeWrite(v)
+			mustWriteWord(t, v, 0x8000, tc.opcode)
+
+			mustStep(t, v)
+
+			if !v.HasMemoryWrite || v.LastMemoryWrite != tc.wantAddr || v.LastMemoryWriteSize != tc.wantSize {
+				t.Errorf("write = (%v, 0x%X, %d), want (true, 0x%X, %d)",
+					v.HasMemoryWrite, v.LastMemoryWrite, v.LastMemoryWriteSize, tc.wantAddr, tc.wantSize)
+			}
+		})
+	}
+}
