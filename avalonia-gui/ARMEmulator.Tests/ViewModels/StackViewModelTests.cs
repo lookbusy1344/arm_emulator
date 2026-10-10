@@ -103,7 +103,7 @@ public class StackViewModelTests : IDisposable
 		await viewModel.RefreshStackAsync();
 
 		// Assert
-		viewModel.StackEntries.Should().Contain(e => e.Annotation == "code address");
+		viewModel.StackEntries.Should().Contain(e => e.Annotation == "Return addr?");
 	}
 
 	[Fact]

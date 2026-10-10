@@ -197,7 +197,7 @@ public sealed class StackViewModel : ReactiveObject, IDisposable
 
 		// Check if value is in code range
 		if (value >= CodeStart && value < CodeEnd) {
-			return "code address";
+			return "Return addr?";
 		}
 
 		// Check if value is in stack range
