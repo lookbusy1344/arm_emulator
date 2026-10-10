@@ -1,7 +1,9 @@
 package vm
 
 import (
+	"cmp"
 	"fmt"
+	"slices"
 )
 
 // Memory access permissions
@@ -33,6 +35,11 @@ type Memory struct {
 	WriteCount      uint64
 	HeapAllocations map[uint32]*HeapAllocation
 	NextHeapAddress uint32
+
+	// freeBlocks holds freed heap blocks below NextHeapAddress, sorted by address.
+	// Adjacent blocks are merged, and a block that reaches NextHeapAddress is
+	// returned to the unallocated top.
+	freeBlocks []HeapAllocation
 }
 
 // NewMemory creates and initializes a new Memory instance
@@ -403,8 +410,7 @@ func (m *Memory) Reset() {
 	m.AccessCount = 0
 	m.ReadCount = 0
 	m.WriteCount = 0
-	m.HeapAllocations = make(map[uint32]*HeapAllocation)
-	m.NextHeapAddress = HeapSegmentStart
+	m.ResetHeap()
 }
 
 // CheckExecutePermission checks if an address has execute permission
@@ -458,18 +464,18 @@ func (m *Memory) Allocate(size uint32) (uint32, error) {
 		size = aligned
 	}
 
-	// Check for overflow in m.NextHeapAddress + size
-	if size > Address32BitMax-m.NextHeapAddress {
-		return 0, fmt.Errorf("allocation size causes address overflow")
+	addr, ok := m.takeFreeBlock(size)
+	if !ok {
+		// Check for overflow in m.NextHeapAddress + size
+		if size > Address32BitMax-m.NextHeapAddress {
+			return 0, fmt.Errorf("allocation size causes address overflow")
+		}
+		if m.NextHeapAddress+size > HeapSegmentStart+HeapSegmentSize {
+			return 0, fmt.Errorf("out of heap memory")
+		}
+		addr = m.NextHeapAddress
+		m.NextHeapAddress += size
 	}
-
-	// Check if we have space
-	if m.NextHeapAddress+size >= HeapSegmentStart+HeapSegmentSize {
-		return 0, fmt.Errorf("out of heap memory")
-	}
-
-	addr := m.NextHeapAddress
-	m.NextHeapAddress += size
 
 	// Track allocation
 	m.HeapAllocations[addr] = &HeapAllocation{
@@ -504,11 +510,58 @@ func (m *Memory) Free(address uint32) error {
 		_ = m.WriteByteAt(address+i, 0) // Ignore error - address is guaranteed valid
 	}
 
+	m.releaseBlock(*alloc)
 	return nil
+}
+
+// takeFreeBlock carves size bytes from the first free block large enough.
+func (m *Memory) takeFreeBlock(size uint32) (uint32, bool) {
+	i := slices.IndexFunc(m.freeBlocks, func(b HeapAllocation) bool { return b.Size >= size })
+	if i < 0 {
+		return 0, false
+	}
+	block := &m.freeBlocks[i]
+	addr := block.Address
+	if block.Size == size {
+		m.freeBlocks = slices.Delete(m.freeBlocks, i, i+1)
+	} else {
+		block.Address += size
+		block.Size -= size
+	}
+	return addr, true
+}
+
+// releaseBlock adds a freed block to the free list, merging it with its neighbours
+// and with the unallocated top.
+func (m *Memory) releaseBlock(block HeapAllocation) {
+	i, _ := slices.BinarySearchFunc(m.freeBlocks, block.Address, func(b HeapAllocation, addr uint32) int {
+		return cmp.Compare(b.Address, addr)
+	})
+	m.freeBlocks = slices.Insert(m.freeBlocks, i, block)
+
+	if i+1 < len(m.freeBlocks) && adjacent(m.freeBlocks[i], m.freeBlocks[i+1]) {
+		m.freeBlocks[i].Size += m.freeBlocks[i+1].Size
+		m.freeBlocks = slices.Delete(m.freeBlocks, i+1, i+2)
+	}
+	if i > 0 && adjacent(m.freeBlocks[i-1], m.freeBlocks[i]) {
+		m.freeBlocks[i-1].Size += m.freeBlocks[i].Size
+		m.freeBlocks = slices.Delete(m.freeBlocks, i, i+1)
+	}
+
+	if last := len(m.freeBlocks) - 1; last >= 0 && m.freeBlocks[last].Address+m.freeBlocks[last].Size == m.NextHeapAddress {
+		m.NextHeapAddress = m.freeBlocks[last].Address
+		m.freeBlocks = m.freeBlocks[:last]
+	}
+}
+
+// adjacent reports whether block b starts where block a ends.
+func adjacent(a, b HeapAllocation) bool {
+	return a.Address+a.Size == b.Address
 }
 
 // ResetHeap resets the heap allocator
 func (m *Memory) ResetHeap() {
 	m.HeapAllocations = make(map[uint32]*HeapAllocation)
 	m.NextHeapAddress = HeapSegmentStart
+	m.freeBlocks = nil
 }
