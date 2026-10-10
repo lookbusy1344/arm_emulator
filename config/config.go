@@ -2,6 +2,7 @@ package config
 
 import (
 	"fmt"
+	"io"
 	"log"
 	"os"
 	"path/filepath"
@@ -229,4 +230,24 @@ func (c *Config) SaveTo(path string) error {
 	}
 
 	return nil
+}
+
+// debugEnv turns on debug logging when set to any non-empty value.
+const debugEnv = "ARM_EMULATOR_DEBUG"
+
+// DebugLogger returns a logger that appends to name in the log directory when
+// ARM_EMULATOR_DEBUG is set, and discards output otherwise. The log directory is
+// per user, so another account cannot plant a file or symlink at the log path.
+// The file stays open for the life of the process.
+func DebugLogger(name, prefix string) *log.Logger {
+	if os.Getenv(debugEnv) == "" {
+		return log.New(io.Discard, "", 0)
+	}
+	const flags = log.Ltime | log.Lmicroseconds | log.Lshortfile
+	path := filepath.Join(GetLogPath(), name)
+	f, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0600) // #nosec G304 -- fixed name in the per-user log directory
+	if err != nil {
+		return log.New(os.Stderr, prefix, flags)
+	}
+	return log.New(f, prefix, flags)
 }

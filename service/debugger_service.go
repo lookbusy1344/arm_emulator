@@ -4,14 +4,12 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"io"
-	"log"
 	"os"
-	"path/filepath"
 	"slices"
 	"sync"
 	"time"
 
+	"github.com/lookbusy1344/arm-emulator/config"
 	"github.com/lookbusy1344/arm-emulator/debugger"
 	"github.com/lookbusy1344/arm-emulator/loader"
 	"github.com/lookbusy1344/arm-emulator/parser"
@@ -38,26 +36,7 @@ var (
 	ErrInputQueueFull = errors.New("stdin queue full")
 )
 
-var serviceLog *log.Logger
-
-func init() {
-	// Check if debug logging is enabled via environment variable
-	if os.Getenv("ARM_EMULATOR_DEBUG") != "" {
-		// Create debug log file.
-		// Note: File handle intentionally not closed - kept open for process lifetime.
-		// This is acceptable for debug logging; the OS cleans up on process exit.
-		logPath := filepath.Join(os.TempDir(), "arm-emulator-service-debug.log")
-		f, err := os.OpenFile(logPath, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0600) // #nosec G304 -- fixed filename in temp dir
-		if err != nil {
-			serviceLog = log.New(os.Stderr, "SERVICE: ", log.Ltime|log.Lmicroseconds|log.Lshortfile)
-		} else {
-			serviceLog = log.New(f, "SERVICE: ", log.Ltime|log.Lmicroseconds|log.Lshortfile)
-		}
-	} else {
-		// Disable logging by default
-		serviceLog = log.New(io.Discard, "", 0)
-	}
-}
+var serviceLog = config.DebugLogger("arm-emulator-service-debug.log", "SERVICE: ")
 
 // DebuggerService provides a thread-safe interface to debugger functionality
 // This service is shared by TUI, API/GUI frontends, and CLI interfaces
