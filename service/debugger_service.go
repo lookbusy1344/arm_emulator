@@ -209,6 +209,7 @@ func (s *DebuggerService) loadLocked(program *parser.Program, entryPoint uint32)
 	stackTop, trace, stats := s.vm.StackTop, s.vm.ExecutionTrace, s.vm.Statistics
 	s.vm.Reset()
 	s.vm.StackTop, s.vm.ExecutionTrace, s.vm.Statistics = stackTop, trace, stats
+	s.clearOutputLocked()
 
 	s.program = program
 	s.entryPoint = entryPoint
@@ -286,6 +287,18 @@ func (s *DebuggerService) loadLocked(program *parser.Program, entryPoint uint32)
 	return nil
 }
 
+// outputCapture is an output writer that keeps a copy of the program's output, such
+// as the API console buffer or the buffer GetOutput reads.
+type outputCapture interface{ Reset() }
+
+// clearOutputLocked discards captured output so it holds only the next run's output.
+// The caller holds s.mu.
+func (s *DebuggerService) clearOutputLocked() {
+	if c, ok := s.vm.OutputWriter.(outputCapture); ok {
+		c.Reset()
+	}
+}
+
 // GetRegisterState returns current register state (thread-safe)
 func (s *DebuggerService) GetRegisterState() RegisterState {
 	s.mu.Lock()
@@ -349,6 +362,7 @@ func (s *DebuggerService) Reset() error {
 
 	// Full VM reset: clears all registers (PC=0), memory, and execution state
 	s.vm.Reset()
+	s.clearOutputLocked()
 
 	// Drop queued input, including bytes the VM has already buffered
 	s.stdin = nil

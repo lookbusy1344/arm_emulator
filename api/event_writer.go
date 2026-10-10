@@ -53,6 +53,13 @@ func (w *EventWriter) GetBufferAndClear() string {
 	return output
 }
 
+// Reset discards the captured output
+func (w *EventWriter) Reset() {
+	w.mutex.Lock()
+	defer w.mutex.Unlock()
+	w.buffer.Reset()
+}
+
 // GetBuffer returns the current buffer contents without clearing
 func (w *EventWriter) GetBuffer() string {
 	w.mutex.Lock()
