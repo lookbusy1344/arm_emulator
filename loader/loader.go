@@ -14,8 +14,7 @@ import (
 // It creates necessary memory segments, processes data directives, encodes instructions,
 // and sets up the entry point.
 func LoadProgramIntoVM(machine *vm.VM, program *parser.Program, entryPoint uint32) error {
-	// Ensure memory segment exists for the entry point. A machine that loaded a
-	// low-memory program before already has the segment.
+	// Ensure memory segment exists for the entry point
 	if entryPoint < vm.CodeSegmentStart && machine.Memory.CheckExecutePermission(entryPoint) != nil {
 		// Create a low memory segment for programs using .org 0x0000 or similar
 		segmentSize := uint32(vm.CodeSegmentStart) // Cover 0x0000 to 0x8000

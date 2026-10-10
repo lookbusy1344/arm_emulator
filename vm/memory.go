@@ -45,17 +45,24 @@ func NewMemory() *Memory {
 		NextHeapAddress: HeapSegmentStart,
 	}
 
-	// Initialize standard memory segments
-	// Note: Code segment is writable to match ARM2 hardware behavior (no MMU/memory protection).
-	// ARM2 allowed code and data to be intermixed, and many programs embed writable data in the
-	// code segment using .space/.word directives. Enforcing W^X would break historical accuracy
-	// and 37% of example programs that rely on this pattern.
-	m.AddSegment("code", CodeSegmentStart, CodeSegmentSize, PermRead|PermWrite|PermExecute)
-	m.AddSegment("data", DataSegmentStart, DataSegmentSize, PermRead|PermWrite)
-	m.AddSegment("heap", HeapSegmentStart, HeapSegmentSize, PermRead|PermWrite)
-	m.AddSegment("stack", StackSegmentStart, StackSegmentSize, PermRead|PermWrite)
-
+	for _, seg := range standardSegments {
+		m.AddSegment(seg.name, seg.start, seg.size, seg.permissions)
+	}
 	return m
+}
+
+// standardSegments is the layout every Memory starts with and returns to on Reset.
+// The code segment is writable to match ARM2 hardware, which had no memory protection;
+// many programs embed writable data in it with .space and .word.
+var standardSegments = []struct {
+	name        string
+	start, size uint32
+	permissions MemoryPermission
+}{
+	{"code", CodeSegmentStart, CodeSegmentSize, PermRead | PermWrite | PermExecute},
+	{"data", DataSegmentStart, DataSegmentSize, PermRead | PermWrite},
+	{"heap", HeapSegmentStart, HeapSegmentSize, PermRead | PermWrite},
+	{"stack", StackSegmentStart, StackSegmentSize, PermRead | PermWrite},
 }
 
 // AddSegment adds a new memory segment
@@ -383,12 +390,15 @@ func (m *Memory) GetBytes(address uint32, length uint32) ([]byte, error) {
 	return result, nil
 }
 
-// Reset clears all memory segments
+// Reset returns memory to the standard layout: it drops added segments, restores
+// segment permissions and zeroes every byte.
 func (m *Memory) Reset() {
-	for _, seg := range m.Segments {
-		for i := range seg.Data {
-			seg.Data[i] = 0
-		}
+	n := len(standardSegments)
+	clear(m.Segments[n:])
+	m.Segments = m.Segments[:n]
+	for i, seg := range m.Segments {
+		clear(seg.Data)
+		seg.Permissions = standardSegments[i].permissions
 	}
 	m.AccessCount = 0
 	m.ReadCount = 0

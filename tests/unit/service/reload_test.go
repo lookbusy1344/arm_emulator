@@ -168,3 +168,22 @@ func TestResetClearsBreakpointsAndWatchpoints(t *testing.T) {
 		t.Errorf("watchpoints after Reset = %v, want none", wps)
 	}
 }
+
+func TestReloadAfterLowMemoryProgramUnmapsLowMemory(t *testing.T) {
+	const lowProgram = ".org 0x0000\n_start:\n\tMOV R0, #0\n\tSWI #0x00\n"
+	const nullRead = ".org 0x8000\n_start:\n\tMOV R1, #0\n\tLDR R0, [R1]\n\tSWI #0x00\n"
+	svc := service.NewDebuggerService(vm.NewVM())
+	if err := svc.LoadProgram(parse(t, lowProgram), 0); err != nil {
+		t.Fatal(err)
+	}
+
+	loadSource(t, svc, nullRead)
+	err := <-startRun(svc)
+
+	if err == nil {
+		t.Fatal("read of address 0 succeeded after reload, want a memory access violation")
+	}
+	if state := svc.GetExecutionState(); state != service.StateError {
+		t.Errorf("state = %s, want error", state)
+	}
+}
