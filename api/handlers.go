@@ -21,7 +21,18 @@ func (s *Server) handleCreateSession(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// A filesystem root gives guest code access to that directory, so only native
+	// clients may choose one. Browsers always send Origin on a POST.
+	if req.FSRoot != "" && r.Header.Get("Origin") != "" {
+		writeError(w, http.StatusForbidden, "fsRoot is not accepted from browser pages")
+		return
+	}
+
 	session, err := s.sessions.CreateSession(req)
+	if errors.Is(err, ErrInvalidFSRoot) {
+		writeError(w, http.StatusBadRequest, err.Error())
+		return
+	}
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, fmt.Sprintf("Failed to create session: %v", err))
 		return

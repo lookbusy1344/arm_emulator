@@ -1,6 +1,7 @@
 package api
 
 import (
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -18,7 +19,13 @@ func sessionCount(t *testing.T, server *api.Server) int {
 	if w.Code != http.StatusOK {
 		t.Fatalf("list sessions: status %d", w.Code)
 	}
-	return strings.Count(w.Body.String(), `"sessionId"`)
+	var resp struct {
+		Count int `json:"count"`
+	}
+	if err := json.NewDecoder(w.Body).Decode(&resp); err != nil {
+		t.Fatalf("list sessions: %v", err)
+	}
+	return resp.Count
 }
 
 func TestOriginPolicy(t *testing.T) {

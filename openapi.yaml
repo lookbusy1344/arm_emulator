@@ -91,6 +91,18 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/SessionCreateResponse'
+        '400':
+          description: fsRoot is not a clean absolute path to an existing directory
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: fsRoot was sent from a browser page (the request has an Origin header)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
         '500':
           description: Failed to create session
           content:
@@ -928,7 +940,7 @@ components:
           example: 262144
         fsRoot:
           type: string
-          description: Filesystem root directory for sandboxing
+          description: Directory that guest file operations are confined to. Must be a clean absolute path to an existing directory. Accepted only from native clients; requests with an Origin header get 403. Without it each session gets a new temporary directory.
           example: /path/to/sandbox
 
     SessionCreateResponse:

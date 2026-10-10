@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"os"
+	"path/filepath"
 	"sync"
 	"time"
 
@@ -17,7 +18,21 @@ var (
 	ErrSessionNotFound = errors.New("session not found")
 	// ErrSessionAlreadyExists is returned when trying to create a session with an existing ID
 	ErrSessionAlreadyExists = errors.New("session already exists")
+	// ErrInvalidFSRoot is returned when a requested filesystem root is not a clean
+	// absolute path to an existing directory
+	ErrInvalidFSRoot = errors.New("fsRoot must be a clean absolute path to an existing directory")
 )
+
+// validateFSRoot checks a client-supplied filesystem root.
+func validateFSRoot(root string) error {
+	if !filepath.IsAbs(root) || filepath.Clean(root) != root {
+		return ErrInvalidFSRoot
+	}
+	if info, err := os.Stat(root); err != nil || !info.IsDir() {
+		return ErrInvalidFSRoot
+	}
+	return nil
+}
 
 // Session represents an active emulator session
 type Session struct {
@@ -58,6 +73,9 @@ func (sm *SessionManager) CreateSession(opts SessionCreateRequest) (*Session, er
 	// If FSRoot is provided, use it; otherwise create a temporary directory for this session
 	var tempDir string
 	if opts.FSRoot != "" {
+		if err := validateFSRoot(opts.FSRoot); err != nil {
+			return nil, err
+		}
 		machine.FilesystemRoot = opts.FSRoot
 	} else {
 		// Create a temporary directory for this session's file operations
