@@ -6,6 +6,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 	"time"
 
@@ -19,8 +20,8 @@ var (
 	// ErrSessionAlreadyExists is returned when trying to create a session with an existing ID
 	ErrSessionAlreadyExists = errors.New("session already exists")
 	// ErrInvalidFSRoot is returned when a requested filesystem root is not a clean
-	// absolute path to an existing directory
-	ErrInvalidFSRoot = errors.New("fsRoot must be a clean absolute path to an existing directory")
+	// absolute path to an existing directory under an allowed root
+	ErrInvalidFSRoot = errors.New("fsRoot must be a clean absolute path to an existing directory under the server working directory or temp directory")
 	// ErrTooManySessions is returned when MaxSessions sessions already exist
 	ErrTooManySessions = errors.New("too many sessions")
 )
@@ -28,15 +29,41 @@ var (
 // MaxSessions is the most sessions that can exist at once.
 const MaxSessions = 64
 
-// validateFSRoot checks a client-supplied filesystem root.
-func validateFSRoot(root string) error {
+// validateFSRoot checks a client-supplied filesystem root and returns a canonical path.
+func validateFSRoot(root string) (string, error) {
 	if !filepath.IsAbs(root) || filepath.Clean(root) != root {
-		return ErrInvalidFSRoot
+		return "", ErrInvalidFSRoot
 	}
-	if info, err := os.Stat(root); err != nil || !info.IsDir() {
-		return ErrInvalidFSRoot
+
+	resolvedRoot, err := filepath.EvalSymlinks(root)
+	if err != nil {
+		return "", ErrInvalidFSRoot
 	}
-	return nil
+	if info, err := os.Stat(resolvedRoot); err != nil || !info.IsDir() {
+		return "", ErrInvalidFSRoot
+	}
+
+	workDir, err := os.Getwd()
+	if err != nil {
+		return "", ErrInvalidFSRoot
+	}
+	resolvedWorkDir, err := filepath.EvalSymlinks(workDir)
+	if err != nil {
+		return "", ErrInvalidFSRoot
+	}
+	resolvedTempDir, err := filepath.EvalSymlinks(os.TempDir())
+	if err != nil {
+		return "", ErrInvalidFSRoot
+	}
+
+	isUnderAllowedRoot := func(base, candidate string) bool {
+		return candidate == base || strings.HasPrefix(candidate, base+string(os.PathSeparator))
+	}
+	if !isUnderAllowedRoot(resolvedWorkDir, resolvedRoot) && !isUnderAllowedRoot(resolvedTempDir, resolvedRoot) {
+		return "", ErrInvalidFSRoot
+	}
+
+	return resolvedRoot, nil
 }
 
 // Session represents an active emulator session
@@ -83,10 +110,11 @@ func (sm *SessionManager) CreateSession(opts SessionCreateRequest) (*Session, er
 	// If FSRoot is provided, use it; otherwise create a temporary directory for this session
 	var tempDir string
 	if opts.FSRoot != "" {
-		if err := validateFSRoot(opts.FSRoot); err != nil {
+		resolvedRoot, err := validateFSRoot(opts.FSRoot)
+		if err != nil {
 			return nil, err
 		}
-		machine.FilesystemRoot = opts.FSRoot
+		machine.FilesystemRoot = resolvedRoot
 	} else {
 		// Create a temporary directory for this session's file operations
 		var err error
