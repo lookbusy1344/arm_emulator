@@ -97,7 +97,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/SessionCreateResponse'
         '400':
-          description: fsRoot is not a clean absolute path to an existing directory
+          description: fsRoot is not a clean absolute path to an existing directory under the server working directory or temp directory
           content:
             application/json:
               schema:

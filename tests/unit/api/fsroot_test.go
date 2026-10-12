@@ -57,10 +57,11 @@ func TestFSRootMustBeExistingAbsoluteDirectory(t *testing.T) {
 		t.Fatal(err)
 	}
 	tests := map[string]string{
-		"relative": "examples",
-		"missing":  filepath.Join(dir, "missing"),
-		"file":     file,
-		"unclean":  dir + "/../" + filepath.Base(dir),
+		"relative":         "examples",
+		"missing":          filepath.Join(dir, "missing"),
+		"file":             file,
+		"unclean":          dir + "/../" + filepath.Base(dir),
+		"outside-allowlist": "/",
 	}
 	for name, root := range tests {
 		t.Run(name, func(t *testing.T) {

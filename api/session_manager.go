@@ -6,6 +6,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 	"time"
 
@@ -19,8 +20,8 @@ var (
 	// ErrSessionAlreadyExists is returned when trying to create a session with an existing ID
 	ErrSessionAlreadyExists = errors.New("session already exists")
 	// ErrInvalidFSRoot is returned when a requested filesystem root is not a clean
-	// absolute path to an existing directory
-	ErrInvalidFSRoot = errors.New("fsRoot must be a clean absolute path to an existing directory")
+	// absolute path to an existing directory under an allowed root
+	ErrInvalidFSRoot = errors.New("fsRoot must be a clean absolute path to an existing directory under the server working directory or temp directory")
 	// ErrTooManySessions is returned when MaxSessions sessions already exist
 	ErrTooManySessions = errors.New("too many sessions")
 )
@@ -28,15 +29,91 @@ var (
 // MaxSessions is the most sessions that can exist at once.
 const MaxSessions = 64
 
-// validateFSRoot checks a client-supplied filesystem root.
-func validateFSRoot(root string) error {
+// resolveAllowedFSRoots returns canonical allowlisted base directories for client fsRoot.
+func resolveAllowedFSRoots() ([]string, error) {
+	workDir, err := os.Getwd()
+	if err != nil {
+		return nil, err
+	}
+	resolvedWorkDir, err := filepath.EvalSymlinks(workDir)
+	if err != nil {
+		return nil, err
+	}
+	resolvedTempDir, err := filepath.EvalSymlinks(os.TempDir())
+	if err != nil {
+		return nil, err
+	}
+	return []string{
+		filepath.Clean(resolvedWorkDir),
+		filepath.Clean(resolvedTempDir),
+	}, nil
+}
+
+// validateFSRoot checks a client-supplied filesystem root and returns a canonical path.
+func validateFSRoot(root string) (string, error) {
+	// Intentional pre-filter: require clients to submit normalized absolute paths.
+	// Canonicalization with EvalSymlinks happens below.
 	if !filepath.IsAbs(root) || filepath.Clean(root) != root {
-		return ErrInvalidFSRoot
+		return "", ErrInvalidFSRoot
 	}
-	if info, err := os.Stat(root); err != nil || !info.IsDir() {
-		return ErrInvalidFSRoot
+
+	resolvedRoot, err := filepath.EvalSymlinks(root)
+	if err != nil {
+		return "", ErrInvalidFSRoot
 	}
-	return nil
+	allowedRoots, err := resolveAllowedFSRoots()
+	if err != nil {
+		return "", ErrInvalidFSRoot
+	}
+	resolvedRoot = filepath.Clean(resolvedRoot)
+
+	isUnderAllowedRoot := func(base, candidate string) (string, bool) {
+		rel, err := filepath.Rel(base, candidate)
+		if err != nil {
+			return "", false
+		}
+		ok := rel == "." || (rel != ".." && !strings.HasPrefix(rel, ".."+string(os.PathSeparator)))
+		return rel, ok
+	}
+
+	allowed := false
+	var matchedBase, matchedRel string
+	for _, base := range allowedRoots {
+		if rel, ok := isUnderAllowedRoot(base, resolvedRoot); ok {
+			allowed = true
+			matchedBase = base
+			matchedRel = rel
+			break
+		}
+	}
+	if !allowed {
+		return "", ErrInvalidFSRoot
+	}
+
+	allowedRoot, err := os.OpenRoot(matchedBase)
+	if err != nil {
+		return "", ErrInvalidFSRoot
+	}
+	defer func() { _ = allowedRoot.Close() }()
+
+	if matchedRel == "." {
+		if info, err := allowedRoot.Stat("."); err != nil || !info.IsDir() {
+			return "", ErrInvalidFSRoot
+		}
+	} else {
+		target, err := allowedRoot.Open(matchedRel)
+		if err != nil {
+			return "", ErrInvalidFSRoot
+		}
+		defer func() { _ = target.Close() }()
+
+		info, err := target.Stat()
+		if err != nil || !info.IsDir() {
+			return "", ErrInvalidFSRoot
+		}
+	}
+
+	return resolvedRoot, nil
 }
 
 // Session represents an active emulator session
@@ -83,10 +160,11 @@ func (sm *SessionManager) CreateSession(opts SessionCreateRequest) (*Session, er
 	// If FSRoot is provided, use it; otherwise create a temporary directory for this session
 	var tempDir string
 	if opts.FSRoot != "" {
-		if err := validateFSRoot(opts.FSRoot); err != nil {
+		resolvedRoot, err := validateFSRoot(opts.FSRoot)
+		if err != nil {
 			return nil, err
 		}
-		machine.FilesystemRoot = opts.FSRoot
+		machine.FilesystemRoot = resolvedRoot
 	} else {
 		// Create a temporary directory for this session's file operations
 		var err error
