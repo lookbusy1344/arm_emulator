@@ -29,8 +29,30 @@ var (
 // MaxSessions is the most sessions that can exist at once.
 const MaxSessions = 64
 
+// resolveAllowedFSRoots returns canonical allowlisted base directories for client fsRoot.
+func resolveAllowedFSRoots() ([]string, error) {
+	workDir, err := os.Getwd()
+	if err != nil {
+		return nil, err
+	}
+	resolvedWorkDir, err := filepath.EvalSymlinks(workDir)
+	if err != nil {
+		return nil, err
+	}
+	resolvedTempDir, err := filepath.EvalSymlinks(os.TempDir())
+	if err != nil {
+		return nil, err
+	}
+	return []string{
+		filepath.Clean(resolvedWorkDir),
+		filepath.Clean(resolvedTempDir),
+	}, nil
+}
+
 // validateFSRoot checks a client-supplied filesystem root and returns a canonical path.
 func validateFSRoot(root string) (string, error) {
+	// Intentional pre-filter: require clients to submit normalized absolute paths.
+	// Canonicalization with EvalSymlinks happens below.
 	if !filepath.IsAbs(root) || filepath.Clean(root) != root {
 		return "", ErrInvalidFSRoot
 	}
@@ -39,28 +61,56 @@ func validateFSRoot(root string) (string, error) {
 	if err != nil {
 		return "", ErrInvalidFSRoot
 	}
-	if info, err := os.Stat(resolvedRoot); err != nil || !info.IsDir() {
+	allowedRoots, err := resolveAllowedFSRoots()
+	if err != nil {
+		return "", ErrInvalidFSRoot
+	}
+	resolvedRoot = filepath.Clean(resolvedRoot)
+
+	isUnderAllowedRoot := func(base, candidate string) (string, bool) {
+		rel, err := filepath.Rel(base, candidate)
+		if err != nil {
+			return "", false
+		}
+		ok := rel == "." || (rel != ".." && !strings.HasPrefix(rel, ".."+string(os.PathSeparator)))
+		return rel, ok
+	}
+
+	allowed := false
+	var matchedBase, matchedRel string
+	for _, base := range allowedRoots {
+		if rel, ok := isUnderAllowedRoot(base, resolvedRoot); ok {
+			allowed = true
+			matchedBase = base
+			matchedRel = rel
+			break
+		}
+	}
+	if !allowed {
 		return "", ErrInvalidFSRoot
 	}
 
-	workDir, err := os.Getwd()
+	allowedRoot, err := os.OpenRoot(matchedBase)
 	if err != nil {
 		return "", ErrInvalidFSRoot
 	}
-	resolvedWorkDir, err := filepath.EvalSymlinks(workDir)
-	if err != nil {
-		return "", ErrInvalidFSRoot
-	}
-	resolvedTempDir, err := filepath.EvalSymlinks(os.TempDir())
-	if err != nil {
-		return "", ErrInvalidFSRoot
-	}
+	defer func() { _ = allowedRoot.Close() }()
 
-	isUnderAllowedRoot := func(base, candidate string) bool {
-		return candidate == base || strings.HasPrefix(candidate, base+string(os.PathSeparator))
-	}
-	if !isUnderAllowedRoot(resolvedWorkDir, resolvedRoot) && !isUnderAllowedRoot(resolvedTempDir, resolvedRoot) {
-		return "", ErrInvalidFSRoot
+	if matchedRel == "." {
+		if info, err := allowedRoot.Stat("."); err != nil || !info.IsDir() {
+			return "", ErrInvalidFSRoot
+		}
+	} else {
+		target, err := allowedRoot.Open(matchedRel)
+		if err != nil {
+			return "", ErrInvalidFSRoot
+		}
+		defer func() { _ = target.Close() }()
+
+		info, err := target.Stat()
+		if err != nil || !info.IsDir() {
+			return "", ErrInvalidFSRoot
+		}
 	}
 
 	return resolvedRoot, nil
