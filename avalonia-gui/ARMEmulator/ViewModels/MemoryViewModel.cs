@@ -160,14 +160,13 @@ public sealed class MemoryViewModel : ReactiveObject, IDisposable
 
 	private async Task NavigateToAddressAsync()
 	{
-		try {
-			ErrorMessage = null;
-			var address = ParseAddress(AddressInput);
-			await LoadMemoryAsync(address);
-		}
-		catch (FormatException) {
+		if (!AddressParser.TryParse(AddressInput, out var address)) {
 			ErrorMessage = $"Invalid address format: {AddressInput}";
+			return;
 		}
+
+		ErrorMessage = null;
+		await LoadMemoryAsync(address);
 	}
 
 	private async Task JumpToPCAsync()
@@ -196,16 +195,6 @@ public sealed class MemoryViewModel : ReactiveObject, IDisposable
 
 		var address = currentRegisters.Registers[registerIndex];
 		await LoadMemoryAsync(address);
-	}
-
-	private static uint ParseAddress(string input)
-	{
-		var trimmed = input.Trim();
-		if (trimmed.StartsWith("0x", StringComparison.OrdinalIgnoreCase)) {
-			return Convert.ToUInt32(trimmed[2..], 16);
-		}
-
-		return uint.Parse(trimmed, System.Globalization.CultureInfo.InvariantCulture);
 	}
 
 	private ImmutableList<MemoryRow> FormatMemoryRows()

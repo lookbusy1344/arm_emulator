@@ -682,9 +682,8 @@ public partial class MainWindowViewModel : ReactiveObject, IDisposable
 			return;
 		}
 
-		var digits = text.StartsWith("0x", StringComparison.OrdinalIgnoreCase) ? text[2..] : text;
-		if (!uint.TryParse(digits, System.Globalization.NumberStyles.AllowHexSpecifier, System.Globalization.CultureInfo.InvariantCulture, out var address)) {
-			ErrorMessage = $"Invalid watchpoint address '{WatchpointAddressText}': enter a 32-bit hex value such as 0x9000";
+		if (!AddressParser.TryParse(text, out var address)) {
+			ErrorMessage = $"Invalid watchpoint address '{WatchpointAddressText}': enter 0x and hex digits, such as 0x9000, or a decimal number";
 			return;
 		}
 

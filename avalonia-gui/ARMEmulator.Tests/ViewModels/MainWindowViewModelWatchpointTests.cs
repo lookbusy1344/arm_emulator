@@ -50,9 +50,9 @@ public sealed class MainWindowViewModelWatchpointTests : IDisposable
 	[Theory]
 	[InlineData("0x9000")]
 	[InlineData("0X9000")]
-	[InlineData("9000")]
+	[InlineData("36864")]
 	[InlineData("  0x9000  ")]
-	public void AddWatchpoint_ParsesHexAddresses(string text)
+	public void AddWatchpoint_ParsesHexWithPrefixAndBareDecimal(string text)
 	{
 		var created = new Watchpoint(7, 0x9000, WatchpointType.Write);
 		api.AddWatchpointAsync(SessionId, 0x9000, WatchpointType.Write, Arg.Any<CancellationToken>()).Returns(created);
@@ -65,6 +65,21 @@ public sealed class MainWindowViewModelWatchpointTests : IDisposable
 		vm.Watchpoints.Should().Equal(created);
 		vm.WatchpointAddressText.Should().BeEmpty();
 		vm.ErrorMessage.Should().BeNull();
+	}
+
+	[Fact]
+	public void AddWatchpoint_ReadsBareNumberAsDecimal()
+	{
+		var created = new Watchpoint(8, 9000, WatchpointType.Write);
+		api.AddWatchpointAsync(SessionId, 9000, WatchpointType.Write, Arg.Any<CancellationToken>()).Returns(created);
+		using var vm = CreateViewModel();
+		vm.WatchpointAddressText = "9000";
+		vm.SelectedWatchpointType = WatchpointType.Write;
+
+		Execute(vm.AddWatchpointCommand);
+
+		vm.Watchpoints.Should().Equal(created);
+		_ = api.DidNotReceive().AddWatchpointAsync(SessionId, 0x9000, Arg.Any<WatchpointType>(), Arg.Any<CancellationToken>());
 	}
 
 	[Fact]
@@ -93,6 +108,7 @@ public sealed class MainWindowViewModelWatchpointTests : IDisposable
 	[InlineData("xyz")]
 	[InlineData("0x")]
 	[InlineData("1FFFFFFFF")]
+	[InlineData("4294967296")]
 	[InlineData("-1")]
 	public void AddWatchpoint_WithInvalidAddress_ReportsItKeepsTheTextAndCallsNoApi(string text)
 	{
@@ -101,7 +117,7 @@ public sealed class MainWindowViewModelWatchpointTests : IDisposable
 
 		Execute(vm.AddWatchpointCommand);
 
-		vm.ErrorMessage.Should().Be($"Invalid watchpoint address '{text}': enter a 32-bit hex value such as 0x9000");
+		vm.ErrorMessage.Should().Be($"Invalid watchpoint address '{text}': enter 0x and hex digits, such as 0x9000, or a decimal number");
 		vm.WatchpointAddressText.Should().Be(text);
 		_ = api.DidNotReceiveWithAnyArgs().AddWatchpointAsync(default!, default, default, TestContext.Current.CancellationToken);
 	}

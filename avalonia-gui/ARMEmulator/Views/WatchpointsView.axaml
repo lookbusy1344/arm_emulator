@@ -30,7 +30,7 @@
                         <TextBox Grid.Row="0" Grid.Column="1"
                                  AutomationProperties.Name="Watchpoint address"
                                  Text="{Binding WatchpointAddressText}"
-                                 PlaceholderText="0x8000 or hex value"
+                                 PlaceholderText="0x8000 or 32768"
                                  FontFamily="Consolas, Menlo, Monaco, monospace" />
 
                         <!-- Type selector -->

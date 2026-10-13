@@ -94,6 +94,22 @@ public class MemoryViewModelTests : IDisposable
 		viewModel.ErrorMessage.Should().Contain("Invalid address");
 	}
 
+	[Theory]
+	[InlineData("0x")]
+	[InlineData("-1")]
+	[InlineData("4294967296")]
+	[InlineData("0x1FFFFFFFF")]
+	[InlineData("")]
+	public async Task NavigateToAddressCommand_ReportsOutOfRangeAndMalformedInput(string text)
+	{
+		viewModel.AddressInput = text;
+
+		await viewModel.NavigateToAddressCommand.Execute();
+
+		viewModel.ErrorMessage.Should().Be($"Invalid address format: {text}");
+		_ = apiClient.DidNotReceiveWithAnyArgs().GetMemoryAsync(default!, default, default, TestContext.Current.CancellationToken);
+	}
+
 	[Fact]
 	public async Task JumpToPCCommand_ShouldLoadMemoryAtPCAddress()
 	{
