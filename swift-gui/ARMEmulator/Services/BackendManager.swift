@@ -27,7 +27,7 @@ class BackendManager: ObservableObject {
 
     private var backendProcess: Process?
     private var didStartBackend = false
-    private let baseURL = URL(string: "http://localhost:8080")!
+    private let endpoint: BackendEndpoint
     private var processMonitorTask: Task<Void, Never>?
 
     enum BackendStatus: Equatable {
@@ -38,7 +38,8 @@ class BackendManager: ObservableObject {
         case error(String)
     }
 
-    init() {
+    init(endpoint: BackendEndpoint = .default) {
+        self.endpoint = endpoint
         NotificationCenter.default.addObserver(
             forName: NSApplication.willTerminateNotification,
             object: nil,
@@ -83,7 +84,7 @@ class BackendManager: ObservableObject {
     }
 
     func checkBackendHealth() async -> Bool {
-        let healthURL = baseURL.appendingPathComponent("/api/v1/session")
+        let healthURL = endpoint.baseURL.appendingPathComponent("/api/v1/session")
 
         var request = URLRequest(url: healthURL, timeoutInterval: 0.5)
         request.httpMethod = "GET"
@@ -108,7 +109,7 @@ class BackendManager: ObservableObject {
 
         let process = Process()
         process.executableURL = binaryPath
-        process.arguments = ["--api-server", "--port", "8080"]
+        process.arguments = Self.serverArguments(for: endpoint)
 
         // Enable backend debug logging in DEBUG builds
         #if DEBUG
@@ -156,6 +157,11 @@ class BackendManager: ObservableObject {
 
         try await waitForBackendReady(timeout: 10.0)
         backendStatus = .running
+    }
+
+    /// Arguments that start the backend as an API server on the endpoint's port
+    static func serverArguments(for endpoint: BackendEndpoint) -> [String] {
+        ["--api-server", "--port", String(endpoint.port)]
     }
 
     private func waitForBackendReady(timeout: TimeInterval) async throws {

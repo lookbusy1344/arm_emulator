@@ -12,10 +12,13 @@ class WebSocketClient: NSObject, WebSocketClientProtocol, URLSessionWebSocketDel
     private var isReconnecting = false
     private var retryCount = 0
     private let maxRetries = 5
+    private let endpoint: BackendEndpoint
     private let token: @Sendable () -> String?
 
-    init(token: @escaping @Sendable () -> String? = { BackendToken.read(port: BackendToken.defaultPort) }) {
-        self.token = token
+    init(endpoint: BackendEndpoint = .default, token: (@Sendable () -> String?)? = nil) {
+        self.endpoint = endpoint
+        let port = endpoint.port
+        self.token = token ?? { BackendToken.read(port: port) }
     }
 
     var events: AnyPublisher<EmulatorEvent, Never> {
@@ -30,10 +33,7 @@ class WebSocketClient: NSObject, WebSocketClientProtocol, URLSessionWebSocketDel
 
     /// The upgrade request, carrying the backend token.
     func makeRequest() -> URLRequest? {
-        guard let url = URL(string: "ws://localhost:\(BackendToken.defaultPort)/api/v1/ws") else {
-            return nil
-        }
-        var request = URLRequest(url: url)
+        var request = URLRequest(url: endpoint.webSocketURL)
         BackendToken.authorize(&request, token: token())
         return request
     }

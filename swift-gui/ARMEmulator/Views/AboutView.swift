@@ -5,7 +5,7 @@ struct AboutView: View {
     @State private var backendVersion: BackendVersion?
     @State private var isLoading = false
     @State private var errorMessage: String?
-    private let apiClient = APIClient()
+    private let apiClient = APIClient(baseURL: BackendEndpoint.fromSettings.baseURL)
 
     /// Cache version info to avoid repeated API calls
     private static var cachedVersion: BackendVersion?

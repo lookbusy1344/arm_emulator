@@ -6,7 +6,7 @@ extension EnvironmentValues {
 
 @MainActor
 class AppDelegate: NSObject, NSApplicationDelegate {
-    let backendManager = BackendManager()
+    let backendManager = BackendManager(endpoint: .fromSettings)
     let fileService = FileService.shared
     let settings = AppSettings.shared
     weak var viewModel: EmulatorViewModel?

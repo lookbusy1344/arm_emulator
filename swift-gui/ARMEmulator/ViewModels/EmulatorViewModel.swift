@@ -112,6 +112,10 @@ class EmulatorViewModel: ObservableObject {
         }
     }
 
+    convenience init(endpoint: BackendEndpoint) {
+        self.init(apiClient: APIClient(baseURL: endpoint.baseURL), wsClient: WebSocketClient(endpoint: endpoint))
+    }
+
     init(apiClient: any APIClientProtocol = APIClient(), wsClient: any WebSocketClientProtocol = WebSocketClient()) {
         self.apiClient = apiClient
         self.wsClient = wsClient

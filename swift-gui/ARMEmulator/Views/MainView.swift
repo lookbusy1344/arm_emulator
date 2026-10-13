@@ -5,7 +5,7 @@ struct MainView: View {
     @EnvironmentObject var fileService: FileService
     @EnvironmentObject var settings: AppSettings
     @Environment(\.appDelegate) var appDelegate
-    @StateObject private var viewModel = EmulatorViewModel()
+    @StateObject private var viewModel = EmulatorViewModel(endpoint: .fromSettings)
     @State private var showingError = false
     @State private var showingExamplesBrowser = false
     @State private var hasLoadedStartupFile = false

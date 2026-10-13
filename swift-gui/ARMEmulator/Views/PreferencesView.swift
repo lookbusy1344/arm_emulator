@@ -27,7 +27,7 @@ struct GeneralPreferences: View {
             Section("Backend") {
                 TextField("Backend URL", text: $settings.backendURL)
                     .textFieldStyle(.roundedBorder)
-                Text("Default: http://localhost:8080")
+                Text("Default: http://localhost:8080. Takes effect when the app restarts.")
                     .font(.system(size: 11))
                     .foregroundColor(.secondary)
             }
