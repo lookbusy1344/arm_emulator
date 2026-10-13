@@ -5,6 +5,8 @@ struct ConsoleView: View {
     let isWaitingForInput: Bool
     @State private var inputText = ""
     var onSendInput: ((String) -> Void)?
+    /// Focus state the input field joins as the console pane
+    var paneFocus: FocusState<Pane?>.Binding?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -36,6 +38,7 @@ struct ConsoleView: View {
                     TextField("Input...", text: $inputText)
                         .textFieldStyle(.roundedBorder)
                         .font(.system(size: 10, design: .monospaced))
+                        .focused(paneFocus, as: .console)
                         .onSubmit {
                             sendInput()
                         }

@@ -115,6 +115,7 @@ struct ARMEmulatorApp: App {
             }
             FileCommands(backendManager: appDelegate.backendManager)
             DebugCommands()
+            PaneCommands()
         }
         .windowStyle(.titleBar)
         .windowToolbarStyle(.unified)

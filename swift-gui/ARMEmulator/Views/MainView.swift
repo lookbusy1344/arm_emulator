@@ -9,6 +9,8 @@ struct MainView: View {
     @State private var showingError = false
     @State private var showingExamplesBrowser = false
     @State private var hasLoadedStartupFile = false
+    @State private var editorTextView: NSTextView?
+    @FocusState private var focusedPane: Pane?
 
     var body: some View {
         ZStack {
@@ -103,9 +105,11 @@ struct MainView: View {
     private var contentView: some View {
         VSplitView {
             HSplitView {
-                EditorView(text: $viewModel.sourceCode, fontSize: CGFloat(settings.editorFontSize))
-                    .environmentObject(viewModel)
-                    .frame(minWidth: 150)
+                EditorView(text: $viewModel.sourceCode, fontSize: CGFloat(settings.editorFontSize)) { textView in
+                    editorTextView = textView
+                }
+                .environmentObject(viewModel)
+                .frame(minWidth: 150)
 
                 VStack(spacing: 0) {
                     // Compact popup picker navigation
@@ -131,6 +135,11 @@ struct MainView: View {
                     .frame(height: 40)
                     .padding(.horizontal, 8)
                     .background(Color(NSColor.controlBackgroundColor))
+                    // Focusable whatever the keyboard navigation setting; arrows switch panels
+                    .focusable()
+                    .focused($focusedPane, equals: .inspector)
+                    .onKeyPress(.upArrow) { selectPanel(forward: false) }
+                    .onKeyPress(.downArrow) { selectPanel(forward: true) }
 
                     Divider()
 
@@ -198,9 +207,30 @@ struct MainView: View {
                         await viewModel.sendInput(input)
                     }
                 },
+                paneFocus: $focusedPane,
             )
             .frame(minHeight: 150)
         }
+        .focusedSceneValue(\.paneNavigator, PaneNavigator(move: movePane))
+    }
+
+    /// Focuses the pane after (or before) the focused one. The editor is AppKit, outside SwiftUI focus state.
+    private func movePane(forward: Bool) {
+        let editorFocused = editorTextView.map { $0.window?.firstResponder === $0 } ?? false
+        switch Pane.next(after: editorFocused ? .editor : focusedPane, forward: forward) {
+        case .editor:
+            focusedPane = nil
+            if let editorTextView {
+                editorTextView.window?.makeFirstResponder(editorTextView)
+            }
+        case let pane:
+            focusedPane = pane
+        }
+    }
+
+    private func selectPanel(forward: Bool) -> KeyPress.Result {
+        settings.selectedTab = InspectorPanel.cycle(from: settings.selectedTab, forward: forward)
+        return .handled
     }
 
     private func loadStartupFile(path: String) async {

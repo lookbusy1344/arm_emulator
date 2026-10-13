@@ -24,7 +24,7 @@ Address fields in all three front ends read `0x` and hex digits as hex and a bar
 | Inspector panel picker | ✅ dropdown, 7 panels | ✅ dropdown, 7 panels | — (all panels shown at once) |
 | Window geometry and splitters persist | ◐ window frame only | ✅ | — |
 | Selected inspector panel persists | ✅ | ✅ | — |
-| Move focus between panes | — | ✅ F6 / Shift+F6 | ✅ Tab / Shift+Tab |
+| Move focus between panes | ✅ F6 / Shift+F6; ↑/↓ switch inspector panels | ✅ F6 / Shift+F6 | ✅ Tab / Shift+Tab |
 | Native macOS menu bar | ✅ | ✅ | — |
 
 ## Files and editing
@@ -119,7 +119,6 @@ Address fields in all three front ends read `0x` and hex digits as hex and a bar
 Swift GUI:
 
 - Splitter positions do not persist.
-- No key to move focus between panes.
 - A new Backend URL applies at the next launch, not on backend restart.
 
 Avalonia GUI:

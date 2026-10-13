@@ -4,6 +4,8 @@ import SwiftUI
 struct EditorView: View {
     @Binding var text: String
     let fontSize: CGFloat
+    /// Receives the text view once it exists, so the window can give it focus
+    var onTextViewCreated: (NSTextView) -> Void = { _ in }
     @State private var breakpoints: Set<Int> = []
     @State private var currentLine: Int?
     @State private var textView: NSTextView?
@@ -33,6 +35,7 @@ struct EditorView: View {
                 },
                 onTextViewCreated: { textView in
                     self.textView = textView
+                    onTextViewCreated(textView)
                 },
                 onScrollViewCreated: { scrollView in
                     self.scrollView = scrollView
