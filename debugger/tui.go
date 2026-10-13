@@ -326,7 +326,7 @@ func (t *TUI) setupKeyBindings() {
 			go t.executeCommand("continue")
 			return nil
 		case tcell.KeyF9:
-			go t.executeCommand("break")
+			t.toggleBreakpointAtPC()
 			return nil
 		case tcell.KeyF10:
 			go t.executeCommand("next")
@@ -358,6 +358,19 @@ func (t *TUI) setupKeyBindings() {
 			return nil
 		}
 		return event
+	})
+}
+
+// toggleBreakpointAtPC sets or clears the breakpoint at the current PC
+func (t *TUI) toggleBreakpointAtPC() {
+	pc := t.Debugger.VM.CPU.PC
+	message := fmt.Sprintf("[yellow]Breakpoint cleared at 0x%08X[white]\n", pc)
+	if t.Debugger.Breakpoints.ToggleBreakpoint(pc) {
+		message = fmt.Sprintf("[yellow]Breakpoint set at 0x%08X[white]\n", pc)
+	}
+	go t.App.QueueUpdateDraw(func() {
+		t.WriteStatus(message)
+		t.RefreshAll()
 	})
 }
 

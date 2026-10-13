@@ -235,3 +235,48 @@ func TestBreakpoint_HitCount(t *testing.T) {
 		t.Errorf("Hit count = %d, want 2", bp.HitCount)
 	}
 }
+
+func TestBreakpointManager_ToggleBreakpoint(t *testing.T) {
+	bm := debugger.NewBreakpointManager()
+
+	if set := bm.ToggleBreakpoint(0x8000); !set {
+		t.Fatal("first toggle should set the breakpoint")
+	}
+	if !bm.HasBreakpoint(0x8000) || bm.Count() != 1 {
+		t.Fatalf("expected one breakpoint at 0x8000, got count %d", bm.Count())
+	}
+
+	if set := bm.ToggleBreakpoint(0x8000); set {
+		t.Fatal("second toggle should clear the breakpoint")
+	}
+	if bm.HasBreakpoint(0x8000) || bm.Count() != 0 {
+		t.Fatalf("expected no breakpoints, got count %d", bm.Count())
+	}
+}
+
+func TestBreakpointManager_ToggleBreakpointLeavesOthers(t *testing.T) {
+	bm := debugger.NewBreakpointManager()
+	bm.AddBreakpoint(0x1000, false, "")
+
+	bm.ToggleBreakpoint(0x2000)
+	bm.ToggleBreakpoint(0x2000)
+
+	if !bm.HasBreakpoint(0x1000) || bm.Count() != 1 {
+		t.Fatalf("toggling 0x2000 must not touch 0x1000, count %d", bm.Count())
+	}
+}
+
+func TestBreakpointManager_ToggleRemovesDisabledBreakpoint(t *testing.T) {
+	bm := debugger.NewBreakpointManager()
+	bp := bm.AddBreakpoint(0x3000, false, "")
+	if err := bm.DisableBreakpoint(bp.ID); err != nil {
+		t.Fatal(err)
+	}
+
+	if set := bm.ToggleBreakpoint(0x3000); set {
+		t.Fatal("toggling a disabled breakpoint should remove it")
+	}
+	if bm.HasBreakpoint(0x3000) {
+		t.Fatal("breakpoint at 0x3000 should be gone")
+	}
+}

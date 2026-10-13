@@ -89,6 +89,22 @@ func (bm *BreakpointManager) DeleteBreakpointAt(address uint32) error {
 	return nil
 }
 
+// ToggleBreakpoint removes the breakpoint at address, enabled or not, or adds one when
+// there is none. Returns true when the address now has a breakpoint.
+func (bm *BreakpointManager) ToggleBreakpoint(address uint32) bool {
+	bm.mu.Lock()
+	defer bm.mu.Unlock()
+
+	if _, exists := bm.breakpoints[address]; exists {
+		delete(bm.breakpoints, address)
+		return false
+	}
+
+	bm.breakpoints[address] = &Breakpoint{ID: bm.nextID, Address: address, Enabled: true}
+	bm.nextID++
+	return true
+}
+
 // EnableBreakpoint enables a breakpoint by ID
 func (bm *BreakpointManager) EnableBreakpoint(id int) error {
 	bm.mu.Lock()

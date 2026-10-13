@@ -107,3 +107,34 @@ func TestHandleProgramInputEchoing(t *testing.T) {
 		t.Error("ProgramInput should be cleared after handling input")
 	}
 }
+
+func newSimulatedTUI(t *testing.T) *TUI {
+	t.Helper()
+	screen := tcell.NewSimulationScreen("UTF-8")
+	if err := screen.Init(); err != nil {
+		t.Fatalf("failed to init simulation screen: %v", err)
+	}
+	t.Cleanup(screen.Fini)
+	return NewTUIWithScreen(NewDebugger(vm.NewVM()), screen)
+}
+
+func pressKey(tui *TUI, key tcell.Key) {
+	tui.App.GetInputCapture()(tcell.NewEventKey(key, 0, tcell.ModNone))
+}
+
+// TestF9TogglesBreakpointAtPC tests that F9 sets, then clears, a breakpoint at the PC
+func TestF9TogglesBreakpointAtPC(t *testing.T) {
+	const pc = 0x8010
+	tui := newSimulatedTUI(t)
+	tui.Debugger.VM.CPU.PC = pc
+
+	pressKey(tui, tcell.KeyF9)
+	if !tui.Debugger.Breakpoints.HasBreakpoint(pc) {
+		t.Fatalf("F9 should set a breakpoint at PC 0x%08X", pc)
+	}
+
+	pressKey(tui, tcell.KeyF9)
+	if tui.Debugger.Breakpoints.HasBreakpoint(pc) {
+		t.Fatalf("second F9 should clear the breakpoint at PC 0x%08X", pc)
+	}
+}
