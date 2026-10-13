@@ -9,7 +9,7 @@ import (
 )
 
 // sessionDirGlob matches the temporary directory the session manager creates for each
-// session without an fsRoot.
+// session.
 const sessionDirGlob = "arm-emulator-session-*"
 
 // tempDirVars are the variables os.TempDir reads: TMPDIR on Unix, TMP and TEMP on

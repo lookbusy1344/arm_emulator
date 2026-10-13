@@ -11,7 +11,6 @@ type SessionCreateRequest struct {
 	MemorySize uint32 `json:"memorySize,omitempty"` // Memory size in bytes (default: 1MB)
 	StackSize  uint32 `json:"stackSize,omitempty"`  // Stack size in bytes (default: 64KB)
 	HeapSize   uint32 `json:"heapSize,omitempty"`   // Heap size in bytes (default: 256KB)
-	FSRoot     string `json:"fsRoot,omitempty"`     // Filesystem root directory
 }
 
 // SessionCreateResponse represents the response from creating a session

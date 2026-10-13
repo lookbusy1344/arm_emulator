@@ -5,7 +5,6 @@ import (
 	"encoding/hex"
 	"errors"
 	"os"
-	"path/filepath"
 	"sync"
 	"time"
 
@@ -18,39 +17,12 @@ var (
 	ErrSessionNotFound = errors.New("session not found")
 	// ErrSessionAlreadyExists is returned when trying to create a session with an existing ID
 	ErrSessionAlreadyExists = errors.New("session already exists")
-	// ErrInvalidFSRoot is returned when a filesystem root is not a clean absolute
-	// path to an existing directory inside the server's fsRoot base
-	ErrInvalidFSRoot = errors.New("fsRoot must be a clean absolute path to an existing directory inside the server's fsRoot base")
-	// ErrFSRootNotAllowed is returned when a client sends fsRoot to a server
-	// started without an fsRoot base
-	ErrFSRootNotAllowed = errors.New("fsRoot is not accepted: the server has no fsRoot base")
 	// ErrTooManySessions is returned when MaxSessions sessions already exist
 	ErrTooManySessions = errors.New("too many sessions")
 )
 
 // MaxSessions is the most sessions that can exist at once.
 const MaxSessions = 64
-
-// openFSRoot opens the client-supplied root if it is base or a directory inside it.
-// The lookup runs through the open base directory, so a symlink that leaves base is
-// rejected.
-func openFSRoot(base *os.Root, root string) (*os.Root, error) {
-	if base == nil {
-		return nil, ErrFSRootNotAllowed
-	}
-	if !filepath.IsAbs(root) || filepath.Clean(root) != root {
-		return nil, ErrInvalidFSRoot
-	}
-	rel, err := filepath.Rel(base.Name(), root)
-	if err != nil || !filepath.IsLocal(rel) {
-		return nil, ErrInvalidFSRoot
-	}
-	dir, err := base.OpenRoot(rel)
-	if err != nil {
-		return nil, ErrInvalidFSRoot
-	}
-	return dir, nil
-}
 
 // Session represents an active emulator session
 type Session struct {
@@ -64,7 +36,6 @@ type Session struct {
 type SessionManager struct {
 	sessions    map[string]*Session
 	broadcaster *Broadcaster
-	fsRootBase  *os.Root // client fsRoots must lie inside it; nil refuses them
 	mu          sync.RWMutex
 }
 
@@ -73,37 +44,6 @@ func NewSessionManager(broadcaster *Broadcaster) *SessionManager {
 	return &SessionManager{
 		sessions:    make(map[string]*Session),
 		broadcaster: broadcaster,
-	}
-}
-
-// AllowFSRootsUnder lets clients choose fsRoot as base or any directory inside it.
-// base stays open until Close, so later changes to its path do not move it.
-func (sm *SessionManager) AllowFSRootsUnder(base string) error {
-	abs, err := filepath.Abs(base)
-	if err != nil {
-		return ErrInvalidFSRoot
-	}
-	root, err := os.OpenRoot(abs)
-	if err != nil {
-		return ErrInvalidFSRoot
-	}
-	sm.mu.Lock()
-	defer sm.mu.Unlock()
-	if sm.fsRootBase != nil {
-		_ = sm.fsRootBase.Close()
-	}
-	sm.fsRootBase = root
-	return nil
-}
-
-// Close destroys every session and releases the fsRoot base.
-func (sm *SessionManager) Close() {
-	sm.DestroyAll()
-	sm.mu.Lock()
-	defer sm.mu.Unlock()
-	if sm.fsRootBase != nil {
-		_ = sm.fsRootBase.Close()
-		sm.fsRootBase = nil
 	}
 }
 
@@ -124,28 +64,14 @@ func (sm *SessionManager) CreateSession(opts SessionCreateRequest) (*Session, er
 	// TODO: Future enhancement - configure VM memory size based on opts.MemorySize
 	machine := vm.NewVM()
 
-	// Configure filesystem root for security and file operations
-	// If FSRoot is provided, use it; otherwise create a temporary directory for this session
-	var tempDir string
-	if opts.FSRoot != "" {
-		sm.mu.RLock()
-		root, err := openFSRoot(sm.fsRootBase, opts.FSRoot)
-		sm.mu.RUnlock()
-		if err != nil {
-			return nil, err
-		}
-		machine.SetFilesystemRoot(root)
-	} else {
-		// Create a temporary directory for this session's file operations
-		var err error
-		tempDir, err = os.MkdirTemp("", "arm-emulator-session-*")
-		if err != nil {
-			return nil, err
-		}
-		if err := machine.OpenFilesystemRoot(tempDir); err != nil {
-			_ = os.RemoveAll(tempDir)
-			return nil, err
-		}
+	// Confine guest file operations to a new temporary directory for this session
+	tempDir, err := os.MkdirTemp("", "arm-emulator-session-*")
+	if err != nil {
+		return nil, err
+	}
+	if err := machine.OpenFilesystemRoot(tempDir); err != nil {
+		_ = os.RemoveAll(tempDir)
+		return nil, err
 	}
 
 	// Set up output broadcasting if broadcaster is available
@@ -233,14 +159,11 @@ func (sm *SessionManager) DestroyAll() {
 	clear(sm.sessions)
 }
 
-// destroy stops a session's execution and removes the temporary directory it created.
-// A client-supplied filesystem root is left alone.
+// destroy stops a session's execution and removes its temporary directory.
 func destroy(session *Session) {
 	// Handlers may still hold the session, so stop execution rather than clearing Service.
 	session.Service.Close()
-	if session.TempDir != "" {
-		_ = os.RemoveAll(session.TempDir)
-	}
+	_ = os.RemoveAll(session.TempDir)
 }
 
 // ListSessions returns a list of all session IDs

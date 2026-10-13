@@ -145,14 +145,13 @@ Create a new emulator session.
 {
   "memorySize": 1048576,
   "stackSize": 65536,
-  "heapSize": 262144,
-  "fsRoot": "/path/to/sandbox"
+  "heapSize": 262144
 }
 ```
 
 All fields are optional (defaults: 1MB memory, 64KB stack, 256KB heap).
 
-`fsRoot` confines guest file operations to a directory. It must be a clean absolute path to an existing directory inside the base given by the server's `-fsroot` flag. A server started without `-fsroot` answers 403, as does a request with an `Origin` header. Without `fsRoot` each session gets a new temporary directory.
+Each session confines guest file operations to its own new temporary directory, removed when the session is destroyed.
 
 **Response:**
 ```json

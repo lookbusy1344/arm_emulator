@@ -2,7 +2,6 @@ package api
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
@@ -40,26 +39,5 @@ func TestShutdownDestroysSessions(t *testing.T) {
 	}
 	if err := session.Service.Step(); !errors.Is(err, service.ErrClosed) {
 		t.Errorf("Step after shutdown = %v, want ErrClosed", err)
-	}
-}
-
-func TestShutdownKeepsClientFSRoot(t *testing.T) {
-	dir := t.TempDir()
-	server := testServerWithFSRootBase(t, dir)
-	w := createSessionWith(t, server, api.SessionCreateRequest{FSRoot: dir}, "")
-	if w.Code != http.StatusCreated {
-		t.Fatalf("create: status %d", w.Code)
-	}
-	var resp api.SessionCreateResponse
-	if err := json.NewDecoder(w.Body).Decode(&resp); err != nil {
-		t.Fatal(err)
-	}
-
-	if err := server.Shutdown(context.Background()); err != nil {
-		t.Fatalf("shutdown: %v", err)
-	}
-
-	if info, err := os.Stat(dir); err != nil || !info.IsDir() {
-		t.Errorf("client fsRoot %s removed by shutdown (stat: %v)", dir, err)
 	}
 }

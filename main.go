@@ -98,12 +98,6 @@ func main() {
 	// Start API server mode if requested
 	if *apiServer {
 		server := api.NewServerWithVersion(*apiPort, Version, Commit, Date)
-		if *fsRoot != "" {
-			if err := server.AllowFSRootsUnder(*fsRoot); err != nil {
-				fmt.Fprintf(os.Stderr, "Error: -fsroot %s: %v\n", *fsRoot, err)
-				os.Exit(1)
-			}
-		}
 
 		// Setup graceful shutdown
 		sigChan := make(chan os.Signal, 1)
@@ -717,7 +711,7 @@ func printHelp() {
 	fmt.Printf(`ARM2 Emulator %s
 
 Usage: arm-emulator [options] <assembly-file>
-       arm-emulator -api-server [-port N] [-fsroot DIR]
+       arm-emulator -api-server [-port N]
 
 Options:
   -help              Show this help message
@@ -731,8 +725,6 @@ Options:
   -entry ADDR        Set entry point address (default: 0x8000)
   -verbose           Enable verbose output
   -fsroot DIR        Restrict file operations to directory (default: current directory)
-                     With -api-server: clients may set a session fsRoot inside DIR
-                     (default: clients may not set fsRoot)
 
 Symbol Options:
   -dump-symbols      Dump symbol table and exit

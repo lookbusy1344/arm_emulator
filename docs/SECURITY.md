@@ -84,7 +84,7 @@ The application only modifies files that the user explicitly specifies:
   - Symlink escapes blocked; OPEN returns an error to the guest
   - Absolute paths treated as relative to sandbox root
   - **No unrestricted access mode** - the VM refuses file access without a filesystem root
-  - API server: sessions get a new temporary directory. A client may name its own `fsRoot` only inside the directory given by `-fsroot`; without `-fsroot` the server refuses it
+  - API server: each session gets its own new temporary directory; clients cannot choose it
 
 - **Read Operations:** User-provided assembly files (`.s` files)
 - **Write Operations:** 
