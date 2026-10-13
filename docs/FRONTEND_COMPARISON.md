@@ -32,12 +32,12 @@ Legend: ✅ supported · ◐ partial · — absent
 | Edit source | ✅ `NSTextView` | ✅ AvaloniaEdit | — |
 | Syntax highlighting | — | ✅ themed `.xshd` | ◐ labels coloured in source view |
 | Line numbers | ✅ | ✅ | ✅ |
-| Editor font size preference | ◐ setting exists, editor ignores it (fixed 10 pt) | ✅ | — |
+| Editor font size preference | ✅ | ✅ | — |
 | Editor read-only while running | ✅ | ✅ | n/a |
 | Open / Save / Save As | ✅ | ✅ | — (`load` is a placeholder) |
 | Recent files | ✅ limit 5–20, Clear Menu | ✅ limit 1–50 | — |
 | Examples browser with search and preview | ✅ reads local `examples/` directory | ✅ reads `/api/v1/examples` | — |
-| Unsaved-changes prompt (open, example, quit) | — | ✅ Save / Discard / Cancel | n/a |
+| Unsaved-changes prompt (open, example, quit) | ✅ Save / Don't Save / Cancel | ✅ Save / Discard / Cancel | n/a |
 | Dirty marker in window title | — | ✅ `name •` | n/a |
 | Open `.s` file from command line | ✅ | ✅ | ✅ |
 
@@ -47,7 +47,7 @@ Legend: ✅ supported · ◐ partial · — absent
 |---|---|---|---|
 | Assemble | ✅ ⌘L | ✅ ⌘L / Ctrl+L | — (assembled at launch) |
 | Run / Continue | ✅ F5, ⌘R | ✅ F5, ⌘R / Ctrl+R | ✅ F5, `run`, `continue` |
-| Pause | ✅ ⌘. | ✅ ⌘. / Ctrl+. | — (Ctrl+C quits) |
+| Pause | ✅ ⌘. | ✅ ⌘. / Ctrl+. | ✅ Ctrl+C while running; quits when stopped |
 | Step | ✅ F11, ⌘T | ✅ F11, F7, ⌘T / Ctrl+T | ✅ F11, `step` |
 | Step Over | ✅ F10, F8, ⌘⇧T | ✅ F10, F8, ⌘⇧T / Ctrl+Shift+T | ✅ F10, `next` |
 | Step Out | ✅ ⌘⌥T | ✅ ⌘⌥T / Ctrl+Alt+T | ✅ `finish` |
@@ -56,14 +56,15 @@ Legend: ✅ supported · ◐ partial · — absent
 | Status indicator | ✅ toolbar icon + text | ✅ toolbar pill | ✅ Status panel |
 | Restart backend from menu | ◐ only from the failure screen | ✅ File → Restart Backend | n/a |
 | Error display | modal alert | dismissible inline bar | Status panel |
+| Command history | n/a | n/a | ✅ Up/Down recall; empty Enter repeats the last command |
 
 ## Breakpoints and watchpoints
 
 | | Swift | Avalonia | TUI |
 |---|---|---|---|
 | Toggle breakpoint in editor gutter | ✅ | ✅ | — |
-| F9 toggles breakpoint | ◐ at current PC | ✅ at editor caret | ◐ sends `break` with no address, which fails with a usage error |
-| Toggle breakpoint in disassembly | — (its empty-state text says otherwise) | ✅ click marker column | — |
+| F9 toggles breakpoint | ◐ at current PC | ✅ at editor caret | ◐ at current PC |
+| Toggle breakpoint in disassembly | ✅ click marker column | ✅ click marker column | — |
 | Breakpoint by address or label | — | — | ✅ `break <addr\|label>` |
 | Conditional breakpoints | — | — | ✅ `break <addr> if <expr>` |
 | Temporary breakpoints | — | — | ✅ `tbreak` |
@@ -107,17 +108,16 @@ Legend: ✅ supported · ◐ partial · — absent
 | | Swift | Avalonia | TUI |
 |---|---|---|---|
 | Theme: auto / light / dark | ✅ | ✅ | — |
-| Backend URL | ◐ setting exists, client is fixed to `localhost:8080` | ✅ applied on backend restart | n/a |
-| Editor font size | ◐ see Files and editing | ✅ live preview | — |
+| Backend URL | ✅ applied at next launch | ✅ applied on backend restart | n/a |
+| Editor font size | ✅ live preview | ✅ live preview | — |
 | Recent files limit | ✅ | ✅ | — |
 
 ## Gaps
 
 Swift GUI:
 
-- Backend URL and editor font size preferences are stored but not used.
-- No unsaved-changes prompt; Open, Open Example and Quit discard edits.
-- Disassembly rows cannot toggle breakpoints; the Breakpoints panel says they can.
+- No dirty marker in the window title.
+- Closing the window (as opposed to quitting) does not offer to save.
 - Memory address entry treats every input as hex.
 - No syntax highlighting.
 
@@ -133,7 +133,4 @@ Both GUIs:
 
 Go TUI:
 
-- F9 runs `break` without an address and fails.
-- No pause; Ctrl+C exits the debugger.
-- Empty Enter is dropped, so the debugger's repeat-last-command behaviour does not reach the TUI. Command history is recorded but has no Up/Down recall.
 - The memory panel cannot be moved to an arbitrary address.
