@@ -32,6 +32,12 @@ func NewServer(port int) *Server {
 	return NewServerWithVersion(port, "dev", "unknown", "unknown")
 }
 
+// AllowFSRootsUnder lets native clients choose a session fsRoot inside base.
+// Without it the server refuses client fsRoots.
+func (s *Server) AllowFSRootsUnder(base string) error {
+	return s.sessions.AllowFSRootsUnder(base)
+}
+
 // NewServerWithVersion creates a new API server with version information
 func NewServerWithVersion(port int, version, commit, date string) *Server {
 	broadcaster := NewBroadcaster()

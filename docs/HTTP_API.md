@@ -152,6 +152,8 @@ Create a new emulator session.
 
 All fields are optional (defaults: 1MB memory, 64KB stack, 256KB heap).
 
+`fsRoot` confines guest file operations to a directory. It must be a clean absolute path to an existing directory inside the base given by the server's `-fsroot` flag. A server started without `-fsroot` answers 403, as does a request with an `Origin` header. Without `fsRoot` each session gets a new temporary directory.
+
 **Response:**
 ```json
 {

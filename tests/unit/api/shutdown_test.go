@@ -44,8 +44,8 @@ func TestShutdownDestroysSessions(t *testing.T) {
 }
 
 func TestShutdownKeepsClientFSRoot(t *testing.T) {
-	server := testServer(t)
 	dir := t.TempDir()
+	server := testServerWithFSRootBase(t, dir)
 	w := createSessionWith(t, server, api.SessionCreateRequest{FSRoot: dir}, "")
 	if w.Code != http.StatusCreated {
 		t.Fatalf("create: status %d", w.Code)

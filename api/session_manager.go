@@ -18,9 +18,12 @@ var (
 	ErrSessionNotFound = errors.New("session not found")
 	// ErrSessionAlreadyExists is returned when trying to create a session with an existing ID
 	ErrSessionAlreadyExists = errors.New("session already exists")
-	// ErrInvalidFSRoot is returned when a requested filesystem root is not a clean
-	// absolute path to an existing directory
-	ErrInvalidFSRoot = errors.New("fsRoot must be a clean absolute path to an existing directory")
+	// ErrInvalidFSRoot is returned when a filesystem root is not a clean absolute
+	// path to an existing directory inside the server's fsRoot base
+	ErrInvalidFSRoot = errors.New("fsRoot must be a clean absolute path to an existing directory inside the server's fsRoot base")
+	// ErrFSRootNotAllowed is returned when a client sends fsRoot to a server
+	// started without an fsRoot base
+	ErrFSRootNotAllowed = errors.New("fsRoot is not accepted: the server has no fsRoot base")
 	// ErrTooManySessions is returned when MaxSessions sessions already exist
 	ErrTooManySessions = errors.New("too many sessions")
 )
@@ -28,15 +31,28 @@ var (
 // MaxSessions is the most sessions that can exist at once.
 const MaxSessions = 64
 
-// validateFSRoot checks a client-supplied filesystem root.
-func validateFSRoot(root string) error {
+// resolveFSRoot returns the client-supplied root if it is base or a directory inside it.
+// os.Root confines the lookup, so a symlink that leaves base is rejected.
+func resolveFSRoot(base, root string) (string, error) {
+	if base == "" {
+		return "", ErrFSRootNotAllowed
+	}
 	if !filepath.IsAbs(root) || filepath.Clean(root) != root {
-		return ErrInvalidFSRoot
+		return "", ErrInvalidFSRoot
 	}
-	if info, err := os.Stat(root); err != nil || !info.IsDir() {
-		return ErrInvalidFSRoot
+	rel, err := filepath.Rel(base, root)
+	if err != nil || !filepath.IsLocal(rel) {
+		return "", ErrInvalidFSRoot
 	}
-	return nil
+	dir, err := os.OpenRoot(base)
+	if err != nil {
+		return "", ErrInvalidFSRoot
+	}
+	defer func() { _ = dir.Close() }()
+	if info, err := dir.Stat(rel); err != nil || !info.IsDir() {
+		return "", ErrInvalidFSRoot
+	}
+	return filepath.Join(base, rel), nil
 }
 
 // Session represents an active emulator session
@@ -51,6 +67,7 @@ type Session struct {
 type SessionManager struct {
 	sessions    map[string]*Session
 	broadcaster *Broadcaster
+	fsRootBase  string // client fsRoots must lie inside it; empty refuses them
 	mu          sync.RWMutex
 }
 
@@ -60,6 +77,21 @@ func NewSessionManager(broadcaster *Broadcaster) *SessionManager {
 		sessions:    make(map[string]*Session),
 		broadcaster: broadcaster,
 	}
+}
+
+// AllowFSRootsUnder lets clients choose fsRoot as base or any directory inside it.
+func (sm *SessionManager) AllowFSRootsUnder(base string) error {
+	abs, err := filepath.Abs(base)
+	if err != nil {
+		return ErrInvalidFSRoot
+	}
+	if info, err := os.Stat(abs); err != nil || !info.IsDir() {
+		return ErrInvalidFSRoot
+	}
+	sm.mu.Lock()
+	defer sm.mu.Unlock()
+	sm.fsRootBase = abs
+	return nil
 }
 
 // CreateSession creates a new session with a unique ID
@@ -83,10 +115,14 @@ func (sm *SessionManager) CreateSession(opts SessionCreateRequest) (*Session, er
 	// If FSRoot is provided, use it; otherwise create a temporary directory for this session
 	var tempDir string
 	if opts.FSRoot != "" {
-		if err := validateFSRoot(opts.FSRoot); err != nil {
+		sm.mu.RLock()
+		base := sm.fsRootBase
+		sm.mu.RUnlock()
+		root, err := resolveFSRoot(base, opts.FSRoot)
+		if err != nil {
 			return nil, err
 		}
-		machine.FilesystemRoot = opts.FSRoot
+		machine.FilesystemRoot = root
 	} else {
 		// Create a temporary directory for this session's file operations
 		var err error

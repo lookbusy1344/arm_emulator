@@ -33,6 +33,10 @@ func (s *Server) handleCreateSession(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, err.Error())
 		return
 	}
+	if errors.Is(err, ErrFSRootNotAllowed) {
+		writeError(w, http.StatusForbidden, err.Error())
+		return
+	}
 	if errors.Is(err, ErrTooManySessions) {
 		writeError(w, http.StatusTooManyRequests, err.Error())
 		return
