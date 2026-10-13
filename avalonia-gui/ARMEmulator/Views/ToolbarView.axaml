@@ -3,6 +3,12 @@
              xmlns:vm="using:ARMEmulator.ViewModels"
              x:Class="ARMEmulator.Views.ToolbarView"
              x:DataType="vm:MainWindowViewModel">
+    <UserControl.Styles>
+        <!-- Mouse only: every command has a shortcut, and clicks leave focus where it was -->
+        <Style Selector="Button">
+            <Setter Property="Focusable" Value="False" />
+        </Style>
+    </UserControl.Styles>
     <Border Background="{DynamicResource PanelBackgroundBrush}"
             BorderBrush="{DynamicResource DividerBrush}"
             BorderThickness="0,0,0,1"

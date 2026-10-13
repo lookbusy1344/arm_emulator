@@ -8,7 +8,7 @@ namespace ARMEmulator;
 public partial class MainWindow
 {
 	/// <summary>Controls that take focus in turn when F6 moves between regions. Disabled ones are skipped.</summary>
-	private static readonly ImmutableArray<string> PaneNames = ["RunButton", "TextEditor", "InspectorSelector", "InputBox"];
+	private static readonly ImmutableArray<string> PaneNames = ["TextEditor", "InspectorSelector", "InputBox"];
 
 	/// <summary>Moves focus between regions with F6, and back with Shift+F6. Tab cannot leave the editor, which inserts tabs.</summary>
 	protected override void OnKeyDown(KeyEventArgs e)

@@ -31,19 +31,19 @@ public sealed class KeyboardTraversalTests
 	}
 
 	[Fact]
-	public Task F6_CyclesThroughEditorInspectorConsoleAndToolbar() =>
+	public Task F6_CyclesThroughEditorInspectorAndConsole() =>
 		UiTest.RunAsync(async ui => {
 			await ui.ViewModel.StartAsync(ui.Backend, TestContext.Current.CancellationToken);
 			Settle(ui);
 			ui.Find<AvaloniaEdit.TextEditor>("TextEditor").TextArea.Focus();
 			Settle(ui);
 
-			var visited = Enumerable.Range(0, 4).Select(_ => {
+			var visited = Enumerable.Range(0, 3).Select(_ => {
 				Press(ui, PhysicalKey.F6);
 				return FocusedName(ui);
 			}).ToList();
 
-			visited.Should().Equal("InspectorSelector", "InputBox", "RunButton", "TextArea");
+			visited.Should().Equal("InspectorSelector", "InputBox", "TextArea");
 		});
 
 	[Fact]
@@ -56,7 +56,26 @@ public sealed class KeyboardTraversalTests
 
 			Press(ui, PhysicalKey.F6, RawInputModifiers.Shift);
 
-			FocusedName(ui).Should().Be("RunButton");
+			FocusedName(ui).Should().Be("InputBox");
+		});
+
+	[Fact]
+	public Task ToolbarButtons_AreMouseOnly() =>
+		UiTest.RunAsync(async ui => {
+			await ui.ViewModel.StartAsync(ui.Backend, TestContext.Current.CancellationToken);
+			Settle(ui);
+
+			var buttons = ui.Window.GetVisualDescendants().OfType<Views.ToolbarView>().Single()
+				.GetVisualDescendants().OfType<Button>().Select(button => (button.Name, button.Focusable));
+
+			buttons.Should().Equal(
+				("RunButton", false),
+				("PauseButton", false),
+				("StepButton", false),
+				("StepOverButton", false),
+				("StepOutButton", false),
+				("ResetButton", false),
+				("ShowPcButton", false));
 		});
 
 	[Fact]
