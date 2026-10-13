@@ -14,6 +14,8 @@ The GUIs are edit-assemble-debug environments. The TUI is a GDB-style debugger o
 
 Legend: ✅ supported · ◐ partial · — absent
 
+Address fields in all three front ends read `0x` and hex digits as hex and a bare number as decimal: `0x8000` and `32768` name the same address.
+
 ## Layout
 
 | | Swift | Avalonia | TUI |
@@ -72,7 +74,7 @@ Legend: ✅ supported · ◐ partial · — absent
 | Breakpoints survive re-assembly on their source line | ✅ | ✅ | n/a |
 | Breakpoints list with remove | ✅ | ✅ with counts | ✅ panel; `delete [id]` |
 | Watchpoints: read, write, read/write | ✅ | ✅ | ✅ `rwatch`, `watch`, `awatch` |
-| Watchpoint target | address, `0x` hex or decimal | address, always hex | expression |
+| Watchpoint target | address | address | expression |
 
 ## Inspection
 
@@ -82,7 +84,7 @@ Legend: ✅ supported · ◐ partial · — absent
 | Changed registers highlighted | ✅ green, fades over 1.5 s | ✅ row background | ✅ green until next step |
 | CPSR flags | ◐ `NZCV` string in status strip | ✅ N/Z/C/V pills | ✅ |
 | Memory hex + ASCII dump, 16 bytes per row | ✅ 256 bytes | ✅ | ✅ |
-| Memory: go to address | ✅ hex only | ✅ hex or decimal | ◐ `x/nfu` prints to Status; panel only follows writes |
+| Memory: go to address | ✅ | ✅ | ◐ `x/nfu` prints to Status; panel only follows writes |
 | Memory: jump to PC, SP, R0–R3 | ✅ | ✅ | — |
 | Memory: follow writes (toggle) | ✅ | ✅ also a preference | ✅ always on |
 | Memory: write highlight | ✅ per byte, fades | ✅ per row, fades | ✅ per byte |
@@ -118,13 +120,11 @@ Swift GUI:
 
 - No dirty marker in the window title.
 - Closing the window (as opposed to quitting) does not offer to save.
-- Memory address entry treats every input as hex.
 - No syntax highlighting.
 
 Avalonia GUI:
 
-- Matches or exceeds the Swift GUI in most rows. It trails on memory write highlighting (per row, not per byte) and watchpoint address entry.
-- Watchpoint address entry treats every input as hex, so `32768` becomes `0x32768`. The memory view accepts decimal.
+- Matches or exceeds the Swift GUI in most rows. It trails on memory write highlighting (per row, not per byte).
 
 Both GUIs:
 
