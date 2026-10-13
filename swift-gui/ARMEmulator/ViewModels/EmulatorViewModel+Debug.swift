@@ -9,6 +9,17 @@ extension EmulatorViewModel {
         await toggleBreakpoint(at: address)
     }
 
+    /// Toggles the breakpoint on the editor caret line, reporting a line that holds no instruction
+    func toggleBreakpointAtCaret() async {
+        let line = caretLine
+        guard await ensureAssembled() else { return }
+        guard lineToAddress[line] != nil else {
+            errorMessage = "Line \(line) has no instruction for a breakpoint"
+            return
+        }
+        await toggleBreakpoint(atLine: line)
+    }
+
     func toggleBreakpoint(at address: UInt32) async {
         guard let sessionID else {
             errorMessage = "No active session"

@@ -72,6 +72,16 @@ struct MainView: View {
             appDelegate?.viewModel = viewModel
         }
         .focusedSceneValue(\.viewModel, viewModel)
+        .navigationTitle(WindowTitle.format(
+            fileURL: fileService.currentFileURL,
+            isDirty: viewModel.hasUnsavedChanges,
+        ))
+        .background(MainWindowSetup(isDocumentEdited: viewModel.hasUnsavedChanges) { [viewModel, fileService] in
+            WindowCloseGuard(
+                hasUnsavedChanges: { viewModel.hasUnsavedChanges },
+                confirm: { await viewModel.confirmDiscardingChanges(using: fileService) },
+            )
+        })
         .preferredColorScheme(settings.preferredColorScheme)
         .onReceive(NotificationCenter.default.publisher(for: .showExamplesBrowser)) { _ in
             showingExamplesBrowser = true
@@ -269,10 +279,9 @@ struct StatusView: View {
                     .foregroundColor(cpsrHighlightID != nil ? .green : .secondary)
                     .animation(.easeOut(duration: 1.5), value: cpsrHighlightID)
 
-                Text(cpsr.displayString)
-                    .font(.system(size: 10, design: .monospaced))
-                    .foregroundColor(cpsrHighlightID != nil ? .green : .primary)
-                    .animation(.easeOut(duration: 1.5), value: cpsrHighlightID)
+                ForEach(cpsr.items, id: \.name) { flag in
+                    FlagPill(flag: flag)
+                }
             }
             .padding(.horizontal)
 
@@ -297,6 +306,22 @@ struct StatusView: View {
         case .error:
             .red
         }
+    }
+}
+
+/// One CPSR flag: filled when set, outlined when clear
+struct FlagPill: View {
+    let flag: CPSRFlag
+
+    var body: some View {
+        Text(flag.name)
+            .font(.system(size: 10, weight: .semibold, design: .monospaced))
+            .foregroundColor(flag.isSet ? .white : .secondary)
+            .padding(.horizontal, 6)
+            .padding(.vertical, 1)
+            .background(Capsule().fill(flag.isSet ? Color.accentColor : .clear))
+            .overlay(Capsule().strokeBorder(flag.isSet ? Color.accentColor : Color.secondary.opacity(0.5)))
+            .accessibilityLabel("\(flag.name) flag \(flag.isSet ? "set" : "clear")")
     }
 }
 

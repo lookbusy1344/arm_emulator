@@ -80,7 +80,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             Task { await viewModel.step() }
             return true
         case NSF9FunctionKey, 101: // F9 (Toggle Breakpoint)
-            Task { await viewModel.toggleBreakpoint(at: viewModel.currentPC) }
+            Task { await viewModel.toggleBreakpointAtCaret() }
             return true
         default:
             return false
@@ -113,7 +113,7 @@ struct ARMEmulatorApp: App {
                     showingAbout = true
                 }
             }
-            FileCommands()
+            FileCommands(backendManager: appDelegate.backendManager)
             DebugCommands()
         }
         .windowStyle(.titleBar)

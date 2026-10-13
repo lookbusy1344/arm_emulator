@@ -30,11 +30,26 @@ struct RegisterState: Codable, Equatable {
     }
 }
 
+struct CPSRFlag: Equatable {
+    let name: String
+    let isSet: Bool
+}
+
 struct CPSRFlags: Codable, Equatable {
     var n: Bool // Negative
     var z: Bool // Zero
     var c: Bool // Carry
     var v: Bool // Overflow
+
+    /// The flags in N, Z, C, V order
+    var items: [CPSRFlag] {
+        [
+            CPSRFlag(name: "N", isSet: n),
+            CPSRFlag(name: "Z", isSet: z),
+            CPSRFlag(name: "C", isSet: c),
+            CPSRFlag(name: "V", isSet: v),
+        ]
+    }
 
     var displayString: String {
         "\(n ? "N" : "-")\(z ? "Z" : "-")\(c ? "C" : "-")\(v ? "V" : "-")"

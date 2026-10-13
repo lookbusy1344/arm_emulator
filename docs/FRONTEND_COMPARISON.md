@@ -22,7 +22,7 @@ Address fields in all three front ends read `0x` and hex digits as hex and a bar
 |---|---|---|---|
 | Editor + inspector + console layout | ✅ split views | ✅ grid splitters | ✅ fixed tview layout, all panels visible |
 | Inspector panel picker | ✅ dropdown, 7 panels | ✅ dropdown, 7 panels | — (all panels shown at once) |
-| Window geometry and splitters persist | — | ✅ | — |
+| Window geometry and splitters persist | ◐ window frame only | ✅ | — |
 | Selected inspector panel persists | ✅ | ✅ | — |
 | Move focus between panes | — | ✅ F6 / Shift+F6 | ✅ Tab / Shift+Tab |
 | Native macOS menu bar | ✅ | ✅ | — |
@@ -32,15 +32,15 @@ Address fields in all three front ends read `0x` and hex digits as hex and a bar
 | | Swift | Avalonia | TUI |
 |---|---|---|---|
 | Edit source | ✅ `NSTextView` | ✅ AvaloniaEdit | — |
-| Syntax highlighting | — | ✅ themed `.xshd` | ◐ labels coloured in source view |
+| Syntax highlighting | ✅ system colours | ✅ themed `.xshd` | ◐ labels coloured in source view |
 | Line numbers | ✅ | ✅ | ✅ |
 | Editor font size preference | ✅ | ✅ | — |
 | Editor read-only while running | ✅ | ✅ | n/a |
 | Open / Save / Save As | ✅ | ✅ | — (`load` is a placeholder) |
 | Recent files | ✅ limit 5–20, Clear Menu | ✅ limit 1–50 | — |
 | Examples browser with search and preview | ✅ reads local `examples/` directory | ✅ reads `/api/v1/examples` | — |
-| Unsaved-changes prompt (open, example, quit) | ✅ Save / Don't Save / Cancel | ✅ Save / Discard / Cancel | n/a |
-| Dirty marker in window title | — | ✅ `name •` | n/a |
+| Unsaved-changes prompt (open, example, close, quit) | ✅ Save / Don't Save / Cancel | ✅ Save / Discard / Cancel | n/a |
+| Dirty marker in window title | ✅ `name •`, dot in close button | ✅ `name •` | n/a |
 | Open `.s` file from command line | ✅ | ✅ | ✅ |
 
 ## Execution control
@@ -56,7 +56,7 @@ Address fields in all three front ends read `0x` and hex digits as hex and a bar
 | Reset | ✅ ⌘⇧R | ✅ ⌘⇧R / Ctrl+Shift+R | ✅ `reset` |
 | Scroll editor to PC | ✅ ⌘J | ✅ ⌘J / Ctrl+J | ✅ F6 |
 | Status indicator | ✅ toolbar icon + text | ✅ toolbar pill | ✅ Status panel |
-| Restart backend from menu | ◐ only from the failure screen | ✅ File → Restart Backend | n/a |
+| Restart backend from menu | ✅ File → Restart Backend | ✅ File → Restart Backend | n/a |
 | Error display | modal alert | dismissible inline bar | Status panel |
 | Command history | n/a | n/a | ✅ Up/Down recall; empty Enter repeats the last command |
 
@@ -65,7 +65,7 @@ Address fields in all three front ends read `0x` and hex digits as hex and a bar
 | | Swift | Avalonia | TUI |
 |---|---|---|---|
 | Toggle breakpoint in editor gutter | ✅ | ✅ | — |
-| F9 toggles breakpoint | ◐ at current PC | ✅ at editor caret | ◐ at current PC |
+| F9 toggles breakpoint | ✅ at editor caret | ✅ at editor caret | ◐ at current PC |
 | Toggle breakpoint in disassembly | ✅ click marker column | ✅ click marker column | — |
 | Breakpoint by address or label | — | — | ✅ `break <addr\|label>` |
 | Conditional breakpoints | — | — | ✅ `break <addr> if <expr>` |
@@ -82,7 +82,7 @@ Address fields in all three front ends read `0x` and hex digits as hex and a bar
 |---|---|---|---|
 | Registers R0–R12, SP, LR, PC (hex + decimal) | ✅ 1–3 columns by width | ✅ table | ✅ |
 | Changed registers highlighted | ✅ green, fades over 1.5 s | ✅ row background | ✅ green until next step |
-| CPSR flags | ◐ `NZCV` string in status strip | ✅ N/Z/C/V pills | ✅ |
+| CPSR flags | ✅ N/Z/C/V pills in status strip | ✅ N/Z/C/V pills | ✅ |
 | Memory hex + ASCII dump, 16 bytes per row | ✅ 256 bytes | ✅ | ✅ |
 | Memory: go to address | ✅ | ✅ | ◐ `x/nfu` prints to Status; panel only follows writes |
 | Memory: jump to PC, SP, R0–R3 | ✅ | ✅ | — |
@@ -118,9 +118,9 @@ Address fields in all three front ends read `0x` and hex digits as hex and a bar
 
 Swift GUI:
 
-- No dirty marker in the window title.
-- Closing the window (as opposed to quitting) does not offer to save.
-- No syntax highlighting.
+- Splitter positions do not persist.
+- No key to move focus between panes.
+- A new Backend URL applies at the next launch, not on backend restart.
 
 Avalonia GUI:
 

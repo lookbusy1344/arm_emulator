@@ -2,6 +2,7 @@ import SwiftUI
 
 struct FileCommands: Commands {
     @FocusedValue(\.viewModel) var viewModel: EmulatorViewModel?
+    let backendManager: BackendManager
 
     private var fileService: FileService {
         FileService.shared
@@ -67,6 +68,27 @@ struct FileCommands: Commands {
                 NotificationCenter.default.post(name: .showExamplesBrowser, object: nil)
             }
             .keyboardShortcut("e", modifiers: [.command, .shift])
+
+            Divider()
+
+            Button("Restart Backend") {
+                Task {
+                    await restartBackend()
+                }
+            }
+        }
+    }
+
+    /// Restarts the backend; the view model, when there is one, reconnects and reloads its program
+    private func restartBackend() async {
+        let restart = {
+            await backendManager.restartBackend()
+            return backendManager.backendStatus == .running
+        }
+        if let viewModel {
+            await viewModel.restartBackend(restart)
+        } else {
+            _ = await restart()
         }
     }
 

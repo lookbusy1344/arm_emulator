@@ -59,8 +59,7 @@ struct DebugCommands: Commands {
 
             Button("Toggle Breakpoint") {
                 Task {
-                    guard let vm = viewModel else { return }
-                    await vm.toggleBreakpoint(at: vm.currentPC)
+                    await viewModel?.toggleBreakpointAtCaret()
                 }
             }
             .keyboardShortcut(KeyEquivalent(Character(UnicodeScalar(NSF9FunctionKey)!)), modifiers: [])

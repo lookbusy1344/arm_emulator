@@ -25,6 +25,9 @@ class EmulatorViewModel: ObservableObject {
     @Published var errorMessage: String?
     @Published var isConnected = false
 
+    /// The 1-based editor line holding the caret. Unpublished: it changes on every selection change.
+    var caretLine = 1
+
     /// Callback for scrolling editor to current PC
     var scrollToCurrentPC: (() -> Void)?
 
@@ -50,7 +53,7 @@ class EmulatorViewModel: ObservableObject {
     private let wsClient: any WebSocketClientProtocol
     var sessionID: String?
     private var cancellables = Set<AnyCancellable>()
-    private var isInitializing = false
+    private var initializing: Task<Void, Never>?
 
     /// Computed property: determines if pause button should be enabled
     var canPause: Bool {
@@ -147,13 +150,21 @@ class EmulatorViewModel: ObservableObject {
         memoryHighlights.removeAll()
     }
 
+    /// Creates a session and connects the WebSocket. A call while another is in flight waits for that one.
     func initialize() async {
-        // Prevent concurrent initialization
-        guard !isInitializing, !isConnected else { return }
+        if let initializing {
+            await initializing.value
+            return
+        }
+        guard !isConnected else { return }
 
-        isInitializing = true
-        defer { isInitializing = false }
+        let task = Task { await createSession() }
+        initializing = task
+        await task.value
+        initializing = nil
+    }
 
+    private func createSession() async {
         do {
             sessionID = try await apiClient.createSession()
             wsClient.connect(sessionID: sessionID!)
@@ -186,6 +197,12 @@ class EmulatorViewModel: ObservableObject {
     /// Breakpoints stay on their source lines. Returns false when assembly failed.
     @discardableResult
     func assemble() async -> Bool {
+        await assemble(breakpointLines: breakpoints.compactMap { addressToLine[$0] })
+    }
+
+    /// Assembles as `assemble()` does, placing breakpoints on `breakpointLines`
+    @discardableResult
+    private func assemble(breakpointLines: [Int]) async -> Bool {
         let source = sourceCode
         DebugLog.log("assemble() called, source length: \(source.count) chars", category: "ViewModel")
 
@@ -196,8 +213,6 @@ class EmulatorViewModel: ObservableObject {
             errorMessage = "No active session"
             return false
         }
-
-        let breakpointLines = breakpoints.compactMap { addressToLine[$0] }
 
         do {
             let response = try await apiClient.loadProgram(sessionID: sessionID, source: source)
@@ -360,7 +375,27 @@ class EmulatorViewModel: ObservableObject {
         }
 
         isConnected = false
-        isInitializing = false
         sessionID = nil
+    }
+
+    /// Restarts the backend through `restart`, which returns true when the backend runs again. The old session
+    /// died with the process, so this opens a new one and reassembles a program that was assembled, keeping
+    /// breakpoints on their source lines.
+    func restartBackend(_ restart: () async -> Bool) async {
+        let reload = assembledSource != nil
+        let breakpointLines = breakpoints.compactMap { addressToLine[$0] }
+
+        wsClient.disconnect()
+        sessionID = nil
+        isConnected = false
+        assembledSource = nil
+        breakpoints = []
+        watchpoints = []
+
+        guard await restart() else { return }
+        await initialize()
+        if reload, isConnected {
+            await assemble(breakpointLines: breakpointLines)
+        }
     }
 }

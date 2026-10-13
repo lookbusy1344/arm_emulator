@@ -6,6 +6,11 @@ import Foundation
 final class MockAPIClient: APIClientProtocol, @unchecked Sendable {
     // Call tracking
     var createSessionCalled = false
+    var createSessionCallCount = 0
+    /// Awaited by createSession before it answers, so a test can hold a session creation in flight
+    var createSessionGate: (@Sendable () async -> Void)?
+    /// The session of each loadProgram call, in order
+    var loadedSessionIDs: [String] = []
     var destroySessionCalled = false
     var loadProgramCalled = false
     var loadProgramCallCount = 0
@@ -64,6 +69,8 @@ final class MockAPIClient: APIClientProtocol, @unchecked Sendable {
     private var sessionIDCounter = 0
 
     func createSession() async throws -> String {
+        createSessionCallCount += 1
+        await createSessionGate?()
         if simulateDelay > 0 {
             try await Task.sleep(nanoseconds: UInt64(simulateDelay * 1_000_000_000))
         }
@@ -99,6 +106,7 @@ final class MockAPIClient: APIClientProtocol, @unchecked Sendable {
         loadProgramCalled = true
         loadProgramCallCount += 1
         lastLoadedSource = source
+        loadedSessionIDs.append(sessionID)
         callSequence.append("loadProgram")
         if shouldFailLoadProgram {
             throw NSError(

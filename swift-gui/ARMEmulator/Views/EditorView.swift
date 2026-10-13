@@ -28,6 +28,9 @@ struct EditorView: View {
                 onBreakpointToggle: { lineNumber in
                     toggleBreakpoint(at: lineNumber)
                 },
+                onCaretLineChange: { line in
+                    viewModel.caretLine = line
+                },
                 onTextViewCreated: { textView in
                     self.textView = textView
                 },
@@ -153,6 +156,7 @@ struct EditorWithGutterView: NSViewRepresentable {
     let isEditable: Bool
     let fontSize: CGFloat
     let onBreakpointToggle: (Int) -> Void
+    let onCaretLineChange: (Int) -> Void
     let onTextViewCreated: (NSTextView) -> Void
     let onScrollViewCreated: (NSScrollView) -> Void
 
@@ -207,6 +211,7 @@ struct EditorWithGutterView: NSViewRepresentable {
         textView.isAutomaticDashSubstitutionEnabled = false
         textView.isAutomaticTextReplacementEnabled = false
         textView.delegate = coordinator
+        textView.textStorage?.delegate = coordinator.highlighter
 
         // Configure for horizontal scrolling (no wrapping)
         textView.isVerticallyResizable = true
@@ -301,6 +306,7 @@ struct EditorWithGutterView: NSViewRepresentable {
     class Coordinator: NSObject, NSTextViewDelegate {
         var parent: EditorWithGutterView
         var gutterView: CustomGutterView?
+        let highlighter = AssemblyHighlighter()
 
         init(_ parent: EditorWithGutterView) {
             self.parent = parent
@@ -309,6 +315,11 @@ struct EditorWithGutterView: NSViewRepresentable {
         func textDidChange(_ notification: Notification) {
             guard let textView = notification.object as? NSTextView else { return }
             parent.text = textView.string
+        }
+
+        func textViewDidChangeSelection(_ notification: Notification) {
+            guard let textView = notification.object as? NSTextView else { return }
+            parent.onCaretLineChange(SourceText.line(atOffset: textView.selectedRange().location, in: textView.string))
         }
     }
 }
