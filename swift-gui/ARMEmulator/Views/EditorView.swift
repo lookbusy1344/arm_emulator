@@ -6,6 +6,9 @@ struct EditorView: View {
     let fontSize: CGFloat
     /// Receives the text view once it exists, so the window can give it focus
     var onTextViewCreated: (NSTextView) -> Void = { _ in }
+    /// Whether the text view is first responder, for the title's focus cue
+    var isFocused = false
+    var onFocusChange: (Bool) -> Void = { _ in }
     @State private var breakpoints: Set<Int> = []
     @State private var currentLine: Int?
     @State private var textView: NSTextView?
@@ -16,6 +19,7 @@ struct EditorView: View {
         VStack(alignment: .leading, spacing: 0) {
             Text("Assembly Editor")
                 .font(.system(size: 11, weight: .semibold))
+                .paneTitle(focused: isFocused)
                 .padding(.horizontal)
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .frame(height: 40)
@@ -40,6 +44,7 @@ struct EditorView: View {
                 onScrollViewCreated: { scrollView in
                     self.scrollView = scrollView
                 },
+                onFocusChange: onFocusChange,
             )
             .background(Color(NSColor.textBackgroundColor))
             .border(Color.gray.opacity(0.3))
@@ -162,6 +167,7 @@ struct EditorWithGutterView: NSViewRepresentable {
     let onCaretLineChange: (Int) -> Void
     let onTextViewCreated: (NSTextView) -> Void
     let onScrollViewCreated: (NSScrollView) -> Void
+    let onFocusChange: (Bool) -> Void
 
     func makeNSView(context: Context) -> NSView {
         let containerView = NSView()
@@ -203,7 +209,8 @@ struct EditorWithGutterView: NSViewRepresentable {
     }
 
     private func configureTextView(scrollView: NSScrollView, coordinator: Coordinator) -> NSTextView {
-        let textView = NSTextView()
+        let textView = EditorTextView()
+        textView.onFocusChange = onFocusChange
         textView.isEditable = true
         textView.isSelectable = true
         Self.applyFont(size: fontSize, to: textView)

@@ -10,6 +10,7 @@ struct MainView: View {
     @State private var showingExamplesBrowser = false
     @State private var hasLoadedStartupFile = false
     @State private var editorTextView: NSTextView?
+    @State private var editorFocused = false
     @FocusState private var focusedPane: Pane?
 
     var body: some View {
@@ -105,9 +106,13 @@ struct MainView: View {
     private var contentView: some View {
         VSplitView {
             HSplitView {
-                EditorView(text: $viewModel.sourceCode, fontSize: CGFloat(settings.editorFontSize)) { textView in
-                    editorTextView = textView
-                }
+                EditorView(
+                    text: $viewModel.sourceCode,
+                    fontSize: CGFloat(settings.editorFontSize),
+                    onTextViewCreated: { editorTextView = $0 },
+                    isFocused: editorFocused,
+                    onFocusChange: { editorFocused = $0 },
+                )
                 .environmentObject(viewModel)
                 .frame(minWidth: 150)
 
@@ -116,7 +121,7 @@ struct MainView: View {
                     HStack {
                         Text("View:")
                             .font(.system(size: 11))
-                            .foregroundColor(.secondary)
+                            .paneTitle(focused: focusedPane == .inspector, unfocused: .secondary)
 
                         Picker("", selection: $settings.selectedTab) {
                             Label("Registers", systemImage: "cpu").tag(0)
@@ -137,6 +142,7 @@ struct MainView: View {
                     .background(Color(NSColor.controlBackgroundColor))
                     // Focusable whatever the keyboard navigation setting; arrows switch panels
                     .focusable()
+                    .focusEffectDisabled()
                     .focused($focusedPane, equals: .inspector)
                     .onKeyPress(.upArrow) { selectPanel(forward: false) }
                     .onKeyPress(.downArrow) { selectPanel(forward: true) }
@@ -214,9 +220,8 @@ struct MainView: View {
         .focusedSceneValue(\.paneNavigator, PaneNavigator(move: movePane))
     }
 
-    /// Focuses the pane after (or before) the focused one. The editor is AppKit, outside SwiftUI focus state.
+    /// Focuses the pane after (or before) the focused one. The editor is AppKit; `editorFocused` tracks it.
     private func movePane(forward: Bool) {
-        let editorFocused = editorTextView.map { $0.window?.firstResponder === $0 } ?? false
         switch Pane.next(after: editorFocused ? .editor : focusedPane, forward: forward) {
         case .editor:
             focusedPane = nil

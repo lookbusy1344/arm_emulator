@@ -26,6 +26,11 @@ extension View {
             self
         }
     }
+
+    /// Tints a pane title with the accent colour while its pane has keyboard focus
+    func paneTitle(focused: Bool, unfocused: Color = .primary) -> some View {
+        foregroundStyle(focused ? Color.accentColor : unfocused)
+    }
 }
 
 /// The inspector panels the picker selects by index

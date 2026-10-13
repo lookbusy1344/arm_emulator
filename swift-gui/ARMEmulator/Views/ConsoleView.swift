@@ -12,6 +12,7 @@ struct ConsoleView: View {
         VStack(alignment: .leading, spacing: 0) {
             Text("Console Output")
                 .font(.system(size: 11, weight: .semibold))
+                .paneTitle(focused: paneFocus?.wrappedValue == .console)
                 .padding(.horizontal)
                 .padding(.vertical, 8)
                 .frame(maxWidth: .infinity, alignment: .leading)
