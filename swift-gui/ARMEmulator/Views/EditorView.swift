@@ -3,6 +3,7 @@ import SwiftUI
 
 struct EditorView: View {
     @Binding var text: String
+    let fontSize: CGFloat
     @State private var breakpoints: Set<Int> = []
     @State private var currentLine: Int?
     @State private var textView: NSTextView?
@@ -23,6 +24,7 @@ struct EditorView: View {
                 breakpoints: $breakpoints,
                 currentLine: $currentLine,
                 isEditable: viewModel.isEditorEditable,
+                fontSize: fontSize,
                 onBreakpointToggle: { lineNumber in
                     toggleBreakpoint(at: lineNumber)
                 },
@@ -149,6 +151,7 @@ struct EditorWithGutterView: NSViewRepresentable {
     @Binding var breakpoints: Set<Int>
     @Binding var currentLine: Int?
     let isEditable: Bool
+    let fontSize: CGFloat
     let onBreakpointToggle: (Int) -> Void
     let onTextViewCreated: (NSTextView) -> Void
     let onScrollViewCreated: (NSScrollView) -> Void
@@ -196,7 +199,7 @@ struct EditorWithGutterView: NSViewRepresentable {
         let textView = NSTextView()
         textView.isEditable = true
         textView.isSelectable = true
-        textView.font = NSFont.monospacedSystemFont(ofSize: 10, weight: .regular)
+        Self.applyFont(size: fontSize, to: textView)
         textView.textColor = NSColor.labelColor
         textView.backgroundColor = NSColor.textBackgroundColor
         textView.textContainerInset = NSSize(width: 5, height: 5)
@@ -257,6 +260,11 @@ struct EditorWithGutterView: NSViewRepresentable {
         // Update editability based on VM state
         textView.isEditable = isEditable
 
+        if textView.font?.pointSize != fontSize {
+            Self.applyFont(size: fontSize, to: textView)
+            context.coordinator.gutterView?.needsDisplay = true
+        }
+
         if textView.string != text {
             textView.string = text
 
@@ -281,6 +289,11 @@ struct EditorWithGutterView: NSViewRepresentable {
         context.coordinator.gutterView?.setCurrentLine(currentLine)
     }
 
+    /// Sets the monospaced editor font, restyling the text already present
+    static func applyFont(size: CGFloat, to textView: NSTextView) {
+        textView.font = NSFont.monospacedSystemFont(ofSize: size, weight: .regular)
+    }
+
     func makeCoordinator() -> Coordinator {
         Coordinator(self)
     }
@@ -302,11 +315,14 @@ struct EditorWithGutterView: NSViewRepresentable {
 
 struct EditorView_Previews: PreviewProvider {
     static var previews: some View {
-        EditorView(text: .constant("""
-        .org 0x8000
-        MOV R0, #42
-        SWI #0
-        """))
+        EditorView(
+            text: .constant("""
+            .org 0x8000
+            MOV R0, #42
+            SWI #0
+            """),
+            fontSize: 14,
+        )
         .environmentObject(EmulatorViewModel())
         .frame(width: 400, height: 300)
     }

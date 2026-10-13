@@ -92,7 +92,7 @@ struct MainView: View {
     private var contentView: some View {
         VSplitView {
             HSplitView {
-                EditorView(text: $viewModel.sourceCode)
+                EditorView(text: $viewModel.sourceCode, fontSize: CGFloat(settings.editorFontSize))
                     .environmentObject(viewModel)
                     .frame(minWidth: 150)
 
