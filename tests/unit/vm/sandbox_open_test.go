@@ -14,7 +14,10 @@ const sandboxNameAddr = vm.DataSegmentStart
 func guestOpen(t *testing.T, root, name string, mode uint32) uint32 {
 	t.Helper()
 	v := vm.NewVM()
-	v.FilesystemRoot = root
+	if err := v.OpenFilesystemRoot(root); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(v.Close)
 	v.CPU.PC = vm.CodeSegmentStart
 	if err := v.Memory.LoadBytes(sandboxNameAddr, append([]byte(name), 0)); err != nil {
 		t.Fatal(err)
@@ -32,7 +35,10 @@ func TestOpenThroughDanglingSymlinkStaysInRoot(t *testing.T) {
 	}
 
 	m := vm.NewVM()
-	m.FilesystemRoot = root
+	if err := m.OpenFilesystemRoot(root); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(m.Close)
 	if _, err := m.ValidatePath("link"); err == nil {
 		t.Error("ValidatePath accepted a dangling symlink that points outside the root")
 	}

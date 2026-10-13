@@ -53,7 +53,7 @@ func filesystemRootOf(t *testing.T, server *api.Server, fsRoot string) string {
 	if err != nil {
 		t.Fatal(err)
 	}
-	return session.Service.GetVM().FilesystemRoot
+	return session.Service.GetVM().FilesystemRoot()
 }
 
 func TestFSRootFromBrowserIsForbidden(t *testing.T) {
@@ -178,5 +178,31 @@ func TestAllowFSRootsUnderResolvesRelativeBase(t *testing.T) {
 
 	if got := filesystemRootOf(t, server, base); got != base {
 		t.Errorf("filesystem root = %q, want %q", got, base)
+	}
+}
+
+// Replacing the base directory with a symlink after startup must not widen what clients may choose.
+func TestFSRootBaseIsHeldFromStartup(t *testing.T) {
+	parent, outside := t.TempDir(), t.TempDir()
+	base := filepath.Join(parent, "base")
+	if err := os.Mkdir(base, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Mkdir(filepath.Join(outside, "sub"), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	server := testServerWithFSRootBase(t, base)
+
+	if err := os.Rename(base, filepath.Join(parent, "moved")); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Symlink(outside, base); err != nil {
+		t.Skipf("symlinks unavailable: %v", err)
+	}
+
+	w := createSessionWith(t, server, api.SessionCreateRequest{FSRoot: filepath.Join(base, "sub")}, "")
+
+	if w.Code != http.StatusBadRequest {
+		t.Errorf("status = %d, want 400: %s", w.Code, w.Body.String())
 	}
 }

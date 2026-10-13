@@ -5,10 +5,12 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/fs"
 	"log"
 	"math/rand"
 	"os"
 	"path/filepath"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -718,83 +720,58 @@ func handleDumpMemory(vm *VM) error {
 	return nil
 }
 
-// ValidatePath validates a file path for filesystem sandboxing
-// Returns the validated absolute path or an error
-func (vm *VM) ValidatePath(path string) (string, error) {
-	// Filesystem root must always be configured - no unrestricted access
-	if vm.FilesystemRoot == "" {
-		return "", fmt.Errorf("filesystem root not configured - cannot access files")
+// guestPath converts a guest file name to a path relative to the filesystem root.
+// A leading "/" names the root; ".." components are refused.
+func (vm *VM) guestPath(path string) (string, error) {
+	if vm.fsRoot == nil {
+		return "", errors.New("filesystem root not configured - cannot access files")
 	}
-
-	// 1. Check path is non-empty
 	if path == "" {
-		return "", fmt.Errorf("empty file path")
+		return "", errors.New("empty file path")
 	}
-
-	// 2. Block paths with ".." directory components (but allow "foo..bar" filenames)
-	// Split by separator and check for exact ".." components
-	for _, component := range strings.Split(path, "/") {
-		if component == ".." {
-			return "", fmt.Errorf("path contains '..' component")
-		}
+	rel := strings.TrimPrefix(path, "/")
+	if slices.Contains(strings.Split(rel, "/"), "..") {
+		return "", errors.New("path contains '..' component")
 	}
-
-	// 3. Strip leading / if present (treat absolute paths as relative to fsroot)
-	if strings.HasPrefix(path, "/") {
-		path = path[1:]
+	if rel == "" {
+		return ".", nil
 	}
+	rel = filepath.FromSlash(rel)
+	if !filepath.IsLocal(rel) {
+		return "", fmt.Errorf("path '%s' is not local to the filesystem root", path)
+	}
+	return filepath.Clean(rel), nil
+}
 
-	// 4. Join with FilesystemRoot
-	fullPath := filepath.Join(vm.FilesystemRoot, path)
-
-	// 5. Canonicalize
-	fullPath = filepath.Clean(fullPath)
-
-	// 6. Resolve symlinks - EvalSymlinks follows symlinks and returns the canonical path
-	// We then verify the resolved path doesn't escape fsroot
-	resolvedPath, err := filepath.EvalSymlinks(fullPath)
+// resolveGuestPath checks a guest file name against the filesystem root and returns it
+// relative to the root. A symlink that leaves the root or dangles is refused; a missing
+// file is accepted, since OPEN may create it.
+func (vm *VM) resolveGuestPath(path string) (string, error) {
+	rel, err := vm.guestPath(path)
 	if err != nil {
-		// If the path doesn't exist yet (for write mode), that's OK
-		// But we still need to check the parent directory
-		if !os.IsNotExist(err) {
-			return "", fmt.Errorf("symlink resolution failed: %w", err)
-		}
-		// A dangling symlink would let a create follow it to any target.
-		if info, lerr := os.Lstat(fullPath); lerr == nil && info.Mode()&os.ModeSymlink != 0 {
-			return "", fmt.Errorf("path '%s' is a dangling symlink", path)
-		}
-		// Path doesn't exist - check parent directory
-		parentDir := filepath.Dir(fullPath)
-		resolvedPath, err = filepath.EvalSymlinks(parentDir)
-		if err != nil && !os.IsNotExist(err) {
-			return "", fmt.Errorf("parent directory symlink resolution failed: %w", err)
-		}
-		// Use the full path with the unresolved filename
-		if err == nil {
-			resolvedPath = filepath.Join(resolvedPath, filepath.Base(fullPath))
-		} else {
-			// Parent also doesn't exist - use the canonical path
-			resolvedPath = fullPath
+		return "", err
+	}
+	info, err := vm.fsRoot.Lstat(rel)
+	switch {
+	case errors.Is(err, fs.ErrNotExist):
+	case err != nil:
+		return "", fmt.Errorf("path '%s': %w", path, err)
+	case info.Mode()&fs.ModeSymlink != 0:
+		if _, err := vm.fsRoot.Stat(rel); err != nil {
+			return "", fmt.Errorf("path '%s' is a symlink that dangles or leaves the filesystem root: %w", path, err)
 		}
 	}
+	return rel, nil
+}
 
-	// 7. Verify canonical path starts with fsroot
-	// Both paths must be canonical for proper comparison
-	canonicalRoot, err := filepath.EvalSymlinks(vm.FilesystemRoot)
+// ValidatePath checks a guest file name against the filesystem root and returns its
+// host path.
+func (vm *VM) ValidatePath(path string) (string, error) {
+	rel, err := vm.resolveGuestPath(path)
 	if err != nil {
-		return "", fmt.Errorf("failed to resolve filesystem root: %w", err)
+		return "", err
 	}
-	canonicalRoot = filepath.Clean(canonicalRoot)
-	resolvedPath = filepath.Clean(resolvedPath)
-
-	// Check if resolved path is under the canonical root
-	// Use filepath.Rel to check containment
-	relPath, err := filepath.Rel(canonicalRoot, resolvedPath)
-	if err != nil || strings.HasPrefix(relPath, "..") {
-		return "", fmt.Errorf("path '%s' is outside allowed filesystem root '%s'", path, vm.FilesystemRoot)
-	}
-
-	return fullPath, nil
+	return filepath.Join(vm.FilesystemRoot(), rel), nil
 }
 
 // fileModeFlags maps the OPEN mode in R1 to os.OpenFile flags.
@@ -802,22 +779,6 @@ var fileModeFlags = map[uint32]int{
 	FileModeRead:   os.O_RDONLY,
 	FileModeWrite:  os.O_CREATE | os.O_TRUNC | os.O_WRONLY,
 	FileModeAppend: os.O_CREATE | os.O_APPEND | os.O_RDWR,
-}
-
-// openInRoot opens a path that ValidatePath returned. os.Root resolves it inside the
-// filesystem root and refuses any symlink or component that leads outside, so a file
-// that changes after validation still cannot escape.
-func (vm *VM) openInRoot(validatedPath string, flags int) (*os.File, error) {
-	rel, err := filepath.Rel(vm.FilesystemRoot, validatedPath)
-	if err != nil {
-		return nil, err
-	}
-	root, err := os.OpenRoot(vm.FilesystemRoot)
-	if err != nil {
-		return nil, err
-	}
-	defer func() { _ = root.Close() }()
-	return root.OpenFile(rel, flags, FilePermDefault)
 }
 
 // File operation handlers
@@ -862,7 +823,7 @@ func handleOpen(vm *VM) error {
 	s := string(filename)
 
 	// Validate path for filesystem sandboxing
-	validatedPath, err := vm.ValidatePath(s)
+	rel, err := vm.resolveGuestPath(s)
 	if err != nil {
 		// Log the security violation but don't halt the VM, just return error to guest
 		// This allows the guest to handle the error (e.g. "Permission Denied")
@@ -874,7 +835,9 @@ func handleOpen(vm *VM) error {
 
 	flags, ok := fileModeFlags[mode]
 	if ok {
-		file, err = vm.openInRoot(validatedPath, flags)
+		// os.Root refuses any component that leads outside, so a file that changes
+		// after validation still cannot escape.
+		file, err = vm.fsRoot.OpenFile(rel, flags, FilePermDefault)
 	} else {
 		err = errors.New("bad mode")
 	}

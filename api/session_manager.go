@@ -31,28 +31,25 @@ var (
 // MaxSessions is the most sessions that can exist at once.
 const MaxSessions = 64
 
-// resolveFSRoot returns the client-supplied root if it is base or a directory inside it.
-// os.Root confines the lookup, so a symlink that leaves base is rejected.
-func resolveFSRoot(base, root string) (string, error) {
-	if base == "" {
-		return "", ErrFSRootNotAllowed
+// openFSRoot opens the client-supplied root if it is base or a directory inside it.
+// The lookup runs through the open base directory, so a symlink that leaves base is
+// rejected.
+func openFSRoot(base *os.Root, root string) (*os.Root, error) {
+	if base == nil {
+		return nil, ErrFSRootNotAllowed
 	}
 	if !filepath.IsAbs(root) || filepath.Clean(root) != root {
-		return "", ErrInvalidFSRoot
+		return nil, ErrInvalidFSRoot
 	}
-	rel, err := filepath.Rel(base, root)
+	rel, err := filepath.Rel(base.Name(), root)
 	if err != nil || !filepath.IsLocal(rel) {
-		return "", ErrInvalidFSRoot
+		return nil, ErrInvalidFSRoot
 	}
-	dir, err := os.OpenRoot(base)
+	dir, err := base.OpenRoot(rel)
 	if err != nil {
-		return "", ErrInvalidFSRoot
+		return nil, ErrInvalidFSRoot
 	}
-	defer func() { _ = dir.Close() }()
-	if info, err := dir.Stat(rel); err != nil || !info.IsDir() {
-		return "", ErrInvalidFSRoot
-	}
-	return filepath.Join(base, rel), nil
+	return dir, nil
 }
 
 // Session represents an active emulator session
@@ -67,7 +64,7 @@ type Session struct {
 type SessionManager struct {
 	sessions    map[string]*Session
 	broadcaster *Broadcaster
-	fsRootBase  string // client fsRoots must lie inside it; empty refuses them
+	fsRootBase  *os.Root // client fsRoots must lie inside it; nil refuses them
 	mu          sync.RWMutex
 }
 
@@ -80,18 +77,34 @@ func NewSessionManager(broadcaster *Broadcaster) *SessionManager {
 }
 
 // AllowFSRootsUnder lets clients choose fsRoot as base or any directory inside it.
+// base stays open until Close, so later changes to its path do not move it.
 func (sm *SessionManager) AllowFSRootsUnder(base string) error {
 	abs, err := filepath.Abs(base)
 	if err != nil {
 		return ErrInvalidFSRoot
 	}
-	if info, err := os.Stat(abs); err != nil || !info.IsDir() {
+	root, err := os.OpenRoot(abs)
+	if err != nil {
 		return ErrInvalidFSRoot
 	}
 	sm.mu.Lock()
 	defer sm.mu.Unlock()
-	sm.fsRootBase = abs
+	if sm.fsRootBase != nil {
+		_ = sm.fsRootBase.Close()
+	}
+	sm.fsRootBase = root
 	return nil
+}
+
+// Close destroys every session and releases the fsRoot base.
+func (sm *SessionManager) Close() {
+	sm.DestroyAll()
+	sm.mu.Lock()
+	defer sm.mu.Unlock()
+	if sm.fsRootBase != nil {
+		_ = sm.fsRootBase.Close()
+		sm.fsRootBase = nil
+	}
 }
 
 // CreateSession creates a new session with a unique ID
@@ -116,13 +129,12 @@ func (sm *SessionManager) CreateSession(opts SessionCreateRequest) (*Session, er
 	var tempDir string
 	if opts.FSRoot != "" {
 		sm.mu.RLock()
-		base := sm.fsRootBase
+		root, err := openFSRoot(sm.fsRootBase, opts.FSRoot)
 		sm.mu.RUnlock()
-		root, err := resolveFSRoot(base, opts.FSRoot)
 		if err != nil {
 			return nil, err
 		}
-		machine.FilesystemRoot = root
+		machine.SetFilesystemRoot(root)
 	} else {
 		// Create a temporary directory for this session's file operations
 		var err error
@@ -130,7 +142,10 @@ func (sm *SessionManager) CreateSession(opts SessionCreateRequest) (*Session, er
 		if err != nil {
 			return nil, err
 		}
-		machine.FilesystemRoot = tempDir
+		if err := machine.OpenFilesystemRoot(tempDir); err != nil {
+			_ = os.RemoveAll(tempDir)
+			return nil, err
+		}
 	}
 
 	// Set up output broadcasting if broadcaster is available

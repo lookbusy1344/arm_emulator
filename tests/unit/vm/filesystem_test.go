@@ -61,7 +61,10 @@ func TestValidatePathValid(t *testing.T) {
 	}
 
 	machine := vm.NewVM()
-	machine.FilesystemRoot = tmpDir
+	if err := machine.OpenFilesystemRoot(tmpDir); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(machine.Close)
 
 	testCases := []struct {
 		name string
@@ -98,7 +101,10 @@ func TestValidatePathDotDot(t *testing.T) {
 	defer os.RemoveAll(tmpDir)
 
 	machine := vm.NewVM()
-	machine.FilesystemRoot = tmpDir
+	if err := machine.OpenFilesystemRoot(tmpDir); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(machine.Close)
 
 	testCases := []struct {
 		name string
@@ -129,7 +135,10 @@ func TestValidatePathEmpty(t *testing.T) {
 	defer os.RemoveAll(tmpDir)
 
 	machine := vm.NewVM()
-	machine.FilesystemRoot = tmpDir
+	if err := machine.OpenFilesystemRoot(tmpDir); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(machine.Close)
 
 	_, err = machine.ValidatePath("")
 	if err == nil {
@@ -165,7 +174,10 @@ func TestValidatePathSymlink(t *testing.T) {
 	}
 
 	machine := vm.NewVM()
-	machine.FilesystemRoot = tmpDir
+	if err := machine.OpenFilesystemRoot(tmpDir); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(machine.Close)
 
 	// Try to access file through symlink
 	_, err = machine.ValidatePath("escape/secret.txt")
@@ -189,7 +201,10 @@ func TestValidatePathBoundary(t *testing.T) {
 	}
 
 	machine := vm.NewVM()
-	machine.FilesystemRoot = tmpDir
+	if err := machine.OpenFilesystemRoot(tmpDir); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(machine.Close)
 
 	testCases := []struct {
 		name      string
@@ -229,7 +244,10 @@ func TestValidatePathCaseSensitivity(t *testing.T) {
 	}
 
 	machine := vm.NewVM()
-	machine.FilesystemRoot = tmpDir
+	if err := machine.OpenFilesystemRoot(tmpDir); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(machine.Close)
 
 	// This test behavior depends on the filesystem
 	// On case-insensitive systems (macOS default), both should work

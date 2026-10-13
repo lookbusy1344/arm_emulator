@@ -28,7 +28,10 @@ func openTestFile(t *testing.T, content string) (*vm.VM, uint32) {
 		t.Fatal(err)
 	}
 	v := vm.NewVM()
-	v.FilesystemRoot = root
+	if err := v.OpenFilesystemRoot(root); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(v.Close)
 	v.CPU.PC = vm.CodeSegmentStart
 	if err := v.Memory.LoadBytes(sandboxNameAddr, []byte("f.txt\x00")); err != nil {
 		t.Fatal(err)
@@ -138,7 +141,7 @@ func TestSeekBeyond32BitsFailsWithoutMoving(t *testing.T) {
 		startPos = 3
 	)
 	v, fd := openTestFile(t, "abcdefgh")
-	if err := os.Truncate(filepath.Join(v.FilesystemRoot, "f.txt"), fiveGiB); err != nil {
+	if err := os.Truncate(filepath.Join(v.FilesystemRoot(), "f.txt"), fiveGiB); err != nil {
 		t.Skipf("cannot create a sparse 5 GiB file: %v", err)
 	}
 	guestSeek(t, v, fd, startPos, seekStart)

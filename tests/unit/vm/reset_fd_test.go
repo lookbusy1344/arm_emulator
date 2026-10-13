@@ -49,7 +49,10 @@ func TestResetOpenReturnsUserDescriptor(t *testing.T) {
 
 	v := vm.NewVM()
 	v.Reset()
-	v.FilesystemRoot = dir
+	if err := v.OpenFilesystemRoot(dir); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(v.Close)
 	v.CPU.PC = 0x8000
 
 	const nameAddr = 0x20000

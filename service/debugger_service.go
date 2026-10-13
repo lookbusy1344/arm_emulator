@@ -138,14 +138,14 @@ func (s *DebuggerService) stopExecutionLocked() {
 	}
 }
 
-// Close stops guest execution, closes the files the guest opened and rejects further
-// execution.
+// Close stops guest execution, closes the files the guest opened and the filesystem
+// root, and rejects further execution.
 func (s *DebuggerService) Close() {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.closed = true
 	s.stopExecutionLocked()
-	s.vm.CloseFiles()
+	s.vm.Close()
 }
 
 // GetVM returns the underlying VM (for testing)

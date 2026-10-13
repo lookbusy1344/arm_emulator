@@ -54,7 +54,10 @@ func TestReadErrorsStillReturnMinusOne(t *testing.T) {
 	})
 	t.Run("write-only file", func(t *testing.T) {
 		v := vm.NewVM()
-		v.FilesystemRoot = t.TempDir()
+		if err := v.OpenFilesystemRoot(t.TempDir()); err != nil {
+			t.Fatal(err)
+		}
+		t.Cleanup(v.Close)
 		v.CPU.PC = vm.CodeSegmentStart
 		if err := v.Memory.LoadBytes(sandboxNameAddr, []byte("out.txt\x00")); err != nil {
 			t.Fatal(err)

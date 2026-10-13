@@ -80,10 +80,11 @@ The application only modifies files that the user explicitly specifies:
 - **Sandboxing:** Guest programs restricted to specified directory
   - **Default:** If `-fsroot` not specified, restricts to current working directory (CWD)
   - **Explicit:** Use `-fsroot` flag to specify allowed directory: `./arm-emulator -fsroot /tmp/sandbox program.s`
-  - Path traversal (`..`) blocked and halts VM
-  - Symlink escapes blocked and halt VM
+  - Path traversal (`..`) blocked; OPEN returns an error to the guest
+  - Symlink escapes blocked; OPEN returns an error to the guest
   - Absolute paths treated as relative to sandbox root
-  - **No unrestricted access mode** - FilesystemRoot always configured
+  - **No unrestricted access mode** - the VM refuses file access without a filesystem root
+  - API server: sessions get a new temporary directory. A client may name its own `fsRoot` only inside the directory given by `-fsroot`; without `-fsroot` the server refuses it
 
 - **Read Operations:** User-provided assembly files (`.s` files)
 - **Write Operations:** 
@@ -113,7 +114,7 @@ The application only modifies files that the user explicitly specifies:
 Security guarantees:
 ```go
 // Path validation in handleOpen() (lines 537-586)
-// 1. Check FilesystemRoot is configured (mandatory)
+// 1. Check the filesystem root is configured (mandatory)
 // 2. Validate path stays within sandbox
 // 3. Block escape attempts with security error
 ```
@@ -269,13 +270,13 @@ The emulator implements ARM syscalls (SWIs) with mandatory security boundaries:
 ./arm-emulator program.s
 ```
 
-**Security Checks (vm.ValidatePath):**
-1. **Mandatory configuration** - FilesystemRoot must always be set (no unrestricted mode)
+**Security Checks (vm.ValidatePath and SWI OPEN):**
+1. **Mandatory configuration** - the VM holds the filesystem root as an open directory (`os.Root`); without one, file access is refused
 2. **Empty path blocking** - Rejects empty file paths
 3. **Path traversal protection** - Blocks `..` components in paths
 4. **Absolute path handling** - Treats `/etc/passwd` as `<fsroot>/etc/passwd`
-5. **Symlink escape prevention** - Resolves symlinks and verifies final path is within sandbox
-6. **Canonical path verification** - Ensures resolved path stays within boundaries
+5. **Symlink escape prevention** - Refuses symlinks that dangle or point outside the root
+6. **Root-relative open** - OPEN resolves the file through the open root directory, so a symlink or rename made after validation, or a later change to the root's own path, cannot redirect it
 
 **Enforcement:**
 - All validation failures **return error code (0xFFFFFFFF) to guest** and log security warning

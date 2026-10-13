@@ -169,7 +169,7 @@ func (s *Server) Shutdown(ctx context.Context) error {
 	if tokenPath != "" {
 		_ = os.Remove(tokenPath)
 	}
-	s.sessions.DestroyAll()
+	s.sessions.Close()
 	return err
 }
 

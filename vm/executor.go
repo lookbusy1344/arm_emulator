@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 	"sync"
 )
 
@@ -73,7 +74,6 @@ type VM struct {
 	StackTop         uint32 // Initial stack pointer value for reset
 	ProgramArguments []string
 	ExitCode         int32
-	FilesystemRoot   string // Root directory for file operations (sandboxing)
 
 	// I/O redirection (for TUI and testing)
 	OutputWriter io.Writer // Writer for program output (defaults to os.Stdout)
@@ -88,6 +88,9 @@ type VM struct {
 	StackTrace    *StackTrace
 	FlagTrace     *FlagTrace
 	RegisterTrace *RegisterTrace
+
+	// Directory that guest file operations are confined to; nil refuses them
+	fsRoot *os.Root
 
 	// File descriptor table (simple)
 	files []*os.File
@@ -143,6 +146,41 @@ func (vm *VM) CloseFiles() {
 		}
 	}
 	vm.files = make([]*os.File, DefaultFDTableSize) // standard descriptors initialise lazily
+}
+
+// OpenFilesystemRoot confines guest file operations to dir.
+func (vm *VM) OpenFilesystemRoot(dir string) error {
+	root, err := os.OpenRoot(dir)
+	if err != nil {
+		return err
+	}
+	vm.SetFilesystemRoot(root)
+	return nil
+}
+
+// SetFilesystemRoot confines guest file operations to root. The VM takes ownership of
+// root and closes any previous one. Guest opens resolve through the open directory, so
+// renaming or replacing its path afterwards does not move the sandbox.
+func (vm *VM) SetFilesystemRoot(root *os.Root) {
+	if vm.fsRoot != nil {
+		_ = vm.fsRoot.Close()
+	}
+	vm.fsRoot = root
+}
+
+// FilesystemRoot returns the path of the directory guest file operations are confined
+// to, or "" when there is none.
+func (vm *VM) FilesystemRoot() string {
+	if vm.fsRoot == nil {
+		return ""
+	}
+	return filepath.Clean(vm.fsRoot.Name())
+}
+
+// Close closes the guest's files and the filesystem root.
+func (vm *VM) Close() {
+	vm.CloseFiles()
+	vm.SetFilesystemRoot(nil)
 }
 
 // Reset resets the VM to initial state, clearing all program data and I/O state

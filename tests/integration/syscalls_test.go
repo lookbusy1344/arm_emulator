@@ -80,7 +80,10 @@ func runAssemblyWithInput(t *testing.T, code string, stdin string) (stdout strin
 	if err != nil {
 		return "", "", -1, fmt.Errorf("failed to get current directory: %w", err)
 	}
-	machine.FilesystemRoot = cwd
+	if err := machine.OpenFilesystemRoot(cwd); err != nil {
+		return "", "", -1, fmt.Errorf("failed to open filesystem root: %w", err)
+	}
+	defer machine.Close()
 
 	// Initialize stack
 	stackTop := uint32(vm.StackSegmentStart + vm.StackSegmentSize)

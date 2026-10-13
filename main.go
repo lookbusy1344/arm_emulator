@@ -198,7 +198,10 @@ func main() {
 		fmt.Fprintf(os.Stderr, "Error resolving filesystem root path: %v\n", err)
 		os.Exit(1)
 	}
-	machine.FilesystemRoot = absRoot
+	if err := machine.OpenFilesystemRoot(absRoot); err != nil {
+		fmt.Fprintf(os.Stderr, "Error opening filesystem root: %v\n", err)
+		os.Exit(1)
+	}
 
 	if *verboseMode {
 		fmt.Printf("Filesystem root: %s\n", absRoot)

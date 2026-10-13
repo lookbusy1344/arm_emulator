@@ -787,7 +787,10 @@ func TestReadSetsMemoryTracking(t *testing.T) {
 
 	// Setup VM with filesystem root
 	v := vm.NewVM()
-	v.FilesystemRoot = tmpDir
+	if err := v.OpenFilesystemRoot(tmpDir); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(v.Close)
 
 	// Write filename to memory for OPEN syscall
 	filenameAddr := uint32(0x10000)

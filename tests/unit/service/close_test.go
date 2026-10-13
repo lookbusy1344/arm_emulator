@@ -28,9 +28,13 @@ name:
 
 const guestOpens = 3
 
-func TestCloseReleasesGuestFiles(t *testing.T) {
+func TestCloseReleasesGuestFilesAndRoot(t *testing.T) {
+	baseline := openHostDescriptors(t)
 	machine := vm.NewVM()
-	machine.FilesystemRoot = t.TempDir()
+	if err := machine.OpenFilesystemRoot(t.TempDir()); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(machine.Close)
 	svc := service.NewDebuggerService(machine)
 	loadSource(t, svc, openThreeFiles)
 	before := openHostDescriptors(t)
@@ -42,8 +46,8 @@ func TestCloseReleasesGuestFiles(t *testing.T) {
 
 	svc.Close()
 
-	if after := openHostDescriptors(t); after != before {
-		t.Errorf("host descriptors after Close = %d, want %d", after, before)
+	if after := openHostDescriptors(t); after != baseline {
+		t.Errorf("host descriptors after Close = %d, want %d", after, baseline)
 	}
 }
 

@@ -77,7 +77,10 @@ name:
 
 func TestRestartClosesGuestFiles(t *testing.T) {
 	machine := vm.NewVM()
-	machine.FilesystemRoot = t.TempDir()
+	if err := machine.OpenFilesystemRoot(t.TempDir()); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(machine.Close)
 	svc := service.NewDebuggerService(machine)
 	loadSource(t, svc, openProgram)
 

@@ -187,7 +187,10 @@ func TestOpen_FilenameWraparound(t *testing.T) {
 	machine := vm.NewVM()
 
 	// Set filesystem root for security (required for file operations)
-	machine.FilesystemRoot = t.TempDir()
+	if err := machine.OpenFilesystemRoot(t.TempDir()); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(machine.Close)
 
 	// Add high memory segment for testing wraparound (includes 0xFFFFFFFF)
 	machine.Memory.AddSegment("high-mem", 0xFFFFFF00, 0x00000100, vm.PermRead|vm.PermWrite)
