@@ -11,6 +11,7 @@ struct FileCommands: Commands {
         CommandGroup(replacing: .newItem) {
             Button("Open...") {
                 Task {
+                    guard await confirmDiscardingChanges() else { return }
                     if let content = await fileService.openFile() {
                         await viewModel?.openProgram(source: content)
                     }
@@ -20,12 +21,7 @@ struct FileCommands: Commands {
 
             Button("Save") {
                 Task {
-                    guard let vm = viewModel else { return }
-                    if let url = fileService.currentFileURL {
-                        _ = await fileService.saveFile(content: vm.sourceCode, url: url)
-                    } else {
-                        _ = await fileService.saveFileAs(content: vm.sourceCode)
-                    }
+                    _ = await viewModel?.saveProgram(using: fileService)
                 }
             }
             .keyboardShortcut("s", modifiers: .command)
@@ -33,8 +29,7 @@ struct FileCommands: Commands {
 
             Button("Save As...") {
                 Task {
-                    guard let vm = viewModel else { return }
-                    _ = await fileService.saveFileAs(content: vm.sourceCode)
+                    _ = await viewModel?.saveProgramAs(using: fileService)
                 }
             }
             .keyboardShortcut("s", modifiers: [.command, .shift])
@@ -50,6 +45,7 @@ struct FileCommands: Commands {
                     ForEach(fileService.recentFiles, id: \.self) { url in
                         Button(url.lastPathComponent) {
                             Task {
+                                guard await confirmDiscardingChanges() else { return }
                                 if let content = try? String(contentsOf: url, encoding: .utf8) {
                                     await viewModel?.openProgram(source: content)
                                     fileService.currentFileURL = url
@@ -72,6 +68,11 @@ struct FileCommands: Commands {
             }
             .keyboardShortcut("e", modifiers: [.command, .shift])
         }
+    }
+
+    /// True when there is no view model or its edits may be replaced
+    private func confirmDiscardingChanges() async -> Bool {
+        await viewModel?.confirmDiscardingChanges(using: fileService) ?? true
     }
 }
 

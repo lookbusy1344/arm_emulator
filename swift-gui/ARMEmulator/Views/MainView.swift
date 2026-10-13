@@ -79,6 +79,7 @@ struct MainView: View {
         .sheet(isPresented: $showingExamplesBrowser) {
             ExamplesBrowserView { example in
                 Task {
+                    guard await viewModel.confirmDiscardingChanges(using: fileService) else { return }
                     if let content = try? String(contentsOf: example.url, encoding: .utf8) {
                         await viewModel.openProgram(source: content)
                         fileService.currentFileURL = example.url

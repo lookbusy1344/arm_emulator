@@ -48,6 +48,16 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
+    /// Offers to save unsaved edits before quitting
+    func applicationShouldTerminate(_: NSApplication) -> NSApplication.TerminateReply {
+        guard let viewModel, viewModel.hasUnsavedChanges else { return .terminateNow }
+        Task {
+            let proceed = await viewModel.confirmDiscardingChanges(using: fileService)
+            NSApp.reply(toApplicationShouldTerminate: proceed)
+        }
+        return .terminateLater
+    }
+
     private func handleFunctionKey(_ event: NSEvent) -> Bool {
         guard let viewModel else { return false }
 

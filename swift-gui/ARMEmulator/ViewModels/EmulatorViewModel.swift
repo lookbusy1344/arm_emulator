@@ -57,6 +57,9 @@ class EmulatorViewModel: ObservableObject {
         status == .running || status == .waitingForInput
     }
 
+    /// The editor text as last opened or saved
+    @Published private(set) var savedSource = ""
+
     /// The source in the session, or nil before the first successful assembly or after a failed one
     @Published private(set) var assembledSource: String?
 
@@ -162,9 +165,15 @@ class EmulatorViewModel: ObservableObject {
         }
     }
 
+    /// Records the editor text as saved
+    func markSaved() {
+        savedSource = sourceCode
+    }
+
     /// Shows `source` in the editor and assembles it
     func openProgram(source: String) async {
         sourceCode = source
+        savedSource = source
         await assemble()
     }
 
