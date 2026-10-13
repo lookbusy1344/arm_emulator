@@ -172,6 +172,7 @@ The emulator includes a powerful debugger with both command-line and TUI (Text U
 - `F10` - Step over
 - `F11` - Step into
 - `Ctrl+L` - Refresh display
+- `Ctrl+C` - Pause a running program; quit when stopped
 - `Tab` - Switch between panels
 
 **TUI visual features:**

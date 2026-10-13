@@ -339,6 +339,14 @@ func (t *TUI) setupKeyBindings() {
 			t.scrollPCIntoView()
 			return nil
 		case tcell.KeyCtrlC:
+			// Interrupt a running program, as in GDB; quit when stopped
+			if t.Debugger.IsRunning() {
+				t.Debugger.Pause()
+				go t.App.QueueUpdateDraw(func() {
+					t.WriteStatus("[yellow]Paused[white]\n")
+				})
+				return nil
+			}
 			t.App.Stop()
 			return nil
 		case tcell.KeyCtrlL:

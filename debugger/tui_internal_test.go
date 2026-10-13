@@ -138,3 +138,19 @@ func TestF9TogglesBreakpointAtPC(t *testing.T) {
 		t.Fatalf("second F9 should clear the breakpoint at PC 0x%08X", pc)
 	}
 }
+
+// TestCtrlCPausesRunningProgram tests that Ctrl+C pauses a running program instead of quitting
+func TestCtrlCPausesRunningProgram(t *testing.T) {
+	tui := newSimulatedTUI(t)
+	tui.Debugger.SetRunning(true)
+	tui.Debugger.SetStepMode(StepOut)
+
+	pressKey(tui, tcell.KeyCtrlC)
+
+	if tui.Debugger.IsRunning() {
+		t.Fatal("Ctrl+C should pause a running program")
+	}
+	if mode := tui.Debugger.GetStepMode(); mode != StepNone {
+		t.Fatalf("Ctrl+C should clear the step mode, got %d", mode)
+	}
+}

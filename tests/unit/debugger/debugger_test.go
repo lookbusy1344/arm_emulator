@@ -523,3 +523,19 @@ func TestRunCommandPreservesEntryPoint(t *testing.T) {
 		t.Error("Debugger should be in Running state")
 	}
 }
+
+// TestPauseStopsRunAndClearsStepMode tests that Pause stops execution and drops a pending step-over
+func TestPauseStopsRunAndClearsStepMode(t *testing.T) {
+	dbg := debugger.NewDebugger(vm.NewVM())
+	dbg.SetRunning(true)
+	dbg.SetStepMode(debugger.StepOver)
+
+	dbg.Pause()
+
+	if dbg.IsRunning() {
+		t.Error("Pause should stop execution")
+	}
+	if mode := dbg.GetStepMode(); mode != debugger.StepNone {
+		t.Errorf("Pause should clear the step mode, got %d", mode)
+	}
+}

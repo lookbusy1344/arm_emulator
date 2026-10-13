@@ -107,6 +107,14 @@ func (d *Debugger) SetStepMode(mode StepMode) {
 	d.StepMode = mode
 }
 
+// Pause stops execution and drops any pending step (thread-safe)
+func (d *Debugger) Pause() {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	d.Running = false
+	d.StepMode = StepNone
+}
+
 // LoadSymbols loads the symbol table for label resolution
 func (d *Debugger) LoadSymbols(symbols map[string]uint32) {
 	d.Symbols = symbols
