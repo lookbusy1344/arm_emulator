@@ -251,6 +251,7 @@ func (t *TUI) initializeViews() {
 		SetFieldWidth(0)
 	t.CommandInput.SetBorder(true).SetTitle(" Command ")
 	t.CommandInput.SetDoneFunc(t.handleCommand)
+	t.CommandInput.SetInputCapture(t.recallHistory)
 
 	// Program Input - for guest program stdin
 	t.ProgramInput = tview.NewInputField().
@@ -394,6 +395,22 @@ func (t *TUI) handleCommand(key tcell.Key) {
 		t.dispatch(t.CommandInput.GetText())
 		t.CommandInput.SetText("")
 	}
+}
+
+// recallHistory fills the command field from history: Up moves to older commands, Down to
+// newer ones and past the newest to an empty field
+func (t *TUI) recallHistory(event *tcell.EventKey) *tcell.EventKey {
+	switch event.Key() {
+	case tcell.KeyUp:
+		if cmd := t.Debugger.History.Previous(); cmd != "" {
+			t.CommandInput.SetText(cmd)
+		}
+		return nil
+	case tcell.KeyDown:
+		t.CommandInput.SetText(t.Debugger.History.Next())
+		return nil
+	}
+	return event
 }
 
 // handleProgramInput sends user input to the guest program's stdin

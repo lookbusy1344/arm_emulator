@@ -181,3 +181,34 @@ func TestExecuteEmptyCommandRepeatsLast(t *testing.T) {
 		t.Fatalf("expected r0 = 2 after repeating the increment, got %d", got)
 	}
 }
+
+// TestCommandHistoryRecall tests that Up and Down walk the command history in the command field
+func TestCommandHistoryRecall(t *testing.T) {
+	tui := newSimulatedTUI(t)
+	tui.executeCommand("print 1")
+	tui.executeCommand("print 2")
+	capture := tui.CommandInput.GetInputCapture()
+	if capture == nil {
+		t.Fatal("command input has no key handler")
+	}
+	press := func(key tcell.Key) string {
+		capture(tcell.NewEventKey(key, 0, tcell.ModNone))
+		return tui.CommandInput.GetText()
+	}
+
+	steps := []struct {
+		key  tcell.Key
+		want string
+	}{
+		{tcell.KeyUp, "print 2"},
+		{tcell.KeyUp, "print 1"},
+		{tcell.KeyUp, "print 1"}, // oldest entry stays
+		{tcell.KeyDown, "print 2"},
+		{tcell.KeyDown, ""}, // past the newest entry clears the field
+	}
+	for i, step := range steps {
+		if got := press(step.key); got != step.want {
+			t.Fatalf("step %d: expected %q, got %q", i, step.want, got)
+		}
+	}
+}
