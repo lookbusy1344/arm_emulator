@@ -31,6 +31,9 @@ struct DisassemblyView: View {
                             instruction: instruction,
                             isPC: instruction.address == viewModel.currentPC,
                             hasBreakpoint: viewModel.breakpoints.contains(instruction.address),
+                            onToggleBreakpoint: {
+                                Task { await toggleBreakpoint(at: instruction.address) }
+                            },
                         )
                     }
                 }
@@ -46,6 +49,10 @@ struct DisassemblyView: View {
         }
     }
 
+    func toggleBreakpoint(at address: UInt32) async {
+        await viewModel.toggleBreakpoint(at: address)
+    }
+
     private func loadDisassembly() {
         Task {
             let startAddress = viewModel.currentPC > 128 ? viewModel.currentPC - 128 : 0
@@ -59,17 +66,21 @@ struct DisassemblyRowView: View {
     let instruction: DisassemblyInstruction
     let isPC: Bool
     let hasBreakpoint: Bool
+    let onToggleBreakpoint: () -> Void
 
     var body: some View {
         HStack(spacing: 4) {
-            // Breakpoint indicator
-            if hasBreakpoint {
-                Text("●")
+            // Breakpoint marker column; clicking it toggles the breakpoint
+            Button(action: onToggleBreakpoint) {
+                Text(hasBreakpoint ? "●" : " ")
                     .foregroundColor(.red)
                     .fontWeight(.bold)
-            } else {
-                Text(" ")
+                    .frame(width: 14)
+                    .contentShape(Rectangle())
             }
+            .buttonStyle(.plain)
+            .help("Toggle breakpoint")
+            .accessibilityLabel("Toggle breakpoint")
 
             // PC indicator
             if isPC {

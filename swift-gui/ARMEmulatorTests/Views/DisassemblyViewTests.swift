@@ -359,3 +359,37 @@ final class DisassemblyViewTests: XCTestCase {
         XCTAssertEqual(instruction.symbol?.count, longSymbol.count)
     }
 }
+
+// MARK: - Breakpoint Toggle Tests
+
+@MainActor
+final class DisassemblyBreakpointToggleTests: XCTestCase {
+    func testToggleBreakpointSetsThenClearsIt() async {
+        let mockAPIClient = MockAPIClient()
+        let viewModel = EmulatorViewModel(apiClient: mockAPIClient, wsClient: MockWebSocketClient())
+        await viewModel.initialize()
+        let view = DisassemblyView(viewModel: viewModel)
+
+        await view.toggleBreakpoint(at: 0x8004)
+
+        XCTAssertTrue(mockAPIClient.addBreakpointCalled)
+        XCTAssertEqual(viewModel.breakpoints, [0x8004])
+
+        await view.toggleBreakpoint(at: 0x8004)
+
+        XCTAssertTrue(mockAPIClient.removeBreakpointCalled)
+        XCTAssertEqual(viewModel.breakpoints, [])
+    }
+
+    func testToggleBreakpointLeavesOtherBreakpoints() async {
+        let viewModel = EmulatorViewModel(apiClient: MockAPIClient(), wsClient: MockWebSocketClient())
+        await viewModel.initialize()
+        let view = DisassemblyView(viewModel: viewModel)
+
+        await view.toggleBreakpoint(at: 0x8000)
+        await view.toggleBreakpoint(at: 0x8008)
+        await view.toggleBreakpoint(at: 0x8000)
+
+        XCTAssertEqual(viewModel.breakpoints, [0x8008])
+    }
+}
