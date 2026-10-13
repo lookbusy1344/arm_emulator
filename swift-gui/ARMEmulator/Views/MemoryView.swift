@@ -22,7 +22,7 @@ struct MemoryView: View {
             GeometryReader { geometry in
                 HStack(spacing: 8) {
                     // Address input
-                    TextField("Address", text: $addressInput)
+                    TextField("0x8000 or 32768", text: $addressInput)
                         .textFieldStyle(.roundedBorder)
                         .frame(width: 100)
                         .font(.system(size: 10, design: .monospaced))
@@ -144,14 +144,8 @@ struct MemoryView: View {
     }
 
     private func loadMemoryFromInput() {
-        var input = addressInput.trimmingCharacters(in: .whitespaces)
-
-        // Remove 0x prefix if present
-        if input.lowercased().hasPrefix("0x") {
-            input = String(input.dropFirst(2))
-        }
-
-        guard let address = UInt32(input, radix: 16) else {
+        guard let address = AddressParser.parse(addressInput) else {
+            viewModel.errorMessage = "Invalid address '\(addressInput)': enter 0x and hex digits, such as 0x8000, or a decimal number"
             return
         }
 

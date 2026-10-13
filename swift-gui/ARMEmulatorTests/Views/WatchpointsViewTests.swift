@@ -4,19 +4,11 @@ import XCTest
 // MARK: - Address Parsing Tests
 
 final class WatchpointAddressParsingTests: XCTestCase {
+    private func parseAddress(_ input: String) -> UInt32? {
+        AddressParser.parse(input)
+    }
+
     func testHexAddressWithPrefix() {
-        /// Test parsing hex addresses with 0x prefix
-        func parseAddress(_ input: String) -> UInt32? {
-            let trimmed = input.trimmingCharacters(in: .whitespacesAndNewlines)
-            guard !trimmed.isEmpty else { return nil }
-
-            if trimmed.hasPrefix("0x") {
-                return UInt32(trimmed.dropFirst(2), radix: 16)
-            } else {
-                return UInt32(trimmed)
-            }
-        }
-
         XCTAssertEqual(parseAddress("0x8000"), 0x8000)
         XCTAssertEqual(parseAddress("0x1234"), 0x1234)
         XCTAssertEqual(parseAddress("0xFFFF"), 0xFFFF)
@@ -24,19 +16,7 @@ final class WatchpointAddressParsingTests: XCTestCase {
         XCTAssertEqual(parseAddress("0x00000000"), 0)
     }
 
-    func testHexAddressWithoutPrefix() {
-        /// Test parsing decimal addresses (no prefix)
-        func parseAddress(_ input: String) -> UInt32? {
-            let trimmed = input.trimmingCharacters(in: .whitespacesAndNewlines)
-            guard !trimmed.isEmpty else { return nil }
-
-            if trimmed.hasPrefix("0x") {
-                return UInt32(trimmed.dropFirst(2), radix: 16)
-            } else {
-                return UInt32(trimmed)
-            }
-        }
-
+    func testDecimalAddressWithoutPrefix() {
         XCTAssertEqual(parseAddress("42"), 42)
         XCTAssertEqual(parseAddress("1000"), 1000)
         XCTAssertEqual(parseAddress("0"), 0)
@@ -44,54 +24,18 @@ final class WatchpointAddressParsingTests: XCTestCase {
     }
 
     func testHexAddressCaseInsensitive() {
-        func parseAddress(_ input: String) -> UInt32? {
-            let trimmed = input.trimmingCharacters(in: .whitespacesAndNewlines)
-            guard !trimmed.isEmpty else { return nil }
-
-            if trimmed.hasPrefix("0x") || trimmed.hasPrefix("0X") {
-                let hexPart = trimmed.hasPrefix("0x") ? trimmed.dropFirst(2) : trimmed.dropFirst(2)
-                return UInt32(hexPart, radix: 16)
-            } else {
-                return UInt32(trimmed)
-            }
-        }
-
-        // Standard prefix (lowercase)
         XCTAssertEqual(parseAddress("0x8000"), 0x8000)
-
-        // Note: The actual implementation only checks for "0x" (lowercase)
-        // This test documents current behavior
+        XCTAssertEqual(parseAddress("0X8000"), 0x8000)
+        XCTAssertEqual(parseAddress("0xabcd"), 0xABCD)
     }
 
     func testAddressParsingWithWhitespace() {
-        func parseAddress(_ input: String) -> UInt32? {
-            let trimmed = input.trimmingCharacters(in: .whitespacesAndNewlines)
-            guard !trimmed.isEmpty else { return nil }
-
-            if trimmed.hasPrefix("0x") {
-                return UInt32(trimmed.dropFirst(2), radix: 16)
-            } else {
-                return UInt32(trimmed)
-            }
-        }
-
         XCTAssertEqual(parseAddress("  0x8000  "), 0x8000)
         XCTAssertEqual(parseAddress("\n0x1234\t"), 0x1234)
         XCTAssertEqual(parseAddress(" 42 "), 42)
     }
 
     func testInvalidAddresses() {
-        func parseAddress(_ input: String) -> UInt32? {
-            let trimmed = input.trimmingCharacters(in: .whitespacesAndNewlines)
-            guard !trimmed.isEmpty else { return nil }
-
-            if trimmed.hasPrefix("0x") {
-                return UInt32(trimmed.dropFirst(2), radix: 16)
-            } else {
-                return UInt32(trimmed)
-            }
-        }
-
         XCTAssertNil(parseAddress(""))
         XCTAssertNil(parseAddress("   "))
         XCTAssertNil(parseAddress("0xGGGG")) // Invalid hex
@@ -102,17 +46,6 @@ final class WatchpointAddressParsingTests: XCTestCase {
     }
 
     func testEmptyInput() {
-        func parseAddress(_ input: String) -> UInt32? {
-            let trimmed = input.trimmingCharacters(in: .whitespacesAndNewlines)
-            guard !trimmed.isEmpty else { return nil }
-
-            if trimmed.hasPrefix("0x") {
-                return UInt32(trimmed.dropFirst(2), radix: 16)
-            } else {
-                return UInt32(trimmed)
-            }
-        }
-
         XCTAssertNil(parseAddress(""))
         XCTAssertNil(parseAddress("   "))
         XCTAssertNil(parseAddress("\n\t"))

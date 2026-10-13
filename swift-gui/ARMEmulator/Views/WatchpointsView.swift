@@ -16,7 +16,7 @@ struct WatchpointsView: View {
             // Add watchpoint form
             VStack(spacing: 12) {
                 HStack {
-                    TextField("Address (e.g., 0x8000)", text: $addressInput)
+                    TextField("0x8000 or 32768", text: $addressInput)
                         .textFieldStyle(.roundedBorder)
                         .font(.system(size: 10, design: .monospaced))
 
@@ -119,23 +119,10 @@ struct WatchpointsView: View {
     }
 
     private func addWatchpoint() async {
-        // Parse address
-        let trimmed = addressInput.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else { return }
-
-        let address: UInt32
-        if trimmed.hasPrefix("0x") {
-            guard let parsed = UInt32(trimmed.dropFirst(2), radix: 16) else {
-                viewModel.errorMessage = "Invalid hexadecimal address"
-                return
-            }
-            address = parsed
-        } else {
-            guard let parsed = UInt32(trimmed) else {
-                viewModel.errorMessage = "Invalid address"
-                return
-            }
-            address = parsed
+        guard !addressInput.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
+        guard let address = AddressParser.parse(addressInput) else {
+            viewModel.errorMessage = "Invalid watchpoint address '\(addressInput)': enter 0x and hex digits, such as 0x9000, or a decimal number"
+            return
         }
 
         await viewModel.addWatchpoint(at: address, type: selectedType)

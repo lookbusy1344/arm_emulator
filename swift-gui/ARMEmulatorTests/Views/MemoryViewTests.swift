@@ -41,7 +41,6 @@ final class MemoryViewConstantsTests: XCTestCase {
 
 final class MemoryViewAddressParsingTests: XCTestCase {
     func testHexAddressParsingWithPrefix() {
-        // Test parsing hex addresses with 0x prefix
         let addresses = [
             "0x8000": UInt32(0x8000),
             "0x0": UInt32(0),
@@ -50,67 +49,41 @@ final class MemoryViewAddressParsingTests: XCTestCase {
         ]
 
         for (input, expected) in addresses {
-            // Simulate address parsing logic
-            let cleaned = input.hasPrefix("0x") ? String(input.dropFirst(2)) : input
-            if let parsed = UInt32(cleaned, radix: 16) {
-                XCTAssertEqual(parsed, expected, "Failed to parse '\(input)'")
-            } else {
-                XCTFail("Failed to parse '\(input)'")
-            }
+            XCTAssertEqual(AddressParser.parse(input), expected, "Failed to parse '\(input)'")
         }
     }
 
-    func testHexAddressParsingWithoutPrefix() {
-        // Test parsing hex addresses without 0x prefix
+    func testDecimalAddressParsingWithoutPrefix() {
         let addresses = [
-            "8000": UInt32(0x8000),
+            "8000": UInt32(8000),
             "0": UInt32(0),
-            "FFFFFFFF": UInt32(0xFFFF_FFFF),
-            "10000": UInt32(0x10000),
+            "32768": UInt32(0x8000),
+            "4294967295": UInt32(0xFFFF_FFFF),
         ]
 
         for (input, expected) in addresses {
-            if let parsed = UInt32(input, radix: 16) {
-                XCTAssertEqual(parsed, expected, "Failed to parse '\(input)'")
-            } else {
-                XCTFail("Failed to parse '\(input)'")
-            }
+            XCTAssertEqual(AddressParser.parse(input), expected, "Failed to parse '\(input)'")
         }
     }
 
     func testInvalidAddressParsing() {
-        // Test invalid address formats
         let invalidAddresses = [
             "not_a_hex",
             "0xGGGG",
             "",
             "   ",
+            "FFFFFFFF", // Hex digits need the 0x prefix
         ]
 
         for input in invalidAddresses {
-            let cleaned = input.hasPrefix("0x") ? String(input.dropFirst(2)) : input
-            let parsed = UInt32(cleaned, radix: 16)
-            XCTAssertNil(parsed, "Should not parse invalid address '\(input)'")
+            XCTAssertNil(AddressParser.parse(input), "Should not parse invalid address '\(input)'")
         }
     }
 
     func testCaseInsensitiveHexParsing() {
-        // Hex parsing should be case-insensitive
-        let lowercase = "0xabcd"
-        let uppercase = "0xABCD"
-        let mixed = "0xAbCd"
-
-        let cleaned1 = lowercase.dropFirst(2)
-        let cleaned2 = uppercase.dropFirst(2)
-        let cleaned3 = mixed.dropFirst(2)
-
-        let parsed1 = UInt32(cleaned1, radix: 16)
-        let parsed2 = UInt32(cleaned2, radix: 16)
-        let parsed3 = UInt32(cleaned3, radix: 16)
-
-        XCTAssertEqual(parsed1, parsed2)
-        XCTAssertEqual(parsed2, parsed3)
-        XCTAssertEqual(parsed1, 0xABCD)
+        XCTAssertEqual(AddressParser.parse("0xabcd"), 0xABCD)
+        XCTAssertEqual(AddressParser.parse("0xABCD"), 0xABCD)
+        XCTAssertEqual(AddressParser.parse("0xAbCd"), 0xABCD)
     }
 }
 
