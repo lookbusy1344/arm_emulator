@@ -48,6 +48,9 @@ type TUI struct {
 	stdinPipeReader *io.PipeReader
 	stdinPipeWriter *io.PipeWriter
 
+	// dispatch runs a debugger command off the UI goroutine
+	dispatch func(cmd string)
+
 	// Focus management
 	focusables []tview.Primitive
 	focusIndex int
@@ -116,6 +119,8 @@ func NewTUIWithScreen(debugger *Debugger, screen tcell.Screen) *TUI {
 		ChangedRegs:    make(map[int]bool),
 		RecentWrites:   make(map[uint32]bool),
 	}
+
+	tui.dispatch = func(cmd string) { go tui.executeCommand(cmd) }
 
 	// Build reverse symbol map for O(1) lookups
 	tui.buildReverseSymbolMap()
@@ -320,19 +325,19 @@ func (t *TUI) setupKeyBindings() {
 	t.App.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
 		switch event.Key() {
 		case tcell.KeyF1:
-			go t.executeCommand("help")
+			t.dispatch("help")
 			return nil
 		case tcell.KeyF5:
-			go t.executeCommand("continue")
+			t.dispatch("continue")
 			return nil
 		case tcell.KeyF9:
 			t.toggleBreakpointAtPC()
 			return nil
 		case tcell.KeyF10:
-			go t.executeCommand("next")
+			t.dispatch("next")
 			return nil
 		case tcell.KeyF11:
-			go t.executeCommand("step")
+			t.dispatch("step")
 			return nil
 		case tcell.KeyF6:
 			// Center current PC in Source and Disassembly views
@@ -385,11 +390,9 @@ func (t *TUI) toggleBreakpointAtPC() {
 // handleCommand processes command input
 func (t *TUI) handleCommand(key tcell.Key) {
 	if key == tcell.KeyEnter {
-		cmd := t.CommandInput.GetText()
-		if cmd != "" {
-			go t.executeCommand(cmd)
-			t.CommandInput.SetText("")
-		}
+		// An empty command reaches the debugger, which repeats the last one
+		t.dispatch(t.CommandInput.GetText())
+		t.CommandInput.SetText("")
 	}
 }
 

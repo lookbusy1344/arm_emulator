@@ -154,3 +154,30 @@ func TestCtrlCPausesRunningProgram(t *testing.T) {
 		t.Fatalf("Ctrl+C should clear the step mode, got %d", mode)
 	}
 }
+
+// TestEmptyEnterRepeatsLastCommand tests that Enter on an empty command line is passed on,
+// so the debugger repeats the last command
+func TestEmptyEnterRepeatsLastCommand(t *testing.T) {
+	tui := newSimulatedTUI(t)
+	var dispatched []string
+	tui.dispatch = func(cmd string) { dispatched = append(dispatched, cmd) }
+
+	tui.CommandInput.SetText("")
+	tui.handleCommand(tcell.KeyEnter)
+
+	if len(dispatched) != 1 || dispatched[0] != "" {
+		t.Fatalf("expected one empty command dispatched, got %q", dispatched)
+	}
+}
+
+// TestExecuteEmptyCommandRepeatsLast tests that an empty command runs the previous one again
+func TestExecuteEmptyCommandRepeatsLast(t *testing.T) {
+	tui := newSimulatedTUI(t)
+
+	tui.executeCommand("set r0 = r0+1")
+	tui.executeCommand("")
+
+	if got := tui.Debugger.VM.CPU.GetRegister(0); got != 2 {
+		t.Fatalf("expected r0 = 2 after repeating the increment, got %d", got)
+	}
+}
